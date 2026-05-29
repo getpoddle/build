@@ -1,0 +1,17 @@
+# Build output - compiled assets never need editing
+dist/
+
+# Dependencies - never edit directly
+node_modules/
+
+# Supabase migrations - 260+ historical SQL files
+supabase/migrations/
+
+# Lock files - auto-generated
+package-lock.json
+
+# Generated TypeScript types from Supabase schema
+src/lib/database.types.ts
+
+# Static public assets
+public/

@@ -1,0 +1,42 @@
+# Robots.txt for Poddle - https://poddleme.com
+
+User-agent: *
+Allow: /
+Allow: /#reasoning/
+Allow: /#reasoning/forecasts
+Allow: /#reasoning/forecasts/
+Allow: /#reasoning/ideas
+Allow: /#reasoning/ideas/
+Allow: /#reasoning/problems
+Allow: /#reasoning/problems/
+
+# Private: enterprise workspace & war room content — must never be indexed
+Disallow: /#workspace/
+Disallow: /#workspace-settings/
+Disallow: /#war-room/
+Disallow: /#join/
+Disallow: /#admin
+Disallow: /#admin-panel
+Disallow: /#app-icons
+
+# Special rules for major search engines
+User-agent: Googlebot
+Allow: /
+Disallow: /#workspace/
+Disallow: /#workspace-settings/
+Disallow: /#war-room/
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+Disallow: /#workspace/
+Disallow: /#workspace-settings/
+Disallow: /#war-room/
+
+User-agent: Slurp
+Allow: /
+
+# Sitemap location
+Sitemap: https://poddleme.com/sitemap.xml

@@ -1,0 +1,27 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#f8fafc"/>
+
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:0.1" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grad)"/>
+
+  <!-- Icon -->
+  <rect x="80" y="195" width="240" height="240" rx="52" fill="#2563eb"/>
+  <path d="M155 285h75c25 0 45 20.25 45 45.375s-20 45.375-45 45.375h-30v29.25h-45V285zm45 45v45.375h30c12.5 0 22.5-10.125 22.5-22.6875S317.5 330 305 330h-30z" fill="white" stroke="white" stroke-width="3"/>
+
+  <!-- Main text -->
+  <text x="380" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#0f172a">Poddle</text>
+  <text x="380" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="400" fill="#475569">Professional Network for Students</text>
+  <text x="380" y="400" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="400" fill="#475569">&amp; Professionals</text>
+
+  <!-- Features -->
+  <text x="380" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="500" fill="#2563eb">✓ Study Pods</text>
+  <text x="580" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="500" fill="#2563eb">✓ Career Opportunities</text>
+  <text x="380" y="520" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="500" fill="#2563eb">✓ Professional Network</text>
+  <text x="580" y="520" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="500" fill="#2563eb">✓ Skill Challenges</text>
+</svg>

@@ -1,0 +1,17 @@
+[[redirects]]
+from = "/sitemap.xml"
+to = "https://bggdthmhcanzzuqkztdo.supabase.co/functions/v1/generate-sitemap"
+status = 200
+force = true
+
+[redirects.headers]
+X-From = "netlify"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+
+[build]
+command = "npx vite build"
+publish = "dist"

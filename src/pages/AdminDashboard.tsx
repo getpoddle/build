@@ -1,0 +1,1611 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Award, Download, Globe, Bot, Play, RefreshCw, Sparkles, ChevronDown } from 'lucide-react';
+import { getAvatarUrl } from '../lib/avatarUtils';
+import VerificationBadge from '../components/VerificationBadge';
+import DomainManagement from '../components/admin/DomainManagement';
+
+type AdminView = 'users' | 'domains' | 'ai-discussions' | 'workspaces' | 'upgrades';
+
+interface UpgradeRequest {
+  id: string;
+  requested_plan: string;
+  status: string;
+  notes: string | null;
+  admin_notes: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  profiles: {
+    id: string;
+    full_name: string | null;
+    email: string;
+    username: string | null;
+    avatar_url: string | null;
+    subscription_tier: string;
+  } | null;
+}
+
+interface UserStats {
+  id: string;
+  full_name: string;
+  email: string;
+  username: string | null;
+  avatar_url: string | null;
+  verified: boolean;
+  created_at: string;
+  insight_score: number;
+  assumptions_count: number;
+  challenges_count: number;
+  forecasts_count: number;
+  risks_count: number;
+  scenarios_count: number;
+  challenge_responses_count: number;
+  pods_joined_count: number;
+  account_status?: string;
+  reason?: string;
+  suspended_until?: string;
+  total_reports_against?: number;
+  pending_reports_against?: number;
+  referral_code?: string | null;
+  total_referrals?: number;
+  recent_referrals?: number;
+}
+
+interface ModerationAction {
+  userId: string;
+  action: 'suspend' | 'ban' | 'unsuspend' | 'delete';
+  reason: string;
+  duration?: number;
+  notes?: string;
+}
+
+export default function AdminDashboard() {
+  const [adminView, setAdminView] = useState<AdminView>('users');
+  const [users, setUsers] = useState<UserStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [showModerationModal, setShowModerationModal] = useState(false);
+  const [moderationAction, setModerationAction] = useState<ModerationAction | null>(null);
+  const [moderationReason, setModerationReason] = useState('');
+  const [moderationDuration, setModerationDuration] = useState<number>(7);
+  const [moderationNotes, setModerationNotes] = useState('');
+  const [processingModeration, setProcessingModeration] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended' | 'banned'>('all');
+  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserStats | null>(null);
+  const [userContributions, setUserContributions] = useState<any[]>([]);
+  const [loadingContributions, setLoadingContributions] = useState(false);
+  const [discussions, setDiscussions] = useState<any[]>([]);
+  const [loadingDiscussions, setLoadingDiscussions] = useState(false);
+  const [triggeringDiscussion, setTriggeringDiscussion] = useState(false);
+  const [discussionMessage, setDiscussionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [adminWorkspaces, setAdminWorkspaces] = useState<any[]>([]);
+  const [loadingAdminWorkspaces, setLoadingAdminWorkspaces] = useState(false);
+  const [upgradeRequests, setUpgradeRequests] = useState<UpgradeRequest[]>([]);
+  const [loadingUpgrades, setLoadingUpgrades] = useState(false);
+  const [upgradeFilter, setUpgradeFilter] = useState<'pending' | 'all' | 'approved' | 'rejected'>('pending');
+  const [processingUpgrade, setProcessingUpgrade] = useState<string | null>(null);
+  const [upgradeAdminNote, setUpgradeAdminNote] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch all data in parallel — 4 queries total regardless of user count
+      // Cap at 2000 profiles to prevent unbounded memory/network load
+      const [profilesRes, statsRes, moderationRes, referralRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, full_name, email, username, avatar_url, verified, created_at, insight_score')
+          .order('created_at', { ascending: false })
+          .limit(2000),
+        supabase.rpc('get_all_users_contribution_stats'),
+        supabase.rpc('get_all_users_moderation_info'),
+        supabase.rpc('get_all_users_referral_stats'),
+      ]);
+
+      if (profilesRes.error) throw profilesRes.error;
+
+      const profilesData = profilesRes.data || [];
+      if (profilesData.length === 0) {
+        setUsers([]);
+        return;
+      }
+
+      // Build lookup maps by user_id for O(1) joins
+      type StatsRow = { user_id: string; assumptions_count: number; challenges_count: number; forecasts_count: number; risks_count: number; scenarios_count: number; challenge_responses_count: number; pods_joined_count: number };
+      type ModerationRow = { user_id: string; account_status: string; reason: string | null; suspended_until: string | null; total_reports_against: number; pending_reports_against: number };
+      type ReferralRow = { user_id: string; referral_code: string | null; total_referrals: number; recent_referrals: number };
+
+      const statsMap = new Map<string, StatsRow>(
+        (statsRes.data || []).map((r: StatsRow) => [r.user_id, r])
+      );
+      const moderationMap = new Map<string, ModerationRow>(
+        (moderationRes.data || []).map((r: ModerationRow) => [r.user_id, r])
+      );
+      const referralMap = new Map<string, ReferralRow>(
+        (referralRes.data || []).map((r: ReferralRow) => [r.user_id, r])
+      );
+
+      const defaultStats: Omit<StatsRow, 'user_id'> = { assumptions_count: 0, challenges_count: 0, forecasts_count: 0, risks_count: 0, scenarios_count: 0, challenge_responses_count: 0, pods_joined_count: 0 };
+      const defaultModeration: Omit<ModerationRow, 'user_id'> = { account_status: 'active', reason: null, suspended_until: null, total_reports_against: 0, pending_reports_against: 0 };
+      const defaultReferral: Omit<ReferralRow, 'user_id'> = { referral_code: null, total_referrals: 0, recent_referrals: 0 };
+
+      const usersWithStats = profilesData.map((profile) => ({
+        ...profile,
+        ...(statsMap.get(profile.id) ?? defaultStats),
+        ...(moderationMap.get(profile.id) ?? defaultModeration),
+        ...(referralMap.get(profile.id) ?? defaultReferral),
+      }));
+
+      setUsers(usersWithStats);
+    } catch (error) {
+      console.error('Error loading users:', error);
+      alert('Failed to load users. Check console for details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleVerification = async (userId: string, currentStatus: boolean) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ verified: !currentStatus })
+        .eq('id', userId)
+        .select();
+
+      if (error) {
+        console.error('Verification error details:', error);
+        throw error;
+      }
+
+      console.log('Verification updated successfully:', data);
+
+      setUsers(users.map(user =>
+        user.id === userId ? { ...user, verified: !currentStatus } : user
+      ));
+
+      alert(`User ${!currentStatus ? 'verified' : 'unverified'} successfully`);
+    } catch (error: any) {
+      console.error('Error toggling verification:', error);
+      alert(`Failed to update verification status: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/admin';
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      alert('Password must be at least 8 characters');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      alert('Password changed successfully');
+      setShowPasswordModal(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      alert(error.message || 'Failed to change password');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const openModerationModal = (userId: string, userName: string, action: 'suspend' | 'ban' | 'unsuspend' | 'delete') => {
+    setModerationAction({ userId, action, reason: '' });
+    setModerationReason('');
+    setModerationDuration(7);
+    setModerationNotes('');
+    setShowModerationModal(true);
+  };
+
+  const handleModerationAction = async () => {
+    if (!moderationAction) return;
+
+    if (!moderationReason.trim()) {
+      alert('Please provide a reason for this action');
+      return;
+    }
+
+    if (moderationAction.action === 'delete') {
+      const confirmDelete = window.confirm(
+        'Are you absolutely sure you want to DELETE this user? This action is PERMANENT and will remove all their data from the system. This cannot be undone!'
+      );
+      if (!confirmDelete) return;
+    }
+
+    try {
+      setProcessingModeration(true);
+
+      let result;
+      if (moderationAction.action === 'suspend') {
+        result = await supabase.rpc('suspend_user_account', {
+          target_user_id: moderationAction.userId,
+          reason_param: moderationReason,
+          duration_days: moderationDuration,
+          notes_param: moderationNotes || null,
+        });
+      } else if (moderationAction.action === 'ban') {
+        result = await supabase.rpc('ban_user_account', {
+          target_user_id: moderationAction.userId,
+          reason_param: moderationReason,
+          notes_param: moderationNotes || null,
+        });
+      } else if (moderationAction.action === 'unsuspend') {
+        result = await supabase.rpc('unsuspend_user_account', {
+          target_user_id: moderationAction.userId,
+          reason_param: moderationReason,
+        });
+      } else if (moderationAction.action === 'delete') {
+        result = await supabase.rpc('delete_user_account', {
+          target_user_id: moderationAction.userId,
+        });
+      }
+
+      if (result?.error) throw result.error;
+
+      let successMessage = 'User updated successfully';
+      if (moderationAction.action === 'delete') successMessage = 'User permanently deleted';
+      else if (moderationAction.action === 'unsuspend') successMessage = 'User unsuspended';
+      else if (moderationAction.action === 'suspend') successMessage = 'User suspended';
+      else if (moderationAction.action === 'ban') successMessage = 'User banned';
+
+      alert(successMessage);
+      setShowModerationModal(false);
+      setModerationAction(null);
+      loadUsers();
+    } catch (error: any) {
+      console.error('Error processing moderation action:', error);
+      alert(error.message || 'Failed to process moderation action');
+    } finally {
+      setProcessingModeration(false);
+    }
+  };
+
+  const viewUserDetails = async (user: UserStats) => {
+    setSelectedUser(user);
+    setShowUserDetailModal(true);
+    setUserContributions([]);
+    setLoadingContributions(true);
+
+    const [assumptions, challenges, forecasts, risks, scenarios, responses] = await Promise.all([
+      supabase.from('pod_assumptions').select('id, content, created_at, pod_id, pods(name)').eq('created_by', user.id).order('created_at', { ascending: false }),
+      supabase.from('assumption_challenges').select('id, content, created_at, assumption_id').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('assumption_forecasts').select('id, justification, probability, created_at, assumption_id').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('assumption_risks').select('id, description, severity, created_at, assumption_id').eq('created_by', user.id).order('created_at', { ascending: false }),
+      supabase.from('assumption_scenarios').select('id, description, created_at, assumption_id').eq('created_by', user.id).order('created_at', { ascending: false }),
+      supabase.from('challenge_responses').select('id, response_text, created_at, challenge_id').eq('user_id', user.id).order('created_at', { ascending: false })
+    ]);
+
+    if (assumptions.error) console.error('Assumptions error:', assumptions.error);
+    if (challenges.error) console.error('Challenges error:', challenges.error);
+    if (forecasts.error) console.error('Forecasts error:', forecasts.error);
+    if (risks.error) console.error('Risks error:', risks.error);
+    if (scenarios.error) console.error('Scenarios error:', scenarios.error);
+    if (responses.error) console.error('Responses error:', responses.error);
+
+    setUserContributions([
+      { type: 'Assumptions', items: assumptions.data || [], deleteFunc: 'admin_delete_assumption' },
+      { type: 'Challenges', items: challenges.data || [], deleteFunc: 'admin_delete_challenge' },
+      { type: 'Forecasts', items: forecasts.data || [], deleteFunc: 'admin_delete_forecast' },
+      { type: 'Risks', items: risks.data || [], deleteFunc: 'admin_delete_risk' },
+      { type: 'Scenarios', items: scenarios.data || [], deleteFunc: 'admin_delete_scenario' },
+      { type: 'Responses', items: responses.data || [], deleteFunc: 'admin_delete_challenge_response' },
+    ]);
+
+    setLoadingContributions(false);
+  };
+
+  const deleteContentItem = async (itemId: string, deleteFunc: string, itemType: string) => {
+    const confirmed = window.confirm(`Are you sure you want to delete this ${itemType.toLowerCase().slice(0, -1)}? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      let funcName = deleteFunc;
+      let paramName = '';
+
+      if (deleteFunc === 'admin_delete_assumption') paramName = 'assumption_id_param';
+      else if (deleteFunc === 'admin_delete_challenge') paramName = 'challenge_id_param';
+      else if (deleteFunc === 'admin_delete_forecast') paramName = 'forecast_id_param';
+      else if (deleteFunc === 'admin_delete_risk') paramName = 'risk_id_param';
+      else if (deleteFunc === 'admin_delete_scenario') paramName = 'scenario_id_param';
+      else if (deleteFunc === 'admin_delete_challenge_response') paramName = 'response_id_param';
+
+      const { error } = await supabase.rpc(funcName, { [paramName]: itemId });
+
+      if (error) throw error;
+
+      alert(`${itemType.slice(0, -1)} deleted successfully`);
+
+      if (selectedUser) {
+        viewUserDetails(selectedUser);
+      }
+    } catch (error: any) {
+      console.error('Error deleting content:', error);
+      alert(`Failed to delete: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.username?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus = filterStatus === 'all' || user.account_status === filterStatus;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const exportToCSV = () => {
+    const headers = [
+      'Full Name',
+      'Email',
+      'Username',
+      'Status',
+      'Verified',
+      'Insight Score',
+      'Assumptions',
+      'Challenges',
+      'Forecasts',
+      'Risks',
+      'Scenarios',
+      'Responses',
+      'Total Referrals',
+      'Joined Date',
+    ];
+
+    const rows = filteredUsers.map(user => [
+      user.full_name || '',
+      user.email || '',
+      user.username ? `@${user.username}` : '',
+      user.account_status || 'active',
+      user.verified ? 'Yes' : 'No',
+      user.insight_score ?? 0,
+      user.assumptions_count ?? 0,
+      user.challenges_count ?? 0,
+      user.forecasts_count ?? 0,
+      user.risks_count ?? 0,
+      user.scenarios_count ?? 0,
+      user.challenge_responses_count ?? 0,
+      user.total_referrals ?? 0,
+      new Date(user.created_at).toLocaleDateString(),
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `poddle-users-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const loadAdminWorkspaces = async () => {
+    setLoadingAdminWorkspaces(true);
+    try {
+      const { data } = await supabase
+        .from('workspaces')
+        .select(`
+          id, name, plan, subscription_status, seats, created_at,
+          stripe_customer_id, stripe_subscription_id, current_period_end,
+          profiles!workspaces_owner_id_fkey (full_name, email)
+        `)
+        .order('created_at', { ascending: false });
+      setAdminWorkspaces(data || []);
+    } catch {}
+    setLoadingAdminWorkspaces(false);
+  };
+
+  const loadUpgradeRequests = async (filter = upgradeFilter) => {
+    setLoadingUpgrades(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/admin-upgrade-requests?status=${filter}`, {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+      });
+      const json = await res.json();
+      setUpgradeRequests(json.requests || []);
+    } catch {}
+    setLoadingUpgrades(false);
+  };
+
+  const handleUpgradeAction = async (requestId: string, action: 'approve' | 'reject') => {
+    setProcessingUpgrade(requestId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/admin-upgrade-requests`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ request_id: requestId, action, admin_notes: upgradeAdminNote[requestId] || '' }),
+      });
+      const json = await res.json();
+      if (json.success) loadUpgradeRequests(upgradeFilter);
+    } catch {}
+    setProcessingUpgrade(null);
+  };
+
+  const loadDiscussions = async () => {
+    setLoadingDiscussions(true);
+    try {
+      const { data } = await supabase
+        .from('ai_agent_discussions')
+        .select('*, agent_topics(title, domain)')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setDiscussions(data || []);
+    } catch (err) {
+      console.error('Error loading discussions:', err);
+    } finally {
+      setLoadingDiscussions(false);
+    }
+  };
+
+  const triggerDiscussion = async () => {
+    setTriggeringDiscussion(true);
+    setDiscussionMessage(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/ai-agents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ action: 'agent-discussion' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setDiscussionMessage({ type: 'success', text: `Discussion created: "${data.topicTitle}"` });
+      await loadDiscussions();
+    } catch (err: any) {
+      setDiscussionMessage({ type: 'error', text: err.message || 'Failed to trigger discussion' });
+    } finally {
+      setTriggeringDiscussion(false);
+    }
+  };
+
+  const totalUsers = users.length;
+  const verifiedUsers = users.filter(u => u.verified).length;
+  const suspendedUsers = users.filter(u => u.account_status === 'suspended').length;
+  const bannedUsers = users.filter(u => u.account_status === 'banned').length;
+  const totalReports = users.reduce((sum, u) => sum + (u.total_reports_against || 0), 0);
+  const totalContributions = users.reduce((sum, u) =>
+    sum + u.assumptions_count + u.challenges_count + u.forecasts_count +
+    u.risks_count + u.scenarios_count + u.challenge_responses_count, 0
+  );
+  const totalReferrals = users.reduce((sum, u) => sum + (u.total_referrals || 0), 0);
+  const recentReferrals = users.reduce((sum, u) => sum + (u.recent_referrals || 0), 0);
+
+  return (
+    <div className="min-h-screen bg-slate-100">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">Admin Dashboard</h1>
+                <p className="text-sm text-slate-600">User Management</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setAdminView('users')}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
+                    adminView === 'users'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  Users
+                </button>
+                <button
+                  onClick={() => setAdminView('domains')}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
+                    adminView === 'domains'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Globe className="w-4 h-4" />
+                  Domains
+                </button>
+                <button
+                  onClick={() => { setAdminView('ai-discussions'); loadDiscussions(); }}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
+                    adminView === 'ai-discussions'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Bot className="w-4 h-4" />
+                  AI Discussions
+                </button>
+                <button
+                  onClick={() => { setAdminView('workspaces'); loadAdminWorkspaces(); }}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
+                    adminView === 'workspaces'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Shield className="w-4 h-4" />
+                  Workspaces
+                </button>
+                <button
+                  onClick={() => { setAdminView('upgrades'); loadUpgradeRequests('pending'); }}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
+                    adminView === 'upgrades'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Upgrades
+                  {upgradeRequests.filter(r => r.status === 'pending').length > 0 && adminView !== 'upgrades' && (
+                    <span className="ml-1 bg-amber-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                      {upgradeRequests.filter(r => r.status === 'pending').length}
+                    </span>
+                  )}
+                </button>
+              </div>
+              {adminView === 'users' && (
+                <button
+                  onClick={exportToCSV}
+                  disabled={filteredUsers.length === 0}
+                  className="px-4 py-2 border border-green-300 text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="w-4 h-4" />
+                  Export CSV
+                  {filteredUsers.length > 0 && (
+                    <span className="ml-1 bg-green-200 text-green-800 text-xs font-semibold px-1.5 py-0.5 rounded-full">
+                      {filteredUsers.length}
+                    </span>
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2"
+              >
+                <Key className="w-4 h-4" />
+                Change Password
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {adminView === 'domains' && (
+          <DomainManagement />
+        )}
+
+        {adminView === 'workspaces' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-600" />
+                Private Workspaces
+              </h3>
+              {loadingAdminWorkspaces ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : adminWorkspaces.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-6">No workspaces yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Workspace</th>
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Owner</th>
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Plan</th>
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Seats</th>
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminWorkspaces.map((ws: any) => {
+                        const owner = Array.isArray(ws.profiles) ? ws.profiles[0] : ws.profiles;
+                        return (
+                          <tr key={ws.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                            <td className="py-2.5 px-3 font-medium text-slate-900">{ws.name}</td>
+                            <td className="py-2.5 px-3 text-slate-600">{owner?.full_name || owner?.email || '—'}</td>
+                            <td className="py-2.5 px-3">
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(37,99,235,0.08)', color: '#2563eb' }}>
+                                {ws.plan}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className={`text-xs font-medium capitalize ${ws.subscription_status === 'active' ? 'text-green-600' : ws.subscription_status === 'cancelled' ? 'text-red-500' : 'text-amber-600'}`}>
+                                {ws.subscription_status}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-600">{ws.seats}</td>
+                            <td className="py-2.5 px-3 text-slate-400">{new Date(ws.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {adminView === 'upgrades' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.1)' }}>
+                    <Sparkles className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Upgrade Requests</h3>
+                    <p className="text-sm text-slate-500">Users requesting Pro or Enterprise access</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <select
+                      value={upgradeFilter}
+                      onChange={e => {
+                        const f = e.target.value as typeof upgradeFilter;
+                        setUpgradeFilter(f);
+                        loadUpgradeRequests(f);
+                      }}
+                      className="pl-3 pr-8 py-2 text-sm border border-slate-200 rounded-lg text-slate-700 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="all">All</option>
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  </div>
+                  <button
+                    onClick={() => loadUpgradeRequests(upgradeFilter)}
+                    className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {loadingUpgrades ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : upgradeRequests.length === 0 ? (
+                <div className="text-center py-12">
+                  <CheckCircle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                  <p className="text-sm text-slate-500">No {upgradeFilter === 'all' ? '' : upgradeFilter} upgrade requests.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {upgradeRequests.map(req => {
+                    const profile = Array.isArray(req.profiles) ? req.profiles[0] : req.profiles;
+                    const isPending = req.status === 'pending';
+                    return (
+                      <div key={req.id} className="rounded-xl p-4" style={{ border: '1px solid rgba(15,23,42,0.08)', background: isPending ? 'rgba(245,158,11,0.03)' : '#fafafa' }}>
+                        <div className="flex items-start gap-4">
+                          <img
+                            src={getAvatarUrl(profile?.avatar_url || null, profile?.full_name || profile?.email || 'U')}
+                            alt=""
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="font-bold text-slate-900 text-sm">{profile?.full_name || profile?.email}</span>
+                              {profile?.username && <span className="text-xs text-slate-400">@{profile.username}</span>}
+                              <span className="text-xs px-2 py-0.5 rounded-full font-bold capitalize"
+                                style={{
+                                  background: req.status === 'pending' ? 'rgba(245,158,11,0.12)' : req.status === 'approved' ? 'rgba(22,163,74,0.1)' : 'rgba(239,68,68,0.08)',
+                                  color: req.status === 'pending' ? '#b45309' : req.status === 'approved' ? '#15803d' : '#dc2626',
+                                }}
+                              >
+                                {req.status}
+                              </span>
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(37,99,235,0.08)', color: '#2563eb' }}>
+                                → {req.requested_plan}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 mb-1">
+                              Current tier: <strong className="text-slate-600 capitalize">{profile?.subscription_tier || 'free'}</strong>
+                              {' · '}{new Date(req.created_at).toLocaleDateString()}
+                            </p>
+                            {req.notes && (
+                              <p className="text-sm text-slate-600 mb-2 leading-relaxed italic">"{req.notes}"</p>
+                            )}
+                            {req.admin_notes && (
+                              <p className="text-xs text-slate-400">Admin note: {req.admin_notes}</p>
+                            )}
+                            {isPending && (
+                              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                                <input
+                                  type="text"
+                                  placeholder="Admin note (optional)"
+                                  value={upgradeAdminNote[req.id] || ''}
+                                  onChange={e => setUpgradeAdminNote(n => ({ ...n, [req.id]: e.target.value }))}
+                                  className="flex-1 min-w-32 px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <button
+                                  onClick={() => handleUpgradeAction(req.id, 'approve')}
+                                  disabled={processingUpgrade === req.id}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                                  style={{ background: 'linear-gradient(135deg,#15803d,#16a34a)' }}
+                                >
+                                  {processingUpgrade === req.id ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleUpgradeAction(req.id, 'reject')}
+                                  disabled={processingUpgrade === req.id}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {adminView === 'ai-discussions' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">AI Agent Discussions</h2>
+                    <p className="text-sm text-slate-500">Trigger multi-agent debates that publish to the feed</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={loadDiscussions}
+                    disabled={loadingDiscussions}
+                    className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loadingDiscussions ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    onClick={triggerDiscussion}
+                    disabled={triggeringDiscussion}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {triggeringDiscussion ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Play className="w-4 h-4" />
+                    )}
+                    {triggeringDiscussion ? 'Generating...' : 'Trigger Discussion'}
+                  </button>
+                </div>
+              </div>
+
+              {discussionMessage && (
+                <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                  discussionMessage.type === 'success'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {discussionMessage.text}
+                </div>
+              )}
+
+              <p className="text-sm text-slate-500 mb-1">
+                Each discussion selects a topic, runs a 6-turn debate between 3 AI agents, and publishes a synthesised insight post to the main feed. The cron job runs automatically every 6 hours.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100">
+                <h3 className="font-semibold text-slate-900">Recent Discussions ({discussions.length})</h3>
+              </div>
+              {loadingDiscussions ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 text-blue-600 animate-spin" />
+                </div>
+              ) : discussions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                  <Bot className="w-12 h-12 mb-3 opacity-30" />
+                  <p className="font-medium">No discussions yet</p>
+                  <p className="text-sm">Click "Trigger Discussion" to generate the first one</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {discussions.map((d: any) => (
+                    <div key={d.id} className="px-6 py-4 flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 truncate">{d.topic_title}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-slate-500">{new Date(d.created_at).toLocaleString()}</span>
+                          {d.agent_topics?.domain && (
+                            <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full capitalize">{d.agent_topics.domain}</span>
+                          )}
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            d.discussion_status === 'completed'
+                              ? 'bg-green-50 text-green-700 border border-green-100'
+                              : d.discussion_status === 'in_progress'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                              : 'bg-slate-50 text-slate-600 border border-slate-200'
+                          }`}>{d.discussion_status}</span>
+                        </div>
+                        {d.agent_names && (
+                          <p className="text-xs text-slate-400 mt-0.5">{(d.agent_names as string[]).join(' · ')}</p>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-semibold text-slate-700">{d.turn_count} turns</p>
+                        {d.post_id && <p className="text-xs text-green-600 mt-0.5">Post published</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {adminView === 'users' && <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Users className="w-8 h-8 text-blue-600" />
+              <div>
+                <p className="text-sm text-slate-600">Total Users</p>
+                <p className="text-2xl font-bold text-slate-900">{totalUsers}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+              <div>
+                <p className="text-sm text-slate-600">Verified</p>
+                <p className="text-2xl font-bold text-slate-900">{verifiedUsers}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Clock className="w-8 h-8 text-orange-600" />
+              <div>
+                <p className="text-sm text-slate-600">Suspended</p>
+                <p className="text-2xl font-bold text-slate-900">{suspendedUsers}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Ban className="w-8 h-8 text-red-600" />
+              <div>
+                <p className="text-sm text-slate-600">Banned</p>
+                <p className="text-2xl font-bold text-slate-900">{bannedUsers}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <UserPlus className="w-8 h-8 text-blue-600" />
+              <div>
+                <p className="text-sm text-slate-600">Total Referrals</p>
+                <p className="text-2xl font-bold text-slate-900">{totalReferrals}</p>
+                {recentReferrals > 0 && (
+                  <p className="text-xs text-blue-600 mt-1">{recentReferrals} this month</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Award className="w-8 h-8 text-amber-600" />
+              <div>
+                <p className="text-sm text-slate-600">Total Contributions</p>
+                <p className="text-2xl font-bold text-slate-900">{totalContributions}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <AlertTriangle className="w-8 h-8 text-red-600" />
+              <div>
+                <p className="text-sm text-slate-600">User Reports</p>
+                <p className="text-2xl font-bold text-slate-900">{totalReports}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {users.length === 2000 && (
+          <div className="mb-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            Showing the 2,000 most recent users. Use search to find specific users beyond this limit.
+          </div>
+        )}
+
+        <div className="bg-white rounded-lg border border-slate-200">
+          <div className="p-4 border-b border-slate-200 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search users by name, email, or username..."
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">Filter by status:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFilterStatus('all')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    filterStatus === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilterStatus('active')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    filterStatus === 'active'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Active
+                </button>
+                <button
+                  onClick={() => setFilterStatus('suspended')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    filterStatus === 'suspended'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Suspended
+                </button>
+                <button
+                  onClick={() => setFilterStatus('banned')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    filterStatus === 'banned'
+                      ? 'bg-red-600 text-white'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  Banned
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-slate-500 mb-2">No users found.</p>
+                <p className="text-sm text-slate-400">Check browser console (F12) for error details.</p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">User</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Insight</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Contributions</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Referrals</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Reports</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filteredUsers.map((user) => {
+                    const totalUserContributions =
+                      user.assumptions_count +
+                      user.challenges_count +
+                      user.forecasts_count +
+                      user.risks_count +
+                      user.scenarios_count +
+                      user.challenge_responses_count;
+
+                    return (
+                      <tr key={user.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            {user.avatar_url ? (
+                              <img
+                                src={getAvatarUrl(user.avatar_url) || ''}
+                                alt={user.full_name}
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-slate-300 flex items-center justify-center">
+                                <span className="text-white font-semibold">
+                                  {user.full_name?.charAt(0) || '?'}
+                                </span>
+                              </div>
+                            )}
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-slate-900">{user.full_name}</p>
+                                <VerificationBadge verified={user.verified} size="sm" />
+                              </div>
+                              <p className="text-sm text-slate-600">{user.email}</p>
+                              {user.username && (
+                                <p className="text-xs text-slate-500">@{user.username}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div>
+                            {user.account_status === 'active' && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                <UserCheck className="w-3 h-3 mr-1" />
+                                Active
+                              </span>
+                            )}
+                            {user.account_status === 'suspended' && (
+                              <div>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  Suspended
+                                </span>
+                                {user.reason && (
+                                  <p className="text-xs text-slate-500 mt-1">{user.reason}</p>
+                                )}
+                                {user.suspended_until && (
+                                  <p className="text-xs text-slate-500 mt-0.5">
+                                    Until {new Date(user.suspended_until).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {user.account_status === 'banned' && (
+                              <div>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                                  <Ban className="w-3 h-3 mr-1" />
+                                  Banned
+                                </span>
+                                {user.reason && (
+                                  <p className="text-xs text-slate-500 mt-1">{user.reason}</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold bg-amber-100 text-amber-800">
+                            {user.insight_score}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="text-sm">
+                            <p className="font-semibold text-slate-900">{totalUserContributions} total</p>
+                            <div className="text-xs text-slate-600 space-y-0.5 mt-1">
+                              <p>Assumptions: {user.assumptions_count}</p>
+                              <p>Challenges: {user.challenges_count}</p>
+                              <p>Forecasts: {user.forecasts_count}</p>
+                              <p>Risks: {user.risks_count}</p>
+                              <p>Scenarios: {user.scenarios_count}</p>
+                              <p>Responses: {user.challenge_responses_count}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="text-sm">
+                            {user.total_referrals && user.total_referrals > 0 ? (
+                              <>
+                                <p className="font-semibold text-blue-900">{user.total_referrals} total</p>
+                                {user.recent_referrals ? (
+                                  <p className="text-xs text-blue-600 mt-0.5">{user.recent_referrals} this month</p>
+                                ) : null}
+                                {user.referral_code && (
+                                  <p className="text-xs text-slate-500 mt-0.5 font-mono">{user.referral_code}</p>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-slate-400">None</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="text-sm">
+                            {user.total_reports_against ? (
+                              <>
+                                <p className="font-semibold text-red-900">{user.total_reports_against} total</p>
+                                {user.pending_reports_against ? (
+                                  <p className="text-xs text-red-600 mt-0.5">{user.pending_reports_against} pending</p>
+                                ) : null}
+                              </>
+                            ) : (
+                              <span className="text-slate-400">None</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={() => viewUserDetails(user)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+                            >
+                              <span className="flex items-center gap-1">
+                                <Eye className="w-3 h-3" />
+                                View Details
+                              </span>
+                            </button>
+
+                            <button
+                              onClick={() => toggleVerification(user.id, user.verified)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                user.verified
+                                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                              }`}
+                            >
+                              {user.verified ? (
+                                <span className="flex items-center gap-1">
+                                  <XCircle className="w-3 h-3" />
+                                  Unverify
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Verify
+                                </span>
+                              )}
+                            </button>
+
+                            {user.account_status === 'active' && (
+                              <>
+                                <button
+                                  onClick={() => openModerationModal(user.id, user.full_name, 'suspend')}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors"
+                                >
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    Suspend
+                                  </span>
+                                </button>
+                                <button
+                                  onClick={() => openModerationModal(user.id, user.full_name, 'ban')}
+                                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                                >
+                                  <span className="flex items-center gap-1">
+                                    <Ban className="w-3 h-3" />
+                                    Ban
+                                  </span>
+                                </button>
+                              </>
+                            )}
+
+                            {(user.account_status === 'suspended' || user.account_status === 'banned') && (
+                              <button
+                                onClick={() => openModerationModal(user.id, user.full_name, 'unsuspend')}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                              >
+                                <span className="flex items-center gap-1">
+                                  <UserCheck className="w-3 h-3" />
+                                  Restore
+                                </span>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => openModerationModal(user.id, user.full_name, 'delete')}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-white hover:bg-slate-900 transition-colors"
+                            >
+                              <span className="flex items-center gap-1">
+                                <Trash2 className="w-3 h-3" />
+                                Delete User
+                              </span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+        </div>}
+      </div>
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Change Password</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  placeholder="Enter new password"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  placeholder="Confirm new password"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleChangePassword}
+                  disabled={changingPassword}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {changingPassword ? 'Changing...' : 'Change Password'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUserDetailModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {selectedUser.avatar_url ? (
+                    <img
+                      src={getAvatarUrl(selectedUser.avatar_url) || ''}
+                      alt={selectedUser.full_name}
+                      className="w-16 h-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-slate-300 flex items-center justify-center">
+                      <span className="text-white font-semibold text-xl">
+                        {selectedUser.full_name?.charAt(0) || '?'}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-2xl font-bold text-slate-900">{selectedUser.full_name}</h2>
+                      <VerificationBadge verified={selectedUser.verified} size="md" />
+                    </div>
+                    <p className="text-slate-600">{selectedUser.email}</p>
+                    {selectedUser.username && (
+                      <p className="text-slate-500">@{selectedUser.username}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowUserDetailModal(false);
+                    setSelectedUser(null);
+                    setUserContributions([]);
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <XCircle className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
+
+              {selectedUser.total_referrals !== undefined && selectedUser.total_referrals > 0 && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm">
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                    <span className="font-semibold text-blue-900">
+                      Referred {selectedUser.total_referrals} user{selectedUser.total_referrals !== 1 ? 's' : ''}
+                    </span>
+                    {selectedUser.recent_referrals !== undefined && selectedUser.recent_referrals > 0 && (
+                      <span className="text-blue-700">
+                        ({selectedUser.recent_referrals} this month)
+                      </span>
+                    )}
+                  </div>
+                  {selectedUser.referral_code && (
+                    <p className="text-xs text-slate-600 mt-1">
+                      Code: <span className="font-mono font-semibold">{selectedUser.referral_code}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingContributions ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {userContributions.map((section: any) => (
+                    <div key={section.type} className="border border-slate-200 rounded-lg overflow-hidden">
+                      <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                        <h3 className="font-semibold text-slate-900">
+                          {section.type} ({section.items.length})
+                        </h3>
+                      </div>
+                      <div className="divide-y divide-slate-200">
+                        {section.items.length === 0 ? (
+                          <div className="p-4 text-center text-slate-500">
+                            No {section.type.toLowerCase()} yet
+                          </div>
+                        ) : (
+                          section.items.map((item: any) => (
+                            <div key={item.id} className="p-4 hover:bg-slate-50">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-slate-900 mb-2">
+                                    {item.content || item.response_text || item.justification || item.description}
+                                  </p>
+                                  {item.probability !== undefined && (
+                                    <p className="text-sm text-slate-600 mb-1">
+                                      Probability: {item.probability}%
+                                    </p>
+                                  )}
+                                  {item.severity && (
+                                    <p className="text-sm text-slate-600 mb-1">
+                                      Severity: {item.severity}
+                                    </p>
+                                  )}
+                                  {item.pods && (
+                                    <p className="text-sm text-slate-600 mb-1">
+                                      Decision Room: {item.pods.name}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-slate-500">
+                                    {new Date(item.created_at).toLocaleString()}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => deleteContentItem(item.id, section.deleteFunc, section.type)}
+                                  className="flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Delete this item"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showModerationModal && moderationAction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+            <h2 className="text-xl font-bold text-slate-900 mb-4">
+              {moderationAction.action === 'suspend' && 'Suspend User Account'}
+              {moderationAction.action === 'ban' && 'Ban User Account'}
+              {moderationAction.action === 'unsuspend' && 'Restore User Account'}
+              {moderationAction.action === 'delete' && 'Delete User Account'}
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={moderationReason}
+                  onChange={(e) => setModerationReason(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                  placeholder="Provide a clear reason for this action..."
+                />
+              </div>
+
+              {moderationAction.action === 'suspend' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Duration (days)
+                  </label>
+                  <select
+                    value={moderationDuration}
+                    onChange={(e) => setModerationDuration(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  >
+                    <option value={1}>1 day</option>
+                    <option value={3}>3 days</option>
+                    <option value={7}>7 days</option>
+                    <option value={14}>14 days</option>
+                    <option value={30}>30 days</option>
+                    <option value={90}>90 days</option>
+                  </select>
+                </div>
+              )}
+
+              {moderationAction.action !== 'delete' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Additional Notes
+                  </label>
+                  <textarea
+                    value={moderationNotes}
+                    onChange={(e) => setModerationNotes(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                    placeholder="Optional internal notes..."
+                  />
+                </div>
+              )}
+
+              {moderationAction.action === 'ban' && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800">
+                    <strong>Warning:</strong> Banning a user is a permanent action. The user will not be able to access their account or create new content.
+                  </p>
+                </div>
+              )}
+
+              {moderationAction.action === 'delete' && (
+                <div className="p-4 bg-slate-900 border border-slate-700 rounded-lg">
+                  <p className="text-sm text-white mb-2">
+                    <strong>DANGER:</strong> This will PERMANENTLY DELETE the user and ALL their data including:
+                  </p>
+                  <ul className="text-xs text-slate-300 space-y-1 ml-4 list-disc">
+                    <li>Profile information</li>
+                    <li>All assumptions, challenges, forecasts, risks, and scenarios</li>
+                    <li>All posts, comments, and messages</li>
+                    <li>All decision room memberships and contributions</li>
+                    <li>Authentication credentials</li>
+                  </ul>
+                  <p className="text-sm text-red-400 mt-3 font-semibold">
+                    This action CANNOT be undone!
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleModerationAction}
+                  disabled={processingModeration}
+                  className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
+                    moderationAction.action === 'suspend'
+                      ? 'bg-orange-600 hover:bg-orange-700'
+                      : moderationAction.action === 'ban'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : moderationAction.action === 'delete'
+                      ? 'bg-slate-900 hover:bg-black'
+                      : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  {processingModeration ? 'Processing...' :
+                    moderationAction.action === 'suspend' ? 'Suspend User' :
+                    moderationAction.action === 'ban' ? 'Ban User' :
+                    moderationAction.action === 'delete' ? 'Delete User Permanently' :
+                    'Restore Account'
+                  }
+                </button>
+                <button
+                  onClick={() => {
+                    setShowModerationModal(false);
+                    setModerationAction(null);
+                    setModerationReason('');
+                    setModerationNotes('');
+                  }}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
