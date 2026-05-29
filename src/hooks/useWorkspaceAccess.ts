@@ -146,48 +146,35 @@ export function useSubscriptionTier() {
     if (!user) { setTier('free'); setLoading(false); return; }
 
     async function load() {
-      // Check profile tier and active paid workspace membership in parallel.
-      // Only workspaces with a real Stripe subscription count as "paid" —
-      // trial workspaces (stripe_customer_id IS NULL) must not escalate the tier
-      // or free users would bypass the 2-workspace trial limit immediately.
-      const [profileRes, workspaceRes] = await Promise.all([
+      // Query the profile tier and any genuinely paid workspace in parallel.
+      // We query workspaces directly (not through workspace_members) so we can
+      // reliably filter on stripe_subscription_id — PostgREST drops filters on
+      // embedded resources, so a join-based query would silently ignore the filter
+      // and treat every trialing workspace as paid.
+      const [profileRes, paidWsRes] = await Promise.all([
         supabase
           .from('profiles')
           .select('subscription_tier')
           .eq('id', user!.id)
           .maybeSingle(),
         supabase
-          .from('workspace_members')
-          .select('workspaces!inner(plan, subscription_status, stripe_customer_id)')
-          .eq('user_id', user!.id)
-          .eq('workspaces.subscription_status', 'active')
-          .not('workspaces.stripe_customer_id', 'is', null)
-          .in('workspaces.plan', ['pro', 'enterprise'])
+          .from('workspaces')
+          .select('plan')
+          .eq('owner_id', user!.id)
+          .eq('subscription_status', 'active')
+          .not('stripe_subscription_id', 'is', null)
           .limit(1),
       ]);
 
       const profileTier = (profileRes.data?.subscription_tier as 'free' | 'pro' | 'enterprise') || 'free';
 
-      // Determine the highest tier from workspace membership
-      const activeWorkspaces = (workspaceRes.data || []) as Array<{ workspaces: { plan: string; subscription_status: string; stripe_customer_id: string | null } }>;
-      const hasActiveProWorkspace = activeWorkspaces.length > 0;
-      const workspacePlan = activeWorkspaces[0]?.workspaces?.plan as 'pro' | 'enterprise' | undefined;
-
+      // Only a Stripe-backed active workspace upgrades the tier.
+      // Trial workspaces (no stripe_subscription_id) must never set isPro=true.
+      const paidWorkspace = paidWsRes.data?.[0];
       let resolvedTier: 'free' | 'pro' | 'enterprise' = profileTier;
-      if (hasActiveProWorkspace) {
-        // Workspace membership takes precedence — escalate tier if needed
-        if (workspacePlan === 'enterprise') resolvedTier = 'enterprise';
+      if (paidWorkspace) {
+        if (paidWorkspace.plan === 'enterprise') resolvedTier = 'enterprise';
         else if (resolvedTier === 'free') resolvedTier = 'pro';
-      }
-
-      // If workspace says pro but profile is still free, sync it in the background
-      if (resolvedTier !== 'free' && profileTier === 'free') {
-        supabase
-          .from('profiles')
-          .update({ subscription_tier: resolvedTier })
-          .eq('id', user!.id)
-          .then(() => {})
-          .catch(() => {});
       }
 
       setTier(resolvedTier);
