@@ -133,10 +133,6 @@ html.theme-dark {
 
   input, textarea, select {
     font-family: inherit;
-    /* 16px minimum prevents iOS auto-zoom on focus.
-       !important overrides Tailwind utility classes (text-sm etc.) that would
-       otherwise shrink below the threshold and trigger the zoom. */
-    font-size: max(16px, 1rem) !important;
     -webkit-appearance: none;
     appearance: none;
   }
@@ -633,4 +629,15 @@ html.theme-dark {
   .backdrop-blur-xs {
     backdrop-filter: blur(2px);
   }
+}
+
+/*
+  Unlayered rules win over all @layer blocks in the CSS cascade.
+  This guarantees input/textarea/select always render at >= 16px on iOS,
+  which is the threshold below which Safari triggers automatic page zoom on focus.
+  Placing this outside any @layer means it cannot be overridden by Tailwind
+  utility classes (text-xs, text-sm, etc.) regardless of specificity.
+*/
+input, textarea, select {
+  font-size: max(16px, 1rem) !important;
 }
