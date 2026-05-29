@@ -206,16 +206,25 @@ export function useTrialInfo() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
 
-    supabase
-      .from('profiles')
-      .select('trial_workspace_count')
-      .eq('id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setTrialCount(data?.trial_workspace_count ?? 0);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    // Use the higher of the stored counter and the actual owned workspace count.
+    // Pre-migration workspaces were never counted in trial_workspace_count, so
+    // reading only the stored value would allow unlimited workspace creation.
+    Promise.all([
+      supabase
+        .from('profiles')
+        .select('trial_workspace_count')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('workspaces')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_id', user.id),
+    ]).then(([profileRes, wsCountRes]) => {
+      const stored = profileRes.data?.trial_workspace_count ?? 0;
+      const actual = wsCountRes.count ?? 0;
+      setTrialCount(Math.max(stored, actual));
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, [user]);
 
   const FREE_LIMIT = 2;
