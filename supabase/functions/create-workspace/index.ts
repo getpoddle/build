@@ -55,12 +55,15 @@ Deno.serve(async (req: Request) => {
     // Check user's subscription status and trial usage in parallel
     const [profileRes, existingPaidWsRes, ownedWsCountRes] = await Promise.all([
       service.from("profiles").select("subscription_tier, trial_workspace_count").eq("id", user.id).maybeSingle(),
+      // Only count workspaces with a real Stripe subscription as "paid".
+      // Trial workspaces have subscription_status = 'trialing' but no stripe_subscription_id —
+      // they must NOT count as paid or the trial limit is bypassed.
       service
         .from("workspaces")
         .select("id")
         .eq("owner_id", user.id)
         .not("stripe_subscription_id", "is", null)
-        .in("subscription_status", ["active", "trialing"])
+        .eq("subscription_status", "active")
         .limit(1),
       service
         .from("workspaces")
