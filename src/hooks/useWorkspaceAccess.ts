@@ -146,37 +146,16 @@ export function useSubscriptionTier() {
     if (!user) { setTier('free'); setLoading(false); return; }
 
     async function load() {
-      // Query the profile tier and any genuinely paid workspace in parallel.
-      // We query workspaces directly (not through workspace_members) so we can
-      // reliably filter on stripe_subscription_id — PostgREST drops filters on
-      // embedded resources, so a join-based query would silently ignore the filter
-      // and treat every trialing workspace as paid.
-      const [profileRes, paidWsRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('subscription_tier')
-          .eq('id', user!.id)
-          .maybeSingle(),
-        supabase
-          .from('workspaces')
-          .select('plan')
-          .eq('owner_id', user!.id)
-          .eq('subscription_status', 'active')
-          .not('stripe_subscription_id', 'is', null)
-          .limit(1),
-      ]);
+      // Profile tier is the authoritative source.
+      // subscription_tier='pro'/'enterprise' is only ever set by the Stripe webhook
+      // or an admin — never by client-side code — so it's safe to trust directly.
+      const profileRes = await supabase
+        .from('profiles')
+        .select('subscription_tier')
+        .eq('id', user!.id)
+        .maybeSingle();
 
-      const profileTier = (profileRes.data?.subscription_tier as 'free' | 'pro' | 'enterprise') || 'free';
-
-      // Only a Stripe-backed active workspace upgrades the tier.
-      // Trial workspaces (no stripe_subscription_id) must never set isPro=true.
-      const paidWorkspace = paidWsRes.data?.[0];
-      let resolvedTier: 'free' | 'pro' | 'enterprise' = profileTier;
-      if (paidWorkspace) {
-        if (paidWorkspace.plan === 'enterprise') resolvedTier = 'enterprise';
-        else if (resolvedTier === 'free') resolvedTier = 'pro';
-      }
-
+      const resolvedTier = (profileRes.data?.subscription_tier as 'free' | 'pro' | 'enterprise') || 'free';
       setTier(resolvedTier);
       setLoading(false);
     }
@@ -195,9 +174,9 @@ export function useTrialInfo() {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
 
-    // Use the higher of the stored counter and the actual owned workspace count.
-    // Pre-migration workspaces were never counted in trial_workspace_count, so
-    // reading only the stored value would allow unlimited workspace creation.
+    // Count workspaces the user owns by going through workspace_members (role='owner'),
+    // since the workspaces RLS SELECT policy is is_workspace_member(), not owner_id=auth.uid().
+    // Querying workspaces directly by owner_id returns empty for non-service-role clients.
     Promise.all([
       supabase
         .from('profiles')
@@ -205,9 +184,10 @@ export function useTrialInfo() {
         .eq('id', user.id)
         .maybeSingle(),
       supabase
-        .from('workspaces')
+        .from('workspace_members')
         .select('id', { count: 'exact', head: true })
-        .eq('owner_id', user.id),
+        .eq('user_id', user.id)
+        .eq('role', 'owner'),
     ]).then(([profileRes, wsCountRes]) => {
       const stored = profileRes.data?.trial_workspace_count ?? 0;
       const actual = wsCountRes.count ?? 0;
