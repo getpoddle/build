@@ -52,12 +52,15 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check user's subscription status and trial usage in parallel
-    const [profileRes, existingPaidWsRes, ownedWsCountRes] = await Promise.all([
-      service.from("profiles").select("subscription_tier, trial_workspace_count").eq("id", user.id).maybeSingle(),
-      // Only count workspaces with a real Stripe subscription as "paid".
-      // Trial workspaces have subscription_status = 'trialing' but no stripe_subscription_id —
-      // they must NOT count as paid or the trial limit is bypassed.
+    // Fetch profile, any Stripe-backed paid workspace, and actual owned workspace count in parallel.
+    const [profileRes, paidWsRes, ownedWsCountRes] = await Promise.all([
+      service
+        .from("profiles")
+        .select("subscription_tier, trial_workspace_count")
+        .eq("id", user.id)
+        .maybeSingle(),
+      // A "paid" workspace must have an active Stripe subscription.
+      // Trial workspaces (stripe_subscription_id IS NULL, status='trialing') are NOT paid.
       service
         .from("workspaces")
         .select("id")
@@ -71,18 +74,30 @@ Deno.serve(async (req: Request) => {
         .eq("owner_id", user.id),
     ]);
 
+    // Hard-fail if we can't read the owned workspace count — safer than silently allowing creation.
+    if (ownedWsCountRes.error) {
+      return new Response(JSON.stringify({ error: "Could not verify workspace limit. Please try again." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const profileTier = profileRes.data?.subscription_tier;
-    const trialWorkspaceCount = profileRes.data?.trial_workspace_count ?? 0;
+    // trial_workspace_count tracks slots consumed including via invite acceptance.
+    // Use it as the primary counter; use actual owned count as a floor for
+    // pre-migration users whose counter was never set.
+    const storedCount = profileRes.data?.trial_workspace_count ?? 0;
+    const actualOwnedCount = ownedWsCountRes.count ?? 0;
+    const effectiveTrialCount = Math.max(storedCount, actualOwnedCount);
+
+    // isPaid: either the profile was explicitly granted a paid tier by an admin,
+    // OR the user owns a workspace backed by a real Stripe subscription.
+    // Trial workspaces (no stripe_subscription_id) do NOT confer paid status.
     const hasPaidProfile = profileTier === "pro" || profileTier === "enterprise";
-    const hasPaidWorkspace = (existingPaidWsRes.data?.length ?? 0) > 0;
+    const hasPaidWorkspace = (paidWsRes.data?.length ?? 0) > 0;
     const isPaid = hasPaidProfile || hasPaidWorkspace;
 
-    // Use the higher of the DB count and the stored counter to handle
-    // pre-migration workspaces that were never counted in trial_workspace_count.
-    const actualOwnedCount = ownedWsCountRes.count ?? 0;
-    const effectiveTrialCount = Math.max(trialWorkspaceCount, actualOwnedCount);
-
-    // Free trial path: user has no paid subscription
+    // Free trial path: enforce 2-workspace cap.
     if (!isPaid) {
       if (effectiveTrialCount >= FREE_TRIAL_LIMIT) {
         return new Response(
@@ -98,7 +113,6 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Determine workspace creation params based on paid vs trial
     const trialExpiresAt = !isPaid
       ? new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
       : null;
@@ -127,7 +141,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Add creator as owner
+    // Add creator as owner member.
     const { error: memberError } = await service
       .from("workspace_members")
       .insert({
@@ -144,7 +158,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Increment trial_workspace_count for free tier users
+    // Increment trial_workspace_count for free users so the cap is correctly
+    // enforced on the next creation attempt (and in the frontend hook).
     if (!isPaid) {
       await service
         .from("profiles")
