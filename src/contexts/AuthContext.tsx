@@ -1,9 +1,12 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { getDisplayName } from '../lib/displayName';
 import { setUserProperties, trackUserLogin, trackUserSignup } from '../lib/analytics';
 import { phIdentify, phSetPersonProperties, phReset, phCapture, phSyncProfileProperties } from '../lib/posthog';
+
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+const IDLE_EVENTS = ['mousemove', 'keydown', 'click', 'touchstart'] as const;
 
 interface AuthContextType {
   user: User | null;
@@ -27,6 +30,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [signupEmailPending, setSignupEmailPending] = useState<string | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isAdminRef = useRef(false);
+
+  const clearIdleTimer = () => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+  };
+
+  const resetIdleTimer = () => {
+    if (!isAdminRef.current) return;
+    clearIdleTimer();
+    idleTimerRef.current = setTimeout(() => {
+      supabase.auth.signOut({ scope: 'local' });
+    }, IDLE_TIMEOUT_MS);
+  };
+
+  // Start/stop idle detection based on admin status
+  useEffect(() => {
+    IDLE_EVENTS.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }));
+    return () => {
+      IDLE_EVENTS.forEach(e => window.removeEventListener(e, resetIdleTimer));
+      clearIdleTimer();
+    };
+  }, []);
 
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
@@ -58,6 +87,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
 
         if (event === 'SIGNED_IN' && session?.user) {
+          // Check admin status and start idle timeout if admin
+          const { data: adminData } = await supabase
+            .from('admins')
+            .select('id')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          isAdminRef.current = !!adminData;
+          if (isAdminRef.current) resetIdleTimer();
+
           phIdentify(session.user.id, {
             email: session.user.email,
             signup_at: session.user.created_at,
@@ -198,6 +236,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      isAdminRef.current = false;
+      clearIdleTimer();
       phCapture('user_logout');
       phReset();
       await supabase.auth.signOut({ scope: 'local' });
