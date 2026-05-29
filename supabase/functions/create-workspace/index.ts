@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
     );
 
     // Check user's subscription status and trial usage in parallel
-    const [profileRes, existingPaidWsRes] = await Promise.all([
+    const [profileRes, existingPaidWsRes, ownedWsCountRes] = await Promise.all([
       service.from("profiles").select("subscription_tier, trial_workspace_count").eq("id", user.id).maybeSingle(),
       service
         .from("workspaces")
@@ -62,6 +62,10 @@ Deno.serve(async (req: Request) => {
         .not("stripe_subscription_id", "is", null)
         .in("subscription_status", ["active", "trialing"])
         .limit(1),
+      service
+        .from("workspaces")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id),
     ]);
 
     const profileTier = profileRes.data?.subscription_tier;
@@ -70,9 +74,14 @@ Deno.serve(async (req: Request) => {
     const hasPaidWorkspace = (existingPaidWsRes.data?.length ?? 0) > 0;
     const isPaid = hasPaidProfile || hasPaidWorkspace;
 
+    // Use the higher of the DB count and the stored counter to handle
+    // pre-migration workspaces that were never counted in trial_workspace_count.
+    const actualOwnedCount = ownedWsCountRes.count ?? 0;
+    const effectiveTrialCount = Math.max(trialWorkspaceCount, actualOwnedCount);
+
     // Free trial path: user has no paid subscription
     if (!isPaid) {
-      if (trialWorkspaceCount >= FREE_TRIAL_LIMIT) {
+      if (effectiveTrialCount >= FREE_TRIAL_LIMIT) {
         return new Response(
           JSON.stringify({
             error: "You've used both free trial workspaces. Upgrade to Pro to create more.",
@@ -136,7 +145,7 @@ Deno.serve(async (req: Request) => {
     if (!isPaid) {
       await service
         .from("profiles")
-        .update({ trial_workspace_count: trialWorkspaceCount + 1 })
+        .update({ trial_workspace_count: effectiveTrialCount + 1 })
         .eq("id", user.id);
     }
 
