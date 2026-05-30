@@ -46,8 +46,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [domain, setDomain] = useState('general');
-  const [plan, setPlan] = useState<'pro' | 'enterprise'>('pro');
-  const [seats, setSeats] = useState(5);
+  const [plan, setPlan] = useState<'pro' | 'team'>('pro');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
@@ -74,7 +73,6 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing 
         description: description.trim(),
         domain,
         plan,
-        seats,
       });
 
       if (json.errorCode === 'TRIAL_EXHAUSTED') {
@@ -114,7 +112,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing 
         body: JSON.stringify({
           plan,
           workspace_name: name.trim() || 'My Workspace',
-          seats,
+          seats: plan === 'team' ? 10 : 5,
           success_url: `${window.location.origin}/?payment_success=1&plan=${plan}`,
           cancel_url: window.location.href,
         }),
@@ -248,43 +246,27 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing 
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
             </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Seats</label>
-              <div className="relative">
-                <select
-                  value={seats}
-                  onChange={e => setSeats(Number(e.target.value))}
-                  className="w-full px-4 py-3 pr-9 rounded-xl text-sm border text-slate-900 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fafafa' }}
-                >
-                  {[3, 5, 10, 20, 50].map(n => (
-                    <option key={n} value={n}>{n} seats</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              </div>
-            </div>
           </div>
 
           {/* Plan toggle */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Plan</label>
             <div className="grid grid-cols-2 gap-3">
-              {(['pro', 'enterprise'] as const).map(p => (
+              {([
+                { value: 'pro', label: 'Pro Individual', seats: 5, desc: 'Up to 5 members' },
+                { value: 'team', label: 'Poddle Team', seats: 10, desc: 'Up to 10 members' },
+              ] as const).map(p => (
                 <button
-                  key={p}
-                  onClick={() => setPlan(p)}
+                  key={p.value}
+                  onClick={() => setPlan(p.value)}
                   className="flex flex-col items-start p-3.5 rounded-xl border text-left transition-all"
                   style={{
-                    borderColor: plan === p ? '#2563eb' : 'rgba(15,23,42,0.12)',
-                    background: plan === p ? 'rgba(37,99,235,0.06)' : '#fafafa',
+                    borderColor: plan === p.value ? '#2563eb' : 'rgba(15,23,42,0.12)',
+                    background: plan === p.value ? 'rgba(37,99,235,0.06)' : '#fafafa',
                   }}
                 >
-                  <span className="text-sm font-bold text-slate-900 capitalize">{p}</span>
-                  <span className="text-xs text-slate-500 mt-0.5">
-                    {p === 'pro' ? 'Up to 20 seats' : 'Up to 25 members'}
-                  </span>
+                  <span className="text-sm font-bold text-slate-900">{p.label}</span>
+                  <span className="text-xs text-slate-500 mt-0.5">{p.desc}</span>
                 </button>
               ))}
             </div>

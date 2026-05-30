@@ -21,14 +21,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Verify user JWT
-    const anonClient = createClient(
+    const service = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: { user }, error: authError } = await anonClient.auth.getUser();
+    // Verify user JWT using service role (avoids a second round-trip to auth server)
+    const { data: { user }, error: authError } = await service.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -44,15 +45,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const service = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // Fetch invite
+    // Fetch invite + workspace in one query via join
     const { data: invite, error: inviteErr } = await service
       .from("workspace_invites")
-      .select("id, workspace_id, invited_email, expires_at, accepted_at")
+      .select("id, workspace_id, invited_email, expires_at, accepted_at, workspaces(seats, subscription_status, stripe_subscription_id)")
       .eq("token", token)
       .maybeSingle();
 
@@ -77,70 +73,55 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Check already a member
-    const { data: existing } = await service
-      .from("workspace_members")
-      .select("id")
-      .eq("workspace_id", invite.workspace_id)
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // Check already a member + current member count in parallel
+    const [existingRes, memberCountRes] = await Promise.all([
+      service
+        .from("workspace_members")
+        .select("id")
+        .eq("workspace_id", invite.workspace_id)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      service
+        .from("workspace_members")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", invite.workspace_id),
+    ]);
 
-    if (existing) {
+    if (existingRes.data) {
       return new Response(JSON.stringify({ already_member: true, workspace_id: invite.workspace_id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Add member
-    const { error: memberErr } = await service
-      .from("workspace_members")
-      .insert({ workspace_id: invite.workspace_id, user_id: user.id, role: "member" });
+    // Enforce seat limit
+    const workspace = Array.isArray(invite.workspaces) ? invite.workspaces[0] : invite.workspaces as { seats: number; subscription_status: string; stripe_subscription_id: string | null } | null;
+    const seats = workspace?.seats ?? 5;
+    const currentMembers = memberCountRes.count ?? 0;
 
-    if (memberErr) {
-      return new Response(JSON.stringify({ error: "Failed to add member", detail: memberErr.message }), {
-        status: 500,
+    if (currentMembers >= seats) {
+      return new Response(JSON.stringify({ error: "This workspace has reached its member limit." }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // If the workspace is a trial workspace, consume one trial slot for the invitee
-    // BEFORE marking the invite as accepted, so a failure here is fully recoverable.
-    const { data: workspace, error: wsErr } = await service
-      .from("workspaces")
-      .select("subscription_status, stripe_subscription_id")
-      .eq("id", invite.workspace_id)
-      .maybeSingle();
+    // Add member + mark invite accepted in parallel
+    const [memberRes] = await Promise.all([
+      service
+        .from("workspace_members")
+        .insert({ workspace_id: invite.workspace_id, user_id: user.id, role: "member" }),
+      service
+        .from("workspace_invites")
+        .update({ accepted_at: new Date().toISOString() })
+        .eq("id", invite.id),
+    ]);
 
-    if (!wsErr && workspace) {
-      const isTrialWorkspace =
-        workspace.subscription_status === "trialing" &&
-        !workspace.stripe_subscription_id;
-
-      if (isTrialWorkspace) {
-        const { data: profile } = await service
-          .from("profiles")
-          .select("trial_workspace_count, subscription_tier")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        const inviteeTier = profile?.subscription_tier;
-        const isPaid = inviteeTier === "pro" || inviteeTier === "enterprise";
-
-        if (!isPaid) {
-          const currentCount = profile?.trial_workspace_count ?? 0;
-          await service
-            .from("profiles")
-            .update({ trial_workspace_count: currentCount + 1 })
-            .eq("id", user.id);
-        }
-      }
+    if (memberRes.error) {
+      return new Response(JSON.stringify({ error: "Failed to add member", detail: memberRes.error.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-
-    // Mark invite accepted
-    await service
-      .from("workspace_invites")
-      .update({ accepted_at: new Date().toISOString() })
-      .eq("id", invite.id);
 
     return new Response(JSON.stringify({ success: true, workspace_id: invite.workspace_id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -117,6 +117,10 @@ Deno.serve(async (req: Request) => {
       ? new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
+    // Seats are determined by plan — never trust client-provided value
+    const resolvedPlan = plan === "team" ? "team" : "pro";
+    const resolvedSeats = resolvedPlan === "team" ? 10 : 5;
+
     const { data: ws, error: wsError } = await service
       .from("workspaces")
       .insert({
@@ -124,8 +128,8 @@ Deno.serve(async (req: Request) => {
         description: (description || "").trim(),
         domain: domain || "general",
         owner_id: user.id,
-        plan: plan || "pro",
-        seats: seats || 5,
+        plan: resolvedPlan,
+        seats: resolvedSeats,
         workspace_type: "encrypted",
         is_encrypted: true,
         subscription_status: isPaid ? "active" : "trialing",
