@@ -623,13 +623,16 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       let json: { error?: string; synthesis?: Record<string, unknown> };
       try { json = await res!.json(); } catch { setError('Unexpected server response.'); return; }
       if (json.error) { setError(json.error); return; }
-      if (json.synthesis) {
-        setSynthesis(sanitizeSynthesis(json.synthesis));
+      if (!json.error) {
+        // Always re-fetch from DB after synthesis so we show exactly what was stored,
+        // regardless of what the edge function response payload contained.
         setActiveSection(null);
-        const { count } = await supabase.from('workspace_messages')
-          .select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId);
-        setMessageCount(count ?? 0);
-        const [histRes, actRes] = await Promise.all([
+        const [synthRes, countRes, histRes, actRes] = await Promise.all([
+          supabase.from('workspace_synthesis')
+            .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,generated_at,message_count_at_generation')
+            .eq('workspace_id', workspaceId).maybeSingle(),
+          supabase.from('workspace_messages')
+            .select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
           supabase.from('workspace_synthesis_history')
             .select('id,decision_health_score,financial_score,operational_score,alignment_score,consensus_count,open_question_count,message_count,generated_at')
             .eq('workspace_id', workspaceId).order('generated_at', { ascending: true }),
@@ -637,6 +640,10 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             .select('id,text,source,priority,source_area,assignee_user_id,due_date,status,created_at')
             .eq('workspace_id', workspaceId).order('created_at', { ascending: true }),
         ]);
+        if (synthRes.data) {
+          setSynthesis(sanitizeSynthesis({ ...synthRes.data, message_count: synthRes.data.message_count_at_generation }));
+        }
+        setMessageCount(countRes.count ?? 0);
         setHistory((histRes.data as HistoryRow[]) || []);
         setActionItems((actRes.data as ActionItem[]) || []);
       }

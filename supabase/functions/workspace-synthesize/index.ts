@@ -215,7 +215,7 @@ ${transcript}`;
             { role: "system", content: "You are a strategic intelligence analyst. Return only valid JSON, nothing else." },
             { role: "user", content: synthesisPrompt },
           ],
-          max_tokens: 4500,
+          max_tokens: 6000,
           temperature: 0.3,
           response_format: { type: "json_object" },
         }),
