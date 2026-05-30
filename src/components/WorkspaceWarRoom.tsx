@@ -371,13 +371,15 @@ function RiskMatrix({ risks }: { risks: SynthesisData['risk_signals'] }) {
 }
 
 // ─── Financial Metrics Panel ──────────────────────────────────────────────────
-function FinancialMetricsPanel({ metrics, score }: { metrics: SynthesisData['financial_metrics']; score: number | null }) {
+function FinancialMetricsPanel({ metrics, score, onDiscuss, discussedKeys = new Set(), onDiscussed }: { metrics: SynthesisData['financial_metrics']; score: number | null; onDiscuss?: (prompt: string) => void; discussedKeys?: Set<string>; onDiscussed?: (key: string) => void }) {
   return (
     <div className="bg-white">
       {metrics.map((m, i) => {
         const cc = CONF_COLORS[m.confidence?.toLowerCase()] || CONF_COLORS.medium;
+        const key = `financial:${m.metric}`;
+        const sent = discussedKeys.has(key);
         return (
-          <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(22,163,74,0.07)' : undefined }}>
+          <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(22,163,74,0.07)' : undefined, background: sent ? 'rgba(22,163,74,0.02)' : undefined }}>
             <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(22,163,74,0.08)' }}>
               <DollarSign className="w-4 h-4 text-green-600" />
             </div>
@@ -389,6 +391,17 @@ function FinancialMetricsPanel({ metrics, score }: { metrics: SynthesisData['fin
               <p className="text-sm font-semibold text-slate-700 mb-0.5">{m.value}</p>
               <p className="text-xs text-slate-500 leading-relaxed">{m.note}</p>
             </div>
+            {onDiscuss && (sent ? (
+              <span className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}>
+                <CheckCircle2 className="w-3 h-3" />Sent
+              </span>
+            ) : (
+              <button onClick={() => { onDiscuss(`Analyse our financial signal on "${m.metric}":\n\nObserved: ${m.value}\nConfidence: ${m.confidence}\nContext: ${m.note}\n\nWhat are the implications for our decision-making? What assumptions should we validate, and what actions would improve our financial clarity here?`); onDiscussed?.(key); }}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                style={{ background: 'rgba(22,163,74,0.1)', color: '#15803d' }}>
+                <MessageSquare className="w-3 h-3" />Discuss
+              </button>
+            ))}
           </div>
         );
       })}
@@ -407,13 +420,15 @@ function FinancialMetricsPanel({ metrics, score }: { metrics: SynthesisData['fin
 }
 
 // ─── Operational Metrics Panel ────────────────────────────────────────────────
-function OperationalMetricsPanel({ metrics, score }: { metrics: SynthesisData['operational_metrics']; score: number | null }) {
+function OperationalMetricsPanel({ metrics, score, onDiscuss, discussedKeys = new Set(), onDiscussed }: { metrics: SynthesisData['operational_metrics']; score: number | null; onDiscuss?: (prompt: string) => void; discussedKeys?: Set<string>; onDiscussed?: (key: string) => void }) {
   return (
     <div className="bg-white">
       {metrics.map((m, i) => {
         const sc = OP_STATUS_COLORS[m.status?.toLowerCase()] || { bg: 'rgba(100,116,139,0.1)', text: '#475569' };
+        const key = `operational:${m.metric}`;
+        const sent = discussedKeys.has(key);
         return (
-          <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(245,158,11,0.07)' : undefined }}>
+          <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(245,158,11,0.07)' : undefined, background: sent ? 'rgba(245,158,11,0.02)' : undefined }}>
             <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(245,158,11,0.08)' }}>
               <Settings className="w-4 h-4 text-amber-600" />
             </div>
@@ -424,6 +439,17 @@ function OperationalMetricsPanel({ metrics, score }: { metrics: SynthesisData['o
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">{m.note}</p>
             </div>
+            {onDiscuss && (sent ? (
+              <span className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}>
+                <CheckCircle2 className="w-3 h-3" />Sent
+              </span>
+            ) : (
+              <button onClick={() => { onDiscuss(`Deep-dive our operational readiness on "${m.metric}":\n\nStatus: ${m.status}\nContext: ${m.note}\n\nWhat concrete steps should we take to move this from "${m.status}" to "clear"? What dependencies or blockers should we address first?`); onDiscussed?.(key); }}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                style={{ background: 'rgba(245,158,11,0.12)', color: '#b45309' }}>
+                <MessageSquare className="w-3 h-3" />Discuss
+              </button>
+            ))}
           </div>
         );
       })}
@@ -442,13 +468,15 @@ function OperationalMetricsPanel({ metrics, score }: { metrics: SynthesisData['o
 }
 
 // ─── Non-Financial Metrics Panel ──────────────────────────────────────────────
-function NonFinancialMetricsPanel({ metrics, score }: { metrics: SynthesisData['non_financial_metrics']; score: number | null }) {
+function NonFinancialMetricsPanel({ metrics, score, onDiscuss, discussedKeys = new Set(), onDiscussed }: { metrics: SynthesisData['non_financial_metrics']; score: number | null; onDiscuss?: (prompt: string) => void; discussedKeys?: Set<string>; onDiscussed?: (key: string) => void }) {
   return (
     <div className="bg-white">
       {metrics.map((m, i) => {
         const sc = SIGNAL_COLORS[m.signal?.toLowerCase()] || { bg: 'rgba(100,116,139,0.1)', text: '#475569' };
+        const key = `strategic:${m.metric}`;
+        const sent = discussedKeys.has(key);
         return (
-          <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(37,99,235,0.07)' : undefined }}>
+          <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(37,99,235,0.07)' : undefined, background: sent ? 'rgba(37,99,235,0.02)' : undefined }}>
             <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(37,99,235,0.07)' }}>
               <BarChart3 className="w-4 h-4 text-blue-600" />
             </div>
@@ -459,6 +487,17 @@ function NonFinancialMetricsPanel({ metrics, score }: { metrics: SynthesisData['
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">{m.note}</p>
             </div>
+            {onDiscuss && (sent ? (
+              <span className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}>
+                <CheckCircle2 className="w-3 h-3" />Sent
+              </span>
+            ) : (
+              <button onClick={() => { onDiscuss(`Explore our strategic signal on "${m.metric}":\n\nSignal: ${m.signal}\nEvidence: ${m.note}\n\nHow should this ${m.signal} signal influence our strategy? What actions would strengthen this if positive, or reverse it if negative?`); onDiscussed?.(key); }}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                style={{ background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}>
+                <MessageSquare className="w-3 h-3" />Discuss
+              </button>
+            ))}
           </div>
         );
       })}
@@ -477,14 +516,16 @@ function NonFinancialMetricsPanel({ metrics, score }: { metrics: SynthesisData['
 }
 
 // ─── Opportunity Signals Panel ────────────────────────────────────────────────
-function OpportunitySignalsPanel({ signals }: { signals: SynthesisData['opportunity_signals'] }) {
+function OpportunitySignalsPanel({ signals, onDiscuss, discussedKeys = new Set(), onDiscussed }: { signals: SynthesisData['opportunity_signals']; onDiscuss?: (prompt: string) => void; discussedKeys?: Set<string>; onDiscussed?: (key: string) => void }) {
   return (
     <div className="bg-white">
       {signals.map((s, i) => {
         const cc = CONF_COLORS[s.confidence?.toLowerCase()] || CONF_COLORS.medium;
+        const key = `opportunity:${s.title}`;
+        const sent = discussedKeys.has(key);
         return (
           <div key={i} className="px-5 py-4 flex items-start gap-3"
-            style={{ borderTop: i > 0 ? '1px solid rgba(22,163,74,0.07)' : undefined, background: i % 2 === 1 ? 'rgba(22,163,74,0.015)' : undefined }}>
+            style={{ borderTop: i > 0 ? '1px solid rgba(22,163,74,0.07)' : undefined, background: sent ? 'rgba(22,163,74,0.02)' : i % 2 === 1 ? 'rgba(22,163,74,0.015)' : undefined }}>
             <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(22,163,74,0.12)' }}>
               <Lightbulb className="w-4 h-4 text-green-600" />
             </div>
@@ -496,6 +537,17 @@ function OpportunitySignalsPanel({ signals }: { signals: SynthesisData['opportun
               <p className="text-sm text-slate-600 leading-relaxed mb-1">{s.description}</p>
               <p className="text-xs text-slate-400 italic">Source: {s.source}</p>
             </div>
+            {onDiscuss && (sent ? (
+              <span className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}>
+                <CheckCircle2 className="w-3 h-3" />Sent
+              </span>
+            ) : (
+              <button onClick={() => { onDiscuss(`Develop the opportunity: "${s.title}"\n\nDescription: ${s.description}\nConfidence: ${s.confidence}\nSource: ${s.source}\n\nWhat is the fastest path to capturing this opportunity? What are the top 3 risks that could prevent it, and what would a concrete 30-day action plan look like?`); onDiscussed?.(key); }}
+                className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                style={{ background: 'rgba(22,163,74,0.12)', color: '#15803d' }}>
+                <MessageSquare className="w-3 h-3" />Discuss
+              </button>
+            ))}
           </div>
         );
       })}
@@ -504,37 +556,45 @@ function OpportunitySignalsPanel({ signals }: { signals: SynthesisData['opportun
 }
 
 // ─── Cognitive Bias Flags Panel ───────────────────────────────────────────────
-function CognitiveBiasFlagsPanel({ flags, onDiscuss }: { flags: SynthesisData['cognitive_bias_flags']; onDiscuss?: (prompt: string) => void }) {
+function CognitiveBiasFlagsPanel({ flags, onDiscuss, discussedKeys = new Set(), onDiscussed }: { flags: SynthesisData['cognitive_bias_flags']; onDiscuss?: (prompt: string) => void; discussedKeys?: Set<string>; onDiscussed?: (key: string) => void }) {
   return (
     <div className="bg-white">
-      {flags.map((f, i) => (
-        <div key={i} className="px-5 py-4" style={{ borderTop: i > 0 ? '1px solid rgba(245,158,11,0.08)' : undefined, background: 'rgba(245,158,11,0.02)' }}>
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,158,11,0.12)' }}>
-              <AlertCircle className="w-4 h-4 text-amber-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-black text-amber-800 mb-1">{f.bias_name}</p>
-              <p className="text-sm text-slate-600 leading-relaxed mb-3">{f.explanation}</p>
-              <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                <HelpCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-amber-700 mb-0.5">Counter-question</p>
-                  <p className="text-xs text-amber-800 leading-relaxed italic">"{f.counter_question}"</p>
+      {flags.map((f, i) => {
+        const key = `bias:${f.bias_name}`;
+        const sent = discussedKeys.has(key);
+        return (
+          <div key={i} className="px-5 py-4" style={{ borderTop: i > 0 ? '1px solid rgba(245,158,11,0.08)' : undefined, background: sent ? 'rgba(245,158,11,0.03)' : 'rgba(245,158,11,0.02)' }}>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,158,11,0.12)' }}>
+                <AlertCircle className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-amber-800 mb-1">{f.bias_name}</p>
+                <p className="text-sm text-slate-600 leading-relaxed mb-3">{f.explanation}</p>
+                <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                  <HelpCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-amber-700 mb-0.5">Counter-question</p>
+                    <p className="text-xs text-amber-800 leading-relaxed italic">"{f.counter_question}"</p>
+                  </div>
+                  {onDiscuss && (sent ? (
+                    <span className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold" style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}>
+                      <CheckCircle2 className="w-3 h-3" />Sent
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => { onDiscuss(`Challenge our thinking on this cognitive bias — ${f.bias_name}:\n\n${f.explanation}\n\nCounter-question: "${f.counter_question}"\n\nHelp us stress-test our reasoning and identify what we might be missing.`); onDiscussed?.(key); }}
+                      className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                      style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309' }}>
+                      <MessageSquare className="w-3 h-3" />Ask
+                    </button>
+                  ))}
                 </div>
-                {onDiscuss && (
-                  <button
-                    onClick={() => onDiscuss(`Challenge our thinking on this cognitive bias — ${f.bias_name}:\n\n${f.explanation}\n\nCounter-question: "${f.counter_question}"\n\nHelp us stress-test our reasoning and identify what we might be missing.`)}
-                    className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-105"
-                    style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309' }}>
-                    <MessageSquare className="w-3 h-3" />Ask
-                  </button>
-                )}
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -1179,7 +1239,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               </span>
             )}
           </div>
-          <FinancialMetricsPanel metrics={synthesis.financial_metrics} score={synthesis.financial_score} />
+          <FinancialMetricsPanel metrics={synthesis.financial_metrics} score={synthesis.financial_score} onDiscuss={onDiscuss} discussedKeys={discussedKeys} onDiscussed={onDiscussed} />
         </div>
       )}
 
@@ -1199,7 +1259,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               </span>
             )}
           </div>
-          <OperationalMetricsPanel metrics={synthesis.operational_metrics} score={synthesis.operational_score} />
+          <OperationalMetricsPanel metrics={synthesis.operational_metrics} score={synthesis.operational_score} onDiscuss={onDiscuss} discussedKeys={discussedKeys} onDiscussed={onDiscussed} />
         </div>
       )}
 
@@ -1219,7 +1279,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               </span>
             )}
           </div>
-          <NonFinancialMetricsPanel metrics={synthesis.non_financial_metrics} score={synthesis.alignment_score} />
+          <NonFinancialMetricsPanel metrics={synthesis.non_financial_metrics} score={synthesis.alignment_score} onDiscuss={onDiscuss} discussedKeys={discussedKeys} onDiscussed={onDiscussed} />
         </div>
       )}
 
@@ -1231,7 +1291,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             <span className="text-sm font-bold text-green-800">Opportunity signals</span>
             <span className="text-xs text-green-600 ml-auto">Upsides worth capturing</span>
           </div>
-          <OpportunitySignalsPanel signals={synthesis.opportunity_signals} />
+          <OpportunitySignalsPanel signals={synthesis.opportunity_signals} onDiscuss={onDiscuss} discussedKeys={discussedKeys} onDiscussed={onDiscussed} />
         </div>
       )}
 
@@ -1243,7 +1303,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             <span className="text-sm font-bold text-amber-800">Cognitive bias flags</span>
             <span className="text-xs text-amber-600 ml-auto">Reasoning traps to watch</span>
           </div>
-          <CognitiveBiasFlagsPanel flags={synthesis.cognitive_bias_flags} onDiscuss={onDiscuss} />
+          <CognitiveBiasFlagsPanel flags={synthesis.cognitive_bias_flags} onDiscuss={onDiscuss} discussedKeys={discussedKeys} onDiscussed={onDiscussed} />
         </div>
       )}
 
