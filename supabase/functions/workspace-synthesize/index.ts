@@ -144,37 +144,31 @@ Your task: perform a War Room synthesis of this conversation and return a JSON o
   "action_items": [
     { "text": "Conduct user interviews to validate the pricing assumption before Q2", "source_area": "blind_spot", "priority": "high" }
   ],
-  "financial_metrics": {
-    "summary": "one sentence summarising the financial picture",
-    "budget_assumptions": ["assumption 1", "assumption 2"],
-    "cost_signals": ["cost signal 1"],
-    "revenue_signals": ["revenue signal 1"],
-    "financial_risk_exposure": "low/medium/high/critical",
-    "roi_mentions": ["any ROI or return comment from the transcript"],
-    "burn_rate_signals": ["any burn or runway mention"]
-  },
-  "operational_metrics": {
-    "summary": "one sentence on operational readiness",
-    "timeline_clarity": "clear/unclear/missing",
-    "resource_constraints": ["constraint 1"],
-    "dependencies": ["dependency 1"],
-    "bottlenecks": ["bottleneck 1"],
-    "readiness_score": 62
-  },
-  "non_financial_metrics": {
-    "summary": "one sentence on team and strategic alignment",
-    "team_morale_signal": "high/medium/low/unknown",
-    "stakeholder_buyin_strength": "strong/moderate/weak/unknown",
-    "customer_impact_estimate": "high/medium/low/unknown",
-    "strategic_alignment_label": "Aligned/Mixed/Fragmented",
-    "technical_debt_signals": ["any tech debt mention"],
-    "innovation_potential": "high/medium/low"
-  },
+  "financial_metrics": [
+    { "metric": "Budget Assumptions", "value": "what was said or implied", "confidence": "high/medium/low", "note": "brief analyst note" },
+    { "metric": "Revenue Projections", "value": "what was said or implied", "confidence": "high/medium/low", "note": "brief analyst note" },
+    { "metric": "Burn Rate / Runway", "value": "what was said or implied", "confidence": "high/medium/low", "note": "brief analyst note" },
+    { "metric": "ROI / Return Signals", "value": "what was said or implied", "confidence": "high/medium/low", "note": "brief analyst note" },
+    { "metric": "Financial Risk Exposure", "value": "low/medium/high/critical", "confidence": "medium", "note": "overall financial risk level observed" }
+  ],
+  "operational_metrics": [
+    { "metric": "Timeline Clarity", "status": "clear/unclear/at-risk", "note": "what was said about timeline" },
+    { "metric": "Resource Constraints", "status": "clear/unclear/at-risk", "note": "staffing, budget, tooling constraints noted" },
+    { "metric": "Key Dependencies", "status": "clear/unclear/at-risk", "note": "external or internal dependencies identified" },
+    { "metric": "Bottlenecks", "status": "clear/unclear/at-risk", "note": "execution blockers flagged" }
+  ],
+  "non_financial_metrics": [
+    { "metric": "Team Morale", "signal": "positive/neutral/negative", "note": "evidence from the conversation" },
+    { "metric": "Stakeholder Buy-in", "signal": "positive/neutral/negative", "note": "evidence from the conversation" },
+    { "metric": "Customer Impact", "signal": "positive/neutral/negative", "note": "evidence from the conversation" },
+    { "metric": "Strategic Alignment", "signal": "positive/neutral/negative", "note": "evidence from the conversation" },
+    { "metric": "Innovation Potential", "signal": "positive/neutral/negative", "note": "evidence from the conversation" }
+  ],
   "opportunity_signals": [
-    { "opportunity": "specific upside or strategic opportunity", "confidence": "high/medium/low", "source": "who mentioned it or what implied it" }
+    { "title": "Short opportunity label", "description": "specific upside or strategic opportunity identified", "confidence": "high/medium/low", "source": "who mentioned it or what implied it" }
   ],
   "cognitive_bias_flags": [
-    { "bias": "Confirmation Bias", "explanation": "plain-English explanation of where this appeared in the conversation", "counter_question": "A probing question to surface the blind spot this bias creates" }
+    { "bias_name": "Confirmation Bias", "explanation": "plain-English explanation of where this appeared in the conversation", "counter_question": "A probing question to surface the blind spot this bias creates" }
   ]
 }
 
@@ -191,11 +185,11 @@ Rules:
 - alignment_score: 0-100. How aligned is the team on strategy, stakeholders, and customer value? 0 = fragmented, 100 = fully unified.
 - decision_velocity: "Fast" (team is converging and resolving quickly), "Moderate" (some convergence but open items remain), or "Stalling" (team is going in circles or not resolving anything).
 - confidence_trajectory: "rising" (the team is gaining conviction), "flat" (confidence is not changing), or "falling" (the team is becoming less certain as the conversation progresses).
-- financial_metrics: Extract all financial signals from the transcript. If none exist, set arrays to [] and use "unknown" for unknowns. financial_risk_exposure must be low/medium/high/critical.
-- operational_metrics: Extract operational signals. readiness_score 0-100. timeline_clarity must be "clear", "unclear", or "missing".
-- non_financial_metrics: Assess team and strategic quality signals. All enum fields must use one of their specified values.
-- opportunity_signals: Up to 3 specific upsides, growth opportunities, or strategic advantages identified or implied in the conversation. confidence must be "high", "medium", or "low".
-- cognitive_bias_flags: Up to 3 reasoning traps detected (e.g. Confirmation Bias, Groupthink, Sunk Cost Fallacy, Recency Bias, Anchoring, Overconfidence). Only flag genuine instances — do not invent biases that are not evidenced in the transcript. Each must include a practical counter_question the team should ask itself.
+- financial_metrics: Array of objects with keys metric, value, confidence, note. Extract financial signals (budget, revenue, burn rate, ROI, financial risk). If a metric has no evidence, set value to "Not discussed" and confidence to "low". Return an array even if empty.
+- operational_metrics: Array of objects with keys metric, status, note. status must be exactly one of: "clear", "unclear", "at-risk". Cover timeline, resources, dependencies, bottlenecks. Return an array even if empty.
+- non_financial_metrics: Array of objects with keys metric, signal, note. signal must be exactly one of: "positive", "neutral", "negative". Cover team morale, stakeholder buy-in, customer impact, strategic alignment, innovation potential. Return an array even if empty.
+- opportunity_signals: Array of up to 3 objects with keys title, description, confidence, source. Specific upsides or strategic advantages. confidence must be "high", "medium", or "low". Only include genuine opportunities evidenced in the transcript.
+- cognitive_bias_flags: Array of up to 3 objects with keys bias_name, explanation, counter_question. Detect reasoning traps (e.g. Confirmation Bias, Groupthink, Sunk Cost Fallacy, Recency Bias, Anchoring, Overconfidence). Only flag genuine instances — do not invent biases not evidenced in the transcript.
 - Return ONLY valid JSON. No markdown, no explanation.
 
 CRITICAL: Read the ENTIRE transcript carefully before populating open_questions and blind_spots. If a question was explicitly discussed and agents gave recommendations — it is RESOLVED. Only flag something as open if it truly has no answer anywhere in the conversation.
@@ -262,6 +256,14 @@ ${transcript}`;
     const financialScore = synthesis.financial_score != null ? Math.max(0, Math.min(100, Number(synthesis.financial_score))) : null;
     const operationalScore = synthesis.operational_score != null ? Math.max(0, Math.min(100, Number(synthesis.operational_score))) : null;
     const alignmentScore = synthesis.alignment_score != null ? Math.max(0, Math.min(100, Number(synthesis.alignment_score))) : null;
+    const validVelocities = ['fast', 'moderate', 'stalling'];
+    const validTrajectories = ['rising', 'flat', 'falling'];
+    const decisionVelocity = synthesis.decision_velocity
+      ? (validVelocities.includes(String(synthesis.decision_velocity).toLowerCase()) ? String(synthesis.decision_velocity).toLowerCase() : null)
+      : null;
+    const confidenceTrajectory = synthesis.confidence_trajectory
+      ? (validTrajectories.includes(String(synthesis.confidence_trajectory).toLowerCase()) ? String(synthesis.confidence_trajectory).toLowerCase() : null)
+      : null;
 
     // Upsert synthesis — include all new metric fields
     await service.from("workspace_synthesis").upsert({
@@ -282,8 +284,8 @@ ${transcript}`;
       financial_score: financialScore,
       operational_score: operationalScore,
       alignment_score: alignmentScore,
-      decision_velocity: synthesis.decision_velocity || null,
-      confidence_trajectory: synthesis.confidence_trajectory || null,
+      decision_velocity: decisionVelocity,
+      confidence_trajectory: confidenceTrajectory,
       generated_at: generatedAt,
       message_count_at_generation: messages.length,
     }, { onConflict: "workspace_id" });
@@ -376,6 +378,8 @@ ${transcript}`;
         financial_score: financialScore,
         operational_score: operationalScore,
         alignment_score: alignmentScore,
+        decision_velocity: decisionVelocity,
+        confidence_trajectory: confidenceTrajectory,
         generated_at: generatedAt,
         message_count: messages.length,
       },

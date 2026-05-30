@@ -13,12 +13,22 @@ export interface WarRoomExport {
   messageCount: number;
   decisionHealthScore: number;
   healthRationale?: string;
+  financialScore?: number | null;
+  operationalScore?: number | null;
+  alignmentScore?: number | null;
+  decisionVelocity?: string | null;
+  confidenceTrajectory?: string | null;
   consensusPoints: Array<{ text: string; confidence: number; source_count: number }>;
   conflictZones: Array<{ topic: string; agent_a: string; position_a: string; agent_b: string; position_b: string; tension_level: number }>;
   openQuestions: Array<{ question: string; urgency: string }>;
   riskSignals: Array<{ signal: string; severity: string; category: string }>;
   blindSpots: Array<{ area: string; description: string }>;
   actionItems?: Array<{ text: string; priority: string; status: string; source: string }>;
+  financialMetrics?: Array<{ metric: string; value: string; confidence: string; note: string }>;
+  operationalMetrics?: Array<{ metric: string; status: string; note: string }>;
+  nonFinancialMetrics?: Array<{ metric: string; signal: string; note: string }>;
+  opportunitySignals?: Array<{ title: string; description: string; confidence: string; source: string }>;
+  cognitiveBiasFlags?: Array<{ bias_name: string; explanation: string; counter_question: string }>;
 }
 
 export interface BoardBriefExport {
@@ -27,9 +37,13 @@ export interface BoardBriefExport {
   generatedAt: string;
   decisionHealthScore: number;
   healthRationale?: string;
+  financialScore?: number | null;
+  operationalScore?: number | null;
+  alignmentScore?: number | null;
   consensusPoints: Array<{ text: string; confidence: number }>;
   riskSignals: Array<{ signal: string; severity: string }>;
   actionItems: Array<{ text: string; priority: string; status: string }>;
+  opportunitySignals?: Array<{ title: string; description: string; confidence: string; source: string }>;
   synthesisRunNumber?: number;
 }
 
@@ -381,6 +395,31 @@ const BASE_STYLES = `
   .sec-actions .section-body { border-color: rgba(124,58,237,0.2); }
   .sec-actions .row { border-color: rgba(124,58,237,0.1); }
 
+  /* Financial */
+  .sec-financial .section-hdr { background: rgba(22,163,74,0.10) !important; color: #14532d; border-color: rgba(22,163,74,0.25); }
+  .sec-financial .section-body { border-color: rgba(22,163,74,0.2); }
+  .sec-financial .row { border-color: rgba(22,163,74,0.08); }
+
+  /* Operational */
+  .sec-operational .section-hdr { background: rgba(245,158,11,0.10) !important; color: #78350f; border-color: rgba(245,158,11,0.3); }
+  .sec-operational .section-body { border-color: rgba(245,158,11,0.25); }
+  .sec-operational .row { border-color: rgba(245,158,11,0.1); }
+
+  /* Strategic (non-financial) */
+  .sec-strategic .section-hdr { background: rgba(37,99,235,0.08) !important; color: #1e3a8a; border-color: rgba(37,99,235,0.22); }
+  .sec-strategic .section-body { border-color: rgba(37,99,235,0.2); }
+  .sec-strategic .row { border-color: rgba(37,99,235,0.08); }
+
+  /* Opportunities */
+  .sec-opportunities .section-hdr { background: rgba(5,150,105,0.08) !important; color: #064e3b; border-color: rgba(5,150,105,0.22); }
+  .sec-opportunities .section-body { border-color: rgba(5,150,105,0.2); }
+  .sec-opportunities .row { border-color: rgba(5,150,105,0.08); }
+
+  /* Biases */
+  .sec-biases .section-hdr { background: rgba(245,158,11,0.10) !important; color: #78350f; border-color: rgba(245,158,11,0.28); }
+  .sec-biases .section-body { border-color: rgba(245,158,11,0.22); }
+  .sec-biases .row { border-color: rgba(245,158,11,0.08); }
+
   /* Tags */
   .tag {
     display: inline-block; font-size: 7.5pt; font-weight: 700;
@@ -637,6 +676,44 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
   const sc = scoreColor(data.decisionHealthScore);
   const sl = scoreLabel(data.decisionHealthScore);
 
+  function subScoreBar(label: string, score: number | null | undefined): string {
+    if (score == null) return '';
+    const c = scoreColor(score);
+    const W = 80, H = 6, r = 3;
+    const fillW = Math.max(r * 2, (score / 100) * W);
+    return `<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+      <span style="font-size:7pt;color:#94a3b8;min-width:90px;">${label}</span>
+      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="rgba(255,255,255,0.12)"/>
+        <rect x="0" y="0" width="${fillW.toFixed(1)}" height="${H}" rx="${r}" fill="${c}"/>
+      </svg>
+      <span style="font-size:7.5pt;font-weight:800;color:${c};">${score}</span>
+    </div>`;
+  }
+
+  function velocityBadge(v: string | null | undefined): string {
+    if (!v) return '';
+    const map: Record<string, { color: string; bg: string }> = {
+      fast:     { color: '#15803d', bg: 'rgba(22,163,74,0.15)' },
+      moderate: { color: '#b45309', bg: 'rgba(245,158,11,0.15)' },
+      stalling: { color: '#b91c1c', bg: 'rgba(220,38,38,0.15)' },
+    };
+    const s = map[v.toLowerCase()] || map.moderate;
+    return `<span style="display:inline-block;font-size:7pt;font-weight:700;padding:2px 8px;border-radius:999px;background:${s.bg};color:${s.color};margin-left:6px;">${v.charAt(0).toUpperCase() + v.slice(1)} Velocity</span>`;
+  }
+
+  function trajectoryBadge(t: string | null | undefined): string {
+    if (!t) return '';
+    const map: Record<string, { color: string; bg: string }> = {
+      rising:  { color: '#15803d', bg: 'rgba(22,163,74,0.15)' },
+      flat:    { color: '#b45309', bg: 'rgba(245,158,11,0.15)' },
+      falling: { color: '#b91c1c', bg: 'rgba(220,38,38,0.15)' },
+    };
+    const s = map[t.toLowerCase()] || map.flat;
+    const label = t === 'rising' ? 'Confidence Rising' : t === 'falling' ? 'Confidence Falling' : 'Confidence Flat';
+    return `<span style="display:inline-block;font-size:7pt;font-weight:700;padding:2px 8px;border-radius:999px;background:${s.bg};color:${s.color};margin-left:6px;">${label}</span>`;
+  }
+
   function sec(cls: string, title: string, icon: string, rows: string[]): string {
     if (!rows.length) return '';
     return `<div class="section sec-${cls}">
@@ -644,6 +721,13 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
       <div class="section-body">${rows.join('')}</div>
     </div>`;
   }
+
+  const confColor = (c: string) => c === 'high' ? '#15803d' : c === 'low' ? '#b91c1c' : '#b45309';
+  const confBg    = (c: string) => c === 'high' ? 'rgba(22,163,74,0.12)' : c === 'low' ? 'rgba(220,38,38,0.12)' : 'rgba(245,158,11,0.12)';
+  const opStatusColor = (s: string) => ['clear','on-track'].includes(s) ? '#15803d' : s === 'at-risk' ? '#b91c1c' : '#b45309';
+  const opStatusBg    = (s: string) => ['clear','on-track'].includes(s) ? 'rgba(22,163,74,0.12)' : s === 'at-risk' ? 'rgba(220,38,38,0.12)' : 'rgba(245,158,11,0.12)';
+  const sigColor = (s: string) => s === 'positive' ? '#15803d' : s === 'negative' ? '#b91c1c' : '#475569';
+  const sigBg    = (s: string) => s === 'positive' ? 'rgba(22,163,74,0.12)' : s === 'negative' ? 'rgba(220,38,38,0.12)' : 'rgba(100,116,139,0.12)';
 
   // ── Consensus with SVG bars ──
   const consensusRows = data.consensusPoints.map((pt, i) => {
@@ -737,6 +821,70 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
       </div>
     </div>`);
 
+  // ── Financial metrics ──
+  const financialRows = (data.financialMetrics || []).map(m => `
+    <div class="row" style="display:flex;align-items:flex-start;gap:10px;">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <span style="font-size:9.5pt;font-weight:700;color:#14532d;">${escapeHtml(m.metric)}</span>
+          <span style="font-size:7pt;font-weight:700;padding:1px 7px;border-radius:999px;background:${confBg(m.confidence?.toLowerCase())};color:${confColor(m.confidence?.toLowerCase())};">${escapeHtml(m.confidence)} confidence</span>
+        </div>
+        <div style="font-size:9.5pt;font-weight:600;color:#1e293b;margin-bottom:2px;">${escapeHtml(m.value)}</div>
+        <div style="font-size:8.5pt;color:#64748b;">${escapeHtml(m.note)}</div>
+      </div>
+    </div>`);
+
+  // ── Operational metrics ──
+  const operationalRows = (data.operationalMetrics || []).map(m => `
+    <div class="row" style="display:flex;align-items:flex-start;gap:10px;">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <span style="font-size:9.5pt;font-weight:700;color:#78350f;">${escapeHtml(m.metric)}</span>
+          <span style="font-size:7pt;font-weight:700;padding:1px 7px;border-radius:999px;text-transform:capitalize;background:${opStatusBg(m.status?.toLowerCase())};color:${opStatusColor(m.status?.toLowerCase())};">${escapeHtml(m.status?.replace('-', ' ') || '')}</span>
+        </div>
+        <div style="font-size:8.5pt;color:#64748b;">${escapeHtml(m.note)}</div>
+      </div>
+    </div>`);
+
+  // ── Non-financial / strategic metrics ──
+  const strategicRows = (data.nonFinancialMetrics || []).map(m => `
+    <div class="row" style="display:flex;align-items:flex-start;gap:10px;">
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <span style="font-size:9.5pt;font-weight:700;color:#1e3a8a;">${escapeHtml(m.metric)}</span>
+          <span style="font-size:7pt;font-weight:700;padding:1px 7px;border-radius:999px;text-transform:capitalize;background:${sigBg(m.signal?.toLowerCase())};color:${sigColor(m.signal?.toLowerCase())};">${escapeHtml(m.signal)}</span>
+        </div>
+        <div style="font-size:8.5pt;color:#64748b;">${escapeHtml(m.note)}</div>
+      </div>
+    </div>`);
+
+  // ── Opportunity signals ──
+  const opportunityRows = (data.opportunitySignals || []).map((o, i) => `
+    <div class="row">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:8pt;font-weight:700;color:#064e3b;min-width:16px;flex-shrink:0;">${i + 1}.</span>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+            <span style="font-size:9.5pt;font-weight:700;color:#064e3b;">${escapeHtml(o.title)}</span>
+            <span style="font-size:7pt;font-weight:700;padding:1px 7px;border-radius:999px;background:${confBg(o.confidence?.toLowerCase())};color:${confColor(o.confidence?.toLowerCase())};">${escapeHtml(o.confidence)}</span>
+          </div>
+          <div style="font-size:9.5pt;color:#1e293b;margin-bottom:2px;">${escapeHtml(o.description)}</div>
+          <div style="font-size:8pt;color:#94a3b8;font-style:italic;">Source: ${escapeHtml(o.source)}</div>
+        </div>
+      </div>
+    </div>`);
+
+  // ── Cognitive bias flags ──
+  const biasRows = (data.cognitiveBiasFlags || []).map(f => `
+    <div class="row">
+      <div style="font-size:10pt;font-weight:800;color:#78350f;margin-bottom:3px;">${escapeHtml(f.bias_name)}</div>
+      <div style="font-size:9pt;color:#475569;margin-bottom:6px;">${escapeHtml(f.explanation)}</div>
+      <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;padding:8px 10px;">
+        <div style="font-size:7.5pt;font-weight:700;color:#b45309;margin-bottom:2px;">Counter-question</div>
+        <div style="font-size:8.5pt;color:#78350f;font-style:italic;">"${escapeHtml(f.counter_question)}"</div>
+      </div>
+    </div>`);
+
   const html = `<div class="print-root">
     ${pageChrome('War Room')}
     <div class="doc-header">
@@ -760,14 +908,25 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
         <div class="score-label" style="color:${sc};">${sl} Team</div>
         <div class="score-sub">Decision Health Score: ${data.decisionHealthScore} / 100</div>
         <div class="score-rationale">${escapeHtml(data.healthRationale || 'AI-assessed clarity, risk coverage, and strategic alignment.')}</div>
+        <div style="margin-top:8px;">
+          ${subScoreBar('Financial Clarity', data.financialScore)}
+          ${subScoreBar('Operational Readiness', data.operationalScore)}
+          ${subScoreBar('Strategic Alignment', data.alignmentScore)}
+        </div>
+        ${data.decisionVelocity || data.confidenceTrajectory ? `<div style="margin-top:8px;">${velocityBadge(data.decisionVelocity)}${trajectoryBadge(data.confidenceTrajectory)}</div>` : ''}
       </div>
     </div>
 
-    ${sec('consensus',  'Team Consensus',         '&#x2713;',  consensusRows)}
-    ${sec('conflicts',  'Strategic Conflict Zones','&#x26A1;',  conflictRows)}
-    ${sec('questions',  'Open Questions',          '?',         questionRows)}
-    ${sec('risks',      'Risk Signals',            '&#x26A0;',  riskRows)}
-    ${sec('blindspots', 'Blind Spots',             '&#x25CE;',  blindRows)}
+    ${sec('consensus',    'Team Consensus',          '&#x2713;',  consensusRows)}
+    ${sec('conflicts',    'Strategic Conflict Zones', '&#x26A1;',  conflictRows)}
+    ${sec('questions',    'Open Questions',           '?',         questionRows)}
+    ${sec('risks',        'Risk Signals',             '&#x26A0;',  riskRows)}
+    ${sec('blindspots',   'Blind Spots',              '&#x25CE;',  blindRows)}
+    ${sec('financial',    'Financial Metrics',        '&#x24C2;',  financialRows)}
+    ${sec('operational',  'Operational Readiness',   '&#x2699;',  operationalRows)}
+    ${sec('strategic',    'Strategic & Non-Financial','&#x25A0;',  strategicRows)}
+    ${sec('opportunities','Opportunity Signals',      '&#x2B50;',  opportunityRows)}
+    ${sec('biases',       'Cognitive Bias Flags',     '&#x26A0;',  biasRows)}
     ${actionRows.length ? sec('actions', 'Action Items', '&#x25B6;', actionRows) : ''}
 
     <div class="doc-footer">
@@ -792,6 +951,24 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
       return o.indexOf(a.priority?.toLowerCase()) - o.indexOf(b.priority?.toLowerCase());
     })
     .slice(0, 5);
+
+  function bbSubScore(label: string, score: number | null | undefined): string {
+    if (score == null) return '';
+    const c = scoreColor(score);
+    const W = 70, H = 5, r = 2;
+    const fillW = Math.max(r * 2, (score / 100) * W);
+    return `<div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+      <span style="font-size:7pt;color:#94a3b8;min-width:85px;">${label}</span>
+      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="#e2e8f0"/>
+        <rect x="0" y="0" width="${fillW.toFixed(1)}" height="${H}" rx="${r}" fill="${c}"/>
+      </svg>
+      <span style="font-size:7.5pt;font-weight:800;color:${c};">${score}</span>
+    </div>`;
+  }
+
+  const confColor = (c: string) => c === 'high' ? '#15803d' : c === 'low' ? '#b91c1c' : '#b45309';
+  const confBg    = (c: string) => c === 'high' ? 'rgba(22,163,74,0.12)' : c === 'low' ? 'rgba(220,38,38,0.12)' : 'rgba(245,158,11,0.12)';
 
   const consensusHtml = data.consensusPoints.slice(0, 3).map((p, i) => {
     const conf = Math.max(0, Math.min(100, p.confidence || 0));
@@ -822,6 +999,16 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
       <span class="bb-badge bb-priority-${a.priority?.toLowerCase()}">${escapeHtml(a.priority)}</span>
     </div>`).join('');
 
+  const opportunitiesHtml = (data.opportunitySignals || []).slice(0, 3).map((o, i) => `
+    <div class="bb-row">
+      <span class="bb-num">${i + 1}.</span>
+      <div style="flex:1;">
+        <div style="font-size:9.5pt;font-weight:700;color:#064e3b;margin-bottom:2px;">${escapeHtml(o.title)}</div>
+        <div class="bb-text" style="font-size:9pt;">${escapeHtml(o.description)}</div>
+      </div>
+      <span style="font-size:7pt;font-weight:700;padding:1px 7px;border-radius:999px;flex-shrink:0;background:${confBg(o.confidence?.toLowerCase())};color:${confColor(o.confidence?.toLowerCase())};">${escapeHtml(o.confidence)}</span>
+    </div>`).join('');
+
   const runBadge = data.synthesisRunNumber ? `<span style="font-size:7.5pt;font-weight:600;color:#94a3b8;margin-left:10px;">Run #${data.synthesisRunNumber}</span>` : '';
 
   const html = `<div class="print-root">
@@ -847,6 +1034,11 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
         <div class="bb-score-title" style="color:${sc};">${sl} Team ${runBadge}</div>
         <div class="bb-score-sub">Decision Health Score: ${data.decisionHealthScore} / 100</div>
         <div class="bb-score-rationale">${escapeHtml(data.healthRationale || 'AI-assessed strategic clarity and decision quality.')}</div>
+        <div style="margin-top:6px;">
+          ${bbSubScore('Financial Clarity', data.financialScore)}
+          ${bbSubScore('Operational Readiness', data.operationalScore)}
+          ${bbSubScore('Strategic Alignment', data.alignmentScore)}
+        </div>
       </div>
     </div>
 
@@ -860,6 +1052,12 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
     <div class="bb-section">
       <div class="bb-section-title">Key Risks</div>
       ${risksHtml}
+    </div>` : ''}
+
+    ${opportunitiesHtml ? `
+    <div class="bb-section">
+      <div class="bb-section-title">Opportunity Signals</div>
+      ${opportunitiesHtml}
     </div>` : ''}
 
     ${pendingActions.length > 0 ? `

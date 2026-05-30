@@ -3,11 +3,14 @@ import {
   Brain, RefreshCw, Zap, AlertTriangle, CheckCircle2,
   HelpCircle, Eye, TrendingUp, Activity, MessageSquare,
   Loader2, Lock, Sparkles, Target, GitBranch, ArrowRight, Download,
-  Users, Bot, Plus, X, Clipboard, Sword, Flame,
+  Users, Bot, Plus, X, Clipboard, Sword, Flame, DollarSign,
+  Settings, BarChart3, Lightbulb, AlertCircle, TrendingDown, Minus,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { exportWarRoomToPDF, exportBoardBriefToPDF } from '../lib/pdfExport';
+
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
 interface SynthesisData {
   consensus_points: Array<{ text: string; confidence: number; source_count: number }>;
@@ -16,7 +19,17 @@ interface SynthesisData {
   risk_signals: Array<{ signal: string; severity: string; category: string }>;
   blind_spots: Array<{ area: string; description: string }>;
   action_items: Array<{ text: string; source_area: string; priority: string }>;
+  financial_metrics: Array<{ metric: string; value: string; confidence: string; note: string }>;
+  operational_metrics: Array<{ metric: string; status: string; note: string }>;
+  non_financial_metrics: Array<{ metric: string; signal: string; note: string }>;
+  opportunity_signals: Array<{ title: string; description: string; confidence: string; source: string }>;
+  cognitive_bias_flags: Array<{ bias_name: string; explanation: string; counter_question: string }>;
   decision_health_score: number;
+  financial_score: number | null;
+  operational_score: number | null;
+  alignment_score: number | null;
+  decision_velocity: string | null;
+  confidence_trajectory: string | null;
   health_rationale?: string;
   generated_at: string;
   message_count: number;
@@ -25,6 +38,9 @@ interface SynthesisData {
 interface HistoryRow {
   id: string;
   decision_health_score: number;
+  financial_score?: number | null;
+  operational_score?: number | null;
+  alignment_score?: number | null;
   consensus_count: number;
   open_question_count: number;
   message_count: number;
@@ -66,6 +82,8 @@ interface WorkspaceWarRoomProps {
   onDiscussed?: (key: string) => void;
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
 const URGENCY_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   critical: { bg: 'rgba(220,38,38,0.08)',  text: '#b91c1c', dot: '#dc2626' },
   high:     { bg: 'rgba(245,158,11,0.08)', text: '#b45309', dot: '#f59e0b' },
@@ -87,15 +105,51 @@ const NEXT_STATUS: Record<ActionItem['status'], ActionItem['status']> = {
   done: 'todo',
 };
 
+const OP_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  clear:      { bg: 'rgba(22,163,74,0.1)',  text: '#15803d' },
+  'on-track': { bg: 'rgba(22,163,74,0.1)',  text: '#15803d' },
+  unclear:    { bg: 'rgba(245,158,11,0.1)', text: '#b45309' },
+  'at-risk':  { bg: 'rgba(220,38,38,0.1)',  text: '#b91c1c' },
+};
+
+const SIGNAL_COLORS: Record<string, { bg: string; text: string }> = {
+  positive: { bg: 'rgba(22,163,74,0.1)',   text: '#15803d' },
+  high:     { bg: 'rgba(22,163,74,0.1)',   text: '#15803d' },
+  neutral:  { bg: 'rgba(100,116,139,0.1)', text: '#475569' },
+  medium:   { bg: 'rgba(245,158,11,0.1)',  text: '#b45309' },
+  negative: { bg: 'rgba(220,38,38,0.1)',   text: '#b91c1c' },
+  low:      { bg: 'rgba(220,38,38,0.1)',   text: '#b91c1c' },
+};
+
+const CONF_COLORS: Record<string, { bg: string; text: string }> = {
+  high:   { bg: 'rgba(22,163,74,0.1)',  text: '#15803d' },
+  medium: { bg: 'rgba(245,158,11,0.1)', text: '#b45309' },
+  low:    { bg: 'rgba(220,38,38,0.1)',  text: '#b91c1c' },
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function sanitizeSynthesis(s: Record<string, unknown>, fallbackCount?: number): SynthesisData {
+  const toScore = (v: unknown) =>
+    v != null && Number.isFinite(Number(v)) ? Math.max(0, Math.min(100, Number(v))) : null;
   return {
-    consensus_points: Array.isArray(s.consensus_points) ? s.consensus_points as SynthesisData['consensus_points'] : [],
-    conflict_zones: Array.isArray(s.conflict_zones) ? s.conflict_zones as SynthesisData['conflict_zones'] : [],
-    open_questions: Array.isArray(s.open_questions) ? s.open_questions as SynthesisData['open_questions'] : [],
-    risk_signals: Array.isArray(s.risk_signals) ? s.risk_signals as SynthesisData['risk_signals'] : [],
-    blind_spots: Array.isArray(s.blind_spots) ? s.blind_spots as SynthesisData['blind_spots'] : [],
-    action_items: Array.isArray(s.action_items) ? s.action_items as SynthesisData['action_items'] : [],
+    consensus_points:     Array.isArray(s.consensus_points)     ? s.consensus_points     as SynthesisData['consensus_points']     : [],
+    conflict_zones:       Array.isArray(s.conflict_zones)       ? s.conflict_zones       as SynthesisData['conflict_zones']       : [],
+    open_questions:       Array.isArray(s.open_questions)       ? s.open_questions       as SynthesisData['open_questions']       : [],
+    risk_signals:         Array.isArray(s.risk_signals)         ? s.risk_signals         as SynthesisData['risk_signals']         : [],
+    blind_spots:          Array.isArray(s.blind_spots)          ? s.blind_spots          as SynthesisData['blind_spots']          : [],
+    action_items:         Array.isArray(s.action_items)         ? s.action_items         as SynthesisData['action_items']         : [],
+    financial_metrics:    Array.isArray(s.financial_metrics)    ? s.financial_metrics    as SynthesisData['financial_metrics']    : [],
+    operational_metrics:  Array.isArray(s.operational_metrics)  ? s.operational_metrics  as SynthesisData['operational_metrics']  : [],
+    non_financial_metrics:Array.isArray(s.non_financial_metrics)? s.non_financial_metrics as SynthesisData['non_financial_metrics']: [],
+    opportunity_signals:  Array.isArray(s.opportunity_signals)  ? s.opportunity_signals  as SynthesisData['opportunity_signals']  : [],
+    cognitive_bias_flags: Array.isArray(s.cognitive_bias_flags) ? s.cognitive_bias_flags as SynthesisData['cognitive_bias_flags'] : [],
     decision_health_score: Number.isFinite(Number(s.decision_health_score)) ? Math.max(0, Math.min(100, Number(s.decision_health_score))) : 0,
+    financial_score:      toScore(s.financial_score),
+    operational_score:    toScore(s.operational_score),
+    alignment_score:      toScore(s.alignment_score),
+    decision_velocity:    ['fast','moderate','stalling'].includes(String(s.decision_velocity).toLowerCase()) ? String(s.decision_velocity).toLowerCase() : null,
+    confidence_trajectory:['rising','flat','falling'].includes(String(s.confidence_trajectory).toLowerCase()) ? String(s.confidence_trajectory).toLowerCase() : null,
     health_rationale: typeof s.health_rationale === 'string' && s.health_rationale ? s.health_rationale : undefined,
     generated_at: typeof s.generated_at === 'string' && s.generated_at ? s.generated_at : new Date().toISOString(),
     message_count: Number.isFinite(Number(s.message_count)) ? Number(s.message_count) : (fallbackCount ?? 0),
@@ -109,27 +163,75 @@ function memberDisplayName(m: MemberProfile): string {
 }
 
 // ─── Score Ring ──────────────────────────────────────────────────────────────
-function ScoreRing({ score }: { score: number }) {
+function ScoreRing({ score, size = 96 }: { score: number; size?: number }) {
   const safe = Math.max(0, Math.min(100, score || 0));
-  const r = 36, circ = 2 * Math.PI * r, dash = (safe / 100) * circ;
+  const r = size * 0.375;
+  const circ = 2 * Math.PI * r;
+  const dash = (safe / 100) * circ;
   const color = safe >= 70 ? '#16a34a' : safe >= 45 ? '#f59e0b' : '#dc2626';
   return (
-    <div className="relative w-24 h-24 flex items-center justify-center">
-      <svg width="96" height="96" className="-rotate-90">
-        <circle cx="48" cy="48" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="7" />
-        <circle cx="48" cy="48" r={r} fill="none" stroke={color} strokeWidth="7"
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="7" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="7"
           strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
           style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.4,0,0.2,1)' }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-black" style={{ color }}>{safe}</span>
-        <span className="text-xs text-slate-400 font-semibold">/ 100</span>
+        <span className="font-black" style={{ color, fontSize: size * 0.24 }}>{safe}</span>
+        <span className="text-slate-400 font-semibold" style={{ fontSize: size * 0.1 }}>/ 100</span>
       </div>
     </div>
   );
 }
 
-// ─── Health Sparkline ────────────────────────────────────────────────────────
+// ─── Sub-Score Pill ───────────────────────────────────────────────────────────
+function SubScorePill({ label, score, icon: Icon }: { label: string; score: number | null; icon: React.ElementType }) {
+  if (score === null) return null;
+  const safe = Math.max(0, Math.min(100, score));
+  const color = safe >= 70 ? '#16a34a' : safe >= 45 ? '#f59e0b' : '#dc2626';
+  const bg    = safe >= 70 ? 'rgba(22,163,74,0.15)' : safe >= 45 ? 'rgba(245,158,11,0.15)' : 'rgba(220,38,38,0.15)';
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 min-w-[80px]" style={{ background: bg }}>
+      <Icon className="w-3.5 h-3.5" style={{ color }} />
+      <span className="text-lg font-black leading-none" style={{ color }}>{safe}</span>
+      <span className="text-xs font-semibold text-center leading-tight" style={{ color, opacity: 0.8 }}>{label}</span>
+    </div>
+  );
+}
+
+// ─── Velocity & Trajectory Badges ────────────────────────────────────────────
+function VelocityBadge({ velocity }: { velocity: string | null }) {
+  if (!velocity) return null;
+  const map: Record<string, { label: string; color: string; bg: string }> = {
+    fast:     { label: 'Fast Velocity', color: '#15803d', bg: 'rgba(22,163,74,0.12)' },
+    moderate: { label: 'Moderate',      color: '#b45309', bg: 'rgba(245,158,11,0.12)' },
+    stalling: { label: 'Stalling',      color: '#b91c1c', bg: 'rgba(220,38,38,0.12)' },
+  };
+  const s = map[velocity] || map.moderate;
+  return (
+    <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: s.bg, color: s.color }}>
+      <Activity className="w-3 h-3" />{s.label}
+    </span>
+  );
+}
+
+function TrajectoryBadge({ trajectory }: { trajectory: string | null }) {
+  if (!trajectory) return null;
+  const map: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
+    rising:  { label: 'Confidence Rising',  color: '#15803d', bg: 'rgba(22,163,74,0.12)',  Icon: TrendingUp },
+    flat:    { label: 'Confidence Flat',    color: '#b45309', bg: 'rgba(245,158,11,0.12)', Icon: Minus },
+    falling: { label: 'Confidence Falling', color: '#b91c1c', bg: 'rgba(220,38,38,0.12)', Icon: TrendingDown },
+  };
+  const s = map[trajectory] || map.flat;
+  return (
+    <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: s.bg, color: s.color }}>
+      <s.Icon className="w-3 h-3" />{s.label}
+    </span>
+  );
+}
+
+// ─── Health Sparkline ─────────────────────────────────────────────────────────
 function HealthSparkline({ history }: { history: HistoryRow[] }) {
   if (history.length < 2) return null;
   const scores = history.map(h => h.decision_health_score);
@@ -159,7 +261,7 @@ function HealthSparkline({ history }: { history: HistoryRow[] }) {
   );
 }
 
-// ─── Consensus Bar Chart ─────────────────────────────────────────────────────
+// ─── Consensus Bar Chart ──────────────────────────────────────────────────────
 function ConsensusBarChart({ points }: { points: SynthesisData['consensus_points'] }) {
   return (
     <div className="space-y-3 px-5 py-4 bg-white">
@@ -190,7 +292,7 @@ function ConsensusBarChart({ points }: { points: SynthesisData['consensus_points
   );
 }
 
-// ─── Risk Matrix ─────────────────────────────────────────────────────────────
+// ─── Risk Matrix ──────────────────────────────────────────────────────────────
 function RiskMatrix({ risks }: { risks: SynthesisData['risk_signals'] }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const SEV = ['low', 'medium', 'high', 'critical'];
@@ -199,15 +301,12 @@ function RiskMatrix({ risks }: { risks: SynthesisData['risk_signals'] }) {
     <div className="px-5 py-4 bg-white">
       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Severity × Category Matrix</p>
       <div className="flex gap-4">
-        {/* Y-axis labels */}
         <div className="flex flex-col justify-between pb-6" style={{ height: '140px' }}>
           {[...SEV].reverse().map(s => (
             <span key={s} className="text-xs font-bold capitalize leading-none" style={{ color: URGENCY_COLORS[s]?.text }}>{s}</span>
           ))}
         </div>
-        {/* Grid */}
         <div className="flex-1 relative" style={{ height: '140px' }}>
-          {/* Grid background cells */}
           <div className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${CATS.length},1fr)`, gridTemplateRows: `repeat(${SEV.length},1fr)` }}>
             {SEV.map((s, si) => CATS.map((c, ci) => {
               const sevIdx = SEV.length - 1 - si;
@@ -220,7 +319,6 @@ function RiskMatrix({ risks }: { risks: SynthesisData['risk_signals'] }) {
               );
             }))}
           </div>
-          {/* Risk dots */}
           {risks.map((r, i) => {
             const sevIdx = SEV.indexOf(r.severity?.toLowerCase());
             const catIdx = CATS.indexOf(r.category?.toLowerCase());
@@ -245,7 +343,6 @@ function RiskMatrix({ risks }: { risks: SynthesisData['risk_signals'] }) {
               </div>
             );
           })}
-          {/* X-axis labels */}
           <div className="absolute top-full mt-1 inset-x-0 flex">
             {CATS.map(c => (
               <div key={c} className="flex-1 text-center">
@@ -255,7 +352,6 @@ function RiskMatrix({ risks }: { risks: SynthesisData['risk_signals'] }) {
           </div>
         </div>
       </div>
-      {/* Legend */}
       <div className="mt-8 space-y-1.5">
         {risks.map((r, i) => {
           const sc = URGENCY_COLORS[r.severity?.toLowerCase()] || URGENCY_COLORS.low;
@@ -270,6 +366,175 @@ function RiskMatrix({ risks }: { risks: SynthesisData['risk_signals'] }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── Financial Metrics Panel ──────────────────────────────────────────────────
+function FinancialMetricsPanel({ metrics, score }: { metrics: SynthesisData['financial_metrics']; score: number | null }) {
+  return (
+    <div className="bg-white">
+      {metrics.map((m, i) => {
+        const cc = CONF_COLORS[m.confidence?.toLowerCase()] || CONF_COLORS.medium;
+        return (
+          <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(22,163,74,0.07)' : undefined }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(22,163,74,0.08)' }}>
+              <DollarSign className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                <span className="text-sm font-bold text-slate-800">{m.metric}</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded-full capitalize" style={{ background: cc.bg, color: cc.text }}>{m.confidence} confidence</span>
+              </div>
+              <p className="text-sm font-semibold text-slate-700 mb-0.5">{m.value}</p>
+              <p className="text-xs text-slate-500 leading-relaxed">{m.note}</p>
+            </div>
+          </div>
+        );
+      })}
+      {score !== null && (
+        <div className="px-5 py-3 flex items-center gap-3" style={{ background: 'rgba(22,163,74,0.03)', borderTop: '1px solid rgba(22,163,74,0.08)' }}>
+          <span className="text-xs text-slate-500 font-medium">Financial Clarity Score</span>
+          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(15,23,42,0.07)' }}>
+            <div className="h-2 rounded-full transition-all duration-1000"
+              style={{ width: `${score}%`, background: score >= 70 ? '#16a34a' : score >= 45 ? '#f59e0b' : '#dc2626' }} />
+          </div>
+          <span className="text-xs font-black tabular-nums" style={{ color: score >= 70 ? '#16a34a' : score >= 45 ? '#b45309' : '#dc2626' }}>{score}/100</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Operational Metrics Panel ────────────────────────────────────────────────
+function OperationalMetricsPanel({ metrics, score }: { metrics: SynthesisData['operational_metrics']; score: number | null }) {
+  return (
+    <div className="bg-white">
+      {metrics.map((m, i) => {
+        const sc = OP_STATUS_COLORS[m.status?.toLowerCase()] || { bg: 'rgba(100,116,139,0.1)', text: '#475569' };
+        return (
+          <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(245,158,11,0.07)' : undefined }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(245,158,11,0.08)' }}>
+              <Settings className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                <span className="text-sm font-bold text-slate-800">{m.metric}</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded-full capitalize" style={{ background: sc.bg, color: sc.text }}>{m.status?.replace('-', ' ')}</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">{m.note}</p>
+            </div>
+          </div>
+        );
+      })}
+      {score !== null && (
+        <div className="px-5 py-3 flex items-center gap-3" style={{ background: 'rgba(245,158,11,0.03)', borderTop: '1px solid rgba(245,158,11,0.08)' }}>
+          <span className="text-xs text-slate-500 font-medium">Operational Readiness</span>
+          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(15,23,42,0.07)' }}>
+            <div className="h-2 rounded-full transition-all duration-1000"
+              style={{ width: `${score}%`, background: score >= 70 ? '#16a34a' : score >= 45 ? '#f59e0b' : '#dc2626' }} />
+          </div>
+          <span className="text-xs font-black tabular-nums" style={{ color: score >= 70 ? '#16a34a' : score >= 45 ? '#b45309' : '#dc2626' }}>{score}/100</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Non-Financial Metrics Panel ──────────────────────────────────────────────
+function NonFinancialMetricsPanel({ metrics, score }: { metrics: SynthesisData['non_financial_metrics']; score: number | null }) {
+  return (
+    <div className="bg-white">
+      {metrics.map((m, i) => {
+        const sc = SIGNAL_COLORS[m.signal?.toLowerCase()] || { bg: 'rgba(100,116,139,0.1)', text: '#475569' };
+        return (
+          <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(37,99,235,0.07)' : undefined }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(37,99,235,0.07)' }}>
+              <BarChart3 className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                <span className="text-sm font-bold text-slate-800">{m.metric}</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded-full capitalize" style={{ background: sc.bg, color: sc.text }}>{m.signal}</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">{m.note}</p>
+            </div>
+          </div>
+        );
+      })}
+      {score !== null && (
+        <div className="px-5 py-3 flex items-center gap-3" style={{ background: 'rgba(37,99,235,0.03)', borderTop: '1px solid rgba(37,99,235,0.08)' }}>
+          <span className="text-xs text-slate-500 font-medium">Strategic Alignment</span>
+          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(15,23,42,0.07)' }}>
+            <div className="h-2 rounded-full transition-all duration-1000"
+              style={{ width: `${score}%`, background: score >= 70 ? '#16a34a' : score >= 45 ? '#f59e0b' : '#dc2626' }} />
+          </div>
+          <span className="text-xs font-black tabular-nums" style={{ color: score >= 70 ? '#16a34a' : score >= 45 ? '#b45309' : '#dc2626' }}>{score}/100</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Opportunity Signals Panel ────────────────────────────────────────────────
+function OpportunitySignalsPanel({ signals }: { signals: SynthesisData['opportunity_signals'] }) {
+  return (
+    <div className="bg-white">
+      {signals.map((s, i) => {
+        const cc = CONF_COLORS[s.confidence?.toLowerCase()] || CONF_COLORS.medium;
+        return (
+          <div key={i} className="px-5 py-4 flex items-start gap-3"
+            style={{ borderTop: i > 0 ? '1px solid rgba(22,163,74,0.07)' : undefined, background: i % 2 === 1 ? 'rgba(22,163,74,0.015)' : undefined }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(22,163,74,0.12)' }}>
+              <Lightbulb className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="text-sm font-bold text-slate-800">{s.title}</span>
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded-full capitalize" style={{ background: cc.bg, color: cc.text }}>{s.confidence}</span>
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed mb-1">{s.description}</p>
+              <p className="text-xs text-slate-400 italic">Source: {s.source}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Cognitive Bias Flags Panel ───────────────────────────────────────────────
+function CognitiveBiasFlagsPanel({ flags, onDiscuss }: { flags: SynthesisData['cognitive_bias_flags']; onDiscuss?: (prompt: string) => void }) {
+  return (
+    <div className="bg-white">
+      {flags.map((f, i) => (
+        <div key={i} className="px-5 py-4" style={{ borderTop: i > 0 ? '1px solid rgba(245,158,11,0.08)' : undefined, background: 'rgba(245,158,11,0.02)' }}>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,158,11,0.12)' }}>
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-amber-800 mb-1">{f.bias_name}</p>
+              <p className="text-sm text-slate-600 leading-relaxed mb-3">{f.explanation}</p>
+              <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <HelpCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-amber-700 mb-0.5">Counter-question</p>
+                  <p className="text-xs text-amber-800 leading-relaxed italic">"{f.counter_question}"</p>
+                </div>
+                {onDiscuss && (
+                  <button
+                    onClick={() => onDiscuss(`Challenge our thinking on this cognitive bias — ${f.bias_name}:\n\n${f.explanation}\n\nCounter-question: "${f.counter_question}"\n\nHelp us stress-test our reasoning and identify what we might be missing.`)}
+                    className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                    style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309' }}>
+                    <MessageSquare className="w-3 h-3" />Ask
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -300,12 +565,12 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     try {
       const [synthRes, countRes, histRes, actRes, membRes, commitRes] = await Promise.all([
         supabase.from('workspace_synthesis')
-          .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,decision_health_score,health_rationale,generated_at,message_count_at_generation')
+          .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,generated_at,message_count_at_generation')
           .eq('workspace_id', workspaceId).maybeSingle(),
         supabase.from('workspace_messages')
           .select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
         supabase.from('workspace_synthesis_history')
-          .select('id,decision_health_score,consensus_count,open_question_count,message_count,generated_at')
+          .select('id,decision_health_score,financial_score,operational_score,alignment_score,consensus_count,open_question_count,message_count,generated_at')
           .eq('workspace_id', workspaceId).order('generated_at', { ascending: true }),
         supabase.from('workspace_action_items')
           .select('id,text,source,priority,source_area,assignee_user_id,due_date,status,created_at')
@@ -365,7 +630,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         setMessageCount(count ?? 0);
         const [histRes, actRes] = await Promise.all([
           supabase.from('workspace_synthesis_history')
-            .select('id,decision_health_score,consensus_count,open_question_count,message_count,generated_at')
+            .select('id,decision_health_score,financial_score,operational_score,alignment_score,consensus_count,open_question_count,message_count,generated_at')
             .eq('workspace_id', workspaceId).order('generated_at', { ascending: true }),
           supabase.from('workspace_action_items')
             .select('id,text,source,priority,source_area,assignee_user_id,due_date,status,created_at')
@@ -424,23 +689,27 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     const score = synthesis.decision_health_score;
     const label = score >= 70 ? 'Sharp' : score >= 45 ? 'Developing' : 'Fragmented';
     const pending = actionItems.filter(a => a.status !== 'done').sort((a, b) => {
-      const o = ['critical','high','medium','low'];
+      const o = ['critical', 'high', 'medium', 'low'];
       return o.indexOf(a.priority) - o.indexOf(b.priority);
     });
-    return [
+    const subScoreLines = [
+      synthesis.financial_score !== null   ? `  Financial Clarity: ${synthesis.financial_score}/100`   : null,
+      synthesis.operational_score !== null ? `  Operational Readiness: ${synthesis.operational_score}/100` : null,
+      synthesis.alignment_score !== null   ? `  Strategic Alignment: ${synthesis.alignment_score}/100`  : null,
+    ].filter(Boolean) as string[];
+    const lines: string[] = [
       `WAR ROOM BRIEF — ${workspaceName}`,
       `Decision Health: ${score}/100 (${label})`,
       synthesis.health_rationale ? `"${synthesis.health_rationale}"` : '',
-      '',
-      'TOP CONSENSUS:',
-      ...synthesis.consensus_points.slice(0, 3).map((p, i) => `  ${i + 1}. ${p.text}`),
-      '',
-      'KEY RISKS:',
-      ...synthesis.risk_signals.slice(0, 3).map((r, i) => `  ${i + 1}. [${r.severity.toUpperCase()}] ${r.signal}`),
-      '',
-      'PRIORITY ACTIONS:',
-      ...pending.slice(0, 3).map((a, i) => `  ${i + 1}. ${a.text}`),
-    ].filter(l => l !== undefined).join('\n');
+    ];
+    if (subScoreLines.length) { lines.push('', 'SUB-SCORES:', ...subScoreLines); }
+    lines.push('', 'TOP CONSENSUS:', ...synthesis.consensus_points.slice(0, 3).map((p, i) => `  ${i + 1}. ${p.text}`));
+    lines.push('', 'KEY RISKS:', ...synthesis.risk_signals.slice(0, 3).map((r, i) => `  ${i + 1}. [${r.severity.toUpperCase()}] ${r.signal}`));
+    if (synthesis.opportunity_signals.length) {
+      lines.push('', 'OPPORTUNITIES:', ...synthesis.opportunity_signals.slice(0, 2).map((o, i) => `  ${i + 1}. ${o.title}: ${o.description}`));
+    }
+    lines.push('', 'PRIORITY ACTIONS:', ...pending.slice(0, 3).map((a, i) => `  ${i + 1}. ${a.text}`));
+    return lines.join('\n');
   }
 
   const prevRun = history.length >= 2 ? history[history.length - 2] : null;
@@ -463,7 +732,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         </div>
         <h3 className="text-lg font-black text-slate-900 mb-2">War Room is ready</h3>
         <p className="text-sm text-slate-500 max-w-sm mx-auto leading-relaxed mb-6">
-          After your team has had some conversations, run a synthesis to surface consensus, conflicts, blind spots, risk signals, and AI-suggested action items.
+          After your team has had some conversations, run a synthesis to surface consensus, conflicts, blind spots, risk signals, financial metrics, and AI-suggested action items.
         </p>
         {messageCount >= 3 ? (
           <button onClick={generate} disabled={generating}
@@ -484,14 +753,25 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const scoreLabel = score >= 70 ? 'Sharp' : score >= 45 ? 'Developing' : 'Fragmented';
   const scoreColor = score >= 70 ? '#16a34a' : score >= 45 ? '#f59e0b' : '#dc2626';
 
+  const hasFinancial    = synthesis.financial_metrics.length > 0;
+  const hasOperational  = synthesis.operational_metrics.length > 0;
+  const hasNonFinancial = synthesis.non_financial_metrics.length > 0;
+  const hasOpportunities = synthesis.opportunity_signals.length > 0;
+  const hasBiases       = synthesis.cognitive_bias_flags.length > 0;
+
   const sections = [
-    { key: 'consensus',  label: 'Consensus',     icon: CheckCircle2,  count: synthesis.consensus_points.length, color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
-    { key: 'conflicts',  label: 'Conflicts',      icon: GitBranch,     count: synthesis.conflict_zones.length,   color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
-    { key: 'questions',  label: 'Questions',      icon: HelpCircle,    count: synthesis.open_questions.length,   color: '#3b82f6', bg: 'rgba(37,99,235,0.08)' },
-    { key: 'risks',      label: 'Risks',          icon: AlertTriangle, count: synthesis.risk_signals.length,     color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
-    { key: 'blindspots', label: 'Blind Spots',    icon: Eye,           count: synthesis.blind_spots.length,      color: '#0891b2', bg: 'rgba(8,145,178,0.08)' },
-    { key: 'actions',    label: 'Actions',        icon: Target,        count: actionItems.length,                color: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
-  ];
+    { key: 'consensus',     label: 'Consensus',     icon: CheckCircle2,  count: synthesis.consensus_points.length,      color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
+    { key: 'conflicts',     label: 'Conflicts',      icon: GitBranch,     count: synthesis.conflict_zones.length,        color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
+    { key: 'questions',     label: 'Questions',      icon: HelpCircle,    count: synthesis.open_questions.length,        color: '#3b82f6', bg: 'rgba(37,99,235,0.08)' },
+    { key: 'risks',         label: 'Risks',          icon: AlertTriangle, count: synthesis.risk_signals.length,          color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
+    { key: 'blindspots',    label: 'Blind Spots',    icon: Eye,           count: synthesis.blind_spots.length,           color: '#0891b2', bg: 'rgba(8,145,178,0.08)' },
+    hasFinancial    && { key: 'financial',    label: 'Financial',    icon: DollarSign,    count: synthesis.financial_metrics.length,    color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
+    hasOperational  && { key: 'operational',  label: 'Operational',  icon: Settings,      count: synthesis.operational_metrics.length,  color: '#b45309', bg: 'rgba(245,158,11,0.08)' },
+    hasNonFinancial && { key: 'strategic',    label: 'Strategic',    icon: BarChart3,     count: synthesis.non_financial_metrics.length, color: '#1d4ed8', bg: 'rgba(37,99,235,0.08)' },
+    hasOpportunities && { key: 'opportunities', label: 'Opportunities', icon: Lightbulb, count: synthesis.opportunity_signals.length,  color: '#15803d', bg: 'rgba(22,163,74,0.1)' },
+    hasBiases       && { key: 'biases',       label: 'Bias Flags',   icon: AlertCircle,  count: synthesis.cognitive_bias_flags.length, color: '#b45309', bg: 'rgba(245,158,11,0.1)' },
+    { key: 'actions',       label: 'Actions',        icon: Target,        count: actionItems.length,                      color: '#2563eb', bg: 'rgba(37,99,235,0.08)' },
+  ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ElementType; count: number; color: string; bg: string }>;
 
   return (
     <div className="space-y-5">
@@ -522,8 +802,13 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           <button onClick={() => exportWarRoomToPDF({
             workspaceName, topic: workspaceTopic, generatedAt: synthesis.generated_at, messageCount: synthesis.message_count,
             decisionHealthScore: synthesis.decision_health_score, healthRationale: synthesis.health_rationale,
+            financialScore: synthesis.financial_score, operationalScore: synthesis.operational_score, alignmentScore: synthesis.alignment_score,
+            decisionVelocity: synthesis.decision_velocity, confidenceTrajectory: synthesis.confidence_trajectory,
             consensusPoints: synthesis.consensus_points, conflictZones: synthesis.conflict_zones,
             openQuestions: synthesis.open_questions, riskSignals: synthesis.risk_signals, blindSpots: synthesis.blind_spots,
+            financialMetrics: synthesis.financial_metrics, operationalMetrics: synthesis.operational_metrics,
+            nonFinancialMetrics: synthesis.non_financial_metrics, opportunitySignals: synthesis.opportunity_signals,
+            cognitiveBiasFlags: synthesis.cognitive_bias_flags,
             actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source: a.source })),
           })}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5"
@@ -546,46 +831,60 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       )}
 
       {/* ── Decision Health Panel ── */}
-      <div className="rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6"
+      <div className="rounded-2xl p-5"
         style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <ScoreRing score={score} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="text-lg font-black text-white">{scoreLabel} Team</span>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${scoreColor}22`, color: scoreColor }}>Decision Health</span>
-            {scoreDelta !== null && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                style={{ background: scoreDelta >= 0 ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)', color: scoreDelta >= 0 ? '#16a34a' : '#dc2626' }}>
-                {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs last run
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-slate-300 leading-relaxed mb-3">
-            {synthesis.health_rationale || 'AI-assessed clarity, risk coverage, and strategic alignment.'}
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-            {questionsDelta !== null && questionsDelta > 0 && (
-              <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(22,163,74,0.15)' }}>
-                <p className="text-sm font-black text-green-400">{questionsDelta} closed</p>
-                <p className="text-xs text-green-300/70">questions resolved</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+          <ScoreRing score={score} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-lg font-black text-white">{scoreLabel} Team</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${scoreColor}22`, color: scoreColor }}>Decision Health</span>
+              {scoreDelta !== null && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: scoreDelta >= 0 ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)', color: scoreDelta >= 0 ? '#16a34a' : '#dc2626' }}>
+                  {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs last run
+                </span>
+              )}
+              <VelocityBadge velocity={synthesis.decision_velocity} />
+              <TrajectoryBadge trajectory={synthesis.confidence_trajectory} />
+            </div>
+            <p className="text-sm text-slate-300 leading-relaxed mb-3">
+              {synthesis.health_rationale || 'AI-assessed clarity, risk coverage, and strategic alignment.'}
+            </p>
+
+            {/* Sub-score pills */}
+            {(synthesis.financial_score !== null || synthesis.operational_score !== null || synthesis.alignment_score !== null) && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                <SubScorePill label="Financial Clarity"     score={synthesis.financial_score}   icon={DollarSign} />
+                <SubScorePill label="Operational Readiness" score={synthesis.operational_score} icon={Settings} />
+                <SubScorePill label="Strategic Alignment"   score={synthesis.alignment_score}   icon={BarChart3} />
               </div>
             )}
-            {history.length > 0 && (
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+              {questionsDelta !== null && questionsDelta > 0 && (
+                <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(22,163,74,0.15)' }}>
+                  <p className="text-sm font-black text-green-400">{questionsDelta} closed</p>
+                  <p className="text-xs text-green-300/70">questions resolved</p>
+                </div>
+              )}
+              {history.length > 0 && (
+                <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <p className="text-sm font-black text-white">#{history.length}</p>
+                  <p className="text-xs text-slate-400">synthesis run</p>
+                </div>
+              )}
               <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                <p className="text-sm font-black text-white">#{history.length}</p>
-                <p className="text-xs text-slate-400">synthesis run</p>
+                <p className="text-sm font-black text-white">{synthesis.conflict_zones.length} zones</p>
+                <p className="text-xs text-slate-400">active tensions</p>
               </div>
-            )}
-            <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-              <p className="text-sm font-black text-white">{synthesis.conflict_zones.length} zones</p>
-              <p className="text-xs text-slate-400">active tensions</p>
+              <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <p className="text-sm font-black text-white">{doneItems.length}/{actionItems.length}</p>
+                <p className="text-xs text-slate-400">actions done</p>
+              </div>
             </div>
-            <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-              <p className="text-sm font-black text-white">{doneItems.length}/{actionItems.length}</p>
-              <p className="text-xs text-slate-400">actions done</p>
-            </div>
+            <HealthSparkline history={history} />
           </div>
-          <HealthSparkline history={history} />
         </div>
       </div>
 
@@ -628,7 +927,6 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             <span className="text-sm font-bold text-amber-800">Strategic conflict zones</span>
             <span className="text-xs text-amber-600 hidden sm:inline ml-auto">Breakthroughs hide in disagreement</span>
           </div>
-          {/* Tension overview bars */}
           <div className="px-5 pt-4 pb-2 bg-white space-y-2">
             {synthesis.conflict_zones.map((z, i) => {
               const lvl = Math.max(0, Math.min(100, Number(z.tension_level) || 0));
@@ -652,7 +950,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               const isPending = commitPending?.topic === z.topic;
               return (
                 <div key={i} className="rounded-xl p-4 transition-all"
-                  style={{ background: commit ? 'rgba(22,163,74,0.04)' : sent ? 'rgba(22,163,74,0.04)' : 'rgba(245,158,11,0.04)', border: `1px solid ${commit ? 'rgba(22,163,74,0.2)' : sent ? 'rgba(22,163,74,0.2)' : 'rgba(245,158,11,0.12)'}` }}>
+                  style={{ background: commit || sent ? 'rgba(22,163,74,0.04)' : 'rgba(245,158,11,0.04)', border: `1px solid ${commit || sent ? 'rgba(22,163,74,0.2)' : 'rgba(245,158,11,0.12)'}` }}>
                   <div className="flex items-center gap-2 mb-3 flex-wrap">
                     <span className="text-xs font-black text-amber-700 uppercase tracking-wide">{z.topic}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(245,158,11,0.12)', color: '#b45309' }}>
@@ -857,16 +1155,100 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         </div>
       )}
 
+      {/* ── FINANCIAL METRICS ── */}
+      {(activeSection === null || activeSection === 'financial') && hasFinancial && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(22,163,74,0.2)' }}>
+          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(22,163,74,0.07)' }}>
+            <DollarSign className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-bold text-green-800">Financial signals</span>
+            {synthesis.financial_score !== null && (
+              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  background: synthesis.financial_score >= 70 ? 'rgba(22,163,74,0.15)' : synthesis.financial_score >= 45 ? 'rgba(245,158,11,0.15)' : 'rgba(220,38,38,0.12)',
+                  color: synthesis.financial_score >= 70 ? '#15803d' : synthesis.financial_score >= 45 ? '#b45309' : '#b91c1c',
+                }}>
+                Clarity {synthesis.financial_score}/100
+              </span>
+            )}
+          </div>
+          <FinancialMetricsPanel metrics={synthesis.financial_metrics} score={synthesis.financial_score} />
+        </div>
+      )}
+
+      {/* ── OPERATIONAL METRICS ── */}
+      {(activeSection === null || activeSection === 'operational') && hasOperational && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(245,158,11,0.2)' }}>
+          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(245,158,11,0.07)' }}>
+            <Settings className="w-4 h-4 text-amber-600" />
+            <span className="text-sm font-bold text-amber-800">Operational readiness</span>
+            {synthesis.operational_score !== null && (
+              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  background: synthesis.operational_score >= 70 ? 'rgba(22,163,74,0.15)' : synthesis.operational_score >= 45 ? 'rgba(245,158,11,0.15)' : 'rgba(220,38,38,0.12)',
+                  color: synthesis.operational_score >= 70 ? '#15803d' : synthesis.operational_score >= 45 ? '#b45309' : '#b91c1c',
+                }}>
+                Readiness {synthesis.operational_score}/100
+              </span>
+            )}
+          </div>
+          <OperationalMetricsPanel metrics={synthesis.operational_metrics} score={synthesis.operational_score} />
+        </div>
+      )}
+
+      {/* ── NON-FINANCIAL / STRATEGIC METRICS ── */}
+      {(activeSection === null || activeSection === 'strategic') && hasNonFinancial && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.15)' }}>
+          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(37,99,235,0.06)' }}>
+            <BarChart3 className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-bold text-blue-800">Strategic &amp; non-financial signals</span>
+            {synthesis.alignment_score !== null && (
+              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  background: synthesis.alignment_score >= 70 ? 'rgba(22,163,74,0.15)' : synthesis.alignment_score >= 45 ? 'rgba(245,158,11,0.15)' : 'rgba(220,38,38,0.12)',
+                  color: synthesis.alignment_score >= 70 ? '#15803d' : synthesis.alignment_score >= 45 ? '#b45309' : '#b91c1c',
+                }}>
+                Alignment {synthesis.alignment_score}/100
+              </span>
+            )}
+          </div>
+          <NonFinancialMetricsPanel metrics={synthesis.non_financial_metrics} score={synthesis.alignment_score} />
+        </div>
+      )}
+
+      {/* ── OPPORTUNITY SIGNALS ── */}
+      {(activeSection === null || activeSection === 'opportunities') && hasOpportunities && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(22,163,74,0.2)' }}>
+          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(22,163,74,0.06)' }}>
+            <Lightbulb className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-bold text-green-800">Opportunity signals</span>
+            <span className="text-xs text-green-600 ml-auto">Upsides worth capturing</span>
+          </div>
+          <OpportunitySignalsPanel signals={synthesis.opportunity_signals} />
+        </div>
+      )}
+
+      {/* ── COGNITIVE BIAS FLAGS ── */}
+      {(activeSection === null || activeSection === 'biases') && hasBiases && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(245,158,11,0.25)' }}>
+          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(245,158,11,0.08)' }}>
+            <AlertCircle className="w-4 h-4 text-amber-600" />
+            <span className="text-sm font-bold text-amber-800">Cognitive bias flags</span>
+            <span className="text-xs text-amber-600 ml-auto">Reasoning traps to watch</span>
+          </div>
+          <CognitiveBiasFlagsPanel flags={synthesis.cognitive_bias_flags} onDiscuss={onDiscuss} />
+        </div>
+      )}
+
       {/* ── ACTION ITEMS (Kanban) ── */}
       {(activeSection === null || activeSection === 'actions') && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(124,58,237,0.2)' }}>
-          <div className="px-5 py-3 flex items-center gap-2 flex-wrap" style={{ background: 'rgba(124,58,237,0.06)' }}>
-            <Target className="w-4 h-4" style={{ color: '#7c3aed' }} />
-            <span className="text-sm font-bold" style={{ color: '#5b21b6' }}>Action Items</span>
-            <span className="text-xs ml-1" style={{ color: '#7c3aed' }}>{doneItems.length}/{actionItems.length} done</span>
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.2)' }}>
+          <div className="px-5 py-3 flex items-center gap-2 flex-wrap" style={{ background: 'rgba(37,99,235,0.06)' }}>
+            <Target className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-bold text-blue-800">Action Items</span>
+            <span className="text-xs ml-1 text-blue-600">{doneItems.length}/{actionItems.length} done</span>
             <button onClick={() => { setAddingAction(true); setTimeout(() => addInputRef.current?.focus(), 50); }}
               className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all hover:scale-105"
-              style={{ background: 'rgba(124,58,237,0.12)', color: '#7c3aed' }}>
+              style={{ background: 'rgba(37,99,235,0.12)', color: '#2563eb' }}>
               <Plus className="w-3 h-3" />Add Action
             </button>
           </div>
@@ -876,11 +1258,11 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                 <input ref={addInputRef} type="text" value={newActionText} onChange={e => setNewActionText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') addManualAction(); if (e.key === 'Escape') setAddingAction(false); }}
                   placeholder="Type an action item and press Enter…"
-                  className="flex-1 text-sm px-3 py-2 rounded-xl border text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-400"
-                  style={{ borderColor: 'rgba(124,58,237,0.3)' }} />
+                  className="flex-1 text-sm px-3 py-2 rounded-xl border text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400"
+                  style={{ borderColor: 'rgba(37,99,235,0.3)' }} />
                 <button onClick={addManualAction} disabled={savingAction || !newActionText.trim()}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg,#5b21b6,#7c3aed)' }}>
+                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
                   {savingAction ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Add'}
                 </button>
                 <button onClick={() => setAddingAction(false)} className="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-600">
@@ -911,7 +1293,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                                   style={{ textDecoration: item.status === 'done' ? 'line-through' : 'none', color: item.status === 'done' ? '#94a3b8' : undefined }}>
                                   {item.text}
                                 </p>
-                                {item.source === 'ai' && <span title="AI suggested"><Sparkles className="w-3 h-3 text-violet-400 flex-shrink-0 mt-0.5" /></span>}
+                                {item.source === 'ai' && <span title="AI suggested"><Sparkles className="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" /></span>}
                               </div>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="text-xs font-bold px-1.5 py-0.5 rounded-full capitalize" style={{ background: pc.bg, color: pc.text }}>{item.priority}</span>
@@ -1018,8 +1400,12 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                     generatedAt: synthesis!.generated_at,
                     decisionHealthScore: synthesis!.decision_health_score,
                     healthRationale: synthesis!.health_rationale,
+                    financialScore: synthesis!.financial_score,
+                    operationalScore: synthesis!.operational_score,
+                    alignmentScore: synthesis!.alignment_score,
                     consensusPoints: synthesis!.consensus_points,
                     riskSignals: synthesis!.risk_signals,
+                    opportunitySignals: synthesis!.opportunity_signals,
                     actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status })),
                     synthesisRunNumber: history.length || undefined,
                   })}
@@ -1050,7 +1436,7 @@ export function WarRoomLockedState({ onUpgrade }: { onUpgrade: () => void }) {
               <div className="h-3 bg-slate-100 rounded w-56" />
             </div>
           </div>
-          {[1,2,3].map(i => <div key={i} className="h-16 bg-slate-100 rounded-2xl" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-100 rounded-2xl" />)}
         </div>
       </div>
       <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(248,250,252,0.92)' }}>
@@ -1061,15 +1447,16 @@ export function WarRoomLockedState({ onUpgrade }: { onUpgrade: () => void }) {
           </div>
           <h3 className="text-lg font-black text-slate-900 mb-2">War Room is a Pro feature</h3>
           <p className="text-sm text-slate-500 leading-relaxed mb-5">
-            Surface consensus, blind spots, strategic conflicts, risk signals, and AI-generated action items from your team's conversations.
+            Surface consensus, blind spots, financial signals, strategic conflicts, risk signals, opportunity signals, and AI-generated action items from your team's conversations.
           </p>
           <div className="space-y-2 mb-5 text-left">
             {[
-              { icon: Activity,   text: 'Decision Health Score — with trend sparkline across all runs' },
-              { icon: GitBranch,  text: 'Conflict Zones — stress test, commit decisions, track resolutions' },
-              { icon: Target,     text: 'Action Items — AI Kanban with assignees and priority tracking' },
-              { icon: TrendingUp, text: 'Risk Matrix — visual 2D plot by category and severity' },
-              { icon: Eye,        text: 'Blind Spots — what your team hasn\'t considered yet' },
+              { icon: Activity,     text: 'Decision Health Score — with Financial, Operational & Alignment sub-scores' },
+              { icon: DollarSign,   text: 'Financial Signals — budget assumptions, projections, ROI, burn rate' },
+              { icon: Settings,     text: 'Operational Readiness — timelines, dependencies, bottlenecks' },
+              { icon: Lightbulb,    text: 'Opportunity Signals — upsides your team should capture' },
+              { icon: AlertCircle,  text: 'Cognitive Bias Flags — reasoning traps with counter-questions' },
+              { icon: TrendingUp,   text: 'Risk Matrix — visual 2D plot by category and severity' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-start gap-2.5">
                 <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(37,99,235,0.1)' }}>
