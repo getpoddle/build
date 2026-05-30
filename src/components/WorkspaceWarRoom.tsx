@@ -625,6 +625,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       if (json.error) { setError(json.error); return; }
       if (json.synthesis) {
         setSynthesis(sanitizeSynthesis(json.synthesis));
+        setActiveSection(null);
         const { count } = await supabase.from('workspace_messages')
           .select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId);
         setMessageCount(count ?? 0);
