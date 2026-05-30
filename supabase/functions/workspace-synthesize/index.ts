@@ -251,6 +251,9 @@ ${transcript}`;
     const openQuestions = Array.isArray(synthesis.open_questions) ? synthesis.open_questions : [];
     const riskSignals = Array.isArray(synthesis.risk_signals) ? synthesis.risk_signals : [];
     const blindSpots = Array.isArray(synthesis.blind_spots) ? synthesis.blind_spots : [];
+    const financialMetrics = Array.isArray(synthesis.financial_metrics) ? synthesis.financial_metrics : [];
+    const operationalMetrics = Array.isArray(synthesis.operational_metrics) ? synthesis.operational_metrics : [];
+    const nonFinancialMetrics = Array.isArray(synthesis.non_financial_metrics) ? synthesis.non_financial_metrics : [];
     const opportunitySignals = Array.isArray(synthesis.opportunity_signals) ? synthesis.opportunity_signals : [];
     const cognitiveBiasFlags = Array.isArray(synthesis.cognitive_bias_flags) ? synthesis.cognitive_bias_flags : [];
     const financialScore = synthesis.financial_score != null ? Math.max(0, Math.min(100, Number(synthesis.financial_score))) : null;
@@ -276,9 +279,9 @@ ${transcript}`;
       action_items: actionItems,
       decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
       health_rationale: synthesis.health_rationale || null,
-      financial_metrics: synthesis.financial_metrics || null,
-      operational_metrics: synthesis.operational_metrics || null,
-      non_financial_metrics: synthesis.non_financial_metrics || null,
+      financial_metrics: financialMetrics,
+      operational_metrics: operationalMetrics,
+      non_financial_metrics: nonFinancialMetrics,
       opportunity_signals: opportunitySignals,
       cognitive_bias_flags: cognitiveBiasFlags,
       financial_score: financialScore,
@@ -373,6 +376,9 @@ ${transcript}`;
       synthesis: {
         ...synthesis,
         action_items: actionItems,
+        financial_metrics: financialMetrics,
+        operational_metrics: operationalMetrics,
+        non_financial_metrics: nonFinancialMetrics,
         opportunity_signals: opportunitySignals,
         cognitive_bias_flags: cognitiveBiasFlags,
         financial_score: financialScore,
