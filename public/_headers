@@ -32,6 +32,10 @@
   Permissions-Policy: geolocation=(), microphone=(), camera=()
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co;
 
+# Service worker must never be cached
+/sw.js
+  Cache-Control: no-store, no-cache, must-revalidate
+
 # HTML files should not be cached aggressively
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
