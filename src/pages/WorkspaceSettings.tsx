@@ -218,7 +218,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   }
 
   async function copyInviteLink(token: string) {
-    const url = `${window.location.origin}/join/${token}`;
+    const url = `${window.location.origin}/#join/${token}`;
     await navigator.clipboard.writeText(url);
     setCopiedToken(token);
     setTimeout(() => setCopiedToken(null), 2000);
