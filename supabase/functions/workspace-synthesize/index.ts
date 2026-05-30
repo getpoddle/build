@@ -121,6 +121,11 @@ Your task: perform a War Room synthesis of this conversation and return a JSON o
 {
   "decision_health_score": 72,
   "health_rationale": "one sentence explaining the score",
+  "financial_score": 65,
+  "operational_score": 58,
+  "alignment_score": 74,
+  "decision_velocity": "Moderate",
+  "confidence_trajectory": "rising",
   "consensus_points": [
     { "text": "clear shared belief", "confidence": 85, "source_count": 3 }
   ],
@@ -138,6 +143,38 @@ Your task: perform a War Room synthesis of this conversation and return a JSON o
   ],
   "action_items": [
     { "text": "Conduct user interviews to validate the pricing assumption before Q2", "source_area": "blind_spot", "priority": "high" }
+  ],
+  "financial_metrics": {
+    "summary": "one sentence summarising the financial picture",
+    "budget_assumptions": ["assumption 1", "assumption 2"],
+    "cost_signals": ["cost signal 1"],
+    "revenue_signals": ["revenue signal 1"],
+    "financial_risk_exposure": "low/medium/high/critical",
+    "roi_mentions": ["any ROI or return comment from the transcript"],
+    "burn_rate_signals": ["any burn or runway mention"]
+  },
+  "operational_metrics": {
+    "summary": "one sentence on operational readiness",
+    "timeline_clarity": "clear/unclear/missing",
+    "resource_constraints": ["constraint 1"],
+    "dependencies": ["dependency 1"],
+    "bottlenecks": ["bottleneck 1"],
+    "readiness_score": 62
+  },
+  "non_financial_metrics": {
+    "summary": "one sentence on team and strategic alignment",
+    "team_morale_signal": "high/medium/low/unknown",
+    "stakeholder_buyin_strength": "strong/moderate/weak/unknown",
+    "customer_impact_estimate": "high/medium/low/unknown",
+    "strategic_alignment_label": "Aligned/Mixed/Fragmented",
+    "technical_debt_signals": ["any tech debt mention"],
+    "innovation_potential": "high/medium/low"
+  },
+  "opportunity_signals": [
+    { "opportunity": "specific upside or strategic opportunity", "confidence": "high/medium/low", "source": "who mentioned it or what implied it" }
+  ],
+  "cognitive_bias_flags": [
+    { "bias": "Confirmation Bias", "explanation": "plain-English explanation of where this appeared in the conversation", "counter_question": "A probing question to surface the blind spot this bias creates" }
   ]
 }
 
@@ -149,6 +186,16 @@ Rules:
 - blind_spots: topics NO agent raised but that are strategically important given the context. Do NOT include topics that were already discussed — only truly unaddressed areas. (max 3 — this is the most valuable output)
 - action_items: Generate up to 6 concrete, specific, one-sentence action items the team should take immediately, derived from the open questions, risks, and blind spots. Each MUST start with a verb (e.g. "Validate", "Schedule", "Research", "Define", "Test", "Map"). Tag each with the source_area it came from (risk/blind_spot/open_question/conflict). Priority must be critical/high/medium/low.
 - decision_health_score: 0-100. Low means fragmented/confused team, high means sharp/aligned. As more questions get resolved and consensus grows, this score should INCREASE. Base on clarity, coverage of risks, consensus quality, and how many prior open questions have now been addressed.
+- financial_score: 0-100. How clear and well-reasoned are the team's financial assumptions, projections, and risk awareness? 0 = no financial thinking, 100 = fully modelled and stress-tested.
+- operational_score: 0-100. How clear is the team on execution: timelines, resources, dependencies, bottlenecks? 0 = no operational clarity, 100 = fully mapped.
+- alignment_score: 0-100. How aligned is the team on strategy, stakeholders, and customer value? 0 = fragmented, 100 = fully unified.
+- decision_velocity: "Fast" (team is converging and resolving quickly), "Moderate" (some convergence but open items remain), or "Stalling" (team is going in circles or not resolving anything).
+- confidence_trajectory: "rising" (the team is gaining conviction), "flat" (confidence is not changing), or "falling" (the team is becoming less certain as the conversation progresses).
+- financial_metrics: Extract all financial signals from the transcript. If none exist, set arrays to [] and use "unknown" for unknowns. financial_risk_exposure must be low/medium/high/critical.
+- operational_metrics: Extract operational signals. readiness_score 0-100. timeline_clarity must be "clear", "unclear", or "missing".
+- non_financial_metrics: Assess team and strategic quality signals. All enum fields must use one of their specified values.
+- opportunity_signals: Up to 3 specific upsides, growth opportunities, or strategic advantages identified or implied in the conversation. confidence must be "high", "medium", or "low".
+- cognitive_bias_flags: Up to 3 reasoning traps detected (e.g. Confirmation Bias, Groupthink, Sunk Cost Fallacy, Recency Bias, Anchoring, Overconfidence). Only flag genuine instances — do not invent biases that are not evidenced in the transcript. Each must include a practical counter_question the team should ask itself.
 - Return ONLY valid JSON. No markdown, no explanation.
 
 CRITICAL: Read the ENTIRE transcript carefully before populating open_questions and blind_spots. If a question was explicitly discussed and agents gave recommendations — it is RESOLVED. Only flag something as open if it truly has no answer anywhere in the conversation.
@@ -174,7 +221,7 @@ ${transcript}`;
             { role: "system", content: "You are a strategic intelligence analyst. Return only valid JSON, nothing else." },
             { role: "user", content: synthesisPrompt },
           ],
-          max_tokens: 3000,
+          max_tokens: 4500,
           temperature: 0.3,
           response_format: { type: "json_object" },
         }),
@@ -210,8 +257,13 @@ ${transcript}`;
     const openQuestions = Array.isArray(synthesis.open_questions) ? synthesis.open_questions : [];
     const riskSignals = Array.isArray(synthesis.risk_signals) ? synthesis.risk_signals : [];
     const blindSpots = Array.isArray(synthesis.blind_spots) ? synthesis.blind_spots : [];
+    const opportunitySignals = Array.isArray(synthesis.opportunity_signals) ? synthesis.opportunity_signals : [];
+    const cognitiveBiasFlags = Array.isArray(synthesis.cognitive_bias_flags) ? synthesis.cognitive_bias_flags : [];
+    const financialScore = synthesis.financial_score != null ? Math.max(0, Math.min(100, Number(synthesis.financial_score))) : null;
+    const operationalScore = synthesis.operational_score != null ? Math.max(0, Math.min(100, Number(synthesis.operational_score))) : null;
+    const alignmentScore = synthesis.alignment_score != null ? Math.max(0, Math.min(100, Number(synthesis.alignment_score))) : null;
 
-    // Upsert synthesis — include action_items
+    // Upsert synthesis — include all new metric fields
     await service.from("workspace_synthesis").upsert({
       workspace_id,
       consensus_points: consensusPoints,
@@ -222,6 +274,16 @@ ${transcript}`;
       action_items: actionItems,
       decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
       health_rationale: synthesis.health_rationale || null,
+      financial_metrics: synthesis.financial_metrics || null,
+      operational_metrics: synthesis.operational_metrics || null,
+      non_financial_metrics: synthesis.non_financial_metrics || null,
+      opportunity_signals: opportunitySignals,
+      cognitive_bias_flags: cognitiveBiasFlags,
+      financial_score: financialScore,
+      operational_score: operationalScore,
+      alignment_score: alignmentScore,
+      decision_velocity: synthesis.decision_velocity || null,
+      confidence_trajectory: synthesis.confidence_trajectory || null,
       generated_at: generatedAt,
       message_count_at_generation: messages.length,
     }, { onConflict: "workspace_id" });
@@ -236,6 +298,9 @@ ${transcript}`;
       risk_count: riskSignals.length,
       blind_spot_count: blindSpots.length,
       message_count: messages.length,
+      financial_score: financialScore,
+      operational_score: operationalScore,
+      alignment_score: alignmentScore,
       generated_at: generatedAt,
     }).select("id").maybeSingle();
 
@@ -306,6 +371,11 @@ ${transcript}`;
       synthesis: {
         ...synthesis,
         action_items: actionItems,
+        opportunity_signals: opportunitySignals,
+        cognitive_bias_flags: cognitiveBiasFlags,
+        financial_score: financialScore,
+        operational_score: operationalScore,
+        alignment_score: alignmentScore,
         generated_at: generatedAt,
         message_count: messages.length,
       },
