@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { acquireChannel, releaseChannel, pauseChannel, resumeChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
 import { exportChatToPDF } from '../lib/pdfExport';
 import { getDisplayName } from '../lib/displayName';
 import { getAvatarUrl, getInitials } from '../lib/avatarUtils';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface Message {
   id: string;
@@ -83,8 +83,6 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingPromptRef = useRef<string | undefined>(initialPrompt);
-  const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
-  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const memberProfilesRef = useRef<Record<string, MemberProfile>>({});
 
@@ -101,17 +99,18 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     loadMessages();
     loadMemberProfiles();
 
-    // Realtime: new messages from DB (catches other members' messages)
-    const msgChannel = supabase
-      .channel(`workspace-messages-${workspaceId}`)
-      .on(
+    const msgName = `workspace-messages-${workspaceId}`;
+    const presenceName = `workspace-presence-${workspaceId}`;
+
+    // Acquire via singleton registry — reuses an existing channel if another
+    // component or tab has already opened it, preventing duplicate WebSocket slots.
+    acquireChannel(msgName, ch =>
+      ch.on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'workspace_messages', filter: `workspace_id=eq.${workspaceId}` },
         (payload) => {
           const newMsg = payload.new as Message;
-          // Skip own optimistic messages — we already added them
           if (newMsg.role === 'user' && newMsg.user_id === user?.id) return;
-          // If it's a new user message from another member, ensure their profile is loaded
           if (newMsg.role === 'user' && newMsg.user_id && !memberProfilesRef.current[newMsg.user_id]) {
             supabase
               .from('profiles')
@@ -128,42 +127,45 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               });
           }
           setMessages(prev => {
-            // Deduplicate by id
             if (prev.some(m => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
           setTimeout(() => scrollToBottom(), 50);
-        }
-      )
-      .subscribe();
+        },
+      ),
+    );
 
-    realtimeChannelRef.current = msgChannel;
-
-    // Presence: typing indicators
-    const presenceChannel = supabase.channel(`workspace-presence-${workspaceId}`, {
-      config: { presence: { key: user?.id || 'anon' } },
-    });
-
-    presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState<{ user_id: string; name: string; isTyping: boolean }>();
+    acquireChannel(presenceName, ch =>
+      ch.on('presence', { event: 'sync' }, () => {
+        const channel = ch as ReturnType<typeof supabase.channel>;
+        const state = channel.presenceState<{ user_id: string; name: string; isTyping: boolean }>();
         const next = new Map<string, string>();
         for (const [, presences] of Object.entries(state)) {
           for (const p of presences) {
-            if (p.user_id !== user?.id && p.isTyping) {
-              next.set(p.user_id, p.name);
-            }
+            if (p.user_id !== user?.id && p.isTyping) next.set(p.user_id, p.name);
           }
         }
         setTypingUsers(next);
-      })
-      .subscribe();
+      }),
+    );
 
-    presenceChannelRef.current = presenceChannel;
+    // Pause channels when the tab is hidden; resume when visible again.
+    // This cuts server broadcast load to zero while the user isn't looking.
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        pauseChannel(msgName);
+        pauseChannel(presenceName);
+      } else {
+        resumeChannel(msgName);
+        resumeChannel(presenceName);
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      supabase.removeChannel(msgChannel);
-      supabase.removeChannel(presenceChannel);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseChannel(msgName);
+      releaseChannel(presenceName);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
