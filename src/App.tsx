@@ -778,7 +778,7 @@ function AppContent() {
         </Suspense>
         </PageErrorBoundary>
       </main>
-      <footer className="hidden md:block bg-white border-t border-slate-200 py-6">
+      <footer className="bg-white border-t border-slate-200 py-6">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-600">
             <a href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</a>

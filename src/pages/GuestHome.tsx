@@ -202,6 +202,14 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
                 <a href="#privacy" className="hover:text-slate-600 transition-colors">Privacy Policy</a>
                 <a href="#terms" className="hover:text-slate-600 transition-colors">Terms of Service</a>
                 <a href="#contact-us" className="hover:text-slate-600 transition-colors">Contact Us</a>
+                <a
+                  href="/security-audit.docx"
+                  download="Poddle-Security-Audit-2026.docx"
+                  className="inline-flex items-center gap-1 hover:text-slate-600 transition-colors"
+                >
+                  <Shield className="w-3 h-3" />
+                  Security Audit
+                </a>
               </div>
               <p className="text-center text-xs text-slate-400 mt-3">&copy; 2026 Poddle, Inc. All rights reserved.</p>
             </footer>
