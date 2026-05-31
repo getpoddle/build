@@ -786,14 +786,6 @@ function AppContent() {
             <a href="#privacy" className="hover:text-blue-600 transition-colors">Privacy Policy</a>
             <a href="#terms" className="hover:text-blue-600 transition-colors">Terms of Service</a>
             <a href="#contact-us" className="hover:text-blue-600 transition-colors">Contact Us</a>
-            <a
-              href="/security-audit.docx"
-              download="Poddle-Security-Audit-2026.docx"
-              className="flex items-center gap-1.5 hover:text-blue-600 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
-              Security Audit
-            </a>
           </div>
           <p className="text-center text-xs text-slate-500 mt-4">
             &copy; 2026 Poddle, Inc. All rights reserved.
