@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense, type ReactNode } from 'rea
 import { CheckCircle } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import ErrorBoundary from './components/ErrorBoundary';
+import ErrorBoundary, { PageErrorBoundary } from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
 import { updatePageSEO, injectNoIndex } from './lib/seo';
 import { pageview } from './lib/analytics';
@@ -701,6 +701,7 @@ function AppContent() {
           paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
         }}
       >
+        <PageErrorBoundary>
         <Suspense fallback={<RouteFallback />}>
           {activePage === 'home' && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
           {activePage === 'profile' && <Profile key={`profile-${selectedUserId || 'own'}`} userId={selectedUserId} onNavigate={handleNavigate} initialEditMode={profileEditMode} />}
@@ -775,6 +776,7 @@ function AppContent() {
           {activePage === 'terms' && <TermsOfService />}
           {activePage === 'pricing' && <Pricing onNavigate={handleNavigate} />}
         </Suspense>
+        </PageErrorBoundary>
       </main>
       <footer className="hidden md:block bg-white border-t border-slate-200 py-6">
         <div className="max-w-7xl mx-auto px-4">
