@@ -41,6 +41,12 @@ const TABLE_MAP: Record<ReasoningEntityType, string> = {
   problem: 'problems',
 };
 
+const SELECT_MAP: Record<ReasoningEntityType, string> = {
+  prediction: 'id, slug, content, domain, status, created_at, confidence, signal_strength',
+  idea:       'id, slug, content, domain, status, created_at, feasibility_score, impact_score',
+  problem:    'id, slug, content, domain, status, created_at, relevance_score, signal_strength',
+};
+
 const CFG = {
   forecasts: {
     icon: TrendingUp,
@@ -129,10 +135,7 @@ export default function ReasoningCategory({ category, onNavigate, onEntityClick 
         const table = TABLE_MAP[type];
         let q = supabase
           .from(table)
-          .select(
-            'id, slug, content, domain, status, created_at, confidence, relevance_score, feasibility_score, impact_score, signal_strength',
-            { count: 'exact' },
-          )
+          .select(SELECT_MAP[type], { count: 'exact' })
           .not('slug', 'is', null)
           .order('created_at', { ascending: false })
           .limit(24);
