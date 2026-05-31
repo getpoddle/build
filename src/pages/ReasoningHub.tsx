@@ -142,7 +142,6 @@ export default function ReasoningHub() {
         let q = supabase.from(table).select('*').order('created_at', { ascending: false }).limit(30);
         if (domainFilter !== 'all') q = q.eq('domain', domainFilter);
         if (searchQuery) q = q.ilike('content', `%${searchQuery}%`);
-        if (type === 'idea') q = (q as typeof q).not('execution_steps', 'eq', '[]');
         const { data } = await q;
         return (data || []).map((item: Record<string, unknown>) => ({ ...item, type } as EntityItem));
       };
