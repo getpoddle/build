@@ -67,8 +67,13 @@ function AppContent() {
       return hash;
     }
     const saved = sessionStorage.getItem('currentPage');
-    if (saved === 'auth') return 'home';
-    return saved || 'home';
+    if (!saved || saved === 'auth') return 'home';
+    // Never restore reasoning/browse pages on a bare refresh — send to home
+    if (['reasoning', 'reasoning-ideas', 'reasoning-problems', 'reasoning-forecasts',
+         'reasoning-hub', 'ai-feed', 'ai-insights', 'ideas-archive'].includes(saved)) {
+      return 'home';
+    }
+    return saved;
   });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(() => {
     const saved = sessionStorage.getItem('selectedUserId');
