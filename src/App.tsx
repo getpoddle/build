@@ -57,10 +57,10 @@ function AppContent() {
       const parts = path.split('/').filter(Boolean); // ['reasoning', cat, slug?]
       const cat = parts[1] as 'forecasts' | 'ideas' | 'problems';
       if (['forecasts', 'ideas', 'problems'].includes(cat)) {
-        if (parts[2]) return 'reasoning-entity';
-        return `reasoning-${cat}`;
+        if (parts[2]) return 'reasoning-entity'; // entity detail pages are fine to deep-link
+        return 'home'; // bare category refresh → home
       }
-      return 'reasoning';
+      return 'home';
     }
     const hash = window.location.hash.substring(1);
     if (hash === 'admin' || hash === 'admin-panel' || hash === 'app-icons') {
@@ -140,14 +140,17 @@ function AppContent() {
             setCurrentPage('reasoning-entity');
             sessionStorage.setItem('currentPage', 'reasoning-entity');
           } else {
-            setReasoningCategory(catSeg);
-            setCurrentPage(`reasoning-${catSeg}`);
-            sessionStorage.setItem('currentPage', `reasoning-${catSeg}`);
+            // On a bare refresh to /reasoning/cat, reset URL to home
+            // to avoid showing the reasoning category page unexpectedly
+            history.replaceState(null, '', '/');
+            setCurrentPage('home');
+            sessionStorage.setItem('currentPage', 'home');
           }
           return;
         }
-        setCurrentPage('reasoning');
-        sessionStorage.setItem('currentPage', 'reasoning');
+        history.replaceState(null, '', '/');
+        setCurrentPage('home');
+        sessionStorage.setItem('currentPage', 'home');
         return;
       }
 
