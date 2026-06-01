@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download } from 'lucide-react';
+import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download, Mic, Square } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { acquireChannel, releaseChannel, pauseChannel, resumeChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
 import { exportChatToPDF } from '../lib/pdfExport';
 import { getDisplayName } from '../lib/displayName';
 import { getAvatarUrl, getInitials } from '../lib/avatarUtils';
+import { blobToMp3File } from '../lib/audioUtils';
 
 interface Message {
   id: string;
@@ -79,12 +80,21 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const [fetching, setFetching] = useState(true);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingPromptRef = useRef<string | undefined>(initialPrompt);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const memberProfilesRef = useRef<Record<string, MemberProfile>>({});
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const recordingErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrollToBottom = useCallback((smooth = true) => {
     bottomRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
@@ -167,6 +177,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       releaseChannel(msgName);
       releaseChannel(presenceName);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      // Clean up any active recording on unmount
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      if (recordingErrorTimerRef.current) clearTimeout(recordingErrorTimerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
@@ -325,6 +341,149 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       broadcastTyping(false);
     }
   };
+
+  function showRecordingError(msg: string) {
+    setRecordingError(msg);
+    if (recordingErrorTimerRef.current) clearTimeout(recordingErrorTimerRef.current);
+    recordingErrorTimerRef.current = setTimeout(() => setRecordingError(null), 4000);
+  }
+
+  function drawWaveform() {
+    const canvas = canvasRef.current;
+    const analyser = analyserRef.current;
+    if (!canvas || !analyser) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    function render() {
+      animationFrameRef.current = requestAnimationFrame(render);
+      analyser!.getByteFrequencyData(dataArray);
+
+      const { width, height } = canvas!;
+      ctx!.clearRect(0, 0, width, height);
+
+      const barCount = 28;
+      const barWidth = 3;
+      const gap = (width - barCount * barWidth) / (barCount + 1);
+      const step = Math.floor(bufferLength / barCount);
+
+      for (let i = 0; i < barCount; i++) {
+        const value = dataArray[i * step] / 255;
+        const barHeight = Math.max(4, value * height * 0.85);
+        const x = gap + i * (barWidth + gap);
+        const y = (height - barHeight) / 2;
+
+        const alpha = 0.5 + value * 0.5;
+        ctx!.fillStyle = `rgba(37,99,235,${alpha})`;
+        ctx!.beginPath();
+        ctx!.roundRect(x, y, barWidth, barHeight, 2);
+        ctx!.fill();
+      }
+    }
+    render();
+  }
+
+  async function startRecording() {
+    if (isRecording || isTranscribing || loading) return;
+    setRecordingError(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      audioChunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/ogg;codecs=opus';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        audioCtx.close();
+
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
+
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (blob.size < 1000) {
+          setIsRecording(false);
+          return;
+        }
+        setIsRecording(false);
+        await uploadAndTranscribe(blob);
+      };
+
+      recorder.start(100);
+      setIsRecording(true);
+      // Start waveform after state updates so canvas is rendered
+      setTimeout(() => drawWaveform(), 50);
+    } catch {
+      showRecordingError('Microphone access denied. Please allow microphone access and try again.');
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  }
+
+  async function uploadAndTranscribe(blob: Blob) {
+    setIsTranscribing(true);
+    try {
+      const file = await blobToMp3File(blob);
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+      const formData = new FormData();
+      formData.append('audio', file);
+
+      const res = await fetch(`${supabaseUrl}/functions/v1/transcribe-audio`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        showRecordingError('Transcription failed. Please try again.');
+        return;
+      }
+
+      const text = (json.text || '').trim();
+      if (text) {
+        setInput(text);
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+            textareaRef.current.focus();
+          }
+        }, 50);
+      }
+    } catch {
+      showRecordingError('Something went wrong. Please try again.');
+    } finally {
+      setIsTranscribing(false);
+    }
+  }
 
   function renderUserAvatar(userId: string) {
     const profile = memberProfiles[userId];
@@ -547,22 +706,64 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       {/* Input area */}
       <div
         className="mt-2 rounded-2xl p-3 flex items-end gap-3"
-        style={{ background: '#fff', border: '1.5px solid rgba(37,99,235,0.2)', boxShadow: '0 4px 16px rgba(37,99,235,0.08)' }}
+        style={{ background: '#fff', border: `1.5px solid ${isRecording ? 'rgba(220,38,38,0.35)' : 'rgba(37,99,235,0.2)'}`, boxShadow: isRecording ? '0 4px 16px rgba(220,38,38,0.1)' : '0 4px 16px rgba(37,99,235,0.08)', transition: 'border-color 0.2s, box-shadow 0.2s' }}
       >
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={adjustTextarea}
-          onKeyDown={handleKeyDown}
-          placeholder={`Ask the AI agents about ${workspaceName}…`}
-          rows={1}
-          disabled={loading}
-          className="flex-1 resize-none bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none disabled:opacity-60"
-          style={{ lineHeight: '1.5', maxHeight: '120px' }}
-        />
+        {isTranscribing ? (
+          /* Transcribing overlay */
+          <div className="flex-1 flex items-center gap-2.5 py-1">
+            <Loader2 className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" />
+            <span className="text-sm text-slate-500 font-medium">Transcribing your thoughts…</span>
+          </div>
+        ) : isRecording ? (
+          /* Waveform canvas */
+          <div className="flex-1 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+            <canvas
+              ref={canvasRef}
+              width={220}
+              height={36}
+              className="flex-1"
+              style={{ maxHeight: '36px' }}
+            />
+          </div>
+        ) : (
+          /* Normal textarea */
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={adjustTextarea}
+            onKeyDown={handleKeyDown}
+            placeholder={`Ask the AI agents about ${workspaceName}…`}
+            rows={1}
+            disabled={loading}
+            className="flex-1 resize-none bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none disabled:opacity-60"
+            style={{ lineHeight: '1.5', maxHeight: '120px' }}
+          />
+        )}
+
+        {/* Mic button */}
+        {!isTranscribing && (
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={loading}
+            title={isRecording ? 'Stop recording' : 'Record voice message'}
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:scale-105"
+            style={isRecording
+              ? { background: 'rgba(220,38,38,0.1)', border: '1.5px solid rgba(220,38,38,0.4)', boxShadow: '0 0 0 3px rgba(220,38,38,0.12)' }
+              : { background: 'rgba(15,23,42,0.06)', border: '1.5px solid rgba(15,23,42,0.1)' }
+            }
+          >
+            {isRecording
+              ? <Square className="w-3.5 h-3.5 text-red-600" />
+              : <Mic className="w-4 h-4 text-slate-500" />
+            }
+          </button>
+        )}
+
+        {/* Send button */}
         <button
           onClick={() => sendMessage()}
-          disabled={loading || !input.trim()}
+          disabled={loading || !input.trim() || isRecording || isTranscribing}
           className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:scale-105"
           style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
         >
@@ -573,7 +774,13 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           )}
         </button>
       </div>
-      <p className="text-center text-xs text-slate-400 mt-2">Press Enter to send · Shift+Enter for new line</p>
+      {recordingError ? (
+        <p className="text-center text-xs text-red-500 mt-2">{recordingError}</p>
+      ) : (
+        <p className="text-center text-xs text-slate-400 mt-2">
+          {isRecording ? 'Recording… tap the stop button when done' : 'Press Enter to send · Shift+Enter for new line'}
+        </p>
+      )}
     </div>
   );
 }
