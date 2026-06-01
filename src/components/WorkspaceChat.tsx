@@ -95,6 +95,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const animationFrameRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const recordingErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const scrollToBottom = useCallback((smooth = true) => {
     bottomRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
@@ -145,7 +146,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       ),
     );
 
-    acquireChannel(presenceName, ch =>
+    const presenceCh = acquireChannel(presenceName, ch =>
       ch.on('presence', { event: 'sync' }, () => {
         const channel = ch as ReturnType<typeof supabase.channel>;
         const state = channel.presenceState<{ user_id: string; name: string; isTyping: boolean }>();
@@ -158,6 +159,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         setTypingUsers(next);
       }),
     );
+    presenceChannelRef.current = presenceCh as ReturnType<typeof supabase.channel> | null;
 
     // Pause channels when the tab is hidden; resume when visible again.
     // This cuts server broadcast load to zero while the user isn't looking.
