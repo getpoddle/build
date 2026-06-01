@@ -381,9 +381,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
         const alpha = 0.5 + value * 0.5;
         ctx!.fillStyle = `rgba(37,99,235,${alpha})`;
-        ctx!.beginPath();
-        ctx!.roundRect(x, y, barWidth, barHeight, 2);
-        ctx!.fill();
+        ctx!.fillRect(x, y, barWidth, barHeight);
       }
     }
     render();
@@ -409,6 +407,27 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       return;
     }
 
+    // Determine supported mime type
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+        ? 'audio/ogg;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : '';
+
+    let recorder: MediaRecorder;
+    try {
+      recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+    } catch {
+      stream.getTracks().forEach(t => t.stop());
+      showRecordingError('Recording is not supported in this browser. Please try Chrome or Firefox.');
+      return;
+    }
+
+    // Wire up waveform analyser — optional, failure does not block recording
     try {
       const audioCtx = new AudioContext();
       const source = audioCtx.createMediaStreamSource(stream);
@@ -417,45 +436,43 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       source.connect(analyser);
       analyserRef.current = analyser;
 
-      audioChunksRef.current = [];
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
-          ? 'audio/ogg;codecs=opus'
-          : 'audio/webm';
-      const recorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-
-      recorder.onstop = async () => {
-        stream!.getTracks().forEach(t => t.stop());
-        audioCtx.close();
-
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
-        }
-
-        const blob = new Blob(audioChunksRef.current, { type: mimeType });
-        if (blob.size < 1000) {
-          setIsRecording(false);
-          return;
-        }
-        setIsRecording(false);
-        await uploadAndTranscribe(blob);
-      };
-
-      recorder.start(100);
-      setIsRecording(true);
-      // Start waveform after state updates so canvas is rendered
-      setTimeout(() => drawWaveform(), 50);
+      // Store audioCtx on recorder so onstop can close it
+      (recorder as MediaRecorder & { _audioCtx?: AudioContext })._audioCtx = audioCtx;
     } catch {
-      stream?.getTracks().forEach(t => t.stop());
-      showRecordingError('Could not start recording. Please try again.');
+      // Waveform won't show but recording still works
+      analyserRef.current = null;
     }
+
+    audioChunksRef.current = [];
+    mediaRecorderRef.current = recorder;
+    const effectiveMime = mimeType || 'audio/webm';
+
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = async () => {
+      stream!.getTracks().forEach(t => t.stop());
+      const ac = (recorder as MediaRecorder & { _audioCtx?: AudioContext })._audioCtx;
+      if (ac) ac.close();
+
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+
+      const blob = new Blob(audioChunksRef.current, { type: effectiveMime });
+      if (blob.size < 500) {
+        setIsRecording(false);
+        return;
+      }
+      setIsRecording(false);
+      await uploadAndTranscribe(blob);
+    };
+
+    recorder.start(100);
+    setIsRecording(true);
+    setTimeout(() => drawWaveform(), 50);
   }
 
   function stopRecording() {

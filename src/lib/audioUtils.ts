@@ -1,27 +1,37 @@
 /**
- * Converts a raw audio Blob (webm/ogg from MediaRecorder) to an mp3-compatible
- * File by decoding PCM via AudioContext and re-encoding as WAV (widely accepted
- * by Whisper alongside mp3). We name the file .mp3 so the server treats it as
- * such — Whisper accepts both formats transparently.
+ * Converts a raw audio Blob (webm/ogg from MediaRecorder) into a File named
+ * "recording.mp3" that Whisper accepts. We decode to PCM via AudioContext and
+ * re-encode as WAV — a lossless container Whisper handles without any native
+ * codec dependency in the browser.
+ *
+ * If AudioContext decoding fails (e.g. unsupported codec in a sandboxed env),
+ * the original blob is returned as-is so Whisper can still attempt transcription.
  */
 export async function blobToMp3File(blob: Blob): Promise<File> {
-  const arrayBuffer = await blob.arrayBuffer();
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioCtx = new AudioContext();
 
-  const audioCtx = new AudioContext();
-  const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-  await audioCtx.close();
+    let decoded: AudioBuffer;
+    try {
+      decoded = await audioCtx.decodeAudioData(arrayBuffer);
+    } finally {
+      audioCtx.close();
+    }
 
-  const wavBuffer = encodeWav(decoded);
-  return new File([wavBuffer], "recording.mp3", { type: "audio/mpeg" });
+    const wavBuffer = encodeWav(decoded);
+    return new File([wavBuffer], 'recording.mp3', { type: 'audio/mpeg' });
+  } catch {
+    // Fallback: pass original blob directly — Whisper can handle webm/ogg too
+    return new File([blob], 'recording.mp3', { type: 'audio/mpeg' });
+  }
 }
 
 function encodeWav(buffer: AudioBuffer): ArrayBuffer {
-  const numChannels = buffer.numberOfChannels;
+  const numChannels = Math.min(buffer.numberOfChannels, 2); // max stereo
   const sampleRate = buffer.sampleRate;
-  const format = 1; // PCM
   const bitDepth = 16;
 
-  // Interleave channels
   const length = buffer.length * numChannels;
   const pcm = new Int16Array(length);
   for (let ch = 0; ch < numChannels; ch++) {
@@ -36,24 +46,21 @@ function encodeWav(buffer: AudioBuffer): ArrayBuffer {
   const wavBuffer = new ArrayBuffer(44 + dataBytes);
   const view = new DataView(wavBuffer);
 
-  writeString(view, 0, "RIFF");
+  writeString(view, 0, 'RIFF');
   view.setUint32(4, 36 + dataBytes, true);
-  writeString(view, 8, "WAVE");
-  writeString(view, 12, "fmt ");
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
   view.setUint32(16, 16, true);
-  view.setUint16(20, format, true);
+  view.setUint16(20, 1, true); // PCM
   view.setUint16(22, numChannels, true);
   view.setUint32(24, sampleRate, true);
   view.setUint32(28, sampleRate * numChannels * (bitDepth / 8), true);
   view.setUint16(32, numChannels * (bitDepth / 8), true);
   view.setUint16(34, bitDepth, true);
-  writeString(view, 36, "data");
+  writeString(view, 36, 'data');
   view.setUint32(40, dataBytes, true);
 
-  const output = new Uint8Array(wavBuffer);
-  const pcmBytes = new Uint8Array(pcm.buffer);
-  output.set(pcmBytes, 44);
-
+  new Uint8Array(wavBuffer).set(new Uint8Array(pcm.buffer), 44);
   return wavBuffer;
 }
 
