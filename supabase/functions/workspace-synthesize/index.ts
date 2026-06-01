@@ -54,13 +54,21 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch recent messages with user_id so we can resolve real names
-    const { data: messages } = await service
-      .from("workspace_messages")
-      .select("role, content, agent_name, agent_role, user_id, created_at")
-      .eq("workspace_id", workspace_id)
-      .order("created_at", { ascending: true })
-      .limit(80);
+    // Fetch data in parallel — limit to 40 most recent messages for speed
+    const [messagesRes, workspaceRes, membersRes, prevMemoryRes] = await Promise.all([
+      service.from("workspace_messages")
+        .select("role, content, agent_name, agent_role, user_id, created_at")
+        .eq("workspace_id", workspace_id)
+        .order("created_at", { ascending: false })
+        .limit(40),
+      service.from("workspaces").select("name, description, domain").eq("id", workspace_id).maybeSingle(),
+      service.from("workspace_members")
+        .select("user_id, role, profiles(first_name, last_name, full_name, username)")
+        .eq("workspace_id", workspace_id),
+      service.from("workspace_memory").select("decisions, agreements, open_threads, summary, synthesis_count").eq("workspace_id", workspace_id).maybeSingle(),
+    ]);
+
+    const messages = (messagesRes.data || []).reverse(); // back to chronological
 
     if (!messages || messages.length < 3) {
       return new Response(JSON.stringify({ error: "Not enough conversation data yet. Keep chatting!" }), {
@@ -68,43 +76,42 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch workspace context
-    const { data: workspace } = await service
-      .from("workspaces").select("name, description, domain")
-      .eq("id", workspace_id).maybeSingle();
+    const workspace = workspaceRes.data;
+    const prevMemory = prevMemoryRes.data;
 
-    // Fetch all workspace members with their profiles so we can map user_id → display name + role
-    const { data: members } = await service
-      .from("workspace_members")
-      .select("user_id, role, profiles(first_name, last_name, full_name, username)")
-      .eq("workspace_id", workspace_id);
-
-    // Build a user_id → "FirstName (workspace_role)" label map
+    // Build member label map
     type MemberLabel = { label: string; firstName: string };
     const memberLabelMap = new Map<string, MemberLabel>();
-    for (const m of (members || [])) {
+    for (const m of (membersRes.data || [])) {
       const p = (m.profiles as { first_name?: string | null; last_name?: string | null; full_name?: string | null; username?: string | null } | null);
       const firstName = p?.first_name?.trim() || p?.full_name?.split(" ")[0]?.trim() || p?.username?.trim() || "Member";
       const label = `${firstName} (${m.role})`;
       memberLabelMap.set(m.user_id, { label, firstName });
     }
 
-    // Build a readable transcript with real names for humans
-    const transcript = messages.map(m => {
-      if (m.role === "user") {
-        const member = m.user_id ? memberLabelMap.get(m.user_id) : null;
-        const speaker = member ? member.label : "Team Member";
-        return `${speaker}: ${m.content}`;
-      } else {
-        const speaker = `[${m.agent_name?.toUpperCase() || "AI"}]`;
-        return `${speaker}: ${m.content}`;
-      }
-    }).join("\n\n");
+    // Build compact transcript — cap each message at 300 chars, total at 5000 chars
+    let transcriptChars = 0;
+    const TRANSCRIPT_CAP = 5000;
+    const transcriptLines: string[] = [];
+    for (const m of messages) {
+      const raw = m.role === "user"
+        ? `${m.user_id ? (memberLabelMap.get(m.user_id)?.label ?? "Member") : "Member"}: ${m.content}`
+        : `[${m.agent_name?.toUpperCase() || "AI"}]: ${m.content}`;
+      const line = raw.slice(0, 300);
+      if (transcriptChars + line.length > TRANSCRIPT_CAP) break;
+      transcriptLines.push(line);
+      transcriptChars += line.length;
+    }
+    const transcript = transcriptLines.join("\n\n");
 
-    // Build the list of human participant names for the prompt
     const humanNames = Array.from(memberLabelMap.values()).map(v => v.label);
     const humanNamesNote = humanNames.length > 0
-      ? `\n\nHuman participants in this conversation: ${humanNames.join(", ")}. When two humans explicitly disagree, use their actual names (e.g. "John (owner)") as agent_a and agent_b, and set participant_type to "human". When a human and an AI agent disagree, set participant_type to "mixed". When only AI agents disagree, set participant_type to "agent".`
+      ? `\nHuman participants: ${humanNames.join(", ")}. Use real names in conflict_zones when two humans explicitly disagree.`
+      : "";
+
+    // Prior memory context so synthesis builds on what is already known
+    const priorMemoryNote = prevMemory?.summary
+      ? `\nPRIOR WORKSPACE MEMORY (from previous sessions):\nSummary: ${prevMemory.summary}\nEstablished decisions: ${(prevMemory.decisions || []).join("; ")}\nOpen threads carried over: ${(prevMemory.open_threads || []).join("; ")}\n`
       : "";
 
     const openAiKey = Deno.env.get("OPENAI_API_KEY");
@@ -114,92 +121,59 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const synthesisPrompt = `You are a strategic intelligence analyst. You have just read a full conversation transcript from a private team workspace called "${workspace?.name || "Workspace"}"${workspace?.description ? ` (focus: ${workspace.description})` : ""}.${humanNamesNote}
+    const synthesisPrompt = `You are a strategic intelligence analyst for workspace "${workspace?.name || "Workspace"}"${workspace?.description ? ` (focus: ${workspace.description})` : ""}.${humanNamesNote}${priorMemoryNote}
 
-Your task: perform a War Room synthesis of this conversation and return a JSON object with this exact structure:
+Return a JSON object with this exact structure (no markdown, no extra text):
 
 {
   "decision_health_score": 72,
-  "health_rationale": "one sentence explaining the score",
+  "health_rationale": "one sentence",
   "financial_score": 65,
   "operational_score": 58,
   "alignment_score": 74,
   "decision_velocity": "Moderate",
   "confidence_trajectory": "rising",
-  "consensus_points": [
-    { "text": "clear shared belief", "confidence": 85, "source_count": 3 }
-  ],
-  "conflict_zones": [
-    { "topic": "short topic", "agent_a": "Strategic Analyst", "position_a": "their stance", "agent_b": "Devil's Advocate", "position_b": "their stance", "tension_level": 72, "participant_type": "agent" }
-  ],
-  "open_questions": [
-    { "question": "unresolved question", "urgency": "high" }
-  ],
-  "risk_signals": [
-    { "signal": "specific risk identified", "severity": "critical", "category": "market/execution/financial/team/technology" }
-  ],
-  "blind_spots": [
-    { "area": "topic area", "description": "what the team seems to be missing entirely" }
-  ],
-  "action_items": [
-    { "text": "Conduct user interviews to validate the pricing assumption before Q2", "source_area": "blind_spot", "priority": "high" }
-  ],
-  "financial_metrics": [
-    { "metric": "Budget Assumptions", "value": "what was said or implied", "confidence": "high/medium/low", "note": "brief analyst note" },
-    { "metric": "Revenue Projections", "value": "what was said or implied", "confidence": "high/medium/low", "note": "brief analyst note" },
-    { "metric": "Burn Rate / Runway", "value": "what was said or implied", "confidence": "high/medium/low", "note": "brief analyst note" },
-    { "metric": "ROI / Return Signals", "value": "what was said or implied", "confidence": "high/medium/low", "note": "brief analyst note" },
-    { "metric": "Financial Risk Exposure", "value": "low/medium/high/critical", "confidence": "medium", "note": "overall financial risk level observed" }
-  ],
-  "operational_metrics": [
-    { "metric": "Timeline Clarity", "status": "clear/unclear/at-risk", "note": "what was said about timeline" },
-    { "metric": "Resource Constraints", "status": "clear/unclear/at-risk", "note": "staffing, budget, tooling constraints noted" },
-    { "metric": "Key Dependencies", "status": "clear/unclear/at-risk", "note": "external or internal dependencies identified" },
-    { "metric": "Bottlenecks", "status": "clear/unclear/at-risk", "note": "execution blockers flagged" }
-  ],
-  "non_financial_metrics": [
-    { "metric": "Team Morale", "signal": "positive/neutral/negative", "note": "evidence from the conversation" },
-    { "metric": "Stakeholder Buy-in", "signal": "positive/neutral/negative", "note": "evidence from the conversation" },
-    { "metric": "Customer Impact", "signal": "positive/neutral/negative", "note": "evidence from the conversation" },
-    { "metric": "Strategic Alignment", "signal": "positive/neutral/negative", "note": "evidence from the conversation" },
-    { "metric": "Innovation Potential", "signal": "positive/neutral/negative", "note": "evidence from the conversation" }
-  ],
-  "opportunity_signals": [
-    { "title": "Short opportunity label", "description": "specific upside or strategic opportunity identified", "confidence": "high/medium/low", "source": "who mentioned it or what implied it" }
-  ],
-  "cognitive_bias_flags": [
-    { "bias_name": "Confirmation Bias", "explanation": "plain-English explanation of where this appeared in the conversation", "counter_question": "A probing question to surface the blind spot this bias creates" }
-  ]
+  "consensus_points": [{"text":"belief","confidence":85,"source_count":3}],
+  "conflict_zones": [{"topic":"short label","agent_a":"name","position_a":"stance","agent_b":"name","position_b":"stance","tension_level":72,"participant_type":"agent"}],
+  "open_questions": [{"question":"unresolved question","urgency":"high"}],
+  "risk_signals": [{"signal":"specific risk","severity":"critical","category":"market"}],
+  "blind_spots": [{"area":"topic","description":"what team is missing"}],
+  "action_items": [{"text":"Verb + concrete action","source_area":"risk","priority":"high"}],
+  "financial_metrics": [{"metric":"Budget Assumptions","value":"implied","confidence":"low","note":"brief note"}],
+  "operational_metrics": [{"metric":"Timeline Clarity","status":"unclear","note":"brief note"}],
+  "non_financial_metrics": [{"metric":"Team Morale","signal":"positive","note":"evidence"}],
+  "opportunity_signals": [{"title":"label","description":"specific upside","confidence":"medium","source":"who mentioned it"}],
+  "cognitive_bias_flags": [{"bias_name":"Confirmation Bias","explanation":"where it appeared","counter_question":"probing question"}],
+  "memory_update": {
+    "decisions": ["key decision 1","key decision 2"],
+    "agreements": ["shared belief 1","shared belief 2"],
+    "open_threads": ["still-open question 1","still-open question 2"],
+    "key_entities": ["product name","market name","milestone"],
+    "summary": "2-3 sentence plain-English summary of what has been discussed and decided so far across all sessions"
+  }
 }
 
-Rules:
-- consensus_points: beliefs all/most agents agreed on (max 5)
-- conflict_zones: topics where participants explicitly disagreed (max 4, tension_level 0-100). IMPORTANT: if two named humans disagreed (e.g. "John (owner)" argued X while "Sarah (member)" argued Y), use their real names as agent_a and agent_b and set participant_type to "human". If a human and an AI agent disagreed, set participant_type to "mixed". If only AI agents disagreed, set participant_type to "agent". The topic should be a short label, e.g. "Timeline".
-- open_questions: ONLY include questions that were raised AND genuinely not answered with a concrete recommendation anywhere in the transcript. If agents provided a clear position, recommendation, or decision path for a question — even if imperfect — it is RESOLVED and must NOT appear here. A question is only open if the transcript ended without any agent taking a position on it. (max 5, urgency: low/medium/high/critical)
-- risk_signals: concrete risks flagged (max 5, severity: low/medium/high/critical, category must be exactly one of: market/execution/financial/team/technology)
-- blind_spots: topics NO agent raised but that are strategically important given the context. Do NOT include topics that were already discussed — only truly unaddressed areas. (max 3 — this is the most valuable output)
-- action_items: Generate up to 6 concrete, specific, one-sentence action items the team should take immediately, derived from the open questions, risks, and blind spots. Each MUST start with a verb (e.g. "Validate", "Schedule", "Research", "Define", "Test", "Map"). Tag each with the source_area it came from (risk/blind_spot/open_question/conflict). Priority must be critical/high/medium/low.
-- decision_health_score: 0-100. Low means fragmented/confused team, high means sharp/aligned. As more questions get resolved and consensus grows, this score should INCREASE. Base on clarity, coverage of risks, consensus quality, and how many prior open questions have now been addressed.
-- financial_score: 0-100. How clear and well-reasoned are the team's financial assumptions, projections, and risk awareness? 0 = no financial thinking, 100 = fully modelled and stress-tested.
-- operational_score: 0-100. How clear is the team on execution: timelines, resources, dependencies, bottlenecks? 0 = no operational clarity, 100 = fully mapped.
-- alignment_score: 0-100. How aligned is the team on strategy, stakeholders, and customer value? 0 = fragmented, 100 = fully unified.
-- decision_velocity: "Fast" (team is converging and resolving quickly), "Moderate" (some convergence but open items remain), or "Stalling" (team is going in circles or not resolving anything).
-- confidence_trajectory: "rising" (the team is gaining conviction), "flat" (confidence is not changing), or "falling" (the team is becoming less certain as the conversation progresses).
-- financial_metrics: Array of objects with keys metric, value, confidence, note. Extract financial signals (budget, revenue, burn rate, ROI, financial risk). If a metric has no evidence, set value to "Not discussed" and confidence to "low". Return an array even if empty.
-- operational_metrics: Array of objects with keys metric, status, note. status must be exactly one of: "clear", "unclear", "at-risk". Cover timeline, resources, dependencies, bottlenecks. Return an array even if empty.
-- non_financial_metrics: Array of objects with keys metric, signal, note. signal must be exactly one of: "positive", "neutral", "negative". Cover team morale, stakeholder buy-in, customer impact, strategic alignment, innovation potential. Return an array even if empty.
-- opportunity_signals: Array of up to 3 objects with keys title, description, confidence, source. Specific upsides or strategic advantages. confidence must be "high", "medium", or "low". Only include genuine opportunities evidenced in the transcript.
-- cognitive_bias_flags: Array of up to 3 objects with keys bias_name, explanation, counter_question. Detect reasoning traps (e.g. Confirmation Bias, Groupthink, Sunk Cost Fallacy, Recency Bias, Anchoring, Overconfidence). Only flag genuine instances — do not invent biases not evidenced in the transcript.
-- Return ONLY valid JSON. No markdown, no explanation.
-
-CRITICAL: Read the ENTIRE transcript carefully before populating open_questions and blind_spots. If a question was explicitly discussed and agents gave recommendations — it is RESOLVED. Only flag something as open if it truly has no answer anywhere in the conversation.
+RULES:
+- consensus_points: max 5. conflict_zones: max 4 (tension_level 0-100). open_questions: max 5 (urgency: low/medium/high/critical). Only include questions with NO concrete answer in the transcript.
+- risk_signals: max 5, severity: low/medium/high/critical, category: market/execution/financial/team/technology.
+- blind_spots: max 3 — topics NO ONE raised but strategically important.
+- action_items: max 6, start with a verb, priority: critical/high/medium/low, source_area: risk/blind_spot/open_question/conflict.
+- decision_velocity: "Fast"/"Moderate"/"Stalling". confidence_trajectory: "rising"/"flat"/"falling".
+- financial_metrics: always return 5 rows (Budget Assumptions, Revenue Projections, Burn Rate/Runway, ROI/Return Signals, Financial Risk Exposure). If not discussed, value = "Not discussed".
+- operational_metrics: always return 4 rows (Timeline Clarity, Resource Constraints, Key Dependencies, Bottlenecks). status: clear/unclear/at-risk.
+- non_financial_metrics: always return 5 rows (Team Morale, Stakeholder Buy-in, Customer Impact, Strategic Alignment, Innovation Potential). signal: positive/neutral/negative.
+- opportunity_signals: max 3. cognitive_bias_flags: max 3.
+- memory_update.decisions: list of concrete decisions REACHED in this or any prior session (max 8, short phrases).
+- memory_update.agreements: list of shared beliefs all/most members hold (max 6).
+- memory_update.open_threads: questions or debates still unresolved after this session (max 6).
+- memory_update.key_entities: important nouns (products, competitors, markets, people, milestones) mentioned (max 10).
+- memory_update.summary: must incorporate prior context if provided — write as a continuous record, not just this session.
 
 TRANSCRIPT:
 ${transcript}`;
 
-    // AbortController so we don't hang past 45s waiting on OpenAI
     const aiController = new AbortController();
-    const aiTimeout = setTimeout(() => aiController.abort(), 45000);
+    const aiTimeout = setTimeout(() => aiController.abort(), 30000);
 
     let aiRes: Response;
     try {
@@ -215,8 +189,8 @@ ${transcript}`;
             { role: "system", content: "You are a strategic intelligence analyst. Return only valid JSON, nothing else." },
             { role: "user", content: synthesisPrompt },
           ],
-          max_tokens: 6000,
-          temperature: 0.3,
+          max_tokens: 3500,
+          temperature: 0.25,
           response_format: { type: "json_object" },
         }),
         signal: aiController.signal,
@@ -244,6 +218,7 @@ ${transcript}`;
       });
     }
 
+    // Extract and validate fields
     const generatedAt = new Date().toISOString();
     const actionItems = Array.isArray(synthesis.action_items) ? synthesis.action_items : [];
     const consensusPoints = Array.isArray(synthesis.consensus_points) ? synthesis.consensus_points : [];
@@ -268,111 +243,12 @@ ${transcript}`;
       ? (validTrajectories.includes(String(synthesis.confidence_trajectory).toLowerCase()) ? String(synthesis.confidence_trajectory).toLowerCase() : null)
       : null;
 
-    // Upsert synthesis — include all new metric fields
-    await service.from("workspace_synthesis").upsert({
-      workspace_id,
-      consensus_points: consensusPoints,
-      conflict_zones: conflictZones,
-      open_questions: openQuestions,
-      risk_signals: riskSignals,
-      blind_spots: blindSpots,
-      action_items: actionItems,
-      decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
-      health_rationale: synthesis.health_rationale || null,
-      financial_metrics: financialMetrics,
-      operational_metrics: operationalMetrics,
-      non_financial_metrics: nonFinancialMetrics,
-      opportunity_signals: opportunitySignals,
-      cognitive_bias_flags: cognitiveBiasFlags,
-      financial_score: financialScore,
-      operational_score: operationalScore,
-      alignment_score: alignmentScore,
-      decision_velocity: decisionVelocity,
-      confidence_trajectory: confidenceTrajectory,
-      generated_at: generatedAt,
-      message_count_at_generation: messages.length,
-    }, { onConflict: "workspace_id" });
+    const memoryUpdate = (synthesis.memory_update && typeof synthesis.memory_update === 'object')
+      ? synthesis.memory_update as { decisions?: string[]; agreements?: string[]; open_threads?: string[]; key_entities?: string[]; summary?: string }
+      : null;
 
-    // Insert synthesis history row — permanent record for trend tracking
-    const { data: historyRow } = await service.from("workspace_synthesis_history").insert({
-      workspace_id,
-      decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
-      consensus_count: consensusPoints.length,
-      conflict_count: conflictZones.length,
-      open_question_count: openQuestions.length,
-      risk_count: riskSignals.length,
-      blind_spot_count: blindSpots.length,
-      message_count: messages.length,
-      financial_score: financialScore,
-      operational_score: operationalScore,
-      alignment_score: alignmentScore,
-      generated_at: generatedAt,
-    }).select("id").maybeSingle();
-
-    // Insert AI-generated action items — best-effort, do not fail synthesis on error
-    try {
-      if (actionItems.length > 0) {
-        const rows = actionItems.map((item: { text: string; source_area: string; priority: string }) => ({
-          workspace_id,
-          text: String(item.text || "").slice(0, 300),
-          source: "ai",
-          priority: ["critical", "high", "medium", "low"].includes(item.priority) ? item.priority : "medium",
-          source_area: ["risk", "blind_spot", "open_question", "conflict", "manual"].includes(item.source_area) ? item.source_area : "open_question",
-          status: "todo",
-          synthesis_run_id: historyRow?.id || null,
-          created_by: user.id,
-        }));
-        // Delete old AI action items for this workspace before inserting new ones
-        await service.from("workspace_action_items")
-          .delete()
-          .eq("workspace_id", workspace_id)
-          .eq("source", "ai");
-        await service.from("workspace_action_items").insert(rows);
-      }
-    } catch {
-      // Non-critical — action item insertion failure must not affect synthesis response
-    }
-
-    // Insert divergence events best-effort
-    try {
-      const userMessages = messages.filter(m => m.role === "user");
-      const topConflict = [...(conflictZones as Array<{ topic: string; tension_level: number }>)]
-        .sort((a, b) => b.tension_level - a.tension_level)[0];
-
-      if (topConflict && topConflict.tension_level > 50) {
-        const divergenceEvents = [];
-        for (let i = 0; i < Math.min(userMessages.length, 5); i++) {
-          const userMsg = userMessages[i];
-          const userIdx = messages.findIndex(m => m === userMsg);
-          const agentResponses: typeof messages = [];
-          for (let j = userIdx + 1; j < messages.length; j++) {
-            if (messages[j].role === "assistant") agentResponses.push(messages[j]);
-            else break;
-          }
-          if (agentResponses.length >= 2) {
-            divergenceEvents.push({
-              workspace_id,
-              user_message: userMsg.content.slice(0, 200),
-              topic: topConflict.topic,
-              positions: agentResponses.map(r => ({
-                agent_name: r.agent_name || "AI",
-                agent_role: r.agent_role || "assistant",
-                stance: "analyzed",
-                summary: r.content.slice(0, 120) + (r.content.length > 120 ? "…" : ""),
-              })),
-              divergence_score: topConflict.tension_level,
-            });
-          }
-        }
-        if (divergenceEvents.length > 0) {
-          await service.from("workspace_divergence_events").insert(divergenceEvents.slice(0, 3));
-        }
-      }
-    } catch {
-      // Non-critical
-    }
-
-    return new Response(JSON.stringify({
+    // Build the response payload immediately
+    const responsePayload = {
       synthesis: {
         ...synthesis,
         action_items: actionItems,
@@ -389,7 +265,126 @@ ${transcript}`;
         generated_at: generatedAt,
         message_count: messages.length,
       },
-    }), {
+    };
+
+    // Defer all DB writes so response goes back immediately
+    const dbWritePromise = (async () => {
+      try {
+        // Upsert main synthesis
+        await service.from("workspace_synthesis").upsert({
+          workspace_id,
+          consensus_points: consensusPoints,
+          conflict_zones: conflictZones,
+          open_questions: openQuestions,
+          risk_signals: riskSignals,
+          blind_spots: blindSpots,
+          action_items: actionItems,
+          decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
+          health_rationale: synthesis.health_rationale || null,
+          financial_metrics: financialMetrics,
+          operational_metrics: operationalMetrics,
+          non_financial_metrics: nonFinancialMetrics,
+          opportunity_signals: opportunitySignals,
+          cognitive_bias_flags: cognitiveBiasFlags,
+          financial_score: financialScore,
+          operational_score: operationalScore,
+          alignment_score: alignmentScore,
+          decision_velocity: decisionVelocity,
+          confidence_trajectory: confidenceTrajectory,
+          generated_at: generatedAt,
+          message_count_at_generation: messages.length,
+        }, { onConflict: "workspace_id" });
+
+        // Update workspace memory
+        if (memoryUpdate) {
+          const currentCount = prevMemory?.synthesis_count ?? 0;
+          await service.from("workspace_memory").upsert({
+            workspace_id,
+            decisions: Array.isArray(memoryUpdate.decisions) ? memoryUpdate.decisions.slice(0, 8) : [],
+            agreements: Array.isArray(memoryUpdate.agreements) ? memoryUpdate.agreements.slice(0, 6) : [],
+            open_threads: Array.isArray(memoryUpdate.open_threads) ? memoryUpdate.open_threads.slice(0, 6) : [],
+            key_entities: Array.isArray(memoryUpdate.key_entities) ? memoryUpdate.key_entities.slice(0, 10) : [],
+            summary: typeof memoryUpdate.summary === 'string' ? memoryUpdate.summary.slice(0, 800) : null,
+            updated_at: generatedAt,
+            synthesis_count: currentCount + 1,
+          }, { onConflict: "workspace_id" });
+        }
+
+        // Synthesis history
+        const { data: historyRow } = await service.from("workspace_synthesis_history").insert({
+          workspace_id,
+          decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
+          consensus_count: consensusPoints.length,
+          conflict_count: conflictZones.length,
+          open_question_count: openQuestions.length,
+          risk_count: riskSignals.length,
+          blind_spot_count: blindSpots.length,
+          message_count: messages.length,
+          financial_score: financialScore,
+          operational_score: operationalScore,
+          alignment_score: alignmentScore,
+          generated_at: generatedAt,
+        }).select("id").maybeSingle();
+
+        // AI action items
+        if (actionItems.length > 0) {
+          const rows = actionItems.map((item: { text: string; source_area: string; priority: string }) => ({
+            workspace_id,
+            text: String(item.text || "").slice(0, 300),
+            source: "ai",
+            priority: ["critical", "high", "medium", "low"].includes(item.priority) ? item.priority : "medium",
+            source_area: ["risk", "blind_spot", "open_question", "conflict", "manual"].includes(item.source_area) ? item.source_area : "open_question",
+            status: "todo",
+            synthesis_run_id: historyRow?.id || null,
+            created_by: user.id,
+          }));
+          await service.from("workspace_action_items")
+            .delete().eq("workspace_id", workspace_id).eq("source", "ai");
+          await service.from("workspace_action_items").insert(rows);
+        }
+
+        // Divergence events (best-effort)
+        const userMessages = messages.filter(m => m.role === "user");
+        const topConflict = [...(conflictZones as Array<{ topic: string; tension_level: number }>)]
+          .sort((a, b) => b.tension_level - a.tension_level)[0];
+        if (topConflict && topConflict.tension_level > 50) {
+          const divergenceEvents = [];
+          for (let i = 0; i < Math.min(userMessages.length, 3); i++) {
+            const userMsg = userMessages[i];
+            const userIdx = messages.findIndex(m => m === userMsg);
+            const agentResponses: typeof messages = [];
+            for (let j = userIdx + 1; j < messages.length; j++) {
+              if (messages[j].role === "assistant") agentResponses.push(messages[j]);
+              else break;
+            }
+            if (agentResponses.length >= 2) {
+              divergenceEvents.push({
+                workspace_id,
+                user_message: userMsg.content.slice(0, 200),
+                topic: topConflict.topic,
+                positions: agentResponses.map(r => ({
+                  agent_name: r.agent_name || "AI",
+                  agent_role: r.agent_role || "assistant",
+                  stance: "analyzed",
+                  summary: r.content.slice(0, 120) + (r.content.length > 120 ? "…" : ""),
+                })),
+                divergence_score: topConflict.tension_level,
+              });
+            }
+          }
+          if (divergenceEvents.length > 0) {
+            await service.from("workspace_divergence_events").insert(divergenceEvents.slice(0, 2));
+          }
+        }
+      } catch {
+        // Non-critical background write failure — synthesis already returned
+      }
+    })();
+
+    // Fire DB writes in background — don't await before responding
+    EdgeRuntime.waitUntil(dbWritePromise);
+
+    return new Response(JSON.stringify(responsePayload), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

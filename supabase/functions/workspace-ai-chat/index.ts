@@ -162,13 +162,15 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Fetch workspace context + latest synthesis in parallel
-    const [wsRes, synthRes] = await Promise.all([
+    // Fetch workspace context, latest synthesis, and workspace memory in parallel
+    const [wsRes, synthRes, memoryRes] = await Promise.all([
       service.from("workspaces").select("name, description, domain").eq("id", workspace_id).maybeSingle(),
       service.from("workspace_synthesis").select("consensus_points, conflict_zones, open_questions, risk_signals, blind_spots, decision_health_score").eq("workspace_id", workspace_id).maybeSingle(),
+      service.from("workspace_memory").select("decisions, agreements, open_threads, key_entities, summary, synthesis_count").eq("workspace_id", workspace_id).maybeSingle(),
     ]);
     const workspace = wsRes.data;
     const synthesis = synthRes.data;
+    const memory = memoryRes.data;
 
     const openAiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openAiKey) {
@@ -176,6 +178,34 @@ Deno.serve(async (req: Request) => {
         status: 503,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Build memory context block if available
+    let memoryContext = "";
+    if (memory?.summary || (memory?.decisions?.length ?? 0) > 0) {
+      const lines: string[] = [];
+      lines.push(`\n\n=== WORKSPACE MEMORY (persistent across sessions) ===`);
+      if (memory.summary) {
+        lines.push(`WHAT HAS BEEN DISCUSSED: ${memory.summary}`);
+      }
+      if (memory.decisions?.length > 0) {
+        lines.push(`\nDECISIONS ALREADY REACHED (do not re-debate these — build on them):`);
+        memory.decisions.forEach((d: string, i: number) => lines.push(`  ${i + 1}. ${d}`));
+      }
+      if (memory.agreements?.length > 0) {
+        lines.push(`\nESTABLISHED AGREEMENTS:`);
+        memory.agreements.forEach((a: string) => lines.push(`  - ${a}`));
+      }
+      if (memory.open_threads?.length > 0) {
+        lines.push(`\nOPEN THREADS FROM PRIOR SESSIONS (still needs resolution):`);
+        memory.open_threads.forEach((t: string, i: number) => lines.push(`  ${i + 1}. ${t}`));
+      }
+      if (memory.key_entities?.length > 0) {
+        lines.push(`\nKEY ENTITIES MENTIONED: ${memory.key_entities.join(", ")}`);
+      }
+      lines.push(`\nUse this memory to maintain continuity. Reference prior decisions naturally. Do not ask about things already resolved.`);
+      lines.push(`=== END WORKSPACE MEMORY ===`);
+      memoryContext = lines.join("\n");
     }
 
     // Build synthesis context block if available
@@ -219,9 +249,9 @@ Deno.serve(async (req: Request) => {
       AI_AGENTS.map(async (agent) => {
         const systemPrompt = `${agent.persona}
 
-You are participating in a private team workspace called "${workspace?.name || "Private Workspace"}"${workspace?.description ? ` focused on: ${workspace.description}` : ""}${workspace?.domain ? ` (domain: ${workspace.domain})` : ""}.${synthesisContext}
+You are participating in a private team workspace called "${workspace?.name || "Private Workspace"}"${workspace?.description ? ` focused on: ${workspace.description}` : ""}${workspace?.domain ? ` (domain: ${workspace.domain})` : ""}.${memoryContext}${synthesisContext}
 
-Keep responses under 250 words. Be specific, take clear positions, and push toward concrete decisions. Reference the unresolved questions and conflicts above when relevant. Do not use generic platitudes.`;
+Keep responses under 250 words. Be specific, take clear positions, and push toward concrete decisions. Reference prior decisions and open threads when relevant. Do not ask about things already established. Do not use generic platitudes.`;
 
         const messages = [
           { role: "system", content: systemPrompt },
