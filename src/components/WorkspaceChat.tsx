@@ -83,6 +83,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [micBlocked, setMicBlocked] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -108,6 +109,15 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   useEffect(() => {
     memberProfilesRef.current = memberProfiles;
   }, [memberProfiles]);
+
+  // Proactively check if microphone is already permanently blocked
+  useEffect(() => {
+    if (!navigator.permissions) return;
+    navigator.permissions.query({ name: 'microphone' as PermissionName }).then((result) => {
+      setMicBlocked(result.state === 'denied');
+      result.onchange = () => setMicBlocked(result.state === 'denied');
+    }).catch(() => {/* browser may not support querying microphone permission */});
+  }, []);
 
   useEffect(() => {
     loadMessages();
@@ -416,7 +426,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     } catch (err) {
       const name = err instanceof Error ? err.name : '';
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        showRecordingError('Microphone access denied. Please allow microphone access in your browser settings and try again.');
+        setMicBlocked(true);
+        setRecordingError('blocked');
       } else if (name === 'NotFoundError') {
         showRecordingError('No microphone found. Please connect a microphone and try again.');
       } else if (name === 'NotSupportedError') {
@@ -845,16 +856,24 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           <button
             onClick={isRecording ? stopRecording : startRecording}
             disabled={loading}
-            title={isRecording ? 'Stop recording' : 'Record voice message'}
+            title={
+              micBlocked
+                ? 'Microphone blocked — click to see how to fix'
+                : isRecording
+                  ? 'Stop recording'
+                  : 'Record voice message'
+            }
             className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:scale-105"
             style={isRecording
               ? { background: 'rgba(220,38,38,0.1)', border: '1.5px solid rgba(220,38,38,0.4)', boxShadow: '0 0 0 3px rgba(220,38,38,0.12)' }
-              : { background: 'rgba(15,23,42,0.06)', border: '1.5px solid rgba(15,23,42,0.1)' }
+              : micBlocked
+                ? { background: 'rgba(220,38,38,0.07)', border: '1.5px solid rgba(220,38,38,0.25)' }
+                : { background: 'rgba(15,23,42,0.06)', border: '1.5px solid rgba(15,23,42,0.1)' }
             }
           >
             {isRecording
               ? <Square className="w-3.5 h-3.5 text-red-600" />
-              : <Mic className="w-4 h-4 text-slate-500" />
+              : <Mic className={`w-4 h-4 ${micBlocked ? 'text-red-400' : 'text-slate-500'}`} />
             }
           </button>
         )}
@@ -873,9 +892,38 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           )}
         </button>
       </div>
-      {recordingError ? (
+
+      {/* Mic blocked banner — persistent, actionable */}
+      {(micBlocked || recordingError === 'blocked') && (
+        <div
+          className="mt-2 rounded-xl px-3.5 py-2.5 flex items-start gap-2.5"
+          style={{ background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.18)' }}
+        >
+          <Mic className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-red-700 leading-snug">Microphone access is blocked</p>
+            <p className="text-xs text-slate-500 mt-0.5 leading-snug">
+              Your browser has blocked mic access for this site. To fix it:
+            </p>
+            <ol className="text-xs text-slate-600 mt-1 space-y-0.5 list-decimal list-inside leading-snug">
+              <li>Click the <strong>lock / info icon</strong> in your browser's address bar</li>
+              <li>Find <strong>Microphone</strong> and change it to <strong>Allow</strong></li>
+              <li>Reload the page and try again</li>
+            </ol>
+          </div>
+          <button
+            onClick={() => { setMicBlocked(false); setRecordingError(null); }}
+            className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition p-0.5"
+          >
+            <span className="sr-only">Dismiss</span>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      )}
+
+      {!micBlocked && recordingError && recordingError !== 'blocked' ? (
         <p className="text-center text-xs text-red-500 mt-2">{recordingError}</p>
-      ) : (
+      ) : !micBlocked && (
         <p className="text-center text-xs text-slate-400 mt-2">
           {isRecording ? 'Recording… tap the stop button when done' : 'Press Enter to send · Shift+Enter for new line'}
         </p>
