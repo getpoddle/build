@@ -2,7 +2,9 @@ import type { Context } from "https://edge.netlify.com";
 
 const BASE_URL = "https://poddleme.com";
 const SUPABASE_URL = "https://bggdthmhcanzzuqkztdo.supabase.co";
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ||
+  Deno.env.get("VITE_SUPABASE_ANON_KEY") ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnZ2R0aG1oY2Fuenp1cWt6dGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2OTE3NTgsImV4cCI6MjA4NTI2Nzc1OH0.uocKHVkPNwT1NzuKO6fsC0G5lpWt5uVzPyGCD5X_DR0";
 
 const BOT_PATTERNS = [
   "googlebot", "google-inspectiontool", "bingbot", "slurp", "duckduckbot",
