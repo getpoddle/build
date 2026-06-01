@@ -94,6 +94,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Fallback timer-based waveform bars for when AnalyserNode is unavailable (iOS)
+  const [fallbackBars, setFallbackBars] = useState<number[]>([]);
+  const fallbackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -181,6 +184,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       // Clean up any active recording on unmount
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (fallbackTimerRef.current) clearInterval(fallbackTimerRef.current);
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
@@ -358,12 +362,20 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Sync canvas pixel size to its CSS layout size so bars fill the full width
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0) canvas.width = rect.width;
+
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
     function render() {
       animationFrameRef.current = requestAnimationFrame(render);
       analyser!.getByteFrequencyData(dataArray);
+
+      // Re-sync width each frame in case layout changed
+      const r = canvas!.getBoundingClientRect();
+      if (r.width > 0 && canvas!.width !== r.width) canvas!.width = r.width;
 
       const { width, height } = canvas!;
       ctx!.clearRect(0, 0, width, height);
@@ -391,6 +403,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     if (isRecording || isTranscribing || loading) return;
     setRecordingError(null);
 
+    // Guard: getUserMedia requires HTTPS or localhost and a supported browser
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showRecordingError('Voice recording is not supported in this browser or requires a secure (HTTPS) connection.');
+      return;
+    }
+
     let stream: MediaStream | null = null;
 
     try {
@@ -398,23 +416,27 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     } catch (err) {
       const name = err instanceof Error ? err.name : '';
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        showRecordingError('Microphone access denied. Please allow microphone access and try again.');
+        showRecordingError('Microphone access denied. Please allow microphone access in your browser settings and try again.');
       } else if (name === 'NotFoundError') {
         showRecordingError('No microphone found. Please connect a microphone and try again.');
+      } else if (name === 'NotSupportedError') {
+        showRecordingError('Voice recording is not supported on this device. Please use a text message instead.');
       } else {
         showRecordingError('Could not access microphone. Please try again.');
       }
       return;
     }
 
-    // Determine supported mime type
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
-        ? 'audio/ogg;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : '';
+    // iOS Safari only supports audio/mp4; try it first, then fall back to webm/ogg
+    const mimeType = MediaRecorder.isTypeSupported('audio/mp4')
+      ? 'audio/mp4'
+      : MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+          ? 'audio/ogg;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : '';
 
     let recorder: MediaRecorder;
     try {
@@ -423,29 +445,32 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         : new MediaRecorder(stream);
     } catch {
       stream.getTracks().forEach(t => t.stop());
-      showRecordingError('Recording is not supported in this browser. Please try Chrome or Firefox.');
+      showRecordingError('Recording is not supported in this browser. Please try Safari 14.3+ or Chrome.');
       return;
     }
 
     // Wire up waveform analyser — optional, failure does not block recording
+    analyserRef.current = null;
     try {
       const audioCtx = new AudioContext();
+      // iOS requires AudioContext to be resumed after a user gesture
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
       source.connect(analyser);
       analyserRef.current = analyser;
-
-      // Store audioCtx on recorder so onstop can close it
       (recorder as MediaRecorder & { _audioCtx?: AudioContext })._audioCtx = audioCtx;
     } catch {
-      // Waveform won't show but recording still works
+      // Waveform won't animate via canvas, will use fallback bars instead
       analyserRef.current = null;
     }
 
     audioChunksRef.current = [];
     mediaRecorderRef.current = recorder;
-    const effectiveMime = mimeType || 'audio/webm';
+    const effectiveMime = mimeType || recorder.mimeType || 'audio/mp4';
 
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) audioChunksRef.current.push(e.data);
@@ -460,6 +485,11 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
+      if (fallbackTimerRef.current) {
+        clearInterval(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+      setFallbackBars([]);
 
       const blob = new Blob(audioChunksRef.current, { type: effectiveMime });
       if (blob.size < 500) {
@@ -470,15 +500,30 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       await uploadAndTranscribe(blob);
     };
 
-    recorder.start(100);
+    // Use a 250ms timeslice on iOS to ensure ondataavailable fires reliably
+    recorder.start(250);
     setIsRecording(true);
-    setTimeout(() => drawWaveform(), 50);
+
+    // Start the appropriate waveform visualisation
+    if (analyserRef.current) {
+      setTimeout(() => drawWaveform(), 50);
+    } else {
+      // Fallback: animate synthetic bars so the user knows recording is active
+      startFallbackWaveform();
+    }
   }
 
   function stopRecording() {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
+  }
+
+  function startFallbackWaveform() {
+    const BAR_COUNT = 20;
+    fallbackTimerRef.current = setInterval(() => {
+      setFallbackBars(Array.from({ length: BAR_COUNT }, () => 0.2 + Math.random() * 0.8));
+    }, 80);
   }
 
   async function uploadAndTranscribe(blob: Blob) {
@@ -751,16 +796,34 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             <span className="text-sm text-slate-500 font-medium">Transcribing your thoughts…</span>
           </div>
         ) : isRecording ? (
-          /* Waveform canvas */
-          <div className="flex-1 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-            <canvas
-              ref={canvasRef}
-              width={220}
-              height={36}
-              className="flex-1"
-              style={{ maxHeight: '36px' }}
-            />
+          /* Waveform visualiser — canvas when AnalyserNode is available, animated bars on iOS */
+          <div className="flex-1 flex items-center gap-2.5 min-w-0 py-0.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+            {analyserRef.current ? (
+              <canvas
+                ref={canvasRef}
+                height={36}
+                className="flex-1 w-full"
+                style={{ maxHeight: '36px', minWidth: 0 }}
+              />
+            ) : (
+              /* Fallback animated bars for iOS / browsers without AnalyserNode */
+              <div className="flex-1 flex items-end justify-center gap-[3px] h-9 min-w-0">
+                {fallbackBars.map((h, i) => (
+                  <div
+                    key={i}
+                    className="rounded-full flex-1 transition-all duration-75"
+                    style={{
+                      height: `${Math.round(h * 100)}%`,
+                      minWidth: '3px',
+                      maxWidth: '6px',
+                      background: `rgba(37,99,235,${0.45 + h * 0.55})`,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            <span className="text-xs font-semibold text-slate-500 flex-shrink-0">REC</span>
           </div>
         ) : (
           /* Normal textarea */
