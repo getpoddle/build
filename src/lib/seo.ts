@@ -207,7 +207,7 @@ function buildEntityDescription(entity: ReasoningEntitySEO): string {
 export function updateEntitySEO(entity: ReasoningEntitySEO) {
   const cat = categoryPath(entity.type);
   const catName = categoryLabel(entity.type);
-  const canonical = `${BASE_URL}/#reasoning/${cat}/${entity.slug}`;
+  const canonical = `${BASE_URL}/reasoning/${cat}/${entity.slug}`;
   const titleText = entity.content.length > 80 ? entity.content.slice(0, 80) + '…' : entity.content;
   const title = `${titleText} | Poddle ${catName}`;
   const description = buildEntityDescription(entity);
@@ -237,7 +237,7 @@ export function updateEntitySEO(entity: ReasoningEntitySEO) {
 
 export function updateCategorySEO(type: ReasoningEntityType) {
   const cat = categoryPath(type);
-  const canonical = `${BASE_URL}/#reasoning/${cat}`;
+  const canonical = `${BASE_URL}/reasoning/${cat}`;
 
   const titles: Record<ReasoningEntityType, string> = {
     prediction: 'AI Business Forecasts & Strategic Predictions | Poddle',
@@ -283,7 +283,7 @@ export function updateCategorySEO(type: ReasoningEntityType) {
 
 export function addEntityStructuredData(entity: ReasoningEntitySEO) {
   const cat = categoryPath(entity.type);
-  const url = `${BASE_URL}/#reasoning/${cat}/${entity.slug}`;
+  const url = `${BASE_URL}/reasoning/${cat}/${entity.slug}`;
   const description = buildEntityDescription(entity);
   const headline = entity.content.slice(0, 110);
   const authorOrg = { '@type': 'Organization', name: 'Poddle AI Agents' };
@@ -323,8 +323,8 @@ export function addEntityStructuredData(entity: ReasoningEntitySEO) {
 
   addBreadcrumbStructuredData([
     { name: 'Home', url: BASE_URL },
-    { name: 'Reasoning', url: `${BASE_URL}/#reasoning` },
-    { name: categoryLabel(entity.type), url: `${BASE_URL}/#reasoning/${cat}` },
+    { name: 'Reasoning', url: `${BASE_URL}/reasoning` },
+    { name: categoryLabel(entity.type), url: `${BASE_URL}/reasoning/${cat}` },
     { name: entity.content.slice(0, 60), url },
   ]);
 }
@@ -341,7 +341,7 @@ export function setCategoryItemListSchema(
       '@type': 'ListItem',
       position: i + 1,
       name: item.content.slice(0, 100),
-      url: `${BASE_URL}/#reasoning/${cat}/${item.slug}`,
+      url: `${BASE_URL}/reasoning/${cat}/${item.slug}`,
     })),
   });
 }

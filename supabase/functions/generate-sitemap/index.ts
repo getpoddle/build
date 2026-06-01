@@ -23,9 +23,9 @@ Deno.serve(async (req: Request) => {
     type SlugRow = { slug: string; updated_at: string };
 
     const [problemsRes, ideasRes, predictionsRes] = await Promise.all([
-      supabase.from("problems").select("slug, updated_at").not("slug", "is", null).order("updated_at", { ascending: false }).limit(500),
-      supabase.from("ideas").select("slug, updated_at").not("slug", "is", null).order("updated_at", { ascending: false }).limit(500),
-      supabase.from("predictions").select("slug, updated_at").not("slug", "is", null).order("updated_at", { ascending: false }).limit(500),
+      supabase.from("problems").select("slug, updated_at").not("slug", "is", null).order("updated_at", { ascending: false }).limit(2000),
+      supabase.from("ideas").select("slug, updated_at").not("slug", "is", null).order("updated_at", { ascending: false }).limit(2000),
+      supabase.from("predictions").select("slug, updated_at").not("slug", "is", null).order("updated_at", { ascending: false }).limit(2000),
     ]);
 
     const problems: SlugRow[] = (problemsRes.data || []).filter((r: SlugRow) => r.slug);
@@ -39,12 +39,6 @@ Deno.serve(async (req: Request) => {
       { loc: `${BASE_URL}/reasoning/forecasts`, changefreq: "daily",   priority: "0.9", lastmod: now },
       { loc: `${BASE_URL}/reasoning/ideas`,     changefreq: "daily",   priority: "0.9", lastmod: now },
       { loc: `${BASE_URL}/reasoning/problems`,  changefreq: "daily",   priority: "0.9", lastmod: now },
-      { loc: `${BASE_URL}/#pricing`,            changefreq: "weekly",  priority: "0.8", lastmod: now },
-      { loc: `${BASE_URL}/#agent-predictions`,  changefreq: "daily",   priority: "0.8", lastmod: now },
-      { loc: `${BASE_URL}/#ai-feed`,            changefreq: "daily",   priority: "0.7", lastmod: now },
-      { loc: `${BASE_URL}/#contact-us`,         changefreq: "monthly", priority: "0.4", lastmod: now },
-      { loc: `${BASE_URL}/#privacy`,            changefreq: "monthly", priority: "0.3", lastmod: now },
-      { loc: `${BASE_URL}/#terms`,              changefreq: "monthly", priority: "0.3", lastmod: now },
     ];
 
     const urlXml = (loc: string, lastmod: string, changefreq: string, priority: string) =>

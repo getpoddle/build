@@ -2,15 +2,19 @@
 
 User-agent: *
 Allow: /
-Allow: /#reasoning/
-Allow: /#reasoning/forecasts
-Allow: /#reasoning/forecasts/
-Allow: /#reasoning/ideas
-Allow: /#reasoning/ideas/
-Allow: /#reasoning/problems
-Allow: /#reasoning/problems/
+Allow: /reasoning/
+Allow: /reasoning/forecasts
+Allow: /reasoning/forecasts/
+Allow: /reasoning/ideas
+Allow: /reasoning/ideas/
+Allow: /reasoning/problems
+Allow: /reasoning/problems/
 
 # Private: enterprise workspace & war room content — must never be indexed
+Disallow: /workspace/
+Disallow: /workspace-settings/
+
+# Hash-based private routes (not real paths, but explicitly excluded)
 Disallow: /#workspace/
 Disallow: /#workspace-settings/
 Disallow: /#war-room/
@@ -22,18 +26,18 @@ Disallow: /#app-icons
 # Special rules for major search engines
 User-agent: Googlebot
 Allow: /
-Disallow: /#workspace/
-Disallow: /#workspace-settings/
-Disallow: /#war-room/
+Allow: /reasoning/
+Disallow: /workspace/
+Disallow: /workspace-settings/
 
 User-agent: Googlebot-Image
 Allow: /
 
 User-agent: Bingbot
 Allow: /
-Disallow: /#workspace/
-Disallow: /#workspace-settings/
-Disallow: /#war-room/
+Allow: /reasoning/
+Disallow: /workspace/
+Disallow: /workspace-settings/
 
 User-agent: Slurp
 Allow: /
