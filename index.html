@@ -2,7 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="canonical" href="https://poddleme.com/" />
+    <link rel="canonical" href="https://poddleme.com/" id="canonical-link" />
+    <script>
+      (function() {
+        var p = window.location.pathname;
+        if (p && p !== '/' && p !== '/index.html') {
+          document.getElementById('canonical-link').href = 'https://poddleme.com' + p;
+          var og = document.querySelector('meta[property="og:url"]');
+          if (og) og.content = 'https://poddleme.com' + p;
+        }
+      })();
+    </script>
 
     <!-- Viewport - prevents iOS auto-zoom -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />

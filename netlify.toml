@@ -15,3 +15,7 @@ status = 200
 [build]
 command = "npx vite build"
 publish = "dist"
+
+[[edge_functions]]
+function = "seo-inject"
+path = "/reasoning/*"
