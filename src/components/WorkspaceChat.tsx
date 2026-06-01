@@ -603,7 +603,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         ref={containerRef}
         onScroll={handleScroll}
         className="overflow-y-auto space-y-4 pr-1"
-        style={{ minHeight: '320px', height: 'clamp(320px, calc(100vh - 380px), 600px)' }}
+        style={{ minHeight: '320px', height: 'clamp(320px, calc(100vh - 420px), 580px)' }}
       >
         {messages.length === 0 ? (
           <div className="text-center py-12">

@@ -281,7 +281,11 @@ export default function AgentDiscussionContribute({
       {!open && !aiThinking && user && (
         <button
           onClick={handleOpen}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all touch-manipulation"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-white transition-all touch-manipulation hover:scale-105 hover:-translate-y-px active:scale-95"
+          style={{
+            background: 'linear-gradient(135deg,#1e3a5f,#2563eb)',
+            boxShadow: '0 2px 8px rgba(37,99,235,0.35)',
+          }}
         >
           <Swords className="w-3.5 h-3.5" />
           {hasConversation ? 'Challenge again' : 'Challenge this'}
@@ -289,21 +293,32 @@ export default function AgentDiscussionContribute({
       )}
 
       {open && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200 bg-rose-50">
-            <Swords className="w-3.5 h-3.5 text-rose-600" />
-            <span className="text-xs font-semibold text-rose-700">Challenge this</span>
-            <span className="text-xs text-slate-400 ml-auto truncate hidden sm:block">
-              re: {topicTitle}
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ border: '1px solid rgba(37,99,235,0.2)', background: '#fff', boxShadow: '0 4px 16px rgba(37,99,235,0.08)' }}
+        >
+          <div
+            className="flex items-center gap-2 px-3.5 py-2.5"
+            style={{ background: 'linear-gradient(135deg,rgba(30,58,95,0.06),rgba(37,99,235,0.08))', borderBottom: '1px solid rgba(37,99,235,0.12)' }}
+          >
+            <div
+              className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+            >
+              <Swords className="w-3 h-3 text-white" />
+            </div>
+            <span className="text-xs font-bold text-slate-800">Challenge this</span>
+            <span className="text-xs text-slate-400 ml-1 truncate hidden sm:block">
+              — {topicTitle}
             </span>
             <button
               onClick={handleDismiss}
-              className="ml-auto sm:ml-2 p-0.5 rounded hover:bg-rose-200/60 transition"
+              className="ml-auto p-1 rounded-lg hover:bg-slate-200/60 transition text-slate-400 hover:text-slate-600"
             >
-              <X className="w-3.5 h-3.5 text-rose-600" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="p-3">
+          <div className="p-3.5">
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -312,14 +327,15 @@ export default function AgentDiscussionContribute({
               autoFocus
               className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none resize-none leading-relaxed"
             />
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200">
+            <div className="flex items-center justify-between mt-2.5 pt-2.5" style={{ borderTop: '1px solid rgba(15,23,42,0.07)' }}>
               <span className="text-xs text-slate-400">
                 {text.length > 0 ? `${text.length} chars` : 'Be specific — the AI will respond'}
               </span>
               <button
                 onClick={handleSubmit}
                 disabled={!text.trim() || submitting}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-slate-900 text-white rounded-full text-xs font-semibold hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-white transition-all hover:scale-105 hover:-translate-y-px disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:translate-y-0 touch-manipulation"
+                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: text.trim() ? '0 2px 8px rgba(37,99,235,0.3)' : 'none' }}
               >
                 {submitting ? (
                   <Loader className="w-3.5 h-3.5 animate-spin" />

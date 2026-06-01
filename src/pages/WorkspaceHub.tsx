@@ -336,14 +336,19 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
                 </button>
               </div>
             )}
-            <WorkspaceChat
-              workspaceId={workspaceId}
-              workspaceName={workspace?.name || 'Workspace'}
-              workspaceTopic={workspace?.description}
-              initialPrompt={pendingPrompt}
-              onPromptConsumed={() => setPendingPrompt(undefined)}
-              onAgentsReplied={handleAgentsReplied}
-            />
+            <div
+              className="rounded-2xl p-4 sm:p-5"
+              style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
+            >
+              <WorkspaceChat
+                workspaceId={workspaceId}
+                workspaceName={workspace?.name || 'Workspace'}
+                workspaceTopic={workspace?.description}
+                initialPrompt={pendingPrompt}
+                onPromptConsumed={() => setPendingPrompt(undefined)}
+                onAgentsReplied={handleAgentsReplied}
+              />
+            </div>
           </div>
         )}
 
