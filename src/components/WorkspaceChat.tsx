@@ -393,9 +393,23 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     if (isRecording || isTranscribing || loading) return;
     setRecordingError(null);
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let stream: MediaStream | null = null;
 
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      const name = err instanceof Error ? err.name : '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        showRecordingError('Microphone access denied. Please allow microphone access and try again.');
+      } else if (name === 'NotFoundError') {
+        showRecordingError('No microphone found. Please connect a microphone and try again.');
+      } else {
+        showRecordingError('Could not access microphone. Please try again.');
+      }
+      return;
+    }
+
+    try {
       const audioCtx = new AudioContext();
       const source = audioCtx.createMediaStreamSource(stream);
       const analyser = audioCtx.createAnalyser();
@@ -406,7 +420,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       audioChunksRef.current = [];
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
-        : 'audio/ogg;codecs=opus';
+        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+          ? 'audio/ogg;codecs=opus'
+          : 'audio/webm';
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
 
@@ -415,7 +431,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       };
 
       recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
+        stream!.getTracks().forEach(t => t.stop());
         audioCtx.close();
 
         if (animationFrameRef.current) {
@@ -437,7 +453,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       // Start waveform after state updates so canvas is rendered
       setTimeout(() => drawWaveform(), 50);
     } catch {
-      showRecordingError('Microphone access denied. Please allow microphone access and try again.');
+      stream?.getTracks().forEach(t => t.stop());
+      showRecordingError('Could not start recording. Please try again.');
     }
   }
 
