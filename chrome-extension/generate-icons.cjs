@@ -181,7 +181,7 @@ function renderIcon(size) {
 
 // ── Generate ──────────────────────────────────────────────────────────────────
 
-for (const size of [16, 48, 128]) {
+for (const size of [16, 48, 128, 512]) {
   const pixels = renderIcon(size);
   const png    = encodePNG(pixels, size);
   const out    = path.join(OUT, `icon${size}.png`);
