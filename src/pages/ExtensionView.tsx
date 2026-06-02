@@ -1,7 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Sparkles, LogIn, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+
+const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ask-agents`;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+async function invokeAskAgents(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const res = await fetch(FUNCTIONS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${ANON_KEY}`,
+      Apikey: ANON_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+  const payload = await res.json().catch(() => ({})) as Record<string, unknown>;
+  if (!res.ok) {
+    throw new Error((payload.error as string) || `Request failed (${res.status})`);
+  }
+  return payload;
+}
 
 const EXTENSION_ORIGIN_PREFIX = 'chrome-extension://';
 const PODDLE_ORIGIN = window.location.origin;
@@ -140,10 +159,7 @@ export default function ExtensionView() {
     if (!sessionId) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('ask-agents', {
-        body: { mode: 'poll', session_id: sessionId },
-      });
-      if (error) throw error;
+      const data = await invokeAskAgents({ mode: 'poll', session_id: sessionId });
 
       if (data?.status === 'not_found') {
         stopPolling();
@@ -151,12 +167,14 @@ export default function ExtensionView() {
         return;
       }
 
-      const newTurns: Turn[] = (data?.turns ?? []).filter((t: Turn) => t.turn_number > 0);
+      const newTurns: Turn[] = (data?.turns as Turn[] ?? []).filter((t: Turn) => t.turn_number > 0);
       setTurns(newTurns);
 
-      if (data?.discussion?.tl_dr) setTlDr(data.discussion.tl_dr);
+      if ((data?.discussion as { tl_dr?: string })?.tl_dr) {
+        setTlDr((data.discussion as { tl_dr: string }).tl_dr);
+      }
 
-      if (data?.status === 'completed' || data?.discussion?.discussion_status === 'completed') {
+      if (data?.status === 'completed' || (data?.discussion as { discussion_status?: string })?.discussion_status === 'completed') {
         setStatus('completed');
         stopPolling();
         return;
@@ -196,14 +214,11 @@ export default function ExtensionView() {
     setCurrentQuestion(question);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ask-agents', {
-        body: { question, session_id: sessionId },
-      });
-      if (error) throw error;
-      if (!data?.ok) throw new Error(data?.error ?? 'Unknown error');
+      const data = await invokeAskAgents({ question, session_id: sessionId });
+      if (!data?.ok) throw new Error((data?.error as string) ?? 'Unknown error');
 
-      discussionIdRef.current = data.discussion_id;
-      setPanel(data.panel ?? []);
+      discussionIdRef.current = data.discussion_id as string;
+      setPanel((data.panel as PanelAgent[]) ?? []);
       setInputValue('');
       schedulePoll();
     } catch (err) {
