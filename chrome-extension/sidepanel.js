@@ -24,6 +24,23 @@ let currentTabUrl  = null;
 let iframeReady    = false;
 let pendingContent = null;
 
+// ── Persistent tab state (survives service worker restarts) ───
+
+async function saveTabState(tabId, tabUrl) {
+  try {
+    await chrome.storage.session.set({ currentTabId: tabId, currentTabUrl: tabUrl });
+  } catch { /* storage may be unavailable in some contexts */ }
+}
+
+async function loadTabState() {
+  try {
+    const result = await chrome.storage.session.get(['currentTabId', 'currentTabUrl']);
+    return { tabId: result.currentTabId ?? null, tabUrl: result.currentTabUrl ?? null };
+  } catch {
+    return { tabId: null, tabUrl: null };
+  }
+}
+
 // ── Status helpers ────────────────────────────────────────────
 
 function setStatus(state, label) {
@@ -70,14 +87,31 @@ function updateContextStrip(tab) {
 
   currentTabId  = tab.id;
   currentTabUrl = url;
+  saveTabState(tab.id, url);
 }
 
 async function loadCurrentTab() {
   try {
+    // First try querying the active tab directly.
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) updateContextStrip(tab);
+    if (tab) {
+      updateContextStrip(tab);
+      return;
+    }
+    // Fall back to persisted state from a previous session.
+    const { tabId, tabUrl } = await loadTabState();
+    if (tabId) {
+      currentTabId  = tabId;
+      currentTabUrl = tabUrl;
+    }
   } catch (err) {
     console.warn('[Poddle Lens] Could not load tab info:', err);
+    // Try persisted state as last resort.
+    const { tabId, tabUrl } = await loadTabState();
+    if (tabId) {
+      currentTabId  = tabId;
+      currentTabUrl = tabUrl;
+    }
   }
 }
 
@@ -99,7 +133,6 @@ ui.frame.addEventListener('load', () => {
   ui.loader.classList.add('hidden');
   setStatus('', 'Ready');
 
-  // If we have buffered content waiting for the frame, flush it now.
   if (pendingContent) {
     deliverContent(pendingContent);
     pendingContent = null;
@@ -155,6 +188,13 @@ function isRestrictedUrl(url) {
 }
 
 ui.btnAnalyze.addEventListener('click', async () => {
+  // Re-query the active tab at click time — currentTabId may be stale if the
+  // service worker restarted and no tab event fired yet.
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab) updateContextStrip(activeTab);
+  } catch { /* proceed with cached state */ }
+
   if (!currentTabId) {
     showToast('No active tab detected', 'error');
     return;
@@ -171,16 +211,12 @@ ui.btnAnalyze.addEventListener('click', async () => {
   showToast('Extracting page content…', 'loading');
 
   try {
-    // Re-inject the content script so it is always fresh, even on pages that
-    // loaded before the extension was installed or updated.
     try {
       await chrome.scripting.executeScript({
         target: { tabId: currentTabId },
         files: ['content.js'],
       });
     } catch (injErr) {
-      // Injection can fail on PDFs, file:// pages, or sandboxed iframes.
-      // Fall through — the declarative content_script may already be present.
       console.warn('[Poddle Lens] Script injection skipped:', injErr.message);
     }
 
