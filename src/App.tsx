@@ -38,6 +38,7 @@ const JoinWorkspace = lazy(() => import('./pages/JoinWorkspace'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const ReasoningCategory = lazy(() => import('./pages/ReasoningCategory'));
 const ReasoningEntityPage = lazy(() => import('./pages/ReasoningEntityPage'));
+const ExtensionView = lazy(() => import('./pages/ExtensionView'));
 
 function RouteFallback() {
   return (
@@ -51,6 +52,9 @@ function AppContent() {
   const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending } = useAuth();
   const { toasts, dismissToast } = useToast();
   const [currentPage, setCurrentPage] = useState(() => {
+    // Extension iframe route — must be detected before any hash/session logic
+    if (window.location.pathname === '/extension-view') return 'extension-view';
+
     // Real-path reasoning routes take priority
     const path = window.location.pathname;
     if (path.startsWith('/reasoning/')) {
@@ -114,6 +118,12 @@ function AppContent() {
     const refCode = urlParams.get('ref');
     if (refCode) {
       localStorage.setItem('poddle_referral', refCode);
+    }
+
+    // Extension-view route: served at /extension-view for the Chrome extension iframe
+    if (window.location.pathname === '/extension-view') {
+      setCurrentPage('extension-view');
+      return;
     }
 
     // Stripe redirects back with query params — detect payment success
@@ -572,6 +582,10 @@ function AppContent() {
 
   if (currentPage === 'app-icons') {
     return wrap(<AppIcons />);
+  }
+
+  if (currentPage === 'extension-view') {
+    return wrap(<ExtensionView />);
   }
 
   if (currentPage === 'admin-panel') {

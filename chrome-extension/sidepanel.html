@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poddle Lens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="panel-header">
+    <div class="header-brand">
+      <div class="logo-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="32" height="32" rx="8" fill="#2563eb"/>
+          <path d="M9 8h7.5a6.5 6.5 0 0 1 0 13H9V8Z" fill="white"/>
+          <circle cx="21" cy="23" r="3" fill="#60a5fa"/>
+        </svg>
+      </div>
+      <span class="brand-name">Poddle Lens</span>
+    </div>
+    <div class="header-status">
+      <span class="status-dot" id="statusDot" aria-label="Connected"></span>
+      <span class="status-label" id="statusLabel">Ready</span>
+    </div>
+  </header>
+
+  <!-- ── Context Strip ──────────────────────────────────────── -->
+  <div class="context-strip" id="contextStrip">
+    <img class="tab-favicon" id="tabFavicon" src="" alt="" width="14" height="14" />
+    <div class="context-meta">
+      <span class="context-title" id="contextTitle">Loading page info…</span>
+      <span class="context-url" id="contextUrl"></span>
+    </div>
+  </div>
+
+  <!-- ── Action Bar ─────────────────────────────────────────── -->
+  <div class="action-bar">
+    <button class="btn-analyze" id="btnAnalyze">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+        <path d="M11 8v6M8 11h6"/>
+      </svg>
+      Analyze This Page
+    </button>
+  </div>
+
+  <!-- ── Status Toast ───────────────────────────────────────── -->
+  <div class="toast-bar" id="toastBar" aria-live="polite">
+    <span id="toastMessage"></span>
+  </div>
+
+  <!-- ── iframe Engine ──────────────────────────────────────── -->
+  <div class="iframe-wrapper">
+    <iframe
+      id="poddleFrame"
+      src="about:blank"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+      allow="clipboard-write"
+      title="Poddle Strategy Intelligence"
+      class="poddle-iframe"
+    ></iframe>
+    <div class="iframe-loader" id="iframeLoader">
+      <div class="loader-spinner"></div>
+      <p class="loader-text">Loading Poddle Lens…</p>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

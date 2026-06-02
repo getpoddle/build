@@ -32,6 +32,13 @@
   Permissions-Policy: geolocation=(), microphone=(self), camera=()
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co blob:;
 
+# Extension-view route: allow Chrome extensions to embed this page in the side panel.
+# All other origins remain blocked by the frame-ancestors CSP directive.
+/extension-view
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co blob:; frame-ancestors chrome-extension:;
+
 # Service worker must never be cached
 /sw.js
   Cache-Control: no-store, no-cache, must-revalidate
