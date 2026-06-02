@@ -92,8 +92,10 @@ function updateContextStrip(tab) {
 
 async function loadCurrentTab() {
   try {
-    // First try querying the active tab directly.
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // `currentWindow: true` in a side panel refers to the panel's own window,
+    // not the browser window with the active tab. Query all windows instead.
+    const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const tab = tabs.find(t => t.url && !t.url.startsWith('chrome-extension://')) ?? tabs[0];
     if (tab) {
       updateContextStrip(tab);
       return;
@@ -106,7 +108,6 @@ async function loadCurrentTab() {
     }
   } catch (err) {
     console.warn('[Poddle Lens] Could not load tab info:', err);
-    // Try persisted state as last resort.
     const { tabId, tabUrl } = await loadTabState();
     if (tabId) {
       currentTabId  = tabId;
@@ -191,7 +192,8 @@ ui.btnAnalyze.addEventListener('click', async () => {
   // Re-query the active tab at click time — currentTabId may be stale if the
   // service worker restarted and no tab event fired yet.
   try {
-    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const activeTab = tabs.find(t => t.url && !t.url.startsWith('chrome-extension://')) ?? tabs[0];
     if (activeTab) updateContextStrip(activeTab);
   } catch { /* proceed with cached state */ }
 

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Poddle Lens",
   "short_name": "Poddle Lens",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Instantly analyze any webpage with Poddle's decision intelligence — surface problems, ideas, and strategic insights without leaving your browser.",
 
   "icons": {
@@ -32,6 +32,7 @@
   "permissions": [
     "sidePanel",
     "activeTab",
+    "tabs",
     "scripting",
     "storage"
   ],
