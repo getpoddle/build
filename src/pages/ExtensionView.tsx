@@ -59,7 +59,9 @@ export default function ExtensionView() {
       if (!text) return;
 
       const pageTitle = title || extractDomain(url || '');
-      const prefilled = `I'm analyzing this page: ${pageTitle}\n\n${text}\n\nWhat are the key strategic insights?`;
+      // Build a focused, concise question from the page rather than dumping all text
+      const truncatedText = text.slice(0, 220).replace(/\s+/g, ' ').trim();
+      const prefilled = `What are the key strategic insights from "${pageTitle}"? ${truncatedText}`.slice(0, 400);
       setInputValue(prefilled);
       setContentReceived(true);
       setSent(false);
@@ -85,9 +87,13 @@ export default function ExtensionView() {
     setSending(true);
     setSendError('');
 
+    const sessionId = `ext-${user.id}-${Date.now()}`;
+    // Truncate to fit the ask-agents 400-char limit: keep first 400 chars of the question
+    const question = inputValue.trim().slice(0, 400);
+
     try {
       const { error } = await supabase.functions.invoke('ask-agents', {
-        body: { question: inputValue.trim(), context: 'extension-lens' },
+        body: { question, session_id: sessionId },
       });
       if (error) throw error;
       setSent(true);
