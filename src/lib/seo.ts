@@ -129,7 +129,7 @@ export function setShareablePageMeta({
     updateLinkTag('canonical', url);
   }
 
-  const ogImage = image || 'https://poddle.com/og-image.jpg';
+  const ogImage = image || 'https://poddleme.com/og-image.png';
   updateMetaTag('property', 'og:image', ogImage);
   updateMetaTag('property', 'og:image:width', '1200');
   updateMetaTag('property', 'og:image:height', '630');
