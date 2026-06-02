@@ -37,7 +37,9 @@
   ],
 
   "host_permissions": [
-    "https://poddleme.com/*"
+    "https://poddleme.com/*",
+    "http://*/*",
+    "https://*/*"
   ],
 
   "content_scripts": [

@@ -141,9 +141,28 @@ function deliverContent({ text, title, url }) {
 
 // ── Analyze button ────────────────────────────────────────────
 
+function isRestrictedUrl(url) {
+  if (!url) return true;
+  return (
+    url.startsWith('chrome://') ||
+    url.startsWith('chrome-extension://') ||
+    url.startsWith('edge://') ||
+    url.startsWith('about:') ||
+    url.startsWith('data:') ||
+    url.startsWith('javascript:') ||
+    url === ''
+  );
+}
+
 ui.btnAnalyze.addEventListener('click', async () => {
   if (!currentTabId) {
     showToast('No active tab detected', 'error');
+    return;
+  }
+
+  if (isRestrictedUrl(currentTabUrl)) {
+    showToast('Cannot analyze browser pages (chrome://, extensions, etc.)', 'error');
+    setTimeout(() => { setStatus('', 'Ready'); clearToast(); }, 5000);
     return;
   }
 
@@ -152,15 +171,25 @@ ui.btnAnalyze.addEventListener('click', async () => {
   showToast('Extracting page content…', 'loading');
 
   try {
-    // Inject the content script programmatically so it is always fresh.
-    await chrome.scripting.executeScript({
-      target: { tabId: currentTabId },
-      files: ['content.js'],
-    });
+    // Re-inject the content script so it is always fresh, even on pages that
+    // loaded before the extension was installed or updated.
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: currentTabId },
+        files: ['content.js'],
+      });
+    } catch (injErr) {
+      // Injection can fail on PDFs, file:// pages, or sandboxed iframes.
+      // Fall through — the declarative content_script may already be present.
+      console.warn('[Poddle Lens] Script injection skipped:', injErr.message);
+    }
 
-    const response = await chrome.tabs.sendMessage(currentTabId, {
-      type: 'GET_PAGE_CONTENT',
-    });
+    let response;
+    try {
+      response = await chrome.tabs.sendMessage(currentTabId, { type: 'GET_PAGE_CONTENT' });
+    } catch {
+      throw new Error('Could not reach the page. Try refreshing the tab, then click Analyze again.');
+    }
 
     if (!response?.success) {
       throw new Error(response?.error || 'Content extraction failed');
@@ -172,17 +201,16 @@ ui.btnAnalyze.addEventListener('click', async () => {
     if (iframeReady) {
       deliverContent(response);
     } else {
-      // Buffer until the frame fires PODDLE_READY or load event.
       pendingContent = response;
     }
   } catch (err) {
     console.error('[Poddle Lens] Analyze error:', err);
     setStatus('error', 'Error');
-    showToast(`Could not extract content: ${err.message}`, 'error');
+    showToast(err.message || 'Could not extract content', 'error');
     setTimeout(() => {
       setStatus('', 'Ready');
       clearToast();
-    }, 5000);
+    }, 6000);
   } finally {
     ui.btnAnalyze.disabled = false;
   }
