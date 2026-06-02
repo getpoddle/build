@@ -201,7 +201,7 @@ ui.btnAnalyze.addEventListener('click', async () => {
   }
 
   if (isRestrictedUrl(currentTabUrl)) {
-    showToast('Cannot analyze browser pages (chrome://, extensions, etc.)', 'error');
+    showToast('Cannot analyze chrome:// or extension pages', 'error');
     setTimeout(() => { setStatus('', 'Ready'); clearToast(); }, 5000);
     return;
   }
