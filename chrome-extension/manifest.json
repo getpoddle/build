@@ -37,18 +37,7 @@
   ],
 
   "host_permissions": [
-    "https://poddleme.com/*",
-    "http://*/*",
-    "https://*/*"
-  ],
-
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "run_at": "document_idle",
-      "all_frames": false
-    }
+    "https://poddleme.com/*"
   ],
 
   "content_security_policy": {
