@@ -31,6 +31,7 @@ function containsJailbreak(text: string): boolean {
 }
 const RATE_LIMIT_PER_HOUR_PER_IP = 6;
 const RATE_LIMIT_PER_HOUR_PER_SESSION = 4;
+const RATE_LIMIT_PER_HOUR_AUTHENTICATED = 30;
 
 interface Persona {
   agentName: string;
@@ -250,31 +251,53 @@ Deno.serve(async (req: Request) => {
     const ip = getClientIp(req);
     const ipHash = await sha256Hex(`${ip}|${new Date().toISOString().slice(0, 10)}`);
 
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const [{ count: ipCount }, { count: sessionCount }] = await Promise.all([
-      supabase
-        .from("guest_ask_sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("ip_hash", ipHash)
-        .gt("created_at", oneHourAgo),
-      supabase
-        .from("guest_ask_sessions")
-        .select("id", { count: "exact", head: true })
-        .eq("session_id", clientSessionId)
-        .gt("created_at", oneHourAgo),
-    ]);
+    // Sessions prefixed with "ext-{userId}-" are authenticated extension users.
+    // Extract userId for a per-user limit instead of the stricter IP/guest limits.
+    const extUserMatch = clientSessionId.match(/^ext-([0-9a-f-]{36})-/);
+    const isAuthenticatedUser = !!extUserMatch;
+    const authUserId = extUserMatch?.[1] ?? null;
 
-    if ((ipCount ?? 0) >= RATE_LIMIT_PER_HOUR_PER_IP) {
-      return new Response(JSON.stringify({ error: "Rate limit reached. Sign up to continue asking.", rate_limited: true }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if ((sessionCount ?? 0) >= RATE_LIMIT_PER_HOUR_PER_SESSION) {
-      return new Response(JSON.stringify({ error: "You've asked enough questions for now. Sign up to continue.", rate_limited: true }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    if (isAuthenticatedUser && authUserId) {
+      const { count: userCount } = await supabase
+        .from("guest_ask_sessions")
+        .select("id", { count: "exact", head: true })
+        .like("session_id", `ext-${authUserId}-%`)
+        .gt("created_at", oneHourAgo);
+
+      if ((userCount ?? 0) >= RATE_LIMIT_PER_HOUR_AUTHENTICATED) {
+        return new Response(JSON.stringify({ error: "You've reached the hourly limit. Try again later.", rate_limited: true }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      const [{ count: ipCount }, { count: sessionCount }] = await Promise.all([
+        supabase
+          .from("guest_ask_sessions")
+          .select("id", { count: "exact", head: true })
+          .eq("ip_hash", ipHash)
+          .gt("created_at", oneHourAgo),
+        supabase
+          .from("guest_ask_sessions")
+          .select("id", { count: "exact", head: true })
+          .eq("session_id", clientSessionId)
+          .gt("created_at", oneHourAgo),
+      ]);
+
+      if ((ipCount ?? 0) >= RATE_LIMIT_PER_HOUR_PER_IP) {
+        return new Response(JSON.stringify({ error: "Rate limit reached. Sign up to continue asking.", rate_limited: true }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if ((sessionCount ?? 0) >= RATE_LIMIT_PER_HOUR_PER_SESSION) {
+        return new Response(JSON.stringify({ error: "You've asked enough questions for now. Sign up to continue.", rate_limited: true }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const activePanel = isCareerDecision(rawQuestion)
