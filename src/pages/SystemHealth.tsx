@@ -384,7 +384,11 @@ export default function SystemHealth() {
           <div className="mt-6 flex flex-col items-center gap-2">
             <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Sentry diagnostics</p>
             <button
-              onClick={() => { throw new Error('This is your first error!'); }}
+              onClick={() => {
+                const err = new Error('This is your first error!');
+                Sentry.captureException(err);
+                throw err;
+              }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold border border-red-200 transition-colors"
             >
               <Bug className="w-3.5 h-3.5" />
