@@ -1,3 +1,16 @@
+import { supabase } from './supabase';
+
+async function logExport(exportType: string, workspaceName: string, workspaceId?: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  supabase.from('pdf_exports').insert({
+    user_id: user.id,
+    workspace_id: workspaceId ?? null,
+    export_type: exportType,
+    workspace_name: workspaceName,
+  }).then(() => {});
+}
+
 export interface ChatMessageExport {
   role: 'user' | 'assistant';
   content: string;
@@ -8,6 +21,7 @@ export interface ChatMessageExport {
 
 export interface WarRoomExport {
   workspaceName: string;
+  workspaceId?: string;
   topic?: string;
   generatedAt: string;
   messageCount: number;
@@ -33,6 +47,7 @@ export interface WarRoomExport {
 
 export interface BoardBriefExport {
   workspaceName: string;
+  workspaceId?: string;
   topic?: string;
   generatedAt: string;
   decisionHealthScore: number;
@@ -624,7 +639,7 @@ function topicBannerHtml(topic: string | undefined): string {
   </div>`;
 }
 
-export function exportChatToPDF(messages: ChatMessageExport[], workspaceName: string, topic?: string) {
+export function exportChatToPDF(messages: ChatMessageExport[], workspaceName: string, topic?: string, workspaceId?: string) {
   const ICONS: Record<string, string> = {
     strategic_analyst: '&#x1F4CA;',
     devils_advocate: '&#x2694;&#xFE0F;',
@@ -667,6 +682,7 @@ export function exportChatToPDF(messages: ChatMessageExport[], workspaceName: st
       <span>Confidential · ${formatDate(new Date().toISOString())}</span>
     </div>
   </div>`;
+  logExport('chat', workspaceName, workspaceId);
   openPrintWindow(html, `${workspaceName} — Discussion`);
 }
 
@@ -936,6 +952,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
     </div>
   </div>`;
 
+  logExport('war_room', data.workspaceName, data.workspaceId);
   openPrintWindow(html, `${data.workspaceName} — War Room Report`);
 }
 
@@ -1073,5 +1090,6 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
     </div>
   </div>`;
 
+  logExport('board_brief', data.workspaceName, data.workspaceId);
   openPrintWindow(html, `${data.workspaceName} — Board Brief`);
 }

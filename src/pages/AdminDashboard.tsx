@@ -34,12 +34,9 @@ interface UserStats {
   verified: boolean;
   created_at: string;
   insight_score: number;
-  assumptions_count: number;
-  challenges_count: number;
-  forecasts_count: number;
-  risks_count: number;
-  scenarios_count: number;
-  challenge_responses_count: number;
+  workspaces_created: number;
+  workspaces_opened: number;
+  pdfs_exported: number;
   pods_joined_count: number;
   account_status?: string;
   reason?: string;
@@ -78,7 +75,7 @@ export default function AdminDashboard() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended' | 'banned'>('all');
   const [showUserDetailModal, setShowUserDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserStats | null>(null);
-  const [userContributions, setUserContributions] = useState<any[]>([]);
+  const [userWorkspaces, setUserWorkspaces] = useState<any[]>([]);
   const [loadingContributions, setLoadingContributions] = useState(false);
   const [discussions, setDiscussions] = useState<any[]>([]);
   const [loadingDiscussions, setLoadingDiscussions] = useState(false);
@@ -102,13 +99,13 @@ export default function AdminDashboard() {
 
       // Fetch all data in parallel — 4 queries total regardless of user count
       // Cap at 2000 profiles to prevent unbounded memory/network load
-      const [profilesRes, statsRes, moderationRes, referralRes] = await Promise.all([
+      const [profilesRes, workspaceStatsRes, moderationRes, referralRes] = await Promise.all([
         supabase
           .from('profiles')
           .select('id, full_name, email, username, avatar_url, verified, created_at, insight_score')
           .order('created_at', { ascending: false })
           .limit(2000),
-        supabase.rpc('get_all_users_contribution_stats'),
+        supabase.rpc('get_all_users_workspace_pdf_stats'),
         supabase.rpc('get_all_users_moderation_info'),
         supabase.rpc('get_all_users_referral_stats'),
       ]);
@@ -121,13 +118,12 @@ export default function AdminDashboard() {
         return;
       }
 
-      // Build lookup maps by user_id for O(1) joins
-      type StatsRow = { user_id: string; assumptions_count: number; challenges_count: number; forecasts_count: number; risks_count: number; scenarios_count: number; challenge_responses_count: number; pods_joined_count: number };
+      type WorkspaceStatsRow = { user_id: string; workspaces_created: number; workspaces_opened: number; pdfs_exported: number };
       type ModerationRow = { user_id: string; account_status: string; reason: string | null; suspended_until: string | null; total_reports_against: number; pending_reports_against: number };
       type ReferralRow = { user_id: string; referral_code: string | null; total_referrals: number; recent_referrals: number };
 
-      const statsMap = new Map<string, StatsRow>(
-        (statsRes.data || []).map((r: StatsRow) => [r.user_id, r])
+      const workspaceStatsMap = new Map<string, WorkspaceStatsRow>(
+        (workspaceStatsRes.data || []).map((r: WorkspaceStatsRow) => [r.user_id, r])
       );
       const moderationMap = new Map<string, ModerationRow>(
         (moderationRes.data || []).map((r: ModerationRow) => [r.user_id, r])
@@ -136,13 +132,14 @@ export default function AdminDashboard() {
         (referralRes.data || []).map((r: ReferralRow) => [r.user_id, r])
       );
 
-      const defaultStats: Omit<StatsRow, 'user_id'> = { assumptions_count: 0, challenges_count: 0, forecasts_count: 0, risks_count: 0, scenarios_count: 0, challenge_responses_count: 0, pods_joined_count: 0 };
+      const defaultWorkspaceStats: Omit<WorkspaceStatsRow, 'user_id'> = { workspaces_created: 0, workspaces_opened: 0, pdfs_exported: 0 };
       const defaultModeration: Omit<ModerationRow, 'user_id'> = { account_status: 'active', reason: null, suspended_until: null, total_reports_against: 0, pending_reports_against: 0 };
       const defaultReferral: Omit<ReferralRow, 'user_id'> = { referral_code: null, total_referrals: 0, recent_referrals: 0 };
 
       const usersWithStats = profilesData.map((profile) => ({
         ...profile,
-        ...(statsMap.get(profile.id) ?? defaultStats),
+        pods_joined_count: 0,
+        ...(workspaceStatsMap.get(profile.id) ?? defaultWorkspaceStats),
         ...(moderationMap.get(profile.id) ?? defaultModeration),
         ...(referralMap.get(profile.id) ?? defaultReferral),
       }));
@@ -293,66 +290,20 @@ export default function AdminDashboard() {
   const viewUserDetails = async (user: UserStats) => {
     setSelectedUser(user);
     setShowUserDetailModal(true);
-    setUserContributions([]);
+    setUserWorkspaces([]);
     setLoadingContributions(true);
 
-    const [assumptions, challenges, forecasts, risks, scenarios, responses] = await Promise.all([
-      supabase.from('pod_assumptions').select('id, content, created_at, pod_id, pods(name)').eq('created_by', user.id).order('created_at', { ascending: false }),
-      supabase.from('assumption_challenges').select('id, content, created_at, assumption_id').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('assumption_forecasts').select('id, justification, probability, created_at, assumption_id').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('assumption_risks').select('id, description, severity, created_at, assumption_id').eq('created_by', user.id).order('created_at', { ascending: false }),
-      supabase.from('assumption_scenarios').select('id, description, created_at, assumption_id').eq('created_by', user.id).order('created_at', { ascending: false }),
-      supabase.from('challenge_responses').select('id, response_text, created_at, challenge_id').eq('user_id', user.id).order('created_at', { ascending: false })
-    ]);
+    const { data } = await supabase
+      .from('workspace_members')
+      .select('role, joined_at, workspaces(id, name, plan, subscription_status, created_at)')
+      .eq('user_id', user.id)
+      .order('joined_at', { ascending: false });
 
-    if (assumptions.error) console.error('Assumptions error:', assumptions.error);
-    if (challenges.error) console.error('Challenges error:', challenges.error);
-    if (forecasts.error) console.error('Forecasts error:', forecasts.error);
-    if (risks.error) console.error('Risks error:', risks.error);
-    if (scenarios.error) console.error('Scenarios error:', scenarios.error);
-    if (responses.error) console.error('Responses error:', responses.error);
-
-    setUserContributions([
-      { type: 'Assumptions', items: assumptions.data || [], deleteFunc: 'admin_delete_assumption' },
-      { type: 'Challenges', items: challenges.data || [], deleteFunc: 'admin_delete_challenge' },
-      { type: 'Forecasts', items: forecasts.data || [], deleteFunc: 'admin_delete_forecast' },
-      { type: 'Risks', items: risks.data || [], deleteFunc: 'admin_delete_risk' },
-      { type: 'Scenarios', items: scenarios.data || [], deleteFunc: 'admin_delete_scenario' },
-      { type: 'Responses', items: responses.data || [], deleteFunc: 'admin_delete_challenge_response' },
-    ]);
-
+    setUserWorkspaces(data || []);
     setLoadingContributions(false);
   };
 
-  const deleteContentItem = async (itemId: string, deleteFunc: string, itemType: string) => {
-    const confirmed = window.confirm(`Are you sure you want to delete this ${itemType.toLowerCase().slice(0, -1)}? This action cannot be undone.`);
-    if (!confirmed) return;
-
-    try {
-      let funcName = deleteFunc;
-      let paramName = '';
-
-      if (deleteFunc === 'admin_delete_assumption') paramName = 'assumption_id_param';
-      else if (deleteFunc === 'admin_delete_challenge') paramName = 'challenge_id_param';
-      else if (deleteFunc === 'admin_delete_forecast') paramName = 'forecast_id_param';
-      else if (deleteFunc === 'admin_delete_risk') paramName = 'risk_id_param';
-      else if (deleteFunc === 'admin_delete_scenario') paramName = 'scenario_id_param';
-      else if (deleteFunc === 'admin_delete_challenge_response') paramName = 'response_id_param';
-
-      const { error } = await supabase.rpc(funcName, { [paramName]: itemId });
-
-      if (error) throw error;
-
-      alert(`${itemType.slice(0, -1)} deleted successfully`);
-
-      if (selectedUser) {
-        viewUserDetails(selectedUser);
-      }
-    } catch (error: any) {
-      console.error('Error deleting content:', error);
-      alert(`Failed to delete: ${error.message || 'Unknown error'}`);
-    }
-  };
+  const deleteContentItem = async (_itemId: string, _deleteFunc: string, _itemType: string) => {};
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -372,12 +323,9 @@ export default function AdminDashboard() {
       'Status',
       'Verified',
       'Insight Score',
-      'Assumptions',
-      'Challenges',
-      'Forecasts',
-      'Risks',
-      'Scenarios',
-      'Responses',
+      'Workspaces Created',
+      'Workspaces Opened',
+      'PDFs Exported',
       'Total Referrals',
       'Joined Date',
     ];
@@ -389,12 +337,9 @@ export default function AdminDashboard() {
       user.account_status || 'active',
       user.verified ? 'Yes' : 'No',
       user.insight_score ?? 0,
-      user.assumptions_count ?? 0,
-      user.challenges_count ?? 0,
-      user.forecasts_count ?? 0,
-      user.risks_count ?? 0,
-      user.scenarios_count ?? 0,
-      user.challenge_responses_count ?? 0,
+      user.workspaces_created ?? 0,
+      user.workspaces_opened ?? 0,
+      user.pdfs_exported ?? 0,
       user.total_referrals ?? 0,
       new Date(user.created_at).toLocaleDateString(),
     ]);
@@ -1076,7 +1021,7 @@ export default function AdminDashboard() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">User</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Insight</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Contributions</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Workspace Usage</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Referrals</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Reports</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Actions</th>
@@ -1084,14 +1029,6 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {filteredUsers.map((user) => {
-                    const totalUserContributions =
-                      user.assumptions_count +
-                      user.challenges_count +
-                      user.forecasts_count +
-                      user.risks_count +
-                      user.scenarios_count +
-                      user.challenge_responses_count;
-
                     return (
                       <tr key={user.id} className="hover:bg-slate-50">
                         <td className="px-4 py-4">
@@ -1164,15 +1101,18 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td className="px-4 py-4">
-                          <div className="text-sm">
-                            <p className="font-semibold text-slate-900">{totalUserContributions} total</p>
-                            <div className="text-xs text-slate-600 space-y-0.5 mt-1">
-                              <p>Assumptions: {user.assumptions_count}</p>
-                              <p>Challenges: {user.challenges_count}</p>
-                              <p>Forecasts: {user.forecasts_count}</p>
-                              <p>Risks: {user.risks_count}</p>
-                              <p>Scenarios: {user.scenarios_count}</p>
-                              <p>Responses: {user.challenge_responses_count}</p>
+                          <div className="text-sm space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-500 w-32 text-xs">Created</span>
+                              <span className="font-semibold text-slate-900">{user.workspaces_created ?? 0}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-500 w-32 text-xs">Opened</span>
+                              <span className="font-semibold text-slate-900">{user.workspaces_opened ?? 0}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-500 w-32 text-xs">PDFs Exported</span>
+                              <span className="font-semibold text-slate-900">{user.pdfs_exported ?? 0}</span>
                             </div>
                           </div>
                         </td>
@@ -1387,7 +1327,7 @@ export default function AdminDashboard() {
                   onClick={() => {
                     setShowUserDetailModal(false);
                     setSelectedUser(null);
-                    setUserContributions([]);
+                    setUserWorkspaces([]);
                   }}
                   className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 >
@@ -1418,67 +1358,64 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-              {loadingContributions ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              {/* Workspace usage summary cards */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-blue-700">{selectedUser.workspaces_created ?? 0}</p>
+                  <p className="text-xs font-semibold text-blue-500 mt-1 uppercase tracking-wide">Workspaces Created</p>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {userContributions.map((section: any) => (
-                    <div key={section.type} className="border border-slate-200 rounded-lg overflow-hidden">
-                      <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
-                        <h3 className="font-semibold text-slate-900">
-                          {section.type} ({section.items.length})
-                        </h3>
-                      </div>
-                      <div className="divide-y divide-slate-200">
-                        {section.items.length === 0 ? (
-                          <div className="p-4 text-center text-slate-500">
-                            No {section.type.toLowerCase()} yet
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-slate-700">{selectedUser.workspaces_opened ?? 0}</p>
+                  <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wide">Workspaces Opened</p>
+                </div>
+                <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-green-700">{selectedUser.pdfs_exported ?? 0}</p>
+                  <p className="text-xs font-semibold text-green-500 mt-1 uppercase tracking-wide">PDFs Exported</p>
+                </div>
+              </div>
+
+              {/* Workspace memberships */}
+              <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                  <h3 className="font-semibold text-slate-900">Workspace Memberships ({userWorkspaces.length})</h3>
+                </div>
+                {loadingContributions ? (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : userWorkspaces.length === 0 ? (
+                  <div className="p-6 text-center text-slate-500 text-sm">No workspace memberships yet.</div>
+                ) : (
+                  <div className="divide-y divide-slate-200">
+                    {userWorkspaces.map((m: any, i: number) => {
+                      const ws = m.workspaces;
+                      return (
+                        <div key={i} className="px-4 py-3 flex items-center justify-between hover:bg-slate-50">
+                          <div>
+                            <p className="font-medium text-slate-900 text-sm">{ws?.name ?? 'Unknown'}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              Role: <span className="font-semibold capitalize">{m.role}</span>
+                              {ws?.plan && <> &middot; Plan: <span className="font-semibold capitalize">{ws.plan}</span></>}
+                            </p>
                           </div>
-                        ) : (
-                          section.items.map((item: any) => (
-                            <div key={item.id} className="p-4 hover:bg-slate-50">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-slate-900 mb-2">
-                                    {item.content || item.response_text || item.justification || item.description}
-                                  </p>
-                                  {item.probability !== undefined && (
-                                    <p className="text-sm text-slate-600 mb-1">
-                                      Probability: {item.probability}%
-                                    </p>
-                                  )}
-                                  {item.severity && (
-                                    <p className="text-sm text-slate-600 mb-1">
-                                      Severity: {item.severity}
-                                    </p>
-                                  )}
-                                  {item.pods && (
-                                    <p className="text-sm text-slate-600 mb-1">
-                                      Decision Room: {item.pods.name}
-                                    </p>
-                                  )}
-                                  <p className="text-xs text-slate-500">
-                                    {new Date(item.created_at).toLocaleString()}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => deleteContentItem(item.id, section.deleteFunc, section.type)}
-                                  className="flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="Delete this item"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                          <div className="text-right">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              ws?.subscription_status === 'active' ? 'bg-green-100 text-green-700' :
+                              ws?.subscription_status === 'trialing' ? 'bg-blue-100 text-blue-700' :
+                              'bg-slate-100 text-slate-600'
+                            }`}>
+                              {ws?.subscription_status ?? 'unknown'}
+                            </span>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {m.joined_at ? new Date(m.joined_at).toLocaleDateString() : ''}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
