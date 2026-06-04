@@ -8,7 +8,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2015',
-    sourcemap: false,
+    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks(id) {

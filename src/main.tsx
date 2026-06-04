@@ -5,7 +5,9 @@ import ErrorBoundary from './components/ErrorBoundary.tsx';
 import './index.css';
 import { initCapacitor, isNative } from './lib/capacitor';
 import { initPostHog } from './lib/posthog';
+import { initSentry } from './lib/sentry';
 
+initSentry();
 initPostHog();
 
 createRoot(document.getElementById('root')!).render(
