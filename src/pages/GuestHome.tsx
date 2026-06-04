@@ -5,10 +5,11 @@ import {
   Shield, CheckCircle, AlertTriangle,
   Activity, Lock, Bot, MessageSquare, Lightbulb, Zap, TrendingUp,
   Target, Eye, Layers, Users, Crown, Swords, Brain,
-  BarChart2, X, CreditCard,
+  BarChart2, X, CreditCard, FileText, Download,
 } from 'lucide-react';
 import JoinPromptModal from '../components/JoinPromptModal';
 import AskAgentsWidget from '../components/AskAgentsWidget';
+import { downloadArchitectureDoc } from '../lib/architectureDoc';
 
 interface GuestHomeProps {
   onNavigate: (page: string) => void;
@@ -203,7 +204,20 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
                 <a href="#terms" className="hover:text-slate-600 transition-colors">Terms of Service</a>
                 <a href="#contact-us" className="hover:text-slate-600 transition-colors">Contact Us</a>
               </div>
-              <p className="text-center text-xs text-slate-400 mt-3">&copy; 2026 Poddle, Inc. All rights reserved.</p>
+
+              {/* Architecture Blueprint Download */}
+              <div className="flex justify-center mt-5">
+                <button
+                  onClick={downloadArchitectureDoc}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all duration-200 shadow-sm"
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-500" />
+                  System Architecture &amp; Blueprint
+                  <Download className="w-3 h-3 text-slate-400" />
+                </button>
+              </div>
+
+              <p className="text-center text-xs text-slate-400 mt-4">&copy; 2026 Poddle, Inc. All rights reserved.</p>
             </footer>
           </>
         )}
