@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import * as Sentry from '@sentry/react';
 import { supabase } from '../lib/supabase';
 import {
   Activity, Cpu, Database, Shield, Bot, Gauge, FileCheck, AlertTriangle,
-  CheckCircle2, Clock, ArrowUpRight, Layers, Sparkles, Lock, RefreshCw
+  CheckCircle2, Clock, ArrowUpRight, Layers, Sparkles, Lock, RefreshCw, Bug
 } from 'lucide-react';
 
 interface Stack {
@@ -379,6 +380,24 @@ export default function SystemHealth() {
             <span className="mx-2">•</span>
             Generator <span className="font-semibold text-slate-500">{report.generator}</span>
           </p>
+
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Sentry diagnostics</p>
+            <button
+              onClick={() => { throw new Error('This is your first error!'); }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold border border-red-200 transition-colors"
+            >
+              <Bug className="w-3.5 h-3.5" />
+              Trigger test error
+            </button>
+            <button
+              onClick={() => Sentry.captureMessage('Sentry manual test from SystemHealth')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-semibold border border-slate-200 transition-colors"
+            >
+              <Bug className="w-3.5 h-3.5" />
+              Send test message
+            </button>
+          </div>
         </div>
       </div>
     </div>
