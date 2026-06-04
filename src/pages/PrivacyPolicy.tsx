@@ -1,209 +1,341 @@
 export default function PrivacyPolicy() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="bg-white rounded-lg shadow-sm p-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Privacy Policy</h1>
-        <p className="text-sm text-slate-500 mb-1">Last Updated: April 10, 2026</p>
-        <p className="text-sm text-slate-500 mb-8">Effective Date: January 1, 2026</p>
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-4xl mx-auto px-4 py-12">
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">Introduction</h2>
-          <p className="text-slate-700 leading-relaxed">
-            Welcome to Poddle. We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, store, and protect your information when you use our platform.
-          </p>
-        </section>
+        {/* Header */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-10 mb-6">
+          <div className="mb-6">
+            <span className="inline-block bg-blue-50 text-blue-700 text-xs font-semibold tracking-wide uppercase px-3 py-1 rounded-full mb-4">Legal</span>
+            <h1 className="text-4xl font-bold text-slate-900 mb-2 tracking-tight">Privacy Policy</h1>
+            <p className="text-slate-500 text-sm">Last Updated: <strong>4 June 2026</strong> &nbsp;·&nbsp; Effective Date: <strong>1 January 2026</strong></p>
+          </div>
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 text-sm text-blue-800 leading-relaxed">
+            <strong>Summary:</strong> Poddle is an AI-powered platform for strategic thinking, forecasting, and collaborative decision-making. We collect only what we need to run the platform, we never sell your data, and we give you full control to access, correct, or delete everything we hold about you. Questions? Email us at <a href="mailto:legal@poddleme.com" className="underline font-medium">legal@poddleme.com</a>.
+          </div>
+        </div>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">1. Information We Collect</h2>
+        <div className="space-y-6">
 
-          <h3 className="text-xl font-semibold text-slate-800 mb-3 mt-6">1.1 Information You Provide</h3>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li><strong>Account Information:</strong> Email address, full name, username, password (encrypted)</li>
-            <li><strong>Profile Information:</strong> Bio, location, country, profile picture, skills, interests</li>
-            <li><strong>Content You Create:</strong> Posts, comments, assumptions, forecasts, risks, scenarios, decision threads, challenges, messages</li>
-            <li><strong>Verification Information:</strong> When you request verification, we collect additional information to verify your identity</li>
-          </ul>
+          {/* 1. Who We Are */}
+          <Section id="who-we-are" title="1. Who We Are">
+            <p>
+              Poddle ("Poddle", "we", "us", "our") is an AI-enhanced social platform for strategic analysis, forecasting, and collaborative decision-making. Users can publish posts and insights, interact with AI agents, challenge assumptions, collaborate in private Workspaces, and build a public track record of predictive accuracy.
+            </p>
+            <p className="mt-3">
+              For the purposes of the EU General Data Protection Regulation (2016/679) ("GDPR") and applicable national data-protection laws, Poddle is the <strong>data controller</strong> of your personal data.
+            </p>
+            <ContactBlock />
+          </Section>
 
-          <h3 className="text-xl font-semibold text-slate-800 mb-3 mt-6">1.2 Information We Collect Automatically</h3>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li><strong>Usage Data:</strong> How you interact with our platform, features you use, pages you visit</li>
-            <li><strong>Device Information:</strong> Browser type, operating system, device identifiers</li>
-            <li><strong>Analytics Data:</strong> Insight scores, contribution metrics, engagement patterns</li>
-          </ul>
+          {/* 2. Data We Collect */}
+          <Section id="data-we-collect" title="2. Personal Data We Collect">
+            <SubHeading>2.1 Data you provide directly</SubHeading>
+            <Table rows={[
+              ["Account credentials", "Email address, password (stored as a bcrypt hash — we never see the plaintext)"],
+              ["Profile information", "Display name, username, profile picture, bio, location (city/country only), LinkedIn URL, skills, interests"],
+              ["Content you create", "Posts, comments, assumptions, forecasts, risks, scenarios, decision threads, challenge responses, Workspace messages"],
+              ["Workspace data", "Workspace name, description, member list, AI synthesis outputs, War Room inputs (decisions, signals, risks)"],
+              ["Verification data", "When you apply for a verified badge, we collect supporting evidence you submit"],
+              ["Payment information", "Billing name, last-four card digits, and subscription status (full card details are processed exclusively by Stripe — we never store raw card data)"],
+              ["Contact form submissions", "Name, email, and message body when you contact us via the Contact page"],
+              ["Referral codes", "Your unique referral code and codes you share or receive"],
+            ]} />
 
-          <h3 className="text-xl font-semibold text-slate-800 mb-3 mt-6">1.3 Information from Third Parties</h3>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li><strong>Analytics Providers:</strong> Aggregated, anonymized usage data from tools like Google Analytics to understand platform performance</li>
-            <li><strong>Referrals:</strong> If you joined via a referral link, we receive the referrer's identifier to attribute the referral</li>
-          </ul>
-        </section>
+            <SubHeading>2.2 Data we collect automatically</SubHeading>
+            <Table rows={[
+              ["Usage analytics", "Pages visited, features clicked, session duration, navigation paths (collected via PostHog — EU-hosted)"],
+              ["Error and performance data", "Browser errors, crash reports, and performance traces (collected via Sentry)"],
+              ["Device & browser signals", "Browser type and version, operating system, approximate time zone, screen resolution"],
+              ["Authentication tokens", "JWTs and session tokens managed by Supabase Auth"],
+              ["IP address", "Captured transiently for rate-limiting and fraud detection; not stored long-term in user profiles"],
+            ]} />
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">2. How We Use Your Information</h2>
-          <p className="text-slate-700 leading-relaxed mb-3">We use your information to:</p>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li><strong>Provide Services:</strong> Create and manage your account, enable core features</li>
-            <li><strong>Personalization:</strong> Customize your experience, show relevant content</li>
-            <li><strong>Communication:</strong> Send notifications about activity on your content, system updates</li>
-            <li><strong>Security:</strong> Protect against fraud, abuse, and security threats</li>
-            <li><strong>Analytics:</strong> Understand usage patterns and improve our platform</li>
-            <li><strong>Verification:</strong> Process verification requests for eligible users</li>
-            <li><strong>Community Features:</strong> Enable decision rooms, messaging, following, and collaboration</li>
-          </ul>
-        </section>
+            <SubHeading>2.3 Data generated by our AI systems</SubHeading>
+            <p>
+              Poddle uses AI agents (powered by OpenAI) to generate forecasts, discussion posts, challenge replies, Workspace syntheses, and War Room analyses. These outputs may reference or contextualise your public content. We do not use your personal data to train third-party AI models unless you explicitly opt in to a future programme.
+            </p>
+            <p className="mt-3">Audio inputs for AI transcription features are processed by OpenAI's Whisper API and are not stored after transcription is complete.</p>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">3. Legal Basis for Processing (GDPR)</h2>
-          <p className="text-slate-700 leading-relaxed mb-3">We process your personal data based on:</p>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li><strong>Consent:</strong> You provide explicit consent for specific processing activities</li>
-            <li><strong>Contract:</strong> Processing necessary to provide services you requested</li>
-            <li><strong>Legitimate Interests:</strong> Improving our services, preventing fraud, ensuring security</li>
-            <li><strong>Legal Obligations:</strong> Complying with applicable laws and regulations</li>
-          </ul>
-        </section>
+            <SubHeading>2.4 Data we do NOT collect</SubHeading>
+            <ul className="list-disc ml-6 space-y-1 text-slate-700">
+              <li>Full card numbers or CVV codes (handled entirely by Stripe)</li>
+              <li>Government-issued ID documents (unless you submit them voluntarily for verification)</li>
+              <li>Sensitive special-category data (health, religion, political opinions, etc.)</li>
+              <li>Precise geolocation (we collect only the city/country you choose to enter)</li>
+            </ul>
+          </Section>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">4. Data Sharing and Disclosure</h2>
+          {/* 3. Legal Basis */}
+          <Section id="legal-basis" title="3. Legal Basis for Processing (GDPR Article 6)">
+            <p>We rely on the following lawful bases:</p>
+            <Table rows={[
+              ["Contract (Art. 6(1)(b))", "Creating and managing your account; providing core platform features; processing subscription payments"],
+              ["Legitimate Interests (Art. 6(1)(f))", "Security monitoring, fraud prevention, error tracking (Sentry), product analytics (PostHog), referral attribution. We have assessed that our interests do not override your fundamental rights."],
+              ["Legal Obligation (Art. 6(1)(c))", "Retaining financial records as required by law; responding to lawful data requests from authorities"],
+              ["Consent (Art. 6(1)(a))", "Sending marketing emails (where required by local law); setting non-essential cookies. You may withdraw consent at any time without affecting prior processing."],
+            ]} />
+            <p className="mt-3 text-sm text-slate-500">
+              Where we process data based on legitimate interests, you have the right to object (see Section 8). We will carry out a balancing test and cease processing unless we can demonstrate compelling legitimate grounds.
+            </p>
+          </Section>
 
-          <h3 className="text-xl font-semibold text-slate-800 mb-3 mt-6">4.1 Public Information</h3>
-          <p className="text-slate-700 leading-relaxed mb-3">The following information is public by default:</p>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li>Your display name, username, profile picture</li>
-            <li>Public posts, comments, and assumptions</li>
-            <li>Public decision room memberships</li>
-            <li>Verification badge status</li>
-            <li>Insight score and leaderboard position</li>
-          </ul>
+          {/* 4. How We Use Data */}
+          <Section id="how-we-use" title="4. How We Use Your Data">
+            <Table rows={[
+              ["Service delivery", "Authenticating you; rendering your feed, profile, and Workspace; delivering notifications"],
+              ["AI features", "Sending your content to OpenAI to generate agent responses, syntheses, and War Room analysis. OpenAI processes this data as a data processor under a Data Processing Agreement."],
+              ["Payments", "Creating Stripe checkout sessions, webhooks for subscription events, billing portal access"],
+              ["Communications", "Transactional emails (welcome, password reset, workspace invites, notifications) sent via Resend"],
+              ["Security & integrity", "Rate-limiting, abuse detection, bot prevention, admin moderation"],
+              ["Product improvement", "Aggregated, anonymised analytics to understand which features are used and identify problems"],
+              ["Legal compliance", "Responding to valid legal requests; enforcing our Terms of Service"],
+            ]} />
+          </Section>
 
-          <h3 className="text-xl font-semibold text-slate-800 mb-3 mt-6">4.2 Private Information</h3>
-          <p className="text-slate-700 leading-relaxed mb-3">The following remains private:</p>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li>Your email address (unless you choose to display it)</li>
-            <li>Private messages and conversations</li>
-            <li>Private decision room content (visible only to decision room members)</li>
-            <li>Your exact location (only city/country shown if you choose)</li>
-          </ul>
+          {/* 5. Third-Party Processors */}
+          <Section id="processors" title="5. Third-Party Data Processors">
+            <p>We share data only with processors who have agreed to process it solely on our documented instructions and who offer adequate data-protection guarantees.</p>
+            <Table headers={["Processor", "Purpose", "Data Transferred", "Safeguards"]} rows={[
+              ["Supabase (US)", "Database, authentication, file storage, real-time subscriptions", "All user data and content", "Standard Contractual Clauses (SCCs); SOC 2 Type II"],
+              ["OpenAI (US)", "AI content generation, audio transcription", "Post/content text, audio inputs", "SCCs; OpenAI Data Processing Agreement — API data not used for training"],
+              ["Stripe (US)", "Payment processing, subscription management", "Billing details, subscription status", "SCCs; PCI-DSS Level 1 certified"],
+              ["PostHog (EU)", "Product analytics", "Usage events, anonymised identifiers", "EU-hosted (Frankfurt); GDPR-compliant DPA"],
+              ["Sentry (US)", "Error tracking, performance monitoring", "Error payloads, stack traces, session data", "SCCs; Sentry DPA"],
+              ["Resend (US)", "Transactional email delivery", "Recipient email address, email content", "SCCs; Resend DPA"],
+            ]} />
+            <p className="mt-4">We do not sell, rent, or trade your personal data to any third party for marketing purposes.</p>
 
-          <h3 className="text-xl font-semibold text-slate-800 mb-3 mt-6">4.3 Third-Party Sharing</h3>
-          <p className="text-slate-700 leading-relaxed mb-3">We do not sell your personal data. We may share information with:</p>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li><strong>Service Providers:</strong> Cloud hosting (Supabase), analytics tools</li>
-            <li><strong>Legal Requirements:</strong> When required by law, court order, or government request</li>
-            <li><strong>Business Transfers:</strong> In case of merger, acquisition, or asset sale</li>
-          </ul>
-        </section>
+            <SubHeading>Other disclosures</SubHeading>
+            <ul className="list-disc ml-6 space-y-2 text-slate-700">
+              <li><strong>Legal requirements:</strong> We may disclose data if required by law, court order, or a binding request from a competent authority. Where legally permitted, we will notify you before complying.</li>
+              <li><strong>Business transfers:</strong> If Poddle is involved in a merger, acquisition, or asset sale, personal data may be transferred to the acquiring entity under the same privacy commitments. We will provide notice.</li>
+              <li><strong>Safety:</strong> We may disclose data to prevent imminent physical harm or threat to life.</li>
+            </ul>
+          </Section>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">5. Data Storage and Security</h2>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li><strong>Storage Location:</strong> Your data is stored securely on Supabase servers</li>
-            <li><strong>Encryption:</strong> Passwords are encrypted using industry-standard methods</li>
-            <li><strong>Access Controls:</strong> Row-level security policies restrict data access</li>
-            <li><strong>File Storage:</strong> Profile pictures and attachments are stored securely with access controls</li>
-            <li><strong>Retention:</strong> We retain your data as long as your account is active</li>
-          </ul>
-        </section>
+          {/* 6. Public vs. Private */}
+          <Section id="public-private" title="6. Public vs. Private Information">
+            <SubHeading>Public by default (visible to anyone)</SubHeading>
+            <ul className="list-disc ml-6 space-y-1 text-slate-700">
+              <li>Display name, username, profile picture, bio</li>
+              <li>Location (city/country — only if you choose to enter it)</li>
+              <li>Public posts, assumptions, forecasts, risks, scenarios, challenge responses, and comments</li>
+              <li>Verification badge status</li>
+              <li>LinkedIn URL (if provided)</li>
+            </ul>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">6. Your Rights</h2>
-          <p className="text-slate-700 leading-relaxed mb-3">You have the right to:</p>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li><strong>Access:</strong> Request a copy of your personal data</li>
-            <li><strong>Rectification:</strong> Correct inaccurate or incomplete data</li>
-            <li><strong>Erasure:</strong> Request deletion of your data ("right to be forgotten")</li>
-            <li><strong>Portability:</strong> Receive your data in a machine-readable format</li>
-            <li><strong>Restriction:</strong> Request limited processing of your data</li>
-            <li><strong>Objection:</strong> Object to processing based on legitimate interests</li>
-            <li><strong>Withdraw Consent:</strong> Withdraw consent at any time</li>
-          </ul>
-          <p className="text-slate-700 leading-relaxed mt-4">
-            To exercise these rights, contact us at <a href="mailto:privacy@poddle.co" className="text-blue-600 hover:underline">privacy@poddle.co</a>
-          </p>
-        </section>
+            <SubHeading>Private (visible only to you or authorised members)</SubHeading>
+            <ul className="list-disc ml-6 space-y-1 text-slate-700">
+              <li>Email address</li>
+              <li>Workspace content (visible only to Workspace members)</li>
+              <li>Subscription and billing details</li>
+              <li>Account settings and preferences</li>
+              <li>Notification history</li>
+              <li>Blocked user lists</li>
+            </ul>
+          </Section>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">7. Data Retention</h2>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li><strong>Active Accounts:</strong> Data retained while your account is active</li>
-            <li><strong>Deleted Accounts:</strong> Data deleted within 30 days of account deletion</li>
-            <li><strong>Legal Requirements:</strong> Some data may be retained longer for legal compliance</li>
-            <li><strong>Backups:</strong> Data in backups deleted according to our backup retention schedule</li>
-          </ul>
-        </section>
+          {/* 7. International Transfers */}
+          <Section id="transfers" title="7. International Data Transfers">
+            <p>
+              Poddle is a global product. Your data may be processed in the United States and other countries outside the European Economic Area (EEA). Where we transfer personal data outside the EEA, we use one or more of the following safeguards:
+            </p>
+            <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-3">
+              <li><strong>Standard Contractual Clauses (SCCs)</strong> approved by the European Commission (Decision 2021/914)</li>
+              <li><strong>Adequacy decisions</strong> by the European Commission where applicable</li>
+              <li><strong>Binding Corporate Rules</strong> where the processor has implemented them</li>
+            </ul>
+            <p className="mt-3">
+              You may request a copy of the applicable transfer safeguards by emailing <a href="mailto:legal@poddleme.com" className="text-blue-600 hover:underline">legal@poddleme.com</a>.
+            </p>
+          </Section>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">8. Children's Privacy</h2>
-          <p className="text-slate-700 leading-relaxed">
-            Poddle is not intended for users under 13 years of age. We do not knowingly collect information from children under 13. If you believe we have collected information from a child under 13, contact us immediately.
-          </p>
-        </section>
+          {/* 8. Your Rights */}
+          <Section id="your-rights" title="8. Your Rights">
+            <p>Depending on your jurisdiction, you have the following rights regarding your personal data. To exercise any right, email <a href="mailto:legal@poddleme.com" className="text-blue-600 hover:underline font-medium">legal@poddleme.com</a>. We will respond within <strong>30 days</strong> (extendable by a further two months for complex requests under GDPR Art. 12(3)).</p>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">9. International Data Transfers</h2>
-          <p className="text-slate-700 leading-relaxed">
-            Your data may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place to protect your data in accordance with this privacy policy.
-          </p>
-        </section>
+            <div className="mt-5 grid grid-cols-1 gap-3">
+              {[
+                ["Access (Art. 15)", "Receive a copy of the personal data we hold about you and information about how we process it."],
+                ["Rectification (Art. 16)", "Ask us to correct inaccurate or incomplete data. You can also update most profile data directly in settings."],
+                ["Erasure / Right to be Forgotten (Art. 17)", "Request deletion of your personal data. You can delete your account directly from settings. Certain data may be retained where we have a legal obligation or overriding legitimate interest."],
+                ["Restriction (Art. 18)", "Ask us to restrict processing while we verify a dispute about accuracy, or while an objection is pending."],
+                ["Portability (Art. 20)", "Receive your data in a structured, machine-readable format (JSON/CSV) or ask us to transmit it to another controller, where technically feasible."],
+                ["Objection (Art. 21)", "Object to processing based on legitimate interests. We will cease processing unless we can demonstrate compelling legitimate grounds that override your interests."],
+                ["Automated decisions (Art. 22)", "Not to be subject to a decision based solely on automated processing that produces legal or similarly significant effects. Our AI agents generate content suggestions and analysis — they do not make binding decisions about you."],
+                ["Withdraw Consent", "Where processing is based on consent, you may withdraw it at any time without affecting the lawfulness of prior processing."],
+                ["Lodge a Complaint", "File a complaint with your local supervisory authority (e.g., the ICO in the UK, the CNIL in France, or the DPC in Ireland). We would appreciate the chance to address your concerns first."],
+              ].map(([right, desc]) => (
+                <div key={right} className="flex gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-900 text-sm">{right}</p>
+                    <p className="text-slate-600 text-sm mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">10. Cookies and Tracking</h2>
-          <p className="text-slate-700 leading-relaxed mb-3">We use essential cookies to:</p>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li>Maintain your session and keep you logged in</li>
-            <li>Remember your preferences</li>
-            <li>Analyze usage patterns (anonymized)</li>
-          </ul>
-          <p className="text-slate-700 leading-relaxed mt-4">
-            You can control cookies through your browser settings.
-          </p>
-        </section>
+            <p className="mt-4 text-sm text-slate-500">We do not charge a fee for exercising your rights. We may ask you to verify your identity before processing a request.</p>
+          </Section>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">11. Changes to This Policy</h2>
-          <p className="text-slate-700 leading-relaxed">
-            We may update this privacy policy from time to time. We will notify you of significant changes by email or through a prominent notice on our platform. Continued use after changes constitutes acceptance.
-          </p>
-        </section>
+          {/* 9. Retention */}
+          <Section id="retention" title="9. Data Retention">
+            <Table rows={[
+              ["Active account data", "Retained for the life of your account"],
+              ["Deleted account data", "Purged within 30 days of account deletion, except where legal obligations require longer retention"],
+              ["Financial / billing records", "Retained for 7 years to meet legal and tax obligations"],
+              ["Error logs (Sentry)", "Rolling 90-day retention"],
+              ["Analytics events (PostHog)", "Rolling 12-month retention"],
+              ["Email logs (Resend)", "Rolling 30-day retention"],
+              ["Database backups", "Retained for up to 30 days, then securely deleted"],
+              ["Contact form messages", "Retained for 2 years or until resolved"],
+            ]} />
+          </Section>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">12. Contact Us</h2>
-          <p className="text-slate-700 leading-relaxed mb-3">For privacy-related questions or concerns:</p>
-          <p className="text-slate-700 leading-relaxed">
-            <strong>Email:</strong> <a href="mailto:privacy@poddle.co" className="text-blue-600 hover:underline">privacy@poddle.co</a>
-          </p>
-        </section>
+          {/* 10. Security */}
+          <Section id="security" title="10. Security">
+            <p>We implement technical and organisational measures appropriate to the risk, including:</p>
+            <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-3">
+              <li><strong>Encryption in transit:</strong> All data is transmitted over TLS 1.2+</li>
+              <li><strong>Encryption at rest:</strong> Database volumes encrypted by Supabase</li>
+              <li><strong>Password hashing:</strong> bcrypt with a per-user salt — we cannot read your password</li>
+              <li><strong>Row-Level Security (RLS):</strong> Database-enforced policies ensure users can only access their own data</li>
+              <li><strong>Access controls:</strong> Principle of least privilege applied to all internal systems</li>
+              <li><strong>Rate limiting:</strong> API and authentication endpoints are rate-limited to prevent brute-force attacks</li>
+              <li><strong>Dependency monitoring:</strong> Regular security audits of third-party packages</li>
+            </ul>
+            <p className="mt-3">
+              Despite these measures, no system is completely secure. In the event of a personal data breach that poses a risk to your rights and freedoms, we will notify the relevant supervisory authority within 72 hours and affected individuals without undue delay, as required by GDPR Art. 33–34.
+            </p>
+          </Section>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">13. GDPR-Specific Rights (EU Users)</h2>
-          <p className="text-slate-700 leading-relaxed mb-3">If you are in the European Union, you have additional rights under GDPR:</p>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li>Right to lodge a complaint with a supervisory authority</li>
-            <li>Right to data portability in a structured format</li>
-            <li>Right to object to automated decision-making</li>
-            <li>Right to be informed about data breaches</li>
-          </ul>
-        </section>
+          {/* 11. Cookies */}
+          <Section id="cookies" title="11. Cookies and Similar Technologies">
+            <Table headers={["Cookie / Technology", "Type", "Purpose"]} rows={[
+              ["supabase-auth-token", "Strictly necessary", "Maintains your authenticated session"],
+              ["PostHog analytics", "Analytics", "Tracks anonymised product usage to improve the platform"],
+              ["Sentry session replay", "Analytics / Error monitoring", "Captures anonymised error context to fix bugs"],
+            ]} />
+            <p className="mt-3">We do not use advertising or tracking cookies. You can control or delete cookies through your browser settings. Disabling strictly necessary cookies will prevent you from logging in.</p>
+          </Section>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">14. CCPA-Specific Rights (California Users)</h2>
-          <p className="text-slate-700 leading-relaxed mb-3">If you are a California resident, you have rights under CCPA:</p>
-          <ul className="list-disc list-inside space-y-2 text-slate-700 ml-4">
-            <li>Right to know what personal information is collected</li>
-            <li>Right to know if personal information is sold or disclosed</li>
-            <li>Right to opt-out of the sale of personal information (we do not sell data)</li>
-            <li>Right to deletion</li>
-            <li>Right to non-discrimination for exercising CCPA rights</li>
-          </ul>
-        </section>
+          {/* 12. Children */}
+          <Section id="children" title="12. Children's Privacy">
+            <p>
+              Poddle is not intended for, and does not knowingly collect data from, individuals under the age of <strong>16</strong> (or the minimum digital consent age in your jurisdiction). If you believe we have inadvertently collected data from a child, contact us immediately at <a href="mailto:legal@poddleme.com" className="text-blue-600 hover:underline">legal@poddleme.com</a> and we will delete it promptly.
+            </p>
+          </Section>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-4">15. Data Protection Officer</h2>
-          <p className="text-slate-700 leading-relaxed">
-            For data protection inquiries: <a href="mailto:dpo@poddle.co" className="text-blue-600 hover:underline">dpo@poddle.co</a>
-          </p>
-        </section>
+          {/* 13. California */}
+          <Section id="california" title="13. California Residents (CCPA / CPRA)">
+            <p>If you are a California resident, you have the following rights under the California Consumer Privacy Act and California Privacy Rights Act:</p>
+            <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-3">
+              <li><strong>Know:</strong> Request disclosure of the categories and specific pieces of personal information we have collected about you</li>
+              <li><strong>Delete:</strong> Request deletion of personal information (subject to certain exceptions)</li>
+              <li><strong>Correct:</strong> Request correction of inaccurate personal information</li>
+              <li><strong>Opt-out of sale / sharing:</strong> We do not sell or share personal information for cross-context behavioural advertising</li>
+              <li><strong>Limit use of sensitive personal information:</strong> We do not process sensitive personal information beyond what is necessary to provide our services</li>
+              <li><strong>Non-discrimination:</strong> We will not discriminate against you for exercising your CCPA/CPRA rights</li>
+            </ul>
+            <p className="mt-3">To submit a CCPA/CPRA request, email <a href="mailto:legal@poddleme.com" className="text-blue-600 hover:underline">legal@poddleme.com</a>. We respond within 45 days.</p>
+          </Section>
+
+          {/* 14. AI-Specific */}
+          <Section id="ai" title="14. AI-Specific Disclosures">
+            <p>Poddle is an AI-native platform. Here is specifically how AI intersects with your data:</p>
+            <ul className="list-disc ml-6 space-y-3 text-slate-700 mt-3">
+              <li><strong>AI agents and discussions:</strong> Our AI agents (OpenAI GPT models) generate posts, responses, and analyses by processing your platform's public content as context. This processing is covered by our DPA with OpenAI.</li>
+              <li><strong>Workspace AI chat and synthesis:</strong> When you use AI-assisted features inside a Workspace, your messages and workspace context are sent to OpenAI under your explicit request. Outputs are stored in your Workspace.</li>
+              <li><strong>Audio transcription:</strong> Audio inputs are forwarded to OpenAI Whisper, transcribed, and the audio is immediately discarded. The text transcript is stored for the purpose for which you submitted it.</li>
+              <li><strong>No automated profiling for legal/similar effects:</strong> We do not use automated decision-making to make decisions with legal or similarly significant effects on you (GDPR Art. 22). Insight scores are reputational metrics within the platform and do not constitute legally significant profiling.</li>
+              <li><strong>Model training:</strong> We do not use your personal data to train AI models. OpenAI's API terms prohibit use of API inputs for training.</li>
+            </ul>
+          </Section>
+
+          {/* 15. Changes */}
+          <Section id="changes" title="15. Changes to This Policy">
+            <p>
+              We may update this Privacy Policy to reflect changes in our practices, technology, or legal requirements. For material changes, we will notify you by email and by posting a prominent notice on the platform at least <strong>14 days</strong> before the change takes effect. Minor updates (grammar, clarifications) will be reflected in the "Last Updated" date above.
+            </p>
+            <p className="mt-3">Your continued use of the platform after the effective date constitutes acceptance of the revised policy.</p>
+          </Section>
+
+          {/* 16. Contact */}
+          <Section id="contact" title="16. Data Controller Contact">
+            <p>For any privacy questions, rights requests, or data-protection concerns:</p>
+            <div className="mt-4 bg-slate-50 rounded-xl border border-slate-100 p-5">
+              <p className="font-semibold text-slate-900">Poddle</p>
+              <p className="text-slate-700 mt-1">Email: <a href="mailto:legal@poddleme.com" className="text-blue-600 hover:underline font-medium">legal@poddleme.com</a></p>
+              <p className="text-slate-500 text-sm mt-2">We aim to respond to all requests within 5 business days and to resolve them within 30 days.</p>
+            </div>
+            <p className="mt-4 text-sm text-slate-600">
+              If you are not satisfied with our response, you have the right to lodge a complaint with your local supervisory authority. For UK residents: <a href="https://ico.org.uk" className="text-blue-600 hover:underline">ico.org.uk</a>. For EU residents, find your authority at <a href="https://edpb.europa.eu/about-edpb/about-edpb/members_en" className="text-blue-600 hover:underline">edpb.europa.eu</a>.
+            </p>
+          </Section>
+
+        </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Shared layout helpers ── */
+
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return (
+    <div id={id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+      <h2 className="text-xl font-bold text-slate-900 mb-5 pb-3 border-b border-slate-100">{title}</h2>
+      <div className="text-slate-700 leading-relaxed text-[15px]">{children}</div>
+    </div>
+  );
+}
+
+function SubHeading({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-base font-semibold text-slate-900 mt-6 mb-3">{children}</h3>;
+}
+
+function ContactBlock() {
+  return (
+    <div className="mt-4 flex flex-col gap-1 text-sm text-slate-600">
+      <span><strong>Email:</strong> <a href="mailto:legal@poddleme.com" className="text-blue-600 hover:underline">legal@poddleme.com</a></span>
+    </div>
+  );
+}
+
+function Table({
+  rows,
+  headers,
+}: {
+  rows: [string, string, string?, string?][];
+  headers?: [string, string, string?, string?];
+}) {
+  const cols = headers ? headers.filter(Boolean).length : rows[0].filter(Boolean).length;
+  return (
+    <div className="overflow-x-auto mt-4 rounded-xl border border-slate-200">
+      <table className="w-full text-sm">
+        {headers && (
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200">
+              {headers.filter(Boolean).map((h) => (
+                <th key={h} className="text-left px-4 py-3 font-semibold text-slate-700">{h}</th>
+              ))}
+            </tr>
+          </thead>
+        )}
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+              {row.slice(0, cols).filter((_, ci) => ci < cols).map((cell, ci) => (
+                <td key={ci} className="px-4 py-3 text-slate-700 align-top border-b border-slate-100 last:border-0">
+                  {ci === 0 ? <strong className="text-slate-900">{cell}</strong> : cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
