@@ -3,99 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Offline - Poddle</title>
+  <title>You're offline — Poddle</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: #f8fafc;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 24px;
+      color: #0f172a;
     }
-
-    .container {
-      background: white;
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
       border-radius: 20px;
-      padding: 60px 40px;
+      padding: 56px 40px;
       text-align: center;
-      max-width: 500px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,.06);
     }
-
-    .icon {
-      width: 120px;
-      height: 120px;
-      margin: 0 auto 30px;
-      background: #f1f5f9;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .logo { font-size: 1rem; font-weight: 800; color: #2563eb; letter-spacing: -0.4px; margin-bottom: 32px; display: block; }
+    .icon-wrap {
+      width: 80px; height: 80px; background: #eff6ff; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 28px;
     }
-
-    .icon svg {
-      width: 60px;
-      height: 60px;
-      color: #64748b;
-    }
-
-    h1 {
-      color: #1e293b;
-      font-size: 32px;
-      margin-bottom: 16px;
-      font-weight: 700;
-    }
-
-    p {
-      color: #64748b;
-      font-size: 18px;
-      line-height: 1.6;
-      margin-bottom: 32px;
-    }
-
+    .icon-wrap svg { width: 36px; height: 36px; color: #2563eb; }
+    h1 { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 10px; letter-spacing: -0.3px; }
+    p { color: #64748b; font-size: .95rem; line-height: 1.6; margin-bottom: 32px; }
     button {
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 16px 32px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
+      background: #2563eb; color: #fff; border: none;
+      padding: 13px 28px; border-radius: 10px;
+      font-size: .9375rem; font-weight: 600; cursor: pointer;
+      width: 100%; transition: background .15s, transform .1s;
     }
-
-    button:hover {
-      background: #1d4ed8;
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
-    }
-
-    button:active {
-      transform: translateY(0);
-    }
+    button:hover { background: #1d4ed8; }
+    button:active { transform: scale(.98); }
+    .footer { margin-top: 24px; font-size: .8125rem; color: #94a3b8; }
+    .footer a { color: #64748b; text-decoration: none; }
+    .footer a:hover { color: #2563eb; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="icon">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3" />
+  <div class="card">
+    <span class="logo">Poddle</span>
+    <div class="icon-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+        <line x1="12" y1="9" x2="12" y2="13" stroke-linecap="round" />
+        <circle cx="12" cy="16" r=".5" fill="currentColor" />
       </svg>
     </div>
-
-    <h1>You're Offline</h1>
-    <p>It looks like you've lost your internet connection. Please check your network and try again.</p>
-
-    <button onclick="window.location.reload()">Try Again</button>
+    <h1>You're offline</h1>
+    <p>It looks like you've lost your internet connection. Check your network and try again — your work is still here when you're back.</p>
+    <button onclick="window.location.reload()">Try again</button>
+    <p class="footer">Questions? <a href="mailto:support@poddleme.com">support@poddleme.com</a></p>
   </div>
 </body>
 </html>
