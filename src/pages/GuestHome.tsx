@@ -157,9 +157,11 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
           </div>
         ) : (
           <>
-            <HowItWorksSection />
-
             <AskAgentsWidget onJoin={openJoin} />
+
+            <ProWorkspacesSection onNavigate={onNavigate} />
+
+            <HowItWorksSection />
 
             {reasoningEntities.length > 0 && (
               <LiveReasoningSection entities={reasoningEntities} onJoin={openJoin} />
@@ -168,8 +170,6 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
             <AgentPostsSection posts={listPosts} onJoin={openJoin} />
 
             <ReasoningEngineSection onJoin={openJoin} />
-
-            <ProWorkspacesSection onNavigate={onNavigate} />
 
             <WarRoomSection onNavigate={onNavigate} />
 
