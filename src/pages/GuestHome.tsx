@@ -1325,7 +1325,7 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
           <p className="text-xs text-slate-500">Pro from $19/mo · Teams from $79/mo. Cancel anytime.</p>
         </div>
 
-        <div className="flex items-center justify-center mt-8">
+        <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
           <a
             href="https://betalist.com/startups/poddle?utm_campaign=badge-poddle&utm_medium=badge&utm_source=badge-featured"
             target="_blank"
@@ -1339,6 +1339,21 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
               height={54}
               style={{ width: '156px', height: '54px' }}
               src="https://betalist.com/badges/featured?id=152531&theme=color"
+            />
+          </a>
+          <a
+            href="https://www.producthunt.com/products/poddle-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-poddle-2"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Poddle featured on Product Hunt"
+            className="inline-block transition-transform duration-200 hover:-translate-y-0.5"
+          >
+            <img
+              alt="Poddle - The devil's advocate you never had. | Product Hunt"
+              width={250}
+              height={54}
+              style={{ width: '250px', height: '54px' }}
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1169789&theme=light&t=1781341577123"
             />
           </a>
         </div>
