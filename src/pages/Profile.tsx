@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { CreditCard as Edit2, Save, X, Sparkles, Users, Briefcase, GraduationCap, Award, Plus, Trash2, MapPin, LogOut, TrendingUp, Star, CheckCircle, Zap, Sun, Moon, Linkedin, ExternalLink } from 'lucide-react';
+import { CreditCard as Edit2, Save, X, Briefcase, GraduationCap, Award, Plus, Trash2, MapPin, LogOut, CheckCircle, Sun, Moon, Linkedin, ExternalLink } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { countries, getLocationsForCountry } from '../lib/locations';
 import { Database } from '../lib/database.types';
@@ -15,9 +15,6 @@ import ShareButton from '../components/ShareButton';
 import { setShareablePageMeta } from '../lib/seo';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
-type UserSkill = Database['public']['Tables']['user_skills']['Row'];
-type UserInterest = Database['public']['Tables']['user_interests']['Row'];
-type Pod = Database['public']['Tables']['pods']['Row'];
 
 interface Certification { name: string; issuer: string; year: string; }
 interface JobExperience { company: string; title: string; start: string; end: string; description: string; }
@@ -29,21 +26,6 @@ interface ProfileProps {
   initialEditMode?: boolean;
 }
 
-const POD_COLORS: Record<string, { from: string; to: string }> = {
-  blue:   { from: '#2563eb', to: '#06b6d4' },
-  cyan:   { from: '#0891b2', to: '#10b981' },
-  green:  { from: '#059669', to: '#10b981' },
-  orange: { from: '#ea580c', to: '#f59e0b' },
-  pink:   { from: '#db2777', to: '#f43f5e' },
-  red:    { from: '#dc2626', to: '#ea580c' },
-  teal:   { from: '#0d9488', to: '#06b6d4' },
-  purple: { from: '#7c3aed', to: '#a855f7' },
-};
-
-function podGradient(color: string) {
-  const c = POD_COLORS[color] || POD_COLORS.blue;
-  return `linear-gradient(135deg, ${c.from}, ${c.to})`;
-}
 
 function SectionCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
@@ -75,9 +57,6 @@ export default function Profile({ userId, onNavigate, initialEditMode = false }:
   const { user, signOut } = useAuth();
   const profileUserId = userId || user?.id;
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [skills, setSkills] = useState<UserSkill[]>([]);
-  const [interests, setInterests] = useState<UserInterest[]>([]);
-  const [joinedPods, setJoinedPods] = useState<Pod[]>([]);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [isEditing, setIsEditing] = useState(initialEditMode);
@@ -109,11 +88,8 @@ export default function Profile({ userId, onNavigate, initialEditMode = false }:
   const loadAllData = async () => {
     if (!profileUserId) return;
     try {
-      const [profileRes, skillsRes, interestsRes, podsRes, followersRes, followingRes] = await Promise.all([
+      const [profileRes, followersRes, followingRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', profileUserId).single(),
-        supabase.from('user_skills').select('*').eq('user_id', profileUserId),
-        supabase.from('user_interests').select('*').eq('user_id', profileUserId),
-        supabase.from('pod_members').select('pod_id, pods!inner(*)').eq('user_id', profileUserId),
         supabase.from('followers').select('*', { count: 'exact', head: true }).eq('following_id', profileUserId),
         supabase.from('followers').select('*', { count: 'exact', head: true }).eq('follower_id', profileUserId),
       ]);
@@ -147,10 +123,6 @@ export default function Profile({ userId, onNavigate, initialEditMode = false }:
         if (d.country) setAvailableLocations(getLocationsForCountry(d.country));
       }
 
-      setSkills(skillsRes.data || []);
-      setInterests(interestsRes.data || []);
-      if (podsRes.error) console.error('Error loading pods:', podsRes.error);
-      setJoinedPods(podsRes.data?.map((m: any) => m.pods).filter(Boolean) as Pod[] || []);
       setFollowerCount(followersRes.count || 0);
       setFollowingCount(followingRes.count || 0);
     } catch (err) {
@@ -679,79 +651,6 @@ export default function Profile({ userId, onNavigate, initialEditMode = false }:
             </SectionCard>
           )}
 
-          {/* Skills */}
-          {(skills.length > 0 || isEditing) && (
-            <SectionCard>
-              <SectionHeader icon={Zap} label="Skills" count={skills.length} />
-              {skills.length === 0 ? <p className="text-slate-400 text-sm">No skills added yet</p> : (
-                <div className="flex flex-wrap gap-2">
-                  {skills.map(skill => (
-                    <span key={skill.id}
-                      className="px-3 py-1.5 text-sm font-medium rounded-xl text-slate-700 border border-slate-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all cursor-default"
-                      style={{ background: 'rgba(248,250,252,0.8)' }}>
-                      {skill.skill_name}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </SectionCard>
-          )}
-
-          {/* Interests */}
-          {(interests.length > 0 || isEditing) && (
-            <SectionCard>
-              <SectionHeader icon={Star} label="Interests" count={interests.length} />
-              {interests.length === 0 ? <p className="text-slate-400 text-sm">No interests added yet</p> : (
-                <div className="flex flex-wrap gap-2">
-                  {interests.map(interest => (
-                    <span key={interest.id}
-                      className="px-3 py-1.5 text-sm font-medium rounded-xl text-slate-700 border border-slate-200 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 transition-all cursor-default"
-                      style={{ background: 'rgba(248,250,252,0.8)' }}>
-                      {interest.interest_name}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </SectionCard>
-          )}
-
-          {/* Decision Rooms */}
-          <SectionCard>
-            <SectionHeader icon={Users} label="Decision Rooms" count={joinedPods.length} />
-            {joinedPods.length === 0 ? (
-              <div className="text-center py-6">
-                <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)' }}>
-                  <Users className="w-6 h-6 text-slate-300" />
-                </div>
-                <p className="text-slate-400 text-sm">{isOwnProfile ? "You haven't joined any Decision Rooms yet" : "No Decision Rooms joined yet"}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {joinedPods.map(pod => (
-                  <button key={pod.id} onClick={() => onNavigate('pod', pod.id)}
-                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200/80 hover:border-blue-200 active:scale-[0.98] transition-all text-left touch-manipulation"
-                    style={{ background: 'rgba(248,250,252,0.8)' }}
-                    onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.background = 'rgba(239,246,255,0.9)';
-                      (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(37,99,235,0.1)';
-                    }}
-                    onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.background = 'rgba(248,250,252,0.8)';
-                      (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                    }}>
-                    <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center"
-                      style={{ background: podGradient(pod.color || 'blue') }}>
-                      <Sparkles className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-slate-900 text-sm line-clamp-1">{pod.name}</h3>
-                    </div>
-                    <TrendingUp className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </SectionCard>
         </div>
       </div>
 
