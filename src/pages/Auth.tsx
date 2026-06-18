@@ -145,7 +145,7 @@ export default function Auth() {
             </h1>
           </div>
           <p className="text-slate-600 text-lg font-semibold">
-            Decision-making for teams and founders
+            Challenge assumptions. Make better calls.
           </p>
         </div>
 

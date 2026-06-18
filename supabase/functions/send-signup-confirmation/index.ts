@@ -39,7 +39,7 @@ function buildWelcomeEmail(firstName: string): string {
               <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 20px 0;">Welcome to Poddle</p>
               <h1 style="color:#f8fafc;font-size:24px;font-weight:700;margin:0 0 12px 0;line-height:1.3;">You're in, ${firstName}!</h1>
               <p style="color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 28px 0;">
-                Your account is ready. Start exploring decisions, sharing insights, and collaborating with the Poddle community.
+                Poddle is where assumptions get challenged, ideas get sharper, and decisions get better. Dive in.
               </p>
               <a href="${APP_URL}"
                 style="display:inline-block;background:#2563eb;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:-0.1px;">
