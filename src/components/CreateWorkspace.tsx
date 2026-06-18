@@ -35,16 +35,18 @@ interface CreateWorkspaceProps {
   onClose: () => void;
   onCreated: (workspaceId: string) => void;
   onNavigatePricing: () => void;
+  initialName?: string;
+  initialDescription?: string;
 }
 
-export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing }: CreateWorkspaceProps) {
+export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing, initialName = '', initialDescription = '' }: CreateWorkspaceProps) {
   const { user } = useAuth();
   const { isPro, loading: tierLoading } = useSubscriptionTier();
   const { trialExhausted, trialSlotsRemaining, loading: trialLoading } = useTrialInfo();
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState(initialName);
+  const [description, setDescription] = useState(initialDescription);
   const [domain, setDomain] = useState('general');
   const [plan, setPlan] = useState<'pro' | 'team'>('pro');
   const [creating, setCreating] = useState(false);

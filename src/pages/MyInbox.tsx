@@ -370,6 +370,11 @@ function MyInbox({ onNavigate }: MyInboxProps) {
           onClose={() => setPendingSubmission(null)}
           onCreated={(workspaceId) => launchWarRoom(pendingSubmission, workspaceId)}
           onNavigatePricing={() => { setPendingSubmission(null); onNavigate('pricing'); }}
+          initialName={pendingSubmission.decision.slice(0, 60)}
+          initialDescription={[
+            pendingSubmission.options ? `Options: ${pendingSubmission.options}` : '',
+            pendingSubmission.context ? `Context: ${pendingSubmission.context}` : '',
+          ].filter(Boolean).join(' | ').slice(0, 200)}
         />
       )}
     </div>
