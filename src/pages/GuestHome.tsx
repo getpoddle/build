@@ -323,7 +323,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         </h1>
 
         <p className="text-base leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'rgba(203,213,225,0.82)' }}>
-          Give your team a private workspace where specialized AI agents debate your strategy, stress-test assumptions, and surface the blind spots you can't see from inside the room.
+          Most bad decisions look reasonable in the room. Poddle brings structured AI reasoning to your team's highest-stakes calls — surfacing cognitive biases, pressure-testing assumptions, and flagging second-order risks before you commit.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
