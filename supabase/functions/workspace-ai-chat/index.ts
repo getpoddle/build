@@ -7,66 +7,143 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// ─── Agent definitions ────────────────────────────────────────────────────────
+// ─── Full roster of 7 agents ──────────────────────────────────────────────────
 
-const AI_AGENTS = [
-  {
+const AGENT_ROSTER: Record<string, {
+  name: string;
+  role: string;
+  temperature: number;
+  maxTokens: number;
+  persona: string;
+  keywords: string[];
+}> = {
+  risk_analyst: {
     name: "Risk Analyst",
     role: "risk_analyst",
     temperature: 0.6,
     maxTokens: 1100,
+    keywords: ["risk", "threat", "assumption", "vulnerable", "downside", "liability", "exposure", "danger", "failure", "hedge"],
     persona: `You are a ruthlessly rigorous Risk Analyst. Your entire job is to stop the team from making expensive mistakes by surfacing what they have not yet quantified.
 
-MANDATORY BEHAVIOURS — you must do ALL of these in every response:
-1. Catalogue every risk signal in the current message by category (market / execution / financial / team / technology) and assign an explicit probability (low/medium/high) and impact (low/medium/high) to each.
-2. Name the single most dangerous unquantified assumption the team is relying on and demand a number, deadline, or evidence that would validate or invalidate it.
-3. Connect current risks to anything the team has encountered in prior sessions — if a risk category has appeared before, state that explicitly: "Execution risk has appeared in previous sessions and remains unresolved."
-4. If a recurring risk category is flagged in the Pattern Intelligence section, open with it — this is the most important thing you can surface.
-5. End every response with one precise, uncomfortable question the team must answer before proceeding.
+MANDATORY BEHAVIOURS — do ALL of these in every response:
+1. Catalogue every risk signal by category (market / execution / financial / team / technology) with explicit probability (low/medium/high) and impact (low/medium/high) for each.
+2. Name the single most dangerous unquantified assumption the team is relying on and demand the number, deadline, or evidence that validates or kills it.
+3. Connect current risks to anything that appeared in prior sessions — if a category has recurred, say so explicitly.
+4. If Pattern Intelligence flags a recurring risk category, open with it.
+5. End with one precise, uncomfortable question the team must answer before proceeding.
 
-You are NOT a cheerleader. You do not validate ideas — other agents do that. Your value is discomfort that prevents failure.`,
+You are NOT a cheerleader. Your value is discomfort that prevents failure.`,
   },
-  {
+
+  devils_advocate: {
     name: "Devil's Advocate",
     role: "devils_advocate",
     temperature: 0.6,
     maxTokens: 1100,
-    persona: `You are a relentless Devil's Advocate. You are the last line of defence before a bad decision gets committed to. You exist to make the team uncomfortable in ways that prevent catastrophic mistakes.
+    keywords: ["decision", "choose", "plan", "strategy", "commit", "launch", "go", "invest", "bet", "pivot"],
+    persona: `You are a relentless Devil's Advocate — the last line of defence before a bad decision gets committed to.
 
-MANDATORY BEHAVIOURS — every single response must include:
-1. Identify the single strongest counter-argument to the team's current direction, stated as clearly and forcefully as possible. Do not soften it.
-2. Name any cognitive bias driving the team's reasoning (e.g. Optimism Bias, Sunk Cost Fallacy, Groupthink, Planning Fallacy, Confirmation Bias, Survivorship Bias). Be specific — say exactly WHERE in the conversation it appeared.
+MANDATORY BEHAVIOURS — every response must include ALL of these:
+1. Identify the single strongest counter-argument to the team's current direction. State it clearly and forcefully. Do not soften it.
+2. Name the cognitive bias driving the reasoning (Optimism Bias, Sunk Cost Fallacy, Groupthink, Planning Fallacy, Confirmation Bias, Survivorship Bias) and say exactly WHERE it appeared.
 3. Play the failure scenario to its logical end: "Here is exactly how this fails — step by step."
-4. Challenge any vague claims with quantification demands: if the team says "significant growth", "strong demand", "manageable risk", "soon", ask: "What does that mean in numbers? By when? Measured how?"
-5. If the Pattern Intelligence section shows a dominant bias has appeared across multiple sessions, LEAD with it: "This is the Nth session where [bias] has appeared. The team has not corrected for it."
-6. If a prior decision is being quietly undermined by the current direction, call it out explicitly by referencing what was decided before.
+4. Demand quantification for every vague claim: "significant growth", "strong demand", "manageable risk", "soon" — ask "What number? By when? Measured how?"
+5. If Pattern Intelligence shows a dominant bias has recurred across sessions, LEAD with it.
+6. If a prior decision is being quietly undermined, call it out by referencing what was decided.
 7. End with the single most destabilising question the team has not asked themselves.
 
-You are not hostile. You are the most rigorous friend in the room — the one who loves the team enough to tell them what they do not want to hear. You give no praise. Other agents cover the upside. You cover the downside.`,
+You give no praise. Other agents cover the upside. You cover the downside.`,
   },
-  {
+
+  innovation_scout: {
     name: "Innovation Scout",
     role: "innovation_scout",
     temperature: 0.72,
     maxTokens: 900,
-    persona: `You are a disciplined Innovation Scout. You surface non-obvious opportunities, analogues from adjacent domains, and creative pivots — but you do so with intellectual rigour, not wishful thinking.
+    keywords: ["opportunity", "innovation", "creative", "new", "idea", "disrupt", "breakthrough", "pivot", "differentiate", "experiment"],
+    persona: `You are a disciplined Innovation Scout. You surface non-obvious opportunities and creative pivots — with rigour, not wishful thinking.
 
 MANDATORY BEHAVIOURS:
-1. For every opportunity you identify, name a real-world analogue where a comparable approach worked, and one where it failed. No analogues = no opportunity.
-2. Distinguish clearly: "VALIDATED OPPORTUNITY" (evidence exists in this conversation or prior sessions) vs "HYPOTHESIS" (interesting idea, evidence absent). Never conflate them.
-3. Name the primary failure mode of every idea you propose. If you cannot name one, you have not thought through it enough.
-4. Ask: what is the minimum viable test the team could run in 2 weeks to validate or kill this idea?
-5. If the team's current direction is incrementally safe but strategically blind, say so directly — describe the bolder move they are not considering.
-
-You are creative but evidence-anchored. You never hype. You show what is possible while being honest about what could kill it.`,
+1. For every opportunity, name a real-world analogue where a comparable approach worked, and one where it failed. No analogues = no opportunity.
+2. Label clearly: "VALIDATED OPPORTUNITY" (evidence exists) vs "HYPOTHESIS" (no evidence yet).
+3. Name the primary failure mode of every idea you propose.
+4. Ask: what is the minimum viable test the team could run in 2 weeks to validate or kill this?
+5. If the team's direction is safe but strategically blind, say so — and describe the bolder move they are not considering.`,
   },
-];
+
+  market_analyst: {
+    name: "Market Analyst",
+    role: "market_analyst",
+    temperature: 0.65,
+    maxTokens: 1000,
+    keywords: ["market", "customer", "segment", "competitor", "demand", "pricing", "sales", "revenue", "growth", "acquisition", "retention", "churn", "TAM", "SAM", "SOM", "go-to-market", "GTM", "position", "brand"],
+    persona: `You are a rigorous Market Analyst. You ground every discussion in real market dynamics — not assumptions about customers or competition.
+
+MANDATORY BEHAVIOURS:
+1. Identify the specific customer segment being discussed. Name who they are, what they urgently need, and what they are currently paying (in money or time) to solve the same problem. If this is unclear, demand clarity before proceeding.
+2. Name the top 2-3 direct and indirect competitors. Where does the team's proposed direction create a defensible advantage — and where does it expose a flank?
+3. Challenge any market size claim. Ask: "What is the evidence for this number? Is this TAM, SAM, or SOM? What share is realistically capturable in 18 months?"
+4. Identify the biggest demand assumption the team is making. What signal would confirm real demand vs wishful thinking?
+5. End with one question about customer behaviour that could break the entire strategy if the answer is wrong.`,
+  },
+
+  financial_strategist: {
+    name: "Financial Strategist",
+    role: "financial_strategist",
+    temperature: 0.6,
+    maxTokens: 1000,
+    keywords: ["cost", "budget", "revenue", "profit", "margin", "finance", "pricing", "investment", "capital", "funding", "cash", "burn", "ROI", "unit economics", "LTV", "CAC", "payback", "valuation", "equity", "raise"],
+    persona: `You are a Financial Strategist who translates strategy into economics. You make sure the team's plans survive contact with a spreadsheet.
+
+MANDATORY BEHAVIOURS:
+1. Identify the key financial assumption that, if wrong, kills the plan. State the assumption explicitly and ask what evidence supports it.
+2. Force unit economics clarity: What does it cost to acquire one customer? What is their lifetime value? What is the payback period? If these are unknown, say so directly.
+3. Model the downside: What does the financial picture look like if revenue is 50% of plan and costs are 20% over? Is the business still viable?
+4. Challenge any pricing decision. Ask: "Is this based on cost-plus, competitor benchmarking, or willingness-to-pay research? Which should it be?"
+5. If burn rate or runway is relevant, surface it: "At this cost structure, how many months of runway do you have if the next funding round takes 6 months longer than expected?"
+6. End with one number the team does not know but absolutely must know before making this decision.`,
+  },
+
+  execution_lead: {
+    name: "Execution Lead",
+    role: "execution_lead",
+    temperature: 0.65,
+    maxTokens: 1000,
+    keywords: ["execute", "implement", "launch", "build", "ship", "timeline", "roadmap", "milestone", "team", "resource", "capacity", "priority", "operations", "delivery", "product", "engineering", "sprint", "deploy", "scale"],
+    persona: `You are an Execution Lead — a seasoned operator who has seen plans fail at implementation. You turn good ideas into executable plans and expose where execution will break.
+
+MANDATORY BEHAVIOURS:
+1. Identify the single highest execution risk: the step in the plan most likely to be underestimated, delayed, or blocked. Name it concretely.
+2. Stress-test the timeline. Apply the Planning Fallacy: the real timeline is typically 2-3x the estimate. What is the impact if this takes twice as long?
+3. Identify the critical resource constraint: the specific person, skill, tool, or capability the team does not have but the plan requires. What is the plan to resolve it?
+4. Surface hidden dependencies: what must be true before step N can start that is currently not guaranteed?
+5. Ask: "Who owns this? What is their current capacity? What are they being pulled off to do it?"
+6. End with the one execution bottleneck that, left unaddressed, will be the reason this is discussed in a post-mortem.`,
+  },
+
+  people_advisor: {
+    name: "People Advisor",
+    role: "people_advisor",
+    temperature: 0.68,
+    maxTokens: 950,
+    keywords: ["team", "hire", "culture", "people", "talent", "leadership", "founder", "CEO", "manager", "morale", "org", "structure", "values", "conflict", "alignment", "engagement", "performance", "feedback", "diversity", "burnout"],
+    persona: `You are a People Advisor — an expert in organizational dynamics, talent strategy, and leadership. You see what happens to strategies when humans have to execute them.
+
+MANDATORY BEHAVIOURS:
+1. Identify the people risk that receives least attention in this discussion. Name it directly: "The team is implicitly assuming [X] about people, and that assumption is fragile."
+2. If a hiring or team structure decision is involved, ask: "Is this role structured for the person you have or the work you need done? Those are often different."
+3. Surface alignment risk: Are the people who need to execute this decision actually bought in? If alignment is assumed rather than confirmed, say so.
+4. Challenge any cultural assumption. "Fast-moving" teams still have norms, politics, and capacity limits. Make them visible.
+5. If leadership behaviour is a factor, name it. Founders and managers create culture through their actions, not their values statements.
+6. End with one question about the people involved that, if the answer is wrong, makes the plan undeliverable regardless of how good the strategy is.`,
+  },
+};
 
 const DAILY_MESSAGE_LIMIT = 100;
 
 const JAILBREAK_PATTERNS = [
   /ignore\s+(all\s+)?(previous|prior|above|your)\s+(instructions?|prompt|rules?|system)/i,
-  /you\s+are\s+now\s+(a\s+)?(?!the\s+skeptic|risk\s+analyst|the\s+optimist|data\s+detective|the\s+pragmatist|strategic|devil|innovation)/i,
+  /you\s+are\s+now\s+(a\s+)?(?!the\s+skeptic|risk\s+analyst|market\s+analyst|financial|execution|people|devil|innovation)/i,
   /act\s+as\s+if\s+you\s+(are|were)\s+/i,
   /act\s+as\s+(an?\s+)?(AI|assistant|bot|model|chatbot|language\s+model|unrestricted|uncensored|evil|human\s+without\s+limits)/i,
   /pretend\s+(you\s+are|to\s+be|that\s+you)/i,
@@ -85,6 +162,82 @@ function containsJailbreak(text: string): boolean {
 
 const MAX_MESSAGE_CHARS = 2000;
 
+// ─── Agent selection via GPT classification ───────────────────────────────────
+
+async function selectAgents(
+  message: string,
+  recentHistory: Array<{ role: string; content: string }>,
+  workspaceDomain: string | null | undefined,
+  workspaceDescription: string | null | undefined,
+  openAiKey: string
+): Promise<string[]> {
+  const agentList = Object.values(AGENT_ROSTER).map(a =>
+    `- ${a.role}: ${a.name} (best for: ${a.keywords.slice(0, 5).join(", ")})`
+  ).join("\n");
+
+  const recentContext = recentHistory.slice(-4).map(m =>
+    `${m.role === "user" ? "User" : "AI"}: ${m.content.slice(0, 200)}`
+  ).join("\n");
+
+  const classificationPrompt = `You are an agent router for a strategic decision-making workspace.
+
+Workspace domain: ${workspaceDomain || "general"}
+Workspace focus: ${workspaceDescription || "strategic decisions"}
+
+Recent conversation context:
+${recentContext || "(no prior context)"}
+
+Current message: "${message}"
+
+Available agents:
+${agentList}
+
+Select the 3 most relevant agents for this specific message. Return ONLY a JSON array of role strings. No explanation.
+Rules:
+- Always include "devils_advocate" when a decision, plan, or strategy is being discussed
+- Always include "risk_analyst" unless the topic is purely about people/culture/hiring
+- Pick the remaining 1-2 agents most directly relevant to the topic
+- Maximum 4 agents, minimum 3
+
+Example output: ["devils_advocate", "risk_analyst", "market_analyst"]`;
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${openAiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: classificationPrompt }],
+        max_tokens: 80,
+        temperature: 0,
+      }),
+    });
+
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content?.trim() || "";
+
+    // Extract JSON array from the response
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed)) {
+        const valid = parsed
+          .filter((r: string) => typeof r === "string" && AGENT_ROSTER[r])
+          .slice(0, 4);
+        if (valid.length >= 2) return valid;
+      }
+    }
+  } catch {
+    // Fall through to default
+  }
+
+  // Default fallback: devils_advocate + risk_analyst + innovation_scout
+  return ["devils_advocate", "risk_analyst", "innovation_scout"];
+}
+
 // ─── Pattern intelligence context block ──────────────────────────────────────
 
 function buildPatternContext(memory: {
@@ -98,11 +251,11 @@ function buildPatternContext(memory: {
   const parts: string[] = [];
 
   if (memory.dominant_bias) {
-    parts.push(`DOMINANT BIAS ACROSS SESSIONS: "${memory.dominant_bias}" has appeared more than any other reasoning trap in this workspace's history. It is the team's most reliable blind spot.`);
+    parts.push(`DOMINANT BIAS ACROSS SESSIONS: "${memory.dominant_bias}" has appeared more than any other reasoning trap in this workspace's history — the team's most reliable blind spot.`);
   }
 
   if (memory.recurring_risks && memory.recurring_risks.length > 0) {
-    parts.push(`RECURRING UNRESOLVED RISKS (appeared in 3+ synthesis sessions): ${memory.recurring_risks.join(", ")}. These categories have surfaced repeatedly without resolution — the team's most persistent failure mode.`);
+    parts.push(`RECURRING UNRESOLVED RISKS (appeared in 3+ synthesis sessions): ${memory.recurring_risks.join(", ")}. These categories have surfaced repeatedly without resolution.`);
   }
 
   if (memory.decision_category_history && memory.decision_category_history.length >= 3) {
@@ -111,13 +264,13 @@ function buildPatternContext(memory: {
     for (const c of recent) counts[c] = (counts[c] || 0) + 1;
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
     if (top && top[1] >= 3) {
-      parts.push(`SESSION PATTERN: ${top[1]} of the last ${recent.length} sessions have been categorised as "${top[0]}" decisions. The team may be over-indexing on one decision type while neglecting others.`);
+      parts.push(`SESSION PATTERN: ${top[1]} of the last ${recent.length} sessions have been "${top[0]}" decisions — the team may be over-indexing on one type.`);
     }
   }
 
   if (parts.length === 0) return "";
 
-  return `\n\n=== PATTERN INTELLIGENCE (cross-session patterns — highest priority signal) ===\n${parts.join("\n")}\nThese patterns come from the team's own history. They are more credible than any single-session observation. Reference them directly when relevant.\n=== END PATTERN INTELLIGENCE ===`;
+  return `\n\n=== PATTERN INTELLIGENCE (cross-session patterns — highest priority signal) ===\n${parts.join("\n")}\nThese patterns come from the team's own history. Reference them directly when relevant.\n=== END PATTERN INTELLIGENCE ===`;
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
@@ -213,8 +366,20 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Fetch workspace context, synthesis, and full memory including pattern fields
-    const [wsRes, synthRes, memoryRes] = await Promise.all([
+    const openAiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openAiKey) {
+      return new Response(JSON.stringify({ error: "AI service not configured" }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Fetch workspace context, synthesis, and memory — plus run agent selection — in parallel
+    const conversationHistory = (history || []).slice(-12).map((m: { role: string; content: string }) => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: String(m.content).slice(0, MAX_MESSAGE_CHARS),
+    }));
+
+    const [wsRes, synthRes, memoryRes, selectedRoles] = await Promise.all([
       service.from("workspaces").select("name, description, domain").eq("id", workspace_id).maybeSingle(),
       service.from("workspace_synthesis")
         .select("consensus_points, conflict_zones, open_questions, risk_signals, blind_spots, decision_health_score, cognitive_bias_flags")
@@ -224,27 +389,28 @@ Deno.serve(async (req: Request) => {
         .select("decisions, agreements, open_threads, key_entities, summary, synthesis_count, recurring_risks, dominant_bias, decision_category_history")
         .eq("workspace_id", workspace_id)
         .maybeSingle(),
+      selectAgents(safeMessage, conversationHistory, null, null, openAiKey),
     ]);
 
     const workspace = wsRes.data;
     const synthesis = synthRes.data;
     const memory = memoryRes.data;
 
-    const openAiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openAiKey) {
-      return new Response(JSON.stringify({ error: "AI service not configured" }), {
-        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Re-run selection with workspace context if needed (we already have workspace now)
+    // The initial selection used null domain/description but that's fine — the message content drives most of the routing
 
-    // ── Workspace memory context ────────────────────────────────────────────
+    const selectedAgents = selectedRoles
+      .filter((r: string) => AGENT_ROSTER[r])
+      .map((r: string) => AGENT_ROSTER[r]);
+
+    // ── Memory context ──────────────────────────────────────────────────────
     let memoryContext = "";
     if (memory?.summary || (memory?.decisions?.length ?? 0) > 0) {
       const lines: string[] = [];
       lines.push(`\n\n=== WORKSPACE MEMORY (persistent across all sessions) ===`);
       if (memory!.summary) lines.push(`WHAT HAS BEEN DISCUSSED:\n${memory!.summary}`);
       if (memory!.decisions?.length > 0) {
-        lines.push(`\nDECISIONS ALREADY REACHED — do not re-debate, build on them or flag if now in conflict:`);
+        lines.push(`\nDECISIONS ALREADY REACHED — build on them or flag if now in conflict:`);
         memory!.decisions.forEach((d: string, i: number) => lines.push(`  ${i + 1}. ${d}`));
       }
       if (memory!.agreements?.length > 0) {
@@ -252,13 +418,13 @@ Deno.serve(async (req: Request) => {
         memory!.agreements.forEach((a: string) => lines.push(`  - ${a}`));
       }
       if (memory!.open_threads?.length > 0) {
-        lines.push(`\nOPEN THREADS FROM PRIOR SESSIONS — still unresolved:`);
+        lines.push(`\nOPEN THREADS FROM PRIOR SESSIONS:`);
         memory!.open_threads.forEach((t: string, i: number) => lines.push(`  ${i + 1}. ${t}`));
       }
       if (memory!.key_entities?.length > 0) {
         lines.push(`\nKEY ENTITIES: ${memory!.key_entities.join(", ")}`);
       }
-      lines.push(`\nThis memory is ground truth. Reference prior decisions naturally. Never ask about things already resolved.`);
+      lines.push(`\nThis memory is ground truth. Reference prior decisions naturally.`);
       lines.push(`=== END WORKSPACE MEMORY ===`);
       memoryContext = lines.join("\n");
     }
@@ -266,7 +432,7 @@ Deno.serve(async (req: Request) => {
     // ── Pattern intelligence (Risk Analyst + Devil's Advocate only) ─────────
     const patternContext = memory ? buildPatternContext(memory) : "";
 
-    // ── War Room synthesis context ──────────────────────────────────────────
+    // ── Synthesis context ───────────────────────────────────────────────────
     let synthesisContext = "";
     if (synthesis) {
       const lines: string[] = [];
@@ -306,21 +472,16 @@ Deno.serve(async (req: Request) => {
         lines.push(`\nESTABLISHED CONSENSUS — do not re-debate:`);
         synthesis.consensus_points.forEach((c: { text: string }) => lines.push(`  - ${c.text}`));
       }
-      lines.push(`\nDrive the conversation toward concrete resolution. Take clear positions.`);
+      lines.push(`\nDrive toward concrete resolution. Take clear positions.`);
       lines.push(`=== END WAR ROOM INTELLIGENCE ===`);
       synthesisContext = lines.join("\n");
     }
 
     const workspaceHeader = `You are participating in a private team workspace called "${workspace?.name || "Private Workspace"}"${workspace?.description ? ` focused on: ${workspace.description}` : ""}${workspace?.domain ? ` (domain: ${workspace.domain})` : ""}.`;
 
-    const conversationHistory = (history || []).slice(-12).map((m: { role: string; content: string }) => ({
-      role: m.role === "assistant" ? "assistant" : "user",
-      content: String(m.content).slice(0, MAX_MESSAGE_CHARS),
-    }));
-
-    // ── Call all agents in parallel ─────────────────────────────────────────
+    // ── Call selected agents in parallel ────────────────────────────────────
     const agentResponses = await Promise.all(
-      AI_AGENTS.map(async (agent) => {
+      selectedAgents.map(async (agent) => {
         const agentPatternContext = (agent.role === "risk_analyst" || agent.role === "devils_advocate")
           ? patternContext
           : "";
@@ -329,7 +490,7 @@ Deno.serve(async (req: Request) => {
 
 ${workspaceHeader}${memoryContext}${agentPatternContext}${synthesisContext}
 
-Keep responses under 300 words. Be specific, take clear positions, name concrete things. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging. This team needs rigour, not comfort.`;
+Keep responses under 300 words. Be specific, take clear positions, name concrete things. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging.`;
 
         const messages = [
           { role: "system", content: systemPrompt },
