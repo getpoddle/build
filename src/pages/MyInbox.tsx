@@ -151,6 +151,7 @@ function MyInbox({ onNavigate }: MyInboxProps) {
 
     sessionStorage.setItem('inboxSubmissionContext', context);
     sessionStorage.setItem('inboxSubmissionId', submission.id);
+    sessionStorage.setItem('inboxAutoTab', 'war-room');
     setWorkspacePickerFor(null);
     onNavigate('workspace-hub', workspaceId);
   }

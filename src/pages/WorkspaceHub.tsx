@@ -47,7 +47,14 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mainTab, setMainTab] = useState<MainTab>('chat');
+  const [mainTab, setMainTab] = useState<MainTab>(() => {
+    const auto = sessionStorage.getItem('inboxAutoTab');
+    if (auto === 'war-room') {
+      sessionStorage.removeItem('inboxAutoTab');
+      return 'entities';
+    }
+    return 'chat';
+  });
   const [inboxSubmissionId, setInboxSubmissionId] = useState<string | null>(() => {
     const id = sessionStorage.getItem('inboxSubmissionId');
     return id || null;
