@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense, type ReactNode } from 'react';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Mail, RefreshCw } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary, { PageErrorBoundary } from './components/ErrorBoundary';
@@ -42,7 +42,33 @@ function RouteFallback() {
 }
 
 function AppContent() {
-  const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending } = useAuth();
+  const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation } = useAuth();
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendSent, setResendSent] = useState(false);
+  const [resending, setResending] = useState(false);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleResend = async () => {
+    if (!signupEmailPending || resendCooldown > 0) return;
+    setResending(true);
+    await resendConfirmation(signupEmailPending);
+    setResending(false);
+    setResendSent(true);
+    setResendCooldown(60);
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) {
+          if (cooldownRef.current) clearInterval(cooldownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  useEffect(() => {
+    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
+  }, []);
   const { toasts, dismissToast } = useToast();
   const [currentPage, setCurrentPage] = useState(() => {
     if (window.location.pathname === '/extension-view') return 'extension-view';
@@ -335,35 +361,67 @@ function AppContent() {
   if (signupEmailPending) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-400/30 to-cyan-500/30 rounded-full blur-3xl"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-400/30 to-cyan-500/30 rounded-full blur-3xl" />
         <div className="max-w-md w-full relative z-10">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-3 mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
-                <CheckCircle className="w-9 h-9 text-white" />
+            <div className="inline-flex items-center gap-3 mb-2">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
+                <CheckCircle className="w-8 h-8 text-white" />
               </div>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                 Poddle
               </h1>
             </div>
           </div>
           <div className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-200 text-center">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-5">
-              <CheckCircle className="w-9 h-9 text-blue-600" />
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+              style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(6,182,212,0.1))', border: '1px solid rgba(37,99,235,0.2)' }}
+            >
+              <Mail className="w-8 h-8 text-blue-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-3">Check your email</h2>
-            <p className="text-slate-600 text-sm leading-relaxed mb-2">We sent a confirmation link to</p>
-            <p className="font-semibold text-slate-800 text-sm mb-5">{signupEmailPending}</p>
-            <p className="text-slate-500 text-sm leading-relaxed mb-8">
-              Click the link in the email to activate your account. If you don't see it, check your spam folder.
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Confirm your email</h2>
+            <p className="text-slate-500 text-sm leading-relaxed mb-1">We sent a confirmation link to</p>
+            <p className="font-bold text-slate-800 text-sm mb-4">{signupEmailPending}</p>
+            <p className="text-slate-500 text-sm leading-relaxed mb-6">
+              Click the link in that email to verify your account and get started.
+              Your account will not be active until the link is clicked.
             </p>
+
+            <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left text-xs text-slate-500 space-y-1.5">
+              <p className="font-semibold text-slate-700 text-sm mb-2">Didn't receive it?</p>
+              <p>Check your spam or junk folder.</p>
+              <p>Make sure <span className="font-medium text-slate-700">{signupEmailPending}</span> is correct.</p>
+              <p>Confirmation emails arrive within 2 minutes.</p>
+            </div>
+
+            {resendSent && (
+              <p className="text-green-600 text-sm font-medium mb-4">
+                Confirmation email resent — check your inbox.
+              </p>
+            )}
+
+            <button
+              onClick={handleResend}
+              disabled={resending || resendCooldown > 0}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ borderColor: 'rgba(37,99,235,0.3)', color: '#2563eb', background: 'rgba(37,99,235,0.04)' }}
+            >
+              {resending ? (
+                <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend confirmation email'}
+            </button>
+
             <button
               onClick={clearSignupEmailPending}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              className="mt-3 w-full py-2.5 text-sm text-slate-400 hover:text-slate-600 transition-colors"
             >
-              Back to sign in
+              Use a different email address
             </button>
           </div>
         </div>
