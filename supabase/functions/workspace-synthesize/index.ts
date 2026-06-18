@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
       service.from("workspace_members")
         .select("user_id, role, profiles(first_name, last_name, full_name, username)")
         .eq("workspace_id", workspace_id),
-      service.from("workspace_memory").select("decisions, agreements, open_threads, summary, synthesis_count").eq("workspace_id", workspace_id).maybeSingle(),
+      service.from("workspace_memory").select("decisions, agreements, open_threads, key_entities, summary, synthesis_count, recurring_risks, dominant_bias, decision_category_history").eq("workspace_id", workspace_id).maybeSingle(),
     ]);
 
     const messages = (messagesRes.data || []).reverse(); // back to chronological
@@ -309,22 +309,7 @@ ${transcript}`;
           message_count_at_generation: messages.length,
         }, { onConflict: "workspace_id" });
 
-        // Update workspace memory
-        if (memoryUpdate) {
-          const currentCount = prevMemory?.synthesis_count ?? 0;
-          await service.from("workspace_memory").upsert({
-            workspace_id,
-            decisions: Array.isArray(memoryUpdate.decisions) ? memoryUpdate.decisions.slice(0, 8) : [],
-            agreements: Array.isArray(memoryUpdate.agreements) ? memoryUpdate.agreements.slice(0, 6) : [],
-            open_threads: Array.isArray(memoryUpdate.open_threads) ? memoryUpdate.open_threads.slice(0, 6) : [],
-            key_entities: Array.isArray(memoryUpdate.key_entities) ? memoryUpdate.key_entities.slice(0, 10) : [],
-            summary: typeof memoryUpdate.summary === 'string' ? memoryUpdate.summary.slice(0, 800) : null,
-            updated_at: generatedAt,
-            synthesis_count: currentCount + 1,
-          }, { onConflict: "workspace_id" });
-        }
-
-        // Synthesis history
+        // Synthesis history — insert first so pattern computation can include this session
         const { data: historyRow } = await service.from("workspace_synthesis_history").insert({
           workspace_id,
           decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
@@ -342,6 +327,64 @@ ${transcript}`;
           bias_flags_snapshot: cognitiveBiasFlags,
           risk_category_breakdown: riskCategoryBreakdown,
         }).select("id").maybeSingle();
+
+        // Compute cross-session patterns from history (last 10 rows)
+        const { data: recentHistory } = await service.from("workspace_synthesis_history")
+          .select("bias_flags_snapshot, risk_category_breakdown, session_decision_category")
+          .eq("workspace_id", workspace_id)
+          .order("generated_at", { ascending: false })
+          .limit(10);
+
+        let dominantBias: string | null = prevMemory?.dominant_bias ?? null;
+        let recurringRisks: string[] = (prevMemory?.recurring_risks as string[]) ?? [];
+        let decisionCategoryHistory: string[] = (prevMemory?.decision_category_history as string[]) ?? [];
+
+        if (recentHistory && recentHistory.length >= 2) {
+          // Count bias name occurrences across sessions
+          const biasCounts: Record<string, number> = {};
+          for (const row of recentHistory) {
+            const flags = (row.bias_flags_snapshot as Array<{ bias_name?: string }>) || [];
+            for (const f of flags) {
+              const name = (f.bias_name || "").toLowerCase().trim();
+              if (name) biasCounts[name] = (biasCounts[name] || 0) + 1;
+            }
+          }
+          const topBias = Object.entries(biasCounts).sort((a, b) => b[1] - a[1])[0];
+          if (topBias && topBias[1] >= 2) dominantBias = topBias[0];
+
+          // Count risk category occurrences across sessions (appeared in N+ sessions)
+          const riskCatCounts: Record<string, number> = {};
+          for (const row of recentHistory) {
+            const breakdown = (row.risk_category_breakdown as Record<string, number>) || {};
+            for (const [cat, count] of Object.entries(breakdown)) {
+              if (Number(count) > 0) riskCatCounts[cat] = (riskCatCounts[cat] || 0) + 1;
+            }
+          }
+          recurringRisks = Object.entries(riskCatCounts)
+            .filter(([, n]) => n >= 3)
+            .map(([cat]) => cat);
+        }
+
+        // Append current session category to history (keep last 15)
+        if (sessionDecisionCategory) {
+          decisionCategoryHistory = [...decisionCategoryHistory.slice(-14), sessionDecisionCategory];
+        }
+
+        // Update workspace memory — single upsert with regular + pattern fields
+        const currentCount = prevMemory?.synthesis_count ?? 0;
+        await service.from("workspace_memory").upsert({
+          workspace_id,
+          decisions: memoryUpdate && Array.isArray(memoryUpdate.decisions) ? memoryUpdate.decisions.slice(0, 8) : (prevMemory?.decisions ?? []),
+          agreements: memoryUpdate && Array.isArray(memoryUpdate.agreements) ? memoryUpdate.agreements.slice(0, 6) : (prevMemory?.agreements ?? []),
+          open_threads: memoryUpdate && Array.isArray(memoryUpdate.open_threads) ? memoryUpdate.open_threads.slice(0, 6) : (prevMemory?.open_threads ?? []),
+          key_entities: memoryUpdate && Array.isArray(memoryUpdate.key_entities) ? memoryUpdate.key_entities.slice(0, 10) : (prevMemory?.key_entities ?? []),
+          summary: memoryUpdate && typeof memoryUpdate.summary === 'string' ? memoryUpdate.summary.slice(0, 800) : (prevMemory?.summary ?? null),
+          updated_at: generatedAt,
+          synthesis_count: currentCount + 1,
+          dominant_bias: dominantBias,
+          recurring_risks: recurringRisks,
+          decision_category_history: decisionCategoryHistory,
+        }, { onConflict: "workspace_id" });
 
         // AI action items
         if (actionItems.length > 0) {
