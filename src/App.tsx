@@ -436,9 +436,30 @@ function AppContent() {
   if (currentPage === 'app-icons') return wrap(<AppIcons />);
   if (currentPage === 'extension-view') return wrap(<ExtensionView />);
   if (currentPage === 'admin-panel') return wrap(<AdminPanel />);
-  if (currentPage === 'privacy') return wrap(<PrivacyPolicy />);
-  if (currentPage === 'terms') return wrap(<TermsOfService />);
-  if (currentPage === 'contact-us') return wrap(<ContactUs />);
+  if (currentPage === 'privacy') return (
+    <div className="min-h-screen bg-slate-50">
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
+      <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
+        <Suspense fallback={<RouteFallback />}><PrivacyPolicy /></Suspense>
+      </div>
+    </div>
+  );
+  if (currentPage === 'terms') return (
+    <div className="min-h-screen bg-slate-50">
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
+      <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
+        <Suspense fallback={<RouteFallback />}><TermsOfService /></Suspense>
+      </div>
+    </div>
+  );
+  if (currentPage === 'contact-us') return (
+    <div className="min-h-screen bg-slate-50">
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
+      <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
+        <Suspense fallback={<RouteFallback />}><ContactUs /></Suspense>
+      </div>
+    </div>
+  );
   if (currentPage === 'pricing') return wrap(<Pricing onNavigate={handleNavigate} />);
   if (currentPage === 'system-health') return wrap(<SystemHealth />);
   if (currentPage === 'payment-success') return wrap(<PaymentSuccess onNavigate={handleNavigate} />);
