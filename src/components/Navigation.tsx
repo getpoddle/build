@@ -1,4 +1,4 @@
-import { Sparkles, Home, User, LogOut, Search, Bell, X, Bot, Lock } from 'lucide-react';
+import { Sparkles, User, LogOut, Search, Bell, X, Bot, Lock, Home } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Notifications from './Notifications';
 import UnifiedSearch from './UnifiedSearch';
@@ -22,7 +22,6 @@ interface NavigationProps {
 }
 
 const NAV_ITEMS_AUTH = [
-  { id: 'home', label: 'Home', icon: Home },
   { id: 'workspaces', label: 'Workspaces', icon: Lock },
   { id: 'profile', label: 'Profile', icon: User },
 ];
@@ -142,7 +141,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-6 flex-1 md:gap-8">
               <button
-                onClick={() => onNavigate('home')}
+                onClick={() => onNavigate(user ? 'workspaces' : 'home')}
                 aria-label="Go to home"
                 className="flex items-center gap-3 group flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl"
               >
