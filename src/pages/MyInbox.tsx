@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Inbox, CheckCircle2, X, Clock, ChevronRight, Copy, Settings,
-  AlertCircle, Loader2, Play, Zap, ToggleLeft, ToggleRight, Lock,
+  Inbox, CheckCircle2, X, Clock, Copy, Settings,
+  AlertCircle, Loader2, Zap, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
+import CreateWorkspace from '../components/CreateWorkspace';
 
 interface Submission {
   id: string;
@@ -36,7 +36,6 @@ const APP_URL = typeof window !== 'undefined' ? window.location.origin : 'https:
 
 function MyInbox({ onNavigate }: MyInboxProps) {
   const { user } = useAuth();
-  const { workspaces, loading: wsLoading } = useUserWorkspaces();
 
   const [profile, setProfile] = useState<InboxProfile | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -53,12 +52,7 @@ function MyInbox({ onNavigate }: MyInboxProps) {
   const [slugError, setSlugError] = useState('');
 
   const [copied, setCopied] = useState(false);
-  const [workspacePickerFor, setWorkspacePickerFor] = useState<string | null>(null);
-
-  const proWorkspaces = workspaces.filter(
-    ws => (ws.plan === 'pro' || ws.plan === 'enterprise') &&
-          (ws.subscription_status === 'active' || ws.subscription_status === 'trialing')
-  );
+  const [pendingSubmission, setPendingSubmission] = useState<Submission | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -128,20 +122,10 @@ function MyInbox({ onNavigate }: MyInboxProps) {
   }
 
   function handleRunWarRoom(submission: Submission) {
-    if (proWorkspaces.length === 0) {
-      // No pro workspace — prompt upgrade
-      onNavigate('workspaces');
-      return;
-    }
-    if (proWorkspaces.length === 1) {
-      launchWarRoom(submission, proWorkspaces[0].id);
-    } else {
-      setWorkspacePickerFor(submission.id);
-    }
+    setPendingSubmission(submission);
   }
 
   function launchWarRoom(submission: Submission, workspaceId: string) {
-    // Store submission context in sessionStorage so WorkspaceHub can pre-populate it
     const context = [
       `Decision: ${submission.decision}`,
       submission.options ? `Options: ${submission.options}` : '',
@@ -152,7 +136,7 @@ function MyInbox({ onNavigate }: MyInboxProps) {
     sessionStorage.setItem('inboxSubmissionContext', context);
     sessionStorage.setItem('inboxSubmissionId', submission.id);
     sessionStorage.setItem('inboxAutoTab', 'war-room');
-    setWorkspacePickerFor(null);
+    setPendingSubmission(null);
     onNavigate('workspace-hub', workspaceId);
   }
 
@@ -199,7 +183,7 @@ function MyInbox({ onNavigate }: MyInboxProps) {
   const pendingCount = submissions.filter(s => s.status === 'pending').length;
   const inboxUrl = slug ? `${APP_URL}/#inbox/${slug}` : null;
 
-  if (loadingData || wsLoading) {
+  if (loadingData) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
@@ -381,34 +365,12 @@ function MyInbox({ onNavigate }: MyInboxProps) {
         </div>
       )}
 
-      {/* Workspace picker modal */}
-      {workspacePickerFor && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setWorkspacePickerFor(null)}>
-          <div
-            className="w-full max-w-sm rounded-3xl p-6"
-            style={{ background: '#fff' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 className="text-base font-bold text-slate-900 mb-1">Choose a workspace</h3>
-            <p className="text-xs text-slate-500 mb-4">Which War Room should analyse this submission?</p>
-            <div className="space-y-2">
-              {proWorkspaces.map(ws => {
-                const sub = submissions.find(s => s.id === workspacePickerFor);
-                return (
-                  <button
-                    key={ws.id}
-                    onClick={() => sub && launchWarRoom(sub, ws.id)}
-                    className="w-full flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 transition-all hover:bg-slate-50"
-                    style={{ border: '1px solid rgba(15,23,42,0.10)' }}
-                  >
-                    {ws.name}
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+      {pendingSubmission && (
+        <CreateWorkspace
+          onClose={() => setPendingSubmission(null)}
+          onCreated={(workspaceId) => launchWarRoom(pendingSubmission, workspaceId)}
+          onNavigatePricing={() => { setPendingSubmission(null); onNavigate('pricing'); }}
+        />
       )}
     </div>
   );
