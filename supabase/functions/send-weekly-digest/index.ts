@@ -34,10 +34,6 @@ function phCaptureServer(event: string, distinctId: string, properties?: Record<
 
 const APP_URL = Deno.env.get("APP_URL") || "https://poddleme.com";
 
-const WEEK_START = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  .toISOString()
-  .slice(0, 10);
-
 function emailBase(content: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -85,185 +81,94 @@ function emailBase(content: string): string {
 </html>`;
 }
 
-interface TopAssumption {
-  id: string;
-  content: string;
-  challenge_count: number;
-  pod_name: string;
-}
+// Scenario C — user has never created a workspace
+function buildNoWorkspaceEmail(recipientName: string): string {
+  const agents = [
+    { name: "The Skeptic", color: "#f87171", description: "finds the fatal flaw in your thinking" },
+    { name: "Risk Analyst", color: "#fbbf24", description: "puts numbers on what could go wrong" },
+    { name: "The Optimist", color: "#34d399", description: "finds the upside you might be undervaluing" },
+    { name: "Data Detective", color: "#60a5fa", description: "challenges assumptions that lack evidence" },
+    { name: "Market Analyst", color: "#a78bfa", description: "maps competitive timing and market fit" },
+    { name: "Systems Thinker", color: "#fb923c", description: "traces second and third-order consequences" },
+    { name: "The Pragmatist", color: "#94a3b8", description: "tells you what can realistically ship" },
+  ];
 
-interface AIHighlight {
-  agent_name: string;
-  response_type: string;
-  snippet: string;
-  confidence_score: number;
-  assumption_snippet: string;
-  pod_name: string;
-}
-
-interface PodChange {
-  pod_name: string;
-  pod_id: string;
-  new_assumptions: number;
-}
-
-interface AgentPostCounts {
-  breakthrough_ideas: number;
-  opinions: number;
-  industry_problems: number;
-  total: number;
-}
-
-function buildDigestHtml(
-  recipientName: string,
-  topAssumptions: TopAssumption[],
-  aiHighlights: AIHighlight[],
-  podChanges: PodChange[],
-  agentPostCounts: AgentPostCounts
-): string {
-  const weekLabel = new Date(WEEK_START).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-
-  const topInsightsRows = topAssumptions
-    .slice(0, 3)
-    .map(
-      (a, i) => `
+  const agentRows = agents.map((a) => `
     <tr>
-      <td style="padding:12px 0;border-bottom:1px solid #334155;">
+      <td style="padding:8px 0;border-bottom:1px solid #334155;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="width:28px;vertical-align:top;">
-              <span style="color:#475569;font-size:12px;font-family:monospace;">#${i + 1}</span>
+            <td style="width:14px;vertical-align:middle;">
+              <span style="display:inline-block;width:8px;height:8px;background:${a.color};border-radius:50%;"></span>
+            </td>
+            <td style="padding-left:10px;">
+              <span style="color:#f8fafc;font-size:13px;font-weight:600;">${a.name}</span>
+              <span style="color:#64748b;font-size:13px;"> — ${a.description}</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`).join("");
+
+  return emailBase(`
+    <div style="padding:32px;">
+      <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px 0;">From the Poddle Team</p>
+      <h1 style="color:#f8fafc;font-size:24px;font-weight:700;margin:0 0 16px 0;line-height:1.3;">Hi ${recipientName}, you haven't tried the best part of Poddle yet.</h1>
+      <p style="color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 24px 0;">Most people sign up, look around, and miss the feature that makes it actually useful.</p>
+
+      <div style="background:#0f172a;border-radius:12px;border:1px solid #334155;padding:20px 24px;margin-bottom:28px;">
+        <p style="color:#f8fafc;font-size:15px;font-weight:700;margin:0 0 6px 0;">Private workspaces</p>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">You bring a decision — a hire, a pricing call, a product pivot — and seven AI agents debate it from completely different angles. Then AI synthesizes the debate into a clear recommendation, with dissenting views kept in so you see the full picture, not just a conclusion.</p>
+      </div>
+
+      <h2 style="color:#f8fafc;font-size:15px;font-weight:700;margin:0 0 4px 0;">Your panel of seven agents</h2>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+        ${agentRows}
+      </table>
+
+      <div style="background:#0f172a;border-radius:12px;border:1px solid #334155;padding:20px 24px;margin-bottom:28px;">
+        <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:0 0 12px 0;">Two minutes to set up. Fully private and encrypted. Nothing inside your workspace is visible outside your team.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding:0 12px 0 0;">
+              <div style="text-align:center;padding:14px 0;border-radius:8px;border:1px solid #334155;">
+                <div style="color:#f8fafc;font-size:16px;font-weight:800;line-height:1;">$19</div>
+                <div style="color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Pro Individual / mo</div>
+              </div>
             </td>
             <td>
-              <p style="color:#e2e8f0;font-size:13px;line-height:1.5;margin:0 0 4px 0;">${a.content.slice(0, 140)}${a.content.length > 140 ? "…" : ""}</p>
-              <div>
-                <span style="color:#64748b;font-size:11px;">${a.pod_name}</span>
-                ${a.challenge_count > 0 ? `<span style="color:#f59e0b;font-size:11px;margin-left:12px;">${a.challenge_count} challenge${a.challenge_count !== 1 ? "s" : ""}</span>` : ""}
+              <div style="text-align:center;padding:14px 0;border-radius:8px;border:1px solid #334155;">
+                <div style="color:#f8fafc;font-size:16px;font-weight:800;line-height:1;">$79</div>
+                <div style="color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Teams / mo</div>
               </div>
             </td>
           </tr>
         </table>
-      </td>
-    </tr>`
-    )
-    .join("");
+      </div>
 
-  const aiHighlightsRows = aiHighlights
-    .slice(0, 3)
-    .map((h) => {
-      const dotColor =
-        h.response_type === "challenge"
-          ? "#f87171"
-          : h.response_type === "risk"
-          ? "#fbbf24"
-          : h.response_type === "alternative"
-          ? "#34d399"
-          : h.response_type === "question"
-          ? "#60a5fa"
-          : "#94a3b8";
-      return `
-      <tr>
-        <td style="padding:12px 0;border-bottom:1px solid #334155;">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td style="width:18px;vertical-align:top;padding-top:4px;">
-                <span style="display:inline-block;width:8px;height:8px;background:${dotColor};border-radius:50%;"></span>
-              </td>
-              <td style="padding-left:4px;">
-                <p style="color:#94a3b8;font-size:11px;margin:0 0 4px 0;">${h.agent_name} · ${h.response_type} · ${h.confidence_score}% confidence</p>
-                <p style="color:#cbd5e1;font-size:13px;line-height:1.5;margin:0 0 4px 0;font-style:italic;">"${h.snippet.slice(0, 180)}${h.snippet.length > 180 ? "…" : ""}"</p>
-                <p style="color:#475569;font-size:11px;margin:0;">on: ${h.assumption_snippet.slice(0, 80)}${h.assumption_snippet.length > 80 ? "…" : ""} · ${h.pod_name}</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>`;
-    })
-    .join("");
+      <p style="color:#64748b;font-size:13px;margin:0 0 20px 0;">Free trial available — no card required.</p>
 
-  const podActivityRows = podChanges
-    .slice(0, 5)
-    .map(
-      (pc) => `
-    <tr>
-      <td style="padding:10px 0;border-bottom:1px solid #334155;">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td><span style="color:#e2e8f0;font-size:13px;">${pc.pod_name}</span></td>
-            <td align="right"><span style="color:#60a5fa;font-size:12px;font-weight:600;">+${pc.new_assumptions} insight${pc.new_assumptions !== 1 ? "s" : ""}</span></td>
-          </tr>
-        </table>
-      </td>
-    </tr>`
-    )
-    .join("");
+      <a href="${APP_URL}/workspaces" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Create my workspace</a>
+    </div>
+  `);
+}
 
+// Scenario A — user has an active workspace
+function buildActiveWorkspaceEmail(recipientName: string, workspaceName: string, workspaceId: string): string {
   return emailBase(`
     <div style="padding:32px;">
-      <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px 0;">Weekly Digest · ${weekLabel}</p>
-      <h1 style="color:#f8fafc;font-size:24px;font-weight:700;margin:0 0 8px 0;line-height:1.3;">Your week on Poddle</h1>
-      <p style="color:#94a3b8;font-size:14px;margin:0 0 28px 0;">Hi ${recipientName}, here's what happened in your decision rooms this week.</p>
+      <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px 0;">Weekly recap</p>
+      <h1 style="color:#f8fafc;font-size:24px;font-weight:700;margin:0 0 8px 0;line-height:1.3;">Hi ${recipientName}, your workspace is ready.</h1>
+      <p style="color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 28px 0;">Your AI panel in <strong style="color:#e2e8f0;">${workspaceName}</strong> is ready to take on your next decision. Bring a problem, a pivot, or a question you haven't been able to resolve — and let seven agents debate it from every angle.</p>
 
-      ${topInsightsRows ? `
-      <h2 style="color:#f8fafc;font-size:15px;font-weight:700;margin:0 0 4px 0;">Top insights</h2>
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
-        ${topInsightsRows}
-      </table>` : ""}
+      <div style="background:#0f172a;border-radius:12px;border:1px solid #334155;padding:20px 24px;margin-bottom:28px;">
+        <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 12px 0;">Try this week</p>
+        <p style="color:#e2e8f0;font-size:15px;font-style:italic;line-height:1.6;margin:0;">"What is the single assumption in our current plan that would hurt most if it turned out to be wrong?"</p>
+      </div>
 
-      ${aiHighlightsRows ? `
-      <h2 style="color:#f8fafc;font-size:15px;font-weight:700;margin:0 0 4px 0;">AI highlights</h2>
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
-        ${aiHighlightsRows}
-      </table>` : ""}
+      <p style="color:#64748b;font-size:13px;line-height:1.6;margin:0 0 24px 0;">Put that question to your War Room. The Skeptic, Risk Analyst, and the rest of your panel will each attack it from a different direction. You'll have a synthesis in minutes.</p>
 
-      ${podActivityRows ? `
-      <h2 style="color:#f8fafc;font-size:15px;font-weight:700;margin:0 0 4px 0;">Decision activity</h2>
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
-        ${podActivityRows}
-      </table>` : ""}
-
-      ${agentPostCounts.total > 0 ? `
-      <h2 style="color:#f8fafc;font-size:15px;font-weight:700;margin:0 0 12px 0;">AI-generated content this week</h2>
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
-        <tr>
-          <td style="padding-bottom:12px;">
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f172a;border-radius:12px;border:1px solid #334155;">
-              <tr>
-                <td style="padding:16px 20px;">
-                  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                      <td align="center" style="padding:0 8px;border-right:1px solid #334155;">
-                        <div style="color:#f8fafc;font-size:22px;font-weight:800;line-height:1;">${agentPostCounts.breakthrough_ideas}</div>
-                        <div style="color:#34d399;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Breakthrough Ideas</div>
-                      </td>
-                      <td align="center" style="padding:0 8px;border-right:1px solid #334155;">
-                        <div style="color:#f8fafc;font-size:22px;font-weight:800;line-height:1;">${agentPostCounts.opinions}</div>
-                        <div style="color:#60a5fa;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Opinions</div>
-                      </td>
-                      <td align="center" style="padding:0 8px;">
-                        <div style="color:#f8fafc;font-size:22px;font-weight:800;line-height:1;">${agentPostCounts.industry_problems}</div>
-                        <div style="color:#f59e0b;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Industry Problems</div>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:0 20px 16px 20px;">
-                  <p style="color:#64748b;font-size:12px;margin:0;text-align:center;">
-                    Our AI agents generated <strong style="color:#94a3b8;">${agentPostCounts.total} pieces of content</strong> this week to spark discussion across the platform.
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>` : ""}
-
-      <a href="${APP_URL}" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;text-decoration:none;margin-top:8px;">Open Poddle</a>
+      <a href="${APP_URL}/workspaces/${workspaceId}" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Open my workspace</a>
     </div>
   `);
 }
@@ -317,110 +222,57 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Fetch real platform-wide digest data for the past 7 days
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-    const [assumptionsRes, aiHighlightsRes, podChangesRes, agentPostsRes] = await Promise.all([
-      supabase
-        .from("pod_assumptions")
-        .select("id, content, challenge_count, pods(name)")
-        .gte("created_at", weekAgo)
-        .order("challenge_count", { ascending: false })
-        .limit(3),
-
-      supabase
-        .from("agent_responses")
-        .select("content, response_type, confidence_score, display_name, assumption_id, pod_assumptions(content, pods(name))")
-        .gte("created_at", weekAgo)
-        .gte("confidence_score", 75)
-        .order("confidence_score", { ascending: false })
-        .limit(3),
-
-      supabase.rpc("get_weekly_pod_activity"),
-
-      supabase
-        .from("posts")
-        .select("post_type")
-        .eq("is_agent_post", true)
-        .gte("created_at", weekAgo),
-    ]);
-
-    // Fallback for pod activity if RPC not available
-    let podChanges: PodChange[] = [];
-    if (podChangesRes.error || !podChangesRes.data) {
-      const { data: rawPods } = await supabase
-        .from("pod_assumptions")
-        .select("pod_id, pods(name)")
-        .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-
-      const podMap: Record<string, { name: string; count: number }> = {};
-      for (const row of rawPods || []) {
-        const pod = row.pods as unknown as { name: string } | null;
-        if (!pod || !row.pod_id) continue;
-        if (!podMap[row.pod_id]) podMap[row.pod_id] = { name: pod.name, count: 0 };
-        podMap[row.pod_id].count++;
-      }
-      podChanges = Object.entries(podMap)
-        .map(([pod_id, v]) => ({ pod_id, pod_name: v.name, new_assumptions: v.count }))
-        .sort((a, b) => b.new_assumptions - a.new_assumptions)
-        .slice(0, 5);
-    } else {
-      podChanges = podChangesRes.data;
-    }
-
-    const topAssumptions: TopAssumption[] = (assumptionsRes.data || []).map((row) => ({
-      id: row.id,
-      content: row.content,
-      challenge_count: row.challenge_count || 0,
-      pod_name: (row.pods as unknown as { name: string } | null)?.name || "Unknown Pod",
-    }));
-
-    const aiHighlights: AIHighlight[] = (aiHighlightsRes.data || []).map((row) => {
-      const assumption = row.pod_assumptions as unknown as {
-        content: string;
-        pods: { name: string } | null;
-      } | null;
-      return {
-        agent_name: row.display_name || "AI Agent",
-        response_type: row.response_type,
-        snippet: row.content,
-        confidence_score: row.confidence_score,
-        assumption_snippet: assumption?.content || "",
-        pod_name: assumption?.pods?.name || "Unknown Pod",
-      };
-    });
-
-    const agentPosts = agentPostsRes.data || [];
-    const agentPostCounts: AgentPostCounts = {
-      breakthrough_ideas: agentPosts.filter((p) => p.post_type === "breakthrough_idea").length,
-      opinions: agentPosts.filter((p) => p.post_type === "opinion").length,
-      industry_problems: agentPosts.filter((p) => p.post_type === "industry_problem").length,
-      total: agentPosts.length,
-    };
-
-    const subject = `Your Poddle weekly digest — week of ${new Date(WEEK_START).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-
-    // Fetch all real users with emails via DB function
+    // Fetch all real users with email notifications enabled
     const { data: realUsers, error: recipientsError } = await supabase.rpc("get_digest_recipients");
     if (recipientsError) {
       throw new Error(`Failed to fetch recipients: ${recipientsError.message}`);
     }
 
-    const results: { email: string; status: string; error?: string }[] = [];
+    // Fetch all workspaces (owner_id + workspace id + name) in one query
+    const { data: allWorkspaces } = await supabase
+      .from("workspaces")
+      .select("id, name, owner_id")
+      .order("created_at", { ascending: true });
+
+    // Build a map: user_id → first workspace they own
+    const workspaceByOwner: Record<string, { id: string; name: string }> = {};
+    for (const ws of allWorkspaces || []) {
+      if (!workspaceByOwner[ws.owner_id]) {
+        workspaceByOwner[ws.owner_id] = { id: ws.id, name: ws.name };
+      }
+    }
+
+    const results: { email: string; status: string; template?: string; error?: string }[] = [];
 
     for (const user of realUsers) {
       try {
-        const name =
-          user.first_name ||
-          user.full_name?.split(" ")[0] ||
-          "there";
+        const name = user.first_name || user.full_name?.split(" ")[0] || "there";
+        const workspace = workspaceByOwner[user.user_id];
 
-        const html = buildDigestHtml(name, topAssumptions, aiHighlights, podChanges, agentPostCounts);
+        let subject: string;
+        let html: string;
+        let template: string;
+
+        if (!workspace) {
+          // Scenario C: no workspace — activation email
+          subject = "You haven't tried the best part of Poddle yet";
+          html = buildNoWorkspaceEmail(name);
+          template = "no_workspace";
+        } else {
+          // Scenario A: has a workspace — weekly prompt
+          subject = `Your Poddle workspace is ready, ${name}`;
+          html = buildActiveWorkspaceEmail(name, workspace.name, workspace.id);
+          template = "active_workspace";
+        }
+
         await sendEmail(user.email, subject, html, RESEND_API_KEY);
-        results.push({ email: user.email, status: "sent" });
-        phCaptureServer("weekly_digest_sent", user.id ?? user.email, { week_start: WEEK_START });
+        results.push({ email: user.email, status: "sent", template });
+        phCaptureServer("weekly_digest_sent", user.user_id ?? user.email, {
+          template,
+          has_workspace: !!workspace,
+        });
 
-        // Small delay to avoid rate limiting
+        // Small delay to avoid Resend rate limits
         await new Promise((r) => setTimeout(r, 120));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -430,19 +282,20 @@ Deno.serve(async (req: Request) => {
     }
 
     const sent = results.filter((r) => r.status === "sent").length;
-    const skipped = results.filter((r) => r.status.startsWith("skipped")).length;
     const failed = results.filter((r) => r.status === "failed").length;
+    const noWorkspace = results.filter((r) => r.template === "no_workspace").length;
+    const activeWorkspace = results.filter((r) => r.template === "active_workspace").length;
 
-    console.log(`Weekly digest complete: ${sent} sent, ${skipped} skipped, ${failed} failed`);
+    console.log(`Weekly digest complete: ${sent} sent (${noWorkspace} activation, ${activeWorkspace} workspace recap), ${failed} failed`);
     phCaptureServer("weekly_digest_run_completed", "system", {
       sent,
-      skipped,
       failed,
-      week_start: WEEK_START,
+      no_workspace: noWorkspace,
+      active_workspace: activeWorkspace,
     });
 
     return new Response(
-      JSON.stringify({ success: true, sent, skipped, failed, results }),
+      JSON.stringify({ success: true, sent, failed, no_workspace: noWorkspace, active_workspace: activeWorkspace, results }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
