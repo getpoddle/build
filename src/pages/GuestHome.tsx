@@ -1,26 +1,54 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  Sparkles, ArrowRight,
-  Shield, CheckCircle,
-  Lock, Bot, Users, Crown, Swords, Brain,
-  BarChart2, X, CreditCard, Target, Zap, MessageSquare, LineChart,
+  Sparkles, ArrowRight, Shield, CheckCircle, Lock, Bot, Users,
+  Crown, Swords, Brain, BarChart2, X, CreditCard, Target, Zap,
+  MessageSquare, LineChart, ChevronDown,
 } from 'lucide-react';
 import JoinPromptModal from '../components/JoinPromptModal';
-import AskAgentsWidget from '../components/AskAgentsWidget';
 
 interface GuestHomeProps {
   onNavigate: (page: string) => void;
 }
 
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return { ref, visible };
+}
+
+function RevealSection({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const { ref, visible } = useScrollReveal();
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(24px)',
+        transition: `opacity 0.6s ease ${delay}ms, transform 0.6s ease ${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function GuestHome({ onNavigate }: GuestHomeProps) {
   const [joinModal, setJoinModal] = useState<{ open: boolean; trigger: string }>({ open: false, trigger: 'default' });
-
-  function openJoin(trigger: string) {
-    setJoinModal({ open: true, trigger });
-  }
+  const openJoin = (trigger: string) => setJoinModal({ open: true, trigger });
 
   return (
-    <div className="min-h-screen" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen" style={{ background: '#fafafa' }}>
       {joinModal.open && (
         <JoinPromptModal
           onClose={() => setJoinModal({ open: false, trigger: 'default' })}
@@ -30,34 +58,38 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       )}
 
       <HeroSection onNavigate={onNavigate} />
+      <LogoStrip />
+      <FeaturesSection />
+      <HowItWorksSection onNavigate={onNavigate} />
+      <AgentRosterSection onJoin={openJoin} />
+      <WarRoomSection onNavigate={onNavigate} />
+      <PricingSection onNavigate={onNavigate} />
+      <FinalCTA onNavigate={onNavigate} />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-24 space-y-20">
-        <UseCaseStrip />
-
-        <AskAgentsWidget onJoin={openJoin} />
-
-        <ProWorkspacesSection onNavigate={onNavigate} />
-
-        <HowItWorksSection onNavigate={onNavigate} />
-
-        <WarRoomSection onNavigate={onNavigate} />
-
-        <PricingSection onNavigate={onNavigate} />
-
-        <AgentRosterSection onJoin={openJoin} />
-
-        <FinalCTA onNavigate={onNavigate} />
-
-        <footer className="py-8 border-t border-slate-200">
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-400">
-            <a href="#pricing" className="hover:text-slate-600 transition-colors">Pricing</a>
-            <a href="#privacy" className="hover:text-slate-600 transition-colors">Privacy Policy</a>
-            <a href="#terms" className="hover:text-slate-600 transition-colors">Terms of Service</a>
-            <a href="#contact-us" className="hover:text-slate-600 transition-colors">Contact Us</a>
+      <footer style={{ background: '#0f172a', borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)' }}
+              >
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-white font-black text-lg">Poddle</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
+              <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+              <a href="#privacy" className="hover:text-white transition-colors">Privacy</a>
+              <a href="#terms" className="hover:text-white transition-colors">Terms</a>
+              <a href="#contact-us" className="hover:text-white transition-colors">Contact</a>
+            </div>
           </div>
-          <p className="text-center text-xs text-slate-400 mt-4">&copy; 2026 Poddle, Inc. All rights reserved.</p>
-        </footer>
-      </div>
+          <div className="mt-8 pt-8 text-center text-xs" style={{ color: 'rgba(100,116,139,0.7)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            &copy; 2026 Poddle, Inc. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -72,452 +104,382 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   ];
 
   return (
-    <div
+    <section
       className="relative overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #f0f7ff 0%, #e8f5ff 40%, #f0fdfa 100%)' }}
+      style={{
+        background: 'linear-gradient(170deg, #0f172a 0%, #1e2d4a 55%, #1e3a5f 100%)',
+        minHeight: '92vh',
+        display: 'flex',
+        alignItems: 'center',
+      }}
     >
+      {/* Background mesh */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, #2563eb, transparent 70%)' }} />
-        <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full opacity-15" style={{ background: 'radial-gradient(circle, #06b6d4, transparent 70%)' }} />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(37,99,235,0.18) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(6,182,212,0.12) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-14 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10">
+        <div className="grid lg:grid-cols-2 gap-14 items-center">
           <div>
             <div
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-5"
-              style={{ background: 'rgba(37,99,235,0.08)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.15)' }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-6"
+              style={{ background: 'rgba(37,99,235,0.15)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.25)' }}
             >
               <Brain className="w-3.5 h-3.5" />
-              Decision Intelligence for Teams
+              Decision Intelligence Platform
             </div>
 
-            <h1 className="text-4xl sm:text-5xl font-black text-slate-900 leading-tight mb-4">
-              AI agents that challenge your thinking.<br />
-              <span style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                Before the decision costs you.
+            <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-black leading-[1.08] mb-5 text-white">
+              The AI panel that<br />
+              challenges your best{' '}
+              <span style={{ background: 'linear-gradient(135deg,#60a5fa,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                thinking.
               </span>
             </h1>
 
-            <p className="text-base text-slate-600 leading-relaxed mb-6 max-w-lg">
-              Poddle gives leadership teams and product orgs a private workspace where seven specialized AI agents debate your strategy, stress-test your assumptions, and surface blind spots — so you make better calls, faster.
+            <p className="text-base leading-relaxed mb-8 max-w-lg" style={{ color: 'rgba(203,213,225,0.85)' }}>
+              Seven specialized AI agents debate your strategy, stress-test assumptions, and surface blind spots — in a private workspace your team actually controls.
             </p>
 
-            <div className="flex items-center gap-3 mb-6 flex-wrap">
+            <div className="flex items-center gap-3 mb-8 flex-wrap">
               <div className="flex -space-x-2">
                 {agentPreviews.map(a => (
                   <div
                     key={a.name}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black border-2 border-white"
-                    style={{ background: a.bg, color: a.text }}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black border-2"
+                    style={{ background: a.bg, color: a.text, borderColor: '#1e2d4a' }}
                     title={a.name}
                   >
                     {a.initial}
                   </div>
                 ))}
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold border-2 border-white"
-                  style={{ background: '#f1f5f9', color: '#64748b' }}
-                >
-                  +2
-                </div>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border-2" style={{ background: 'rgba(255,255,255,0.08)', color: '#94a3b8', borderColor: '#1e2d4a' }}>+2</div>
               </div>
-              <span className="text-xs text-slate-500 font-medium">7 specialized AI reasoning agents</span>
+              <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.9)' }}>7 specialized reasoning agents</span>
             </div>
 
-            <div
-              className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl mb-6"
-              style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.12)' }}
-            >
-              <Shield className="w-3.5 h-3.5 text-blue-600" />
-              <span className="text-xs font-semibold text-slate-600">
-                Used by <span className="text-blue-700">founders, product leads, and strategy teams</span> making high-stakes calls
-              </span>
-            </div>
-
-            <div className="flex flex-wrap gap-3 mb-6">
+            <div className="flex flex-wrap gap-3 mb-8">
               <button
                 onClick={() => onNavigate('auth')}
-                className="flex items-center gap-2 px-6 py-3.5 rounded-2xl text-white font-bold transition-all duration-200 hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 8px 24px rgba(37,99,235,0.35)' }}
+                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+                style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 8px 28px rgba(37,99,235,0.4)' }}
               >
                 <Sparkles className="w-4 h-4" />
                 Start for free
               </button>
               <button
                 onClick={() => onNavigate('pricing')}
-                className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold transition-all duration-200 hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', boxShadow: '0 8px 24px rgba(37,99,235,0.2)' }}
+                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+                style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}
               >
-                <Crown className="w-4 h-4" />
-                View Pro plans
+                View pricing
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-5 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs text-slate-500 font-medium">Free. No credit card required.</span>
+                <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+                <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Free. No card required.</span>
               </div>
-              <span className="text-slate-300 text-xs">·</span>
               <div className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs text-slate-500 font-medium">Private workspaces from $19/mo · Teams from $79/mo</span>
+                <Lock className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+                <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Private workspaces from $19/mo</span>
               </div>
             </div>
           </div>
 
+          {/* Product demo card */}
           <div className="hidden lg:block">
             <div
-              className="rounded-3xl p-5"
-              style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(16px)', border: '1px solid rgba(37,99,235,0.12)', boxShadow: '0 8px 40px rgba(37,99,235,0.08)' }}
+              className="rounded-3xl overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}
             >
-              <div className="mb-3 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                <p className="text-xs text-slate-400 font-medium">Private Workspace · Strategy Review</p>
-                <Lock className="w-3 h-3 text-slate-400 ml-auto" />
+              {/* Window chrome */}
+              <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
+                <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
+                <div className="w-3 h-3 rounded-full" style={{ background: '#f59e0b' }} />
+                <div className="w-3 h-3 rounded-full" style={{ background: '#10b981' }} />
+                <div className="flex items-center gap-2 ml-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.7)' }}>Private Workspace · Series A Prep</span>
+                </div>
+                <Lock className="w-3 h-3 ml-auto" style={{ color: 'rgba(100,116,139,0.6)' }} />
               </div>
 
-              <div className="space-y-3 mb-4">
+              <div className="p-5 space-y-3">
                 {[
-                  { agent: 'SK', bg: '#fef2f2', text: '#b91c1c', name: 'The Skeptic', msg: 'This roadmap assumes 40% market penetration in 18 months. Where is the defensible distribution moat that justifies that number?' },
-                  { agent: 'OP', bg: '#f0fdf4', text: '#15803d', name: 'The Optimist', msg: 'The network effect is undervalued here. Each enterprise customer brings 3 referrals — that is a $50M ARR path within 24 months.' },
-                  { agent: 'RA', bg: '#fff7ed', text: '#c2410c', name: 'Risk Analyst', msg: 'Key-person dependency is the #1 risk. If the CTO leaves, 60% of technical IP walks out the door.' },
-                ].map(({ agent, bg, text, name, msg }) => (
+                  { agent: 'SK', bg: '#7f1d1d', color: '#fca5a5', label: 'The Skeptic', msg: 'Your 40% market penetration assumption in 18 months has no distribution moat behind it. What is the actual acquisition engine?' },
+                  { agent: 'OP', bg: '#14532d', color: '#86efac', label: 'The Optimist', msg: 'The network effect compounds faster than modeled. Each enterprise cohort brings avg 3.2 referrals — that is $50M ARR by month 24.' },
+                  { agent: 'RA', bg: '#7c2d12', color: '#fdba74', label: 'Risk Analyst', msg: 'Key-person concentration is the #1 failure mode. CTO holds 60% of technical IP with no succession plan.' },
+                  { agent: 'DD', bg: '#1e3a5f', color: '#93c5fd', label: 'Data Detective', msg: 'Comparable Series A raises in this category averaged $8.2M at 6.1x ARR multiple. Your $12M ask requires defensible differentiation.' },
+                ].map(({ agent, bg, color, label, msg }) => (
                   <div key={agent} className="flex gap-3">
-                    <div
-                      className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 mt-0.5"
-                      style={{ background: bg, color: text }}
-                    >
+                    <div className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5" style={{ background: bg, color }}>
                       {agent}
                     </div>
-                    <div className="flex-1 rounded-xl p-3" style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.06)' }}>
-                      <p className="text-xs font-semibold mb-1 text-slate-700">{name}</p>
-                      <p className="text-xs text-slate-500 leading-relaxed">{msg}</p>
+                    <div className="flex-1 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                      <p className="text-[11px] font-bold mb-1" style={{ color }}>{label}</p>
+                      <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.75)' }}>{msg}</p>
                     </div>
                   </div>
                 ))}
-              </div>
 
-              <div className="p-3 rounded-xl" style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.06),rgba(6,182,212,0.06))', border: '1px solid rgba(37,99,235,0.12)' }}>
-                <p className="text-xs text-blue-700 font-semibold mb-1">AI Synthesis</p>
-                <p className="text-xs text-slate-600 leading-relaxed">Consensus: Strong idea with a distribution gap. Lock CTO with a cliff, validate GTM via a pilot, then raise Series A.</p>
+                <div className="rounded-xl p-3.5 mt-1" style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.2),rgba(6,182,212,0.15))', border: '1px solid rgba(37,99,235,0.3)' }}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-4 h-4 rounded-md flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.3)' }}>
+                      <Brain className="w-2.5 h-2.5" style={{ color: '#93c5fd' }} />
+                    </div>
+                    <span className="text-[11px] font-bold" style={{ color: '#93c5fd' }}>AI Synthesis</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.85)' }}>
+                    <strong style={{ color: '#e2e8f0' }}>Consensus:</strong> Strong product, thin distribution story. Lock CTO equity, validate GTM via 3-customer pilot, then raise with real retention data.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="flex justify-center mt-16">
+          <a href="#features" className="flex flex-col items-center gap-2 group" style={{ color: 'rgba(100,116,139,0.6)' }}>
+            <span className="text-xs font-medium group-hover:text-slate-400 transition-colors">Explore features</span>
+            <ChevronDown className="w-5 h-5 group-hover:text-slate-400 transition-colors animate-bounce" />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LogoStrip() {
+  const items = [
+    { label: 'Founders' }, { label: 'Product Teams' }, { label: 'Strategy Leaders' },
+    { label: 'Startup Operators' }, { label: 'Board Advisors' }, { label: 'VCs' },
+  ];
+  return (
+    <div style={{ background: '#fff', borderBottom: '1px solid rgba(15,23,42,0.06)' }} className="py-5">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <p className="text-center text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Trusted by decision-makers at</p>
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          {items.map(item => (
+            <span key={item.label} className="text-sm font-bold text-slate-400">{item.label}</span>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function UseCaseStrip() {
-  const useCases = [
-    { icon: Target,       label: 'Product strategy',       desc: 'Debate roadmap priorities before committing' },
-    { icon: LineChart,    label: 'Go-to-market decisions',  desc: 'Stress-test pricing, positioning, and timing' },
-    { icon: CreditCard,   label: 'Fundraising prep',        desc: 'Red-team your pitch deck before investors do' },
-    { icon: MessageSquare,label: 'Board reporting',         desc: 'Surface the questions your board will ask first' },
-    { icon: Swords,       label: 'Crisis response',         desc: 'War Room for high-stakes, time-pressured decisions' },
-    { icon: Zap,          label: 'Hiring decisions',        desc: 'Pressure-test candidates and org design choices' },
+function FeaturesSection() {
+  const features = [
+    { icon: Lock,         color: '#2563eb', bg: '#eff6ff', title: 'Private & encrypted',       desc: 'Your workspace is invisible to the public. Every decision, assumption, and synthesis stays inside your org.' },
+    { icon: Bot,          color: '#0891b2', bg: '#ecfeff', title: '7 specialized AI agents',   desc: 'The Skeptic, Risk Analyst, Optimist, Data Detective, and three more — each with a distinct analytical lens.' },
+    { icon: Brain,        color: '#7c3aed', bg: '#f5f3ff', title: 'AI synthesis',               desc: 'After the debate, AI synthesizes dissenting views into a clear recommendation with next steps.' },
+    { icon: Swords,       color: '#dc2626', bg: '#fef2f2', title: 'War Room',                   desc: 'Run a structured red-team session before critical decisions: pivots, hires, fundraises, market entries.' },
+    { icon: Users,        color: '#16a34a', bg: '#f0fdf4', title: 'Team collaboration',         desc: 'Invite up to 10 team members. Everyone contributes context; AI agents respond to the full picture.' },
+    { icon: BarChart2,    color: '#ea580c', bg: '#fff7ed', title: 'Scenario modeling',          desc: 'Agents generate best/base/worst-case trees with probability weights and decision paths.' },
   ];
 
   return (
-    <div>
-      <div className="text-center mb-8">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Built for decisions that matter</p>
-        <h2 className="text-2xl font-black text-slate-900">Where teams use Poddle</h2>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {useCases.map(({ icon: Icon, label, desc }) => (
-          <div
-            key={label}
-            className="p-4 rounded-2xl text-center"
-            style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.06)' }}
-          >
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2.5"
-              style={{ background: 'rgba(37,99,235,0.07)' }}
-            >
-              <Icon className="w-4 h-4 text-blue-600" />
-            </div>
-            <p className="text-xs font-bold text-slate-800 leading-tight mb-1">{label}</p>
-            <p className="text-xs text-slate-400 leading-snug hidden sm:block">{desc}</p>
+    <section id="features" style={{ background: '#fafafa', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(37,99,235,0.07)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.12)' }}>
+            Platform capabilities
           </div>
-        ))}
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">
+            Everything your team needs<br />to decide with confidence
+          </h2>
+          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
+            Poddle replaces gut-feel decision-making with structured AI debate — in a workspace only your team can see.
+          </p>
+        </RevealSection>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {features.map(({ icon: Icon, color, bg, title, desc }, i) => (
+            <RevealSection key={title} delay={i * 60}>
+              <div
+                className="h-full p-6 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: bg }}>
+                  <Icon className="w-5 h-5" style={{ color }} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 mb-2">{title}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
+              </div>
+            </RevealSection>
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
 function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   const steps = [
-    {
-      number: '01',
-      title: 'Create a private workspace',
-      desc: 'Invite your team. Everything inside is encrypted and never visible to the public. Your strategy stays yours.',
-    },
-    {
-      number: '02',
-      title: 'Ask AI agents to weigh in',
-      desc: 'Seven specialized agents debate your question simultaneously — from The Skeptic to The Optimist — each from a distinct analytical lens.',
-    },
-    {
-      number: '03',
-      title: 'Surface blind spots',
-      desc: 'Agents challenge assumptions, flag key-person risks, question market sizing, and point out what you might have missed.',
-    },
-    {
-      number: '04',
-      title: 'Resolve with clarity',
-      desc: 'AI synthesizes the debate into a clear recommendation with dissenting views. You decide with the full picture, not just a gut feel.',
-    },
+    { number: '01', icon: Lock,     title: 'Create a private workspace',   desc: 'Invite your team. Everything inside is encrypted and never visible to the public. Your strategy stays yours.' },
+    { number: '02', icon: Bot,      title: 'Ask AI agents to weigh in',    desc: 'Seven specialized agents debate your question simultaneously — from The Skeptic to The Optimist — each from a distinct lens.' },
+    { number: '03', icon: Swords,   title: 'Surface blind spots',          desc: 'Agents challenge assumptions, flag key-person risks, question market sizing, and point out what you\'ve missed.' },
+    { number: '04', icon: CheckCircle, title: 'Decide with clarity',       desc: 'AI synthesizes the debate into a clear recommendation with dissenting views. You decide with the full picture.' },
   ];
 
   return (
-    <div id="how-it-works">
-      <div className="mb-6">
-        <h2 className="text-lg font-black text-slate-900">How it works</h2>
-        <p className="text-xs text-slate-500 mt-0.5">From question to confident decision in four steps</p>
-      </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {steps.map((step, i) => (
-          <div
-            key={step.number}
-            className="p-5 rounded-2xl relative"
-            style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.06)' }}
-          >
-            <div
-              className="text-2xl font-black mb-3"
-              style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
-            >
-              {step.number}
-            </div>
-            <h3 className="text-sm font-bold text-slate-900 mb-2">{step.title}</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">{step.desc}</p>
-            {i < steps.length - 1 && (
-              <div className="hidden lg:block absolute -right-2 top-1/2 -translate-y-1/2 z-10">
-                <ArrowRight className="w-4 h-4 text-slate-300" />
-              </div>
-            )}
+    <section style={{ background: '#fff', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection className="mb-14">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(15,23,42,0.05)', color: '#334155', border: '1px solid rgba(15,23,42,0.08)' }}>
+            How it works
           </div>
-        ))}
-      </div>
-      <div className="mt-6 text-center">
-        <button
-          onClick={() => onNavigate('auth')}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
-          style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
-        >
-          <Sparkles className="w-4 h-4" />
-          Try it free — no card needed
-        </button>
-      </div>
-    </div>
-  );
-}
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">From question to decision in four steps</h2>
+          <p className="text-base text-slate-500 max-w-md leading-relaxed">No setup complexity. Open a workspace, ask a question, and your AI panel responds within seconds.</p>
+        </RevealSection>
 
-function ProWorkspacesSection({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const features = [
-    {
-      icon: Lock,
-      title: 'End-to-end encrypted',
-      desc: 'Your workspace and everything inside it is private. Not searchable, not discoverable. Your IP stays yours.',
-    },
-    {
-      icon: Bot,
-      title: 'AI agents on demand',
-      desc: '7 specialized reasoning agents are at your disposal — challenging your ideas, surfacing blind spots, and pressure-testing logic from every angle.',
-    },
-    {
-      icon: Users,
-      title: 'Invite your team',
-      desc: 'Pro Individual supports up to 5 members. Poddle Team supports 10. Full AI agent support is built in at every tier.',
-    },
-    {
-      icon: Brain,
-      title: 'AI synthesis',
-      desc: 'Agents synthesize all workspace activity into key insights, areas of agreement, open questions, and recommended next steps.',
-    },
-  ];
-
-  return (
-    <div id="workspaces">
-      <div className="mb-8">
-        <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
-          style={{ background: 'rgba(30,58,95,0.07)', color: '#1e3a5f', border: '1px solid rgba(30,58,95,0.12)' }}
-        >
-          <Crown className="w-3.5 h-3.5" />
-          Pro, Team &amp; Enterprise
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 mb-2">Private workspaces for serious teams</h2>
-        <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
-          Founders and product teams use Poddle workspaces to debate strategy, challenge assumptions, and make better decisions — without exposing proprietary thinking to the public.
-        </p>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-6 items-start">
-        <div className="grid sm:grid-cols-2 gap-4">
-          {features.map(({ icon: Icon, title, desc }) => (
-            <div
-              key={title}
-              className="p-5 rounded-2xl"
-              style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)' }}
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-                style={{ background: 'linear-gradient(135deg,rgba(30,58,95,0.08),rgba(37,99,235,0.08))' }}
-              >
-                <Icon className="w-4.5 h-4.5" style={{ width: '1.125rem', height: '1.125rem', color: '#2563eb' }} />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px rounded-2xl overflow-hidden" style={{ background: 'rgba(15,23,42,0.06)' }}>
+          {steps.map(({ number, icon: Icon, title, desc }, i) => (
+            <RevealSection key={number} delay={i * 80} className="h-full">
+              <div className="h-full p-7 bg-white">
+                <div
+                  className="text-xs font-black mb-5 inline-flex items-center justify-center w-8 h-8 rounded-xl"
+                  style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', color: '#fff' }}
+                >
+                  {number}
+                </div>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(37,99,235,0.07)' }}>
+                  <Icon className="w-4.5 h-4.5 text-blue-600" style={{ width: '1.125rem', height: '1.125rem' }} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 mb-2">{title}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
               </div>
-              <h3 className="text-sm font-bold text-slate-900 mb-1.5">{title}</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
-            </div>
+            </RevealSection>
           ))}
         </div>
 
-        <div
-          className="rounded-3xl overflow-hidden"
-          style={{ background: 'linear-gradient(160deg,#1e3a5f,#0f2040)', boxShadow: '0 16px 48px rgba(15,23,42,0.2)' }}
-        >
-          <div className="p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-xs text-slate-400 font-medium">Private Workspace · Encrypted</span>
-              <Lock className="w-3 h-3 text-slate-500 ml-auto" />
-            </div>
+        <RevealSection className="mt-10 text-center" delay={200}>
+          <button
+            onClick={() => onNavigate('auth')}
+            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 6px 20px rgba(37,99,235,0.3)' }}
+          >
+            <Sparkles className="w-4 h-4" />
+            Try it free — no card needed
+          </button>
+        </RevealSection>
+      </div>
+    </section>
+  );
+}
 
-            <div className="space-y-3 mb-5">
-              {[
-                { agent: 'SK', bg: '#7f1d1d', label: 'The Skeptic', color: '#fca5a5', msg: "This roadmap assumes 40% market penetration in 18 months. That's aggressive without a distribution moat." },
-                { agent: 'OP', bg: '#14532d', label: 'The Optimist', color: '#86efac', msg: 'The network effect is undervalued. LTV models suggest a $50M ARR path within 24 months.' },
-                { agent: 'RA', bg: '#7c2d12', label: 'Risk Analyst', color: '#fdba74', msg: "Key-person dependency is the #1 risk. If the CTO leaves, 60% of technical IP walks out." },
-              ].map(({ agent, bg, label, color, msg }) => (
-                <div key={agent} className="flex gap-3">
-                  <div
-                    className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 mt-0.5"
-                    style={{ background: bg, color }}
-                  >
-                    {agent}
-                  </div>
-                  <div className="flex-1 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <p className="text-xs font-semibold mb-1" style={{ color }}>{label}</p>
-                    <p className="text-xs text-slate-300 leading-relaxed">{msg}</p>
-                  </div>
+function AgentRosterSection({ onJoin }: { onJoin: (t: string) => void }) {
+  const agents = [
+    { name: 'The Skeptic',     role: 'Finds the fatal flaw',       initial: 'SK', bg: '#fef2f2', text: '#b91c1c' },
+    { name: 'Risk Analyst',    role: 'Quantifies downside risk',    initial: 'RA', bg: '#fff7ed', text: '#c2410c' },
+    { name: 'The Optimist',    role: 'Spots hidden upside',         initial: 'OP', bg: '#f0fdf4', text: '#15803d' },
+    { name: 'Data Detective',  role: 'Grounds claims in evidence',  initial: 'DD', bg: '#eff6ff', text: '#1d4ed8' },
+    { name: 'Market Analyst',  role: 'Maps competitive dynamics',   initial: 'MA', bg: '#f0fdfa', text: '#0f766e' },
+    { name: 'Systems Thinker', role: 'Traces feedback loops',       initial: 'ST', bg: '#faf5ff', text: '#7c3aed' },
+    { name: 'The Pragmatist',  role: 'What actually ships',         initial: 'PR', bg: '#f8fafc', text: '#475569' },
+  ];
+
+  return (
+    <section style={{ background: 'linear-gradient(170deg,#0f172a,#1e2d4a)', borderBottom: '1px solid rgba(255,255,255,0.06)' }} className="py-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection className="mb-12">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(37,99,235,0.18)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.25)' }}>
+            The Reasoning Panel
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">7 agents. Every angle.</h2>
+          <p className="text-base max-w-xl leading-relaxed" style={{ color: 'rgba(148,163,184,0.85)' }}>
+            No echo chambers. Each agent is built to challenge your thinking from a fundamentally different analytical lens — simultaneously, in every session.
+          </p>
+        </RevealSection>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {agents.map((agent, i) => (
+            <RevealSection key={agent.name} delay={i * 50}>
+              <button
+                onClick={() => onJoin('ai')}
+                className="w-full flex flex-col items-center gap-2.5 p-4 rounded-2xl text-center transition-all duration-200 hover:-translate-y-1 group"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-xs font-black transition-transform duration-200 group-hover:scale-110" style={{ background: agent.bg, color: agent.text }}>
+                  {agent.initial}
                 </div>
-              ))}
-            </div>
-
-            <div className="p-3 rounded-xl" style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.25)' }}>
-              <p className="text-xs text-blue-200 font-medium mb-1">AI Synthesis</p>
-              <p className="text-xs text-slate-300 leading-relaxed">Consensus: Strong idea, but distribution and team risk need addressing before Series A. Lock CTO with a vesting cliff and validate via pilot first.</p>
-            </div>
-          </div>
-
-          <div className="px-6 pb-6">
-            <button
-              onClick={() => onNavigate('pricing')}
-              className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
-              style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}
-            >
-              <Crown className="w-4 h-4" />
-              Get private workspace access
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+                <div>
+                  <p className="text-xs font-bold text-white leading-tight">{agent.name}</p>
+                  <p className="text-[11px] mt-0.5 leading-tight" style={{ color: 'rgba(148,163,184,0.7)' }}>{agent.role}</p>
+                </div>
+              </button>
+            </RevealSection>
+          ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
 function WarRoomSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <div>
-      <div className="mb-8">
-        <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
-          style={{ background: 'rgba(220,38,38,0.07)', color: '#b91c1c', border: '1px solid rgba(220,38,38,0.12)' }}
-        >
-          <Swords className="w-3.5 h-3.5" />
-          War Room
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 mb-2">The War Room: high-stakes decision intelligence</h2>
-        <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
-          Before a critical decision — a pivot, a major hire, a market entry — run it through the War Room. Every agent attacks the decision from a different angle. No blind spots.
-        </p>
-      </div>
+    <section style={{ background: '#fff', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection className="mb-12">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(220,38,38,0.07)', color: '#b91c1c', border: '1px solid rgba(220,38,38,0.12)' }}>
+            <Swords className="w-3.5 h-3.5" />
+            War Room
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">Red-team every high-stakes decision</h2>
+          <p className="text-base text-slate-500 max-w-xl leading-relaxed">
+            Before a pivot, a major hire, a fundraise, or a market entry — run it through the War Room. No blind spots. No groupthink.
+          </p>
+        </RevealSection>
 
-      <div className="grid lg:grid-cols-3 gap-5">
-        {[
-          {
-            icon: Swords,
-            color: '#dc2626',
-            bg: '#fef2f2',
-            border: 'rgba(220,38,38,0.12)',
-            title: 'Red team your decisions',
-            desc: 'AI agents actively try to find the fatal flaw in your plan. The Skeptic, Risk Analyst, and Market Analyst challenge every assumption simultaneously.',
-          },
-          {
-            icon: BarChart2,
-            color: '#0369a1',
-            bg: '#f0f9ff',
-            border: 'rgba(3,105,161,0.12)',
-            title: 'Scenario intelligence',
-            desc: 'Model best-case, base-case, and worst-case outcomes. Agents generate scenario trees with probability weights and decision paths.',
-          },
-          {
-            icon: Brain,
-            color: '#15803d',
-            bg: '#f0fdf4',
-            border: 'rgba(21,128,61,0.12)',
-            title: 'Consensus synthesis',
-            desc: "When agents disagree, AI synthesizes the debate into a clear recommendation with dissenting views noted. You see the full reasoning, not just a conclusion.",
-          },
-        ].map(({ icon: Icon, color, bg, border, title, desc }) => (
+        <div className="grid lg:grid-cols-3 gap-5 mb-8">
+          {[
+            { icon: Swords,    color: '#dc2626', bg: '#fef2f2', title: 'Red team your decisions',    desc: 'AI agents actively try to find the fatal flaw in your plan. The Skeptic, Risk Analyst, and Market Analyst challenge every assumption simultaneously.' },
+            { icon: BarChart2, color: '#0369a1', bg: '#f0f9ff', title: 'Scenario intelligence',      desc: 'Model best-case, base-case, and worst-case outcomes. Agents generate scenario trees with probability weights and decision paths.' },
+            { icon: Brain,     color: '#15803d', bg: '#f0fdf4', title: 'Consensus synthesis',        desc: 'When agents disagree, AI synthesizes the debate into a clear recommendation with dissenting views noted. You see the full reasoning.' },
+          ].map(({ icon: Icon, color, bg, title, desc }, i) => (
+            <RevealSection key={title} delay={i * 80}>
+              <div
+                className="h-full p-7 rounded-2xl transition-all duration-200 hover:shadow-md"
+                style={{ background: '#fafafa', border: '1px solid rgba(15,23,42,0.07)' }}
+              >
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: bg }}>
+                  <Icon className="w-5 h-5" style={{ color }} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 mb-2">{title}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
+              </div>
+            </RevealSection>
+          ))}
+        </div>
+
+        <RevealSection delay={200}>
           <div
-            key={title}
-            className="p-6 rounded-2xl"
-            style={{ background: '#fff', border: `1px solid ${border}` }}
+            className="rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5"
+            style={{ background: 'linear-gradient(135deg,#fef2f2,#fff7ed)', border: '1px solid rgba(220,38,38,0.1)' }}
           >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-              style={{ background: bg }}
-            >
-              <Icon className="w-5 h-5" style={{ color }} />
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)' }}>
+              <Swords className="w-5 h-5 text-white" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900 mb-2">{title}</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+            <div className="flex-1">
+              <p className="text-sm font-black text-slate-900">Included in every paid plan</p>
+              <p className="text-xs text-slate-500 mt-0.5">War Room access is built into Pro Individual, Poddle Team, and Enterprise. No add-ons needed.</p>
+            </div>
+            <button
+              onClick={() => onNavigate('pricing')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all hover:-translate-y-0.5 flex-shrink-0 text-white"
+              style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', boxShadow: '0 4px 14px rgba(220,38,38,0.25)' }}
+            >
+              Unlock War Room <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-        ))}
+        </RevealSection>
       </div>
-
-      <div
-        className="mt-6 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5"
-        style={{ background: 'linear-gradient(135deg,#fef2f2,#fff7ed)', border: '1px solid rgba(220,38,38,0.12)' }}
-      >
-        <div className="flex items-center gap-3 flex-1">
-          <div
-            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)' }}
-          >
-            <Swords className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <p className="text-sm font-black text-slate-900">Available on Pro Individual, Poddle Team &amp; Enterprise</p>
-            <p className="text-xs text-slate-500 mt-0.5">War Room access is included in every paid workspace. No add-ons needed.</p>
-          </div>
-        </div>
-        <button
-          onClick={() => onNavigate('pricing')}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all hover:-translate-y-0.5 flex-shrink-0 text-white"
-          style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', boxShadow: '0 4px 14px rgba(220,38,38,0.3)' }}
-        >
-          Unlock War Room
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </div>
+    </section>
   );
 }
 
@@ -530,19 +492,10 @@ function PricingSection({ onNavigate }: { onNavigate: (p: string) => void }) {
       desc: 'For individuals exploring AI-assisted thinking',
       cta: 'Get started free',
       ctaAction: () => onNavigate('auth'),
-      style: 'light' as const,
+      highlight: false,
       badge: null,
-      features: [
-        'AI Agent feed and public discussions',
-        'Post insights and get AI challenges',
-        'Ask agents questions',
-        'Community collaboration',
-      ],
-      missing: [
-        'No private workspaces',
-        'No War Room access',
-        'No team collaboration',
-      ],
+      features: ['AI agent ask & public discussions', 'Post insights, get AI challenges', 'Ask agents questions'],
+      missing: ['No private workspaces', 'No War Room', 'No team collaboration'],
     },
     {
       name: 'Pro Individual',
@@ -551,317 +504,195 @@ function PricingSection({ onNavigate }: { onNavigate: (p: string) => void }) {
       desc: 'For founders and decision-makers',
       cta: 'Subscribe',
       ctaAction: () => onNavigate('pricing'),
-      style: 'dark' as const,
+      highlight: true,
       badge: 'Most popular',
-      features: [
-        'Everything in Free',
-        'Private encrypted workspace',
-        'War Room decision intelligence',
-        'AI agents debate your ideas',
-        'Up to 5 workspace members',
-        'AI synthesis &amp; recommendations',
-        'Export decisions and reports',
-      ],
+      features: ['Everything in Free', 'Private encrypted workspace', 'War Room access', 'AI agents debate your ideas', 'Up to 5 workspace members', 'AI synthesis & recommendations', 'Export decisions & reports'],
       missing: [],
     },
     {
       name: 'Poddle Team',
       price: '$79',
       per: '/ month',
-      desc: 'For startups, agencies &amp; product teams',
+      desc: 'For startups, agencies & product teams',
       cta: 'Subscribe',
       ctaAction: () => onNavigate('pricing'),
-      style: 'accent' as const,
-      badge: 'For teams',
-      features: [
-        'Everything in Pro Individual',
-        'Up to 10 workspace members',
-        'Collaborative War Room sessions',
-        'Team-wide AI synthesis',
-        'Priority support',
-      ],
+      highlight: false,
+      badge: 'Teams',
+      features: ['Everything in Pro Individual', 'Up to 10 workspace members', 'Collaborative War Room sessions', 'Team-wide AI synthesis', 'Priority support'],
       missing: [],
     },
     {
       name: 'Enterprise',
-      price: 'Contact sales',
+      price: 'Custom',
       per: '',
-      desc: 'For large teams &amp; organizations',
+      desc: 'For large teams & organizations',
       cta: 'Contact sales',
       ctaAction: () => onNavigate('contact-us'),
-      style: 'light' as const,
+      highlight: false,
       badge: null,
-      features: [
-        'Everything in Poddle Team',
-        'Unlimited workspace members',
-        'Custom AI agent personas',
-        'Dedicated account manager',
-        'SLA guarantee',
-      ],
+      features: ['Everything in Poddle Team', 'Unlimited workspace members', 'Custom AI agent personas', 'Dedicated account manager', 'SLA guarantee'],
       missing: [],
     },
   ];
 
   return (
-    <div id="pricing-preview">
-      <div className="text-center mb-10">
-        <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
-          style={{ background: 'rgba(37,99,235,0.08)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.15)' }}
-        >
-          <CreditCard className="w-3.5 h-3.5" />
-          Simple, transparent pricing
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 mb-2">Start free. Upgrade when you're ready.</h2>
-        <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-          The free tier is genuinely useful. Upgrade for private workspaces, War Room access, and team collaboration.
-        </p>
-      </div>
+    <section id="pricing-preview" style={{ background: '#fafafa', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(37,99,235,0.07)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.12)' }}>
+            <CreditCard className="w-3.5 h-3.5" />
+            Simple, transparent pricing
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">Start free. Scale when you're ready.</h2>
+          <p className="text-base text-slate-500 max-w-md mx-auto leading-relaxed">
+            The free tier is genuinely useful. Upgrade for private workspaces, War Room, and team collaboration.
+          </p>
+        </RevealSection>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {tiers.map(tier => (
-          <div
-            key={tier.name}
-            className="rounded-2xl p-5 flex flex-col relative overflow-hidden"
-            style={
-              tier.style === 'dark'
-                ? { background: 'linear-gradient(160deg,#1e3a5f,#0f2040)', boxShadow: '0 8px 32px rgba(37,99,235,0.25)' }
-                : tier.style === 'accent'
-                ? { background: '#fff', border: '2px solid rgba(37,99,235,0.2)', boxShadow: '0 4px 16px rgba(37,99,235,0.1)' }
-                : { background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }
-            }
-          >
-            {tier.badge && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {tiers.map((tier, i) => (
+            <RevealSection key={tier.name} delay={i * 60}>
               <div
-                className="absolute top-3 right-3 text-xs font-bold px-2 py-0.5 rounded-full"
+                className="h-full rounded-2xl p-6 flex flex-col relative overflow-hidden"
                 style={
-                  tier.style === 'dark'
-                    ? { background: 'rgba(255,255,255,0.15)', color: '#fff' }
-                    : { background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }
+                  tier.highlight
+                    ? { background: 'linear-gradient(160deg,#1e3a5f,#0f2040)', boxShadow: '0 12px 40px rgba(37,99,235,0.3)' }
+                    : { background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }
                 }
               >
-                {tier.badge}
-              </div>
-            )}
-            <div className="mb-4">
-              <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${tier.style === 'dark' ? 'text-blue-300' : tier.style === 'accent' ? 'text-blue-600' : 'text-slate-400'}`}>
-                {tier.name}
-              </p>
-              <div className="flex items-end gap-1 mb-1">
-                {tier.per ? (
-                  <>
-                    <span className={`text-3xl font-black ${tier.style === 'dark' ? 'text-white' : 'text-slate-900'}`}>{tier.price}</span>
-                    <span className={`text-xs mb-1.5 ${tier.style === 'dark' ? 'text-blue-300' : 'text-slate-400'}`}>{tier.per}</span>
-                  </>
-                ) : (
-                  <span className={`text-lg font-black leading-tight pt-1 ${tier.style === 'dark' ? 'text-white' : 'text-slate-900'}`}>{tier.price}</span>
+                {tier.badge && (
+                  <div
+                    className="absolute top-4 right-4 text-[10px] font-black px-2.5 py-1 rounded-full"
+                    style={tier.highlight ? { background: 'rgba(255,255,255,0.15)', color: '#fff' } : { background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}
+                  >
+                    {tier.badge}
+                  </div>
                 )}
+
+                <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${tier.highlight ? 'text-blue-300' : 'text-slate-400'}`}>
+                  {tier.name}
+                </p>
+                <div className="flex items-end gap-1 mb-1.5">
+                  <span className={`text-3xl font-black ${tier.highlight ? 'text-white' : 'text-slate-900'}`}>{tier.price}</span>
+                  {tier.per && <span className={`text-xs mb-1.5 ${tier.highlight ? 'text-blue-300' : 'text-slate-400'}`}>{tier.per}</span>}
+                </div>
+                <p className={`text-xs mb-5 ${tier.highlight ? 'text-slate-400' : 'text-slate-500'}`}>{tier.desc}</p>
+
+                <ul className="space-y-2 flex-1 mb-4">
+                  {tier.features.map(f => (
+                    <li key={f} className={`flex items-start gap-2 text-xs ${tier.highlight ? 'text-slate-200' : 'text-slate-700'}`}>
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: tier.highlight ? '#34d399' : '#16a34a' }} />
+                      {f}
+                    </li>
+                  ))}
+                  {tier.missing.map(m => (
+                    <li key={m} className="flex items-start gap-2 text-xs text-slate-400">
+                      <X className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-slate-300" />
+                      {m}
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={tier.ctaAction}
+                  className="w-full py-2.5 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 mt-auto"
+                  style={
+                    tier.highlight
+                      ? { background: 'rgba(255,255,255,1)', color: '#1e2d4a', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }
+                      : tier.name === 'Free'
+                      ? { border: '1px solid rgba(15,23,42,0.12)', color: '#334155', background: '#fff' }
+                      : { background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', boxShadow: '0 4px 14px rgba(37,99,235,0.25)' }
+                  }
+                >
+                  {tier.cta}
+                </button>
               </div>
-              <p className={`text-xs ${tier.style === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} dangerouslySetInnerHTML={{ __html: tier.desc }} />
-            </div>
+            </RevealSection>
+          ))}
+        </div>
 
-            <ul className="space-y-2 flex-1 mb-3">
-              {tier.features.map(f => (
-                <li key={f} className={`flex items-start gap-2 text-xs ${tier.style === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>
-                  <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: tier.style === 'dark' ? '#34d399' : '#16a34a' }} />
-                  <span dangerouslySetInnerHTML={{ __html: f }} />
-                </li>
-              ))}
-            </ul>
-
-            {tier.missing.length > 0 && (
-              <ul className="space-y-1.5 mb-4">
-                {tier.missing.map(m => (
-                  <li key={m} className="flex items-start gap-2 text-xs text-slate-400">
-                    <X className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-slate-300" />
-                    {m}
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <button
-              onClick={tier.ctaAction}
-              className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 mt-auto ${
-                tier.style === 'dark'
-                  ? 'bg-white text-slate-900 hover:bg-slate-50'
-                  : tier.name === 'Enterprise' || tier.style === 'accent'
-                  ? 'text-white'
-                  : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-              style={
-                tier.name === 'Enterprise' || tier.style === 'accent'
-                  ? { background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }
-                  : tier.style === 'dark'
-                  ? { boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }
-                  : {}
-              }
-            >
-              {tier.cta}
+        <RevealSection className="text-center mt-6" delay={300}>
+          <p className="text-xs text-slate-400">
+            No credit card required for free plan. Cancel paid plans anytime.{' '}
+            <button onClick={() => onNavigate('pricing')} className="text-blue-500 hover:text-blue-600 underline underline-offset-2 transition-colors ml-1">
+              View full feature comparison
             </button>
-          </div>
-        ))}
+          </p>
+        </RevealSection>
       </div>
-
-      <p className="text-center text-xs text-slate-400">
-        No credit card required for free plan. Cancel paid plans anytime.
-        <button onClick={() => onNavigate('pricing')} className="ml-2 text-blue-500 hover:text-blue-600 underline underline-offset-2 transition-colors">
-          View full feature comparison
-        </button>
-      </p>
-    </div>
-  );
-}
-
-const AGENT_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  'The Skeptic':     { bg: '#fef2f2', text: '#b91c1c', label: 'Skeptic'    },
-  'Risk Analyst':    { bg: '#fff7ed', text: '#c2410c', label: 'Risk'       },
-  'The Optimist':    { bg: '#f0fdf4', text: '#15803d', label: 'Optimist'   },
-  'Data Detective':  { bg: '#eff6ff', text: '#1d4ed8', label: 'Data'       },
-  'Market Analyst':  { bg: '#f0fdfa', text: '#0f766e', label: 'Market'     },
-  'Systems Thinker': { bg: '#f8fafc', text: '#475569', label: 'Systems'    },
-  'The Pragmatist':  { bg: '#f9fafb', text: '#374151', label: 'Pragmatist' },
-};
-
-function AgentRosterSection({ onJoin }: { onJoin: (t: string) => void }) {
-  const agents = [
-    { name: 'The Skeptic',     role: 'Finds the fatal flaw',       initial: 'SK' },
-    { name: 'Risk Analyst',    role: 'Quantifies downside risk',    initial: 'RA' },
-    { name: 'The Optimist',    role: 'Spots hidden upside',         initial: 'OP' },
-    { name: 'Data Detective',  role: 'Grounds claims in evidence',  initial: 'DD' },
-    { name: 'Market Analyst',  role: 'Maps competitive dynamics',   initial: 'MA' },
-    { name: 'Systems Thinker', role: 'Traces feedback loops',       initial: 'ST' },
-    { name: 'The Pragmatist',  role: 'What actually ships',         initial: 'PR' },
-  ];
-
-  return (
-    <div>
-      <div className="mb-5">
-        <h2 className="text-lg font-black text-slate-900">The Reasoning Panel</h2>
-        <p className="text-xs text-slate-500 mt-0.5">7 specialized agents, each challenging your thinking from a distinct analytical lens — in every workspace and War Room session</p>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        {agents.map(agent => {
-          const style = AGENT_COLORS[agent.name] ?? { bg: '#f8fafc', text: '#475569', label: 'AG' };
-          return (
-            <button
-              key={agent.name}
-              onClick={() => onJoin('ai')}
-              className="flex flex-col items-center gap-2 p-4 rounded-2xl text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm"
-              style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.06)' }}
-            >
-              <div
-                className="w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black"
-                style={{ background: style.bg, color: style.text }}
-              >
-                {agent.initial}
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-800 leading-tight">{agent.name}</p>
-                <p className="text-xs text-slate-400 mt-0.5 leading-tight">{agent.role}</p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    </section>
   );
 }
 
 function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const perks = [
-    { icon: Lock,         text: 'Private encrypted workspace — your IP stays yours' },
-    { icon: Bot,          text: 'AI agents pressure-test every decision before you make it' },
-    { icon: Swords,       text: 'War Room: red team critical decisions as a team' },
-    { icon: Users,        text: 'Invite up to 10 collaborators on Team plan' },
-  ];
-
   return (
-    <div
-      className="rounded-3xl overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0f2040 50%, #0c1e38 100%)' }}
-    >
-      <div className="px-8 py-10 sm:py-14 text-center">
-        <div
-          className="w-14 h-14 mx-auto mb-5 rounded-2xl flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(10px)' }}
-        >
-          <Sparkles className="w-7 h-7 text-white" />
-        </div>
-        <h2 className="text-2xl sm:text-3xl font-black text-white mb-3">
-          Make better decisions. Starting today.
-        </h2>
-        <p className="text-slate-300 text-sm sm:text-base mb-8 max-w-md mx-auto leading-relaxed">
-          Start free and explore AI-assisted thinking. Upgrade to Pro for private workspaces, War Room access, and full team collaboration.
-        </p>
+    <section style={{ background: 'linear-gradient(170deg,#0f172a 0%,#1e3a5f 100%)' }} className="py-24">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <RevealSection>
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
+            Make better decisions.<br />Starting today.
+          </h2>
+          <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: 'rgba(203,213,225,0.8)' }}>
+            Start free. Upgrade for private workspaces, War Room access, and full team collaboration — from $19/mo.
+          </p>
 
-        <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto mb-8">
-          {perks.map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-start gap-2 text-left">
-              <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#34d399' }} />
-              <span className="text-xs text-slate-300 leading-relaxed">{text}</span>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
+            <button
+              onClick={() => onNavigate('auth')}
+              className="flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
+              style={{ background: '#fff', color: '#1e2d4a', boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}
+            >
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              Create free account
+            </button>
+            <button
+              onClick={() => onNavigate('pricing')}
+              className="flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-semibold text-sm transition-all duration-200 hover:bg-white/10"
+              style={{ border: '1px solid rgba(255,255,255,0.18)', color: '#fff' }}
+            >
+              <Crown className="w-4 h-4" />
+              View Pro plans
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center gap-6 flex-wrap text-xs" style={{ color: 'rgba(100,116,139,0.8)' }}>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+              Free forever plan
             </div>
-          ))}
-        </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+              No credit card required
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+              Cancel paid plans anytime
+            </div>
+          </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={() => onNavigate('auth')}
-            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl text-slate-900 font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
-            style={{ background: '#fff', boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
-          >
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            Create free account
-          </button>
-          <button
-            onClick={() => onNavigate('pricing')}
-            className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl text-white font-semibold text-sm border border-white/20 hover:bg-white/10 transition-all duration-200"
-          >
-            <Crown className="w-4 h-4" />
-            View Pro plans
-          </button>
-        </div>
-
-        <div className="flex items-center justify-center gap-4 mt-5">
-          <p className="text-xs text-slate-500">Free. No credit card required.</p>
-          <span className="text-slate-700">·</span>
-          <p className="text-xs text-slate-500">Pro from $19/mo · Teams from $79/mo. Cancel anytime.</p>
-        </div>
-
-        <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
-          <a
-            href="https://betalist.com/startups/poddle?utm_campaign=badge-poddle&utm_medium=badge&utm_source=badge-featured"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Poddle featured on BetaList"
-            className="inline-block transition-transform duration-200 hover:-translate-y-0.5"
-          >
-            <img
-              alt="Poddle - Decision intelligence for teams | BetaList"
-              width={156}
-              height={54}
-              style={{ width: '156px', height: '54px' }}
-              src="https://betalist.com/badges/featured?id=152531&theme=color"
-            />
-          </a>
-          <a
-            href="https://www.producthunt.com/products/poddle-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-poddle-2"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Poddle featured on Product Hunt"
-            className="inline-block transition-transform duration-200 hover:-translate-y-0.5"
-          >
-            <img
-              alt="Poddle - The devil's advocate you never had. | Product Hunt"
-              width={250}
-              height={54}
-              style={{ width: '250px', height: '54px' }}
-              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1169789&theme=light&t=1781341577123"
-            />
-          </a>
-        </div>
+          <div className="flex items-center justify-center gap-5 mt-12 flex-wrap">
+            <a
+              href="https://betalist.com/startups/poddle?utm_campaign=badge-poddle&utm_medium=badge&utm_source=badge-featured"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block transition-transform hover:-translate-y-0.5"
+            >
+              <img alt="Poddle on BetaList" width={156} height={54} style={{ width: '156px', height: '54px' }} src="https://betalist.com/badges/featured?id=152531&theme=color" />
+            </a>
+            <a
+              href="https://www.producthunt.com/products/poddle-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-poddle-2"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block transition-transform hover:-translate-y-0.5"
+            >
+              <img alt="Poddle on Product Hunt" width={250} height={54} style={{ width: '250px', height: '54px' }} src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1169789&theme=light&t=1781341577123" />
+            </a>
+          </div>
+        </RevealSection>
       </div>
-    </div>
+    </section>
   );
 }

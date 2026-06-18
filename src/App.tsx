@@ -51,7 +51,7 @@ function AppContent() {
       return hash;
     }
     const saved = sessionStorage.getItem('currentPage');
-    if (!saved || saved === 'auth') return 'home';
+    if (!saved || saved === 'auth' || saved === 'home') return 'workspaces';
     return saved;
   });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(() => {
