@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Lock, Settings, ArrowLeft,
-  MessageSquare, Zap, RefreshCw, Loader2, AlertTriangle, Sparkles, Clock
+  MessageSquare, Zap, RefreshCw, Loader2, AlertTriangle, Sparkles, Clock, Inbox, CheckCircle2
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
 import WorkspaceChat from '../components/WorkspaceChat';
@@ -25,10 +26,12 @@ interface WorkspaceHubProps {
   workspaceId: string;
   onBack: () => void;
   onSettings: () => void;
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, id?: string) => void;
+  onEntityClick?: (id: string, type: string) => void;
 }
 
 export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNavigate }: WorkspaceHubProps) {
+  const { user } = useAuth();
   const { canAccess, isAdmin, isReadOnly, plan, subscriptionStatus, trialExpiresAt, loading: accessLoading } = useWorkspaceAccess(workspaceId);
   // War Room is available when the workspace itself is on pro/enterprise,
   // regardless of the individual member's personal subscription tier.
@@ -45,13 +48,53 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
   const [mainTab, setMainTab] = useState<MainTab>('chat');
-  const [pendingPrompt, setPendingPrompt] = useState<string | undefined>(undefined);
+  const [inboxSubmissionId, setInboxSubmissionId] = useState<string | null>(() => {
+    const id = sessionStorage.getItem('inboxSubmissionId');
+    return id || null;
+  });
+  const [pendingPrompt, setPendingPrompt] = useState<string | undefined>(() => {
+    const ctx = sessionStorage.getItem('inboxSubmissionContext');
+    if (ctx) {
+      sessionStorage.removeItem('inboxSubmissionContext');
+      return ctx;
+    }
+    return undefined;
+  });
   const [showResynthesisNudge, setShowResynthesisNudge] = useState(false);
   const [resyncing, setResyncing] = useState(false);
   const [warRoomKey, setWarRoomKey] = useState(0);
   const fromWarRoomRef = useRef(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [discussedKeys, setDiscussedKeys] = useState<Set<string>>(new Set());
+  const [savingBrief, setSavingBrief] = useState(false);
+  const [briefSaved, setBriefSaved] = useState(false);
+
+  async function saveBriefFromSynthesis(synthesis: Record<string, unknown>) {
+    if (!user || !inboxSubmissionId) return;
+    setSavingBrief(true);
+    const { data } = await supabase
+      .from('inbox_briefs')
+      .insert({
+        submission_id: inboxSubmissionId,
+        owner_id: user.id,
+        synthesis,
+        visibility: 'private',
+      })
+      .select('share_token')
+      .maybeSingle();
+    // Mark submission as complete
+    await supabase
+      .from('inbox_submissions')
+      .update({ status: 'complete' })
+      .eq('id', inboxSubmissionId);
+    sessionStorage.removeItem('inboxSubmissionId');
+    setInboxSubmissionId(null);
+    setSavingBrief(false);
+    setBriefSaved(true);
+    if (data?.share_token) {
+      onNavigate('inbox-brief', data.share_token);
+    }
+  }
 
   function handleDiscuss(prompt: string) {
     fromWarRoomRef.current = true;
@@ -260,6 +303,29 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           </div>
         )}
 
+        {/* Inbox submission banner */}
+        {inboxSubmissionId && !briefSaved && (
+          <div
+            className="mb-5 flex items-start gap-3 px-4 py-4 rounded-2xl"
+            style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)' }}
+          >
+            <Inbox className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-slate-900">Inbox submission loaded</p>
+              <p className="text-xs text-slate-500 mt-0.5">The decision has been added to the chat. After the War Room runs, save a brief to share back.</p>
+            </div>
+          </div>
+        )}
+        {briefSaved && (
+          <div
+            className="mb-5 flex items-center gap-3 px-4 py-3 rounded-2xl"
+            style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.2)' }}
+          >
+            <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+            <p className="text-sm font-semibold text-emerald-800">Brief saved — opening for review.</p>
+          </div>
+        )}
+
         {/* Main tab switcher */}
         <div className="flex items-center gap-1 bg-white rounded-2xl p-1 mb-6" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
           <button
@@ -360,6 +426,34 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
                 onClose={() => setShowUpgrade(false)}
                 onUpgrade={() => { setShowUpgrade(false); onNavigate('pricing'); }}
               />
+            )}
+            {/* Save as brief — shown when opened from inbox queue */}
+            {inboxSubmissionId && workspaceIsPro && !briefSaved && (
+              <div
+                className="mb-4 flex items-center gap-3 px-4 py-3 rounded-2xl"
+                style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)' }}
+              >
+                <Inbox className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                <p className="text-sm text-slate-700 flex-1">Ready to save this analysis as a shareable brief?</p>
+                <button
+                  onClick={async () => {
+                    const { data } = await supabase
+                      .from('workspace_synthesis')
+                      .select('*')
+                      .eq('workspace_id', workspaceId)
+                      .order('generated_at', { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    if (data) await saveBriefFromSynthesis(data as Record<string, unknown>);
+                  }}
+                  disabled={savingBrief}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50"
+                  style={{ background: '#2563eb' }}
+                >
+                  {savingBrief ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  {savingBrief ? 'Saving…' : 'Save brief'}
+                </button>
+              </div>
             )}
             {workspaceIsPro ? (
               <WorkspaceWarRoom
