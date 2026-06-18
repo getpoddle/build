@@ -1,4 +1,4 @@
-import { Sparkles, Home, User, LogOut, Search, Bell, X, Bot, Activity, Lock, AlertTriangle, Lightbulb, TrendingUp } from 'lucide-react';
+import { Sparkles, Home, User, LogOut, Search, Bell, X, Bot, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Notifications from './Notifications';
 import UnifiedSearch from './UnifiedSearch';
@@ -23,7 +23,6 @@ interface NavigationProps {
 
 const NAV_ITEMS_AUTH = [
   { id: 'home', label: 'Home', icon: Home },
-  { id: 'reasoning', label: 'Reasoning', icon: Activity },
   { id: 'workspaces', label: 'Workspaces', icon: Lock },
   { id: 'profile', label: 'Profile', icon: User },
 ];
@@ -268,46 +267,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           </div>
         </div>
       </nav>
-
-      {/* Reasoning category sub-bar */}
-      {(currentPage === 'reasoning' || currentPage.startsWith('reasoning-')) && (
-        <div
-          className="fixed z-40 left-0 right-0 hidden md:block"
-          style={{
-            top: '64px',
-            background: 'rgba(255,255,255,0.95)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            borderBottom: '1px solid rgba(15,23,42,0.07)',
-            boxShadow: '0 2px 8px rgba(15,23,42,0.04)',
-          }}
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-1 h-10">
-              <span className="text-xs font-semibold text-slate-400 mr-2">Browse:</span>
-              {([
-                { page: 'reasoning-problems',  href: '/reasoning/problems',  label: 'Problems',  icon: AlertTriangle, color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
-                { page: 'reasoning-ideas',     href: '/reasoning/ideas',     label: 'Ideas',     icon: Lightbulb,     color: '#059669', bg: 'rgba(5,150,105,0.08)' },
-                { page: 'reasoning-forecasts', href: '/reasoning/forecasts', label: 'Forecasts', icon: TrendingUp,    color: '#2563eb', bg: 'rgba(37,99,235,0.08)' },
-              ] as const).map(({ page: p, href, label, icon: Icon, color, bg }) => {
-                const isActive = currentPage === p || currentPage === 'reasoning-entity';
-                return (
-                  <a
-                    key={p}
-                    href={href}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all duration-150"
-                    style={isActive && currentPage === p ? { background: bg, color } : { color: '#64748b' }}
-                    aria-current={currentPage === p ? 'page' : undefined}
-                  >
-                    <Icon className="w-3 h-3" />
-                    {label}
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {!user && (
         <div

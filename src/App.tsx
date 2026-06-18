@@ -14,9 +14,7 @@ import InstallPrompt from './components/InstallPrompt';
 import { ToastContainer, useToast } from './components/Toast';
 
 const Profile = lazy(() => import('./pages/Profile'));
-const AIFeed = lazy(() => import('./pages/AIFeed'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
-
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const PublicAssumption = lazy(() => import('./pages/PublicAssumption'));
 const PublicPost = lazy(() => import('./pages/PublicPost'));
@@ -28,16 +26,11 @@ const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const ContactUs = lazy(() => import('./pages/ContactUs'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 const SystemHealth = lazy(() => import('./pages/SystemHealth'));
-const AgentPredictions = lazy(() => import('./pages/AgentPredictions'));
-const ReasoningHub = lazy(() => import('./pages/ReasoningHub'));
-const EntityDetail = lazy(() => import('./pages/EntityDetail'));
 const Workspaces = lazy(() => import('./pages/Workspaces'));
 const WorkspaceHub = lazy(() => import('./pages/WorkspaceHub'));
 const WorkspaceSettings = lazy(() => import('./pages/WorkspaceSettings'));
 const JoinWorkspace = lazy(() => import('./pages/JoinWorkspace'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
-const ReasoningCategory = lazy(() => import('./pages/ReasoningCategory'));
-const ReasoningEntityPage = lazy(() => import('./pages/ReasoningEntityPage'));
 const ExtensionView = lazy(() => import('./pages/ExtensionView'));
 
 function RouteFallback() {
@@ -52,31 +45,13 @@ function AppContent() {
   const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending } = useAuth();
   const { toasts, dismissToast } = useToast();
   const [currentPage, setCurrentPage] = useState(() => {
-    // Extension iframe route — must be detected before any hash/session logic
     if (window.location.pathname === '/extension-view') return 'extension-view';
-
-    // Real-path reasoning routes take priority
-    const path = window.location.pathname;
-    if (path.startsWith('/reasoning/')) {
-      const parts = path.split('/').filter(Boolean); // ['reasoning', cat, slug?]
-      const cat = parts[1] as 'forecasts' | 'ideas' | 'problems';
-      if (['forecasts', 'ideas', 'problems'].includes(cat)) {
-        if (parts[2]) return 'reasoning-entity';
-        return `reasoning-${cat}`;
-      }
-      return 'reasoning';
-    }
     const hash = window.location.hash.substring(1);
     if (hash === 'admin' || hash === 'admin-panel' || hash === 'app-icons') {
       return hash;
     }
     const saved = sessionStorage.getItem('currentPage');
     if (!saved || saved === 'auth') return 'home';
-    // Never restore reasoning/browse pages on a bare refresh — send to home
-    if (['reasoning', 'reasoning-ideas', 'reasoning-problems', 'reasoning-forecasts',
-         'reasoning-hub', 'ai-feed', 'ai-insights', 'ideas-archive'].includes(saved)) {
-      return 'home';
-    }
     return saved;
   });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(() => {
@@ -84,34 +59,15 @@ function AppContent() {
     return saved || null;
   });
   const [assumptionId, setAssumptionId] = useState<string | null>(null);
-  const [entityId, setEntityId] = useState<string | null>(null);
-  const [entityType, setEntityType] = useState<'problem' | 'idea' | 'prediction' | null>(null);
   const [publicPostId, setPublicPostId] = useState<string | null>(null);
   const [publicDiscussionId, setPublicDiscussionId] = useState<string | null>(null);
   const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
   const [highlightDiscussionId, setHighlightDiscussionId] = useState<string | null>(null);
-  const [highlightPredictionId, setHighlightPredictionId] = useState<string | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const onboardingCheckedRef = useRef(false);
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [joinToken, setJoinToken] = useState<string | null>(null);
-  const [reasoningSlug, setReasoningSlug] = useState<string | null>(() => {
-    const parts = window.location.pathname.split('/').filter(Boolean);
-    return (parts[0] === 'reasoning' && parts[2]) ? parts[2] : null;
-  });
-  const [reasoningEntityType, setReasoningEntityType] = useState<'problem' | 'idea' | 'prediction' | null>(() => {
-    const parts = window.location.pathname.split('/').filter(Boolean);
-    if (parts[0] !== 'reasoning' || !parts[2]) return null;
-    const typeMap: Record<string, 'problem' | 'idea' | 'prediction'> = { forecasts: 'prediction', ideas: 'idea', problems: 'problem' };
-    return typeMap[parts[1]] || null;
-  });
-  const [reasoningCategory, setReasoningCategory] = useState<'forecasts' | 'ideas' | 'problems' | null>(() => {
-    const parts = window.location.pathname.split('/').filter(Boolean);
-    if (parts[0] !== 'reasoning') return null;
-    const cat = parts[1] as 'forecasts' | 'ideas' | 'problems';
-    return ['forecasts', 'ideas', 'problems'].includes(cat) ? cat : null;
-  });
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -120,128 +76,28 @@ function AppContent() {
       localStorage.setItem('poddle_referral', refCode);
     }
 
-    // Extension-view route: served at /extension-view for the Chrome extension iframe
     if (window.location.pathname === '/extension-view') {
       setCurrentPage('extension-view');
       return;
     }
 
-    // Stripe redirects back with query params — detect payment success
     if (urlParams.get('payment_success') === '1') {
       setCurrentPage('payment-success');
       return;
     }
 
     const checkForSpecialRoutes = () => {
-      // Real-path reasoning routes (for SEO)
-      const path = window.location.pathname;
-      if (path.startsWith('/reasoning/')) {
-        const parts = path.split('/').filter(Boolean);
-        const catSeg = parts[1] as 'forecasts' | 'ideas' | 'problems';
-        const slugSeg = parts[2];
-        const typeMap: Record<string, 'problem' | 'idea' | 'prediction'> = {
-          forecasts: 'prediction', ideas: 'idea', problems: 'problem',
-        };
-        if (['forecasts', 'ideas', 'problems'].includes(catSeg)) {
-          if (slugSeg?.trim() && typeMap[catSeg]) {
-            setReasoningSlug(slugSeg.trim());
-            setReasoningEntityType(typeMap[catSeg]);
-            setReasoningCategory(catSeg);
-            setCurrentPage('reasoning-entity');
-            sessionStorage.setItem('currentPage', 'reasoning-entity');
-          } else {
-            setReasoningCategory(catSeg);
-            setCurrentPage(`reasoning-${catSeg}`);
-            sessionStorage.setItem('currentPage', `reasoning-${catSeg}`);
-          }
-          return;
-        }
-        setCurrentPage('reasoning');
-        sessionStorage.setItem('currentPage', 'reasoning');
-        return;
-      }
-
       const hash = window.location.hash.substring(1);
 
-      if (hash === 'app-icons') {
-        setCurrentPage('app-icons');
-        return;
-      }
-
-      if (hash === 'admin') {
-        setCurrentPage('admin');
-        return;
-      }
-
-      if (hash === 'admin-panel') {
-        setCurrentPage('admin-panel');
-        return;
-      }
-
-      if (hash === 'privacy') {
-        setCurrentPage('privacy');
-        return;
-      }
-
-      if (hash === 'terms') {
-        setCurrentPage('terms');
-        return;
-      }
-
-      if (hash === 'contact-us') {
-        setCurrentPage('contact-us');
-        return;
-      }
-
-      if (hash === 'pricing') {
-        setCurrentPage('pricing');
-        return;
-      }
-
-      if (hash.startsWith('payment-success')) {
-        setCurrentPage('payment-success');
-        return;
-      }
-
-      if (hash === 'system-health') {
-        setCurrentPage('system-health');
-        return;
-      }
-
-      if (hash === 'agent-predictions') {
-        setHighlightPredictionId(null);
-        setCurrentPage('agent-predictions');
-        return;
-      }
-
-      if (hash.startsWith('prediction/')) {
-        const id = hash.split('/')[1];
-        if (id && id.trim()) {
-          setHighlightPredictionId(id.trim());
-          setCurrentPage('agent-predictions');
-        }
-        return;
-      }
-
-      if (hash === 'ai-insights') {
-        setCurrentPage('ai-insights');
-        sessionStorage.setItem('currentPage', 'ai-insights');
-        history.replaceState(null, '', '#ai-feed');
-        return;
-      }
-
-      if (hash === 'ideas-archive') {
-        setCurrentPage('ideas-archive');
-        sessionStorage.setItem('currentPage', 'ideas-archive');
-        history.replaceState(null, '', '#ai-feed');
-        return;
-      }
-
-      if (hash === 'ai-feed') {
-        setCurrentPage('ai-feed');
-        sessionStorage.setItem('currentPage', 'ai-feed');
-        return;
-      }
+      if (hash === 'app-icons') { setCurrentPage('app-icons'); return; }
+      if (hash === 'admin') { setCurrentPage('admin'); return; }
+      if (hash === 'admin-panel') { setCurrentPage('admin-panel'); return; }
+      if (hash === 'privacy') { setCurrentPage('privacy'); return; }
+      if (hash === 'terms') { setCurrentPage('terms'); return; }
+      if (hash === 'contact-us') { setCurrentPage('contact-us'); return; }
+      if (hash === 'pricing') { setCurrentPage('pricing'); return; }
+      if (hash.startsWith('payment-success')) { setCurrentPage('payment-success'); return; }
+      if (hash === 'system-health') { setCurrentPage('system-health'); return; }
 
       if (hash.startsWith('assumption/')) {
         const id = hash.split('/')[1];
@@ -249,38 +105,6 @@ function AppContent() {
           setAssumptionId(id.trim());
           setCurrentPage('assumption');
         }
-        return;
-      }
-
-      if (hash.startsWith('entity/')) {
-        const parts = hash.split('/');
-        const type = parts[1] as 'problem' | 'idea' | 'prediction';
-        const id = parts[2];
-        if (type && id && ['problem', 'idea', 'prediction'].includes(type)) {
-          setEntityType(type);
-          setEntityId(id.trim());
-          setCurrentPage('entity-detail');
-        }
-        return;
-      }
-
-      if (hash === 'reasoning') {
-        setCurrentPage('reasoning');
-        sessionStorage.setItem('currentPage', 'reasoning');
-        return;
-      }
-
-      // Legacy hash-based reasoning routes — redirect to real paths
-      if (hash === 'reasoning/forecasts' || hash === 'reasoning/ideas' || hash === 'reasoning/problems') {
-        const cat = hash.split('/')[1];
-        history.replaceState(null, '', `/reasoning/${cat}`);
-        checkForSpecialRoutes();
-        return;
-      }
-      if (hash.startsWith('reasoning/forecasts/') || hash.startsWith('reasoning/ideas/') || hash.startsWith('reasoning/problems/')) {
-        const parts = hash.split('/');
-        history.replaceState(null, '', `/reasoning/${parts[1]}/${parts[2]}`);
-        checkForSpecialRoutes();
         return;
       }
 
@@ -358,18 +182,13 @@ function AppContent() {
         }
         return;
       }
-
     };
 
     checkForSpecialRoutes();
 
-    const handleHashChange = () => {
-      checkForSpecialRoutes();
-    };
-
+    const handleHashChange = () => { checkForSpecialRoutes(); };
     window.addEventListener('hashchange', handleHashChange);
     window.addEventListener('popstate', handleHashChange);
-
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
       window.removeEventListener('popstate', handleHashChange);
@@ -377,17 +196,14 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    const pageName = currentPage;
-    updatePageSEO(pageName);
-    pageview(`/${pageName}`, document.title);
+    updatePageSEO(currentPage);
+    pageview(`/${currentPage}`, document.title);
   }, [currentPage]);
 
   useEffect(() => {
     if (user) {
       const pendingToken = sessionStorage.getItem('pendingInviteToken');
       if (pendingToken) {
-        // Clear everything and navigate directly to the join page.
-        // Mark onboarding as done so it doesn't stomp the redirect.
         sessionStorage.removeItem('pendingInviteToken');
         sessionStorage.removeItem('postLoginRedirect');
         onboardingCheckedRef.current = true;
@@ -401,9 +217,7 @@ function AppContent() {
       if (redirect) {
         sessionStorage.removeItem('postLoginRedirect');
         const hashPart = redirect.split('#')[1];
-        if (hashPart) {
-          window.location.hash = hashPart;
-        }
+        if (hashPart) window.location.hash = hashPart;
       }
       if (!onboardingCheckedRef.current) {
         checkOnboardingStatus();
@@ -416,9 +230,7 @@ function AppContent() {
 
   const checkOnboardingStatus = async () => {
     if (!user) return;
-
     const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
-
     try {
       const result = await Promise.race([
         supabase
@@ -428,18 +240,10 @@ function AppContent() {
           .maybeSingle(),
         timeout.then(() => ({ data: null, error: new Error('timeout') }))
       ]);
-
       const { data, error } = result as { data: { onboarded: boolean; first_name: string | null; last_name: string | null } | null; error: Error | null };
-
-      if (error) {
-        onboardingCheckedRef.current = true;
-        return;
-      }
-
+      if (error) { onboardingCheckedRef.current = true; return; }
       const hasIncompleteName = !data?.first_name || !data?.last_name ||
-                                 data.first_name.trim() === '' ||
-                                 data.last_name.trim() === '';
-
+                                 data.first_name.trim() === '' || data.last_name.trim() === '';
       setNeedsOnboarding(!data?.onboarded || hasIncompleteName);
       onboardingCheckedRef.current = true;
     } catch {
@@ -447,7 +251,7 @@ function AppContent() {
     }
   };
 
-  const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, threadId?: string, initialAssumptionId?: string, postId?: string) => {
+  const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, _initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
     if (page === 'public-post' && postId) {
       setPublicPostId(postId);
       setPublicDiscussionId(null);
@@ -475,20 +279,10 @@ function AppContent() {
       return;
     }
 
-    // Reasoning category index pages — use real paths for SEO
-    if (page === 'reasoning-forecasts' || page === 'reasoning-ideas' || page === 'reasoning-problems') {
-      const cat = page.replace('reasoning-', '') as 'forecasts' | 'ideas' | 'problems';
-      setReasoningCategory(cat);
-      setCurrentPage(page);
-      sessionStorage.setItem('currentPage', page);
-      history.pushState(null, '', `/reasoning/${cat}`);
-      return;
-    }
-
     setCurrentPage(page);
     sessionStorage.setItem('currentPage', page);
     const hashMap: Record<string, string> = {
-      home: '', 'ai-feed': 'ai-feed',
+      home: '',
       profile: userId ? `profile/${userId}` : 'profile',
       pricing: 'pricing',
       workspaces: 'workspaces',
@@ -580,45 +374,15 @@ function AppContent() {
     <Suspense fallback={<RouteFallback />}>{node}</Suspense>
   );
 
-  if (currentPage === 'app-icons') {
-    return wrap(<AppIcons />);
-  }
-
-  if (currentPage === 'extension-view') {
-    return wrap(<ExtensionView />);
-  }
-
-  if (currentPage === 'admin-panel') {
-    return wrap(<AdminPanel />);
-  }
-
-  if (currentPage === 'privacy') {
-    return wrap(<PrivacyPolicy />);
-  }
-
-  if (currentPage === 'terms') {
-    return wrap(<TermsOfService />);
-  }
-
-  if (currentPage === 'contact-us') {
-    return wrap(<ContactUs />);
-  }
-
-  if (currentPage === 'pricing') {
-    return wrap(<Pricing onNavigate={handleNavigate} />);
-  }
-
-  if (currentPage === 'system-health') {
-    return wrap(<SystemHealth />);
-  }
-
-  if (currentPage === 'payment-success') {
-    return wrap(<PaymentSuccess onNavigate={handleNavigate} />);
-  }
-
-  if (currentPage === 'agent-predictions') {
-    return wrap(<AgentPredictions highlightId={highlightPredictionId} />);
-  }
+  if (currentPage === 'app-icons') return wrap(<AppIcons />);
+  if (currentPage === 'extension-view') return wrap(<ExtensionView />);
+  if (currentPage === 'admin-panel') return wrap(<AdminPanel />);
+  if (currentPage === 'privacy') return wrap(<PrivacyPolicy />);
+  if (currentPage === 'terms') return wrap(<TermsOfService />);
+  if (currentPage === 'contact-us') return wrap(<ContactUs />);
+  if (currentPage === 'pricing') return wrap(<Pricing onNavigate={handleNavigate} />);
+  if (currentPage === 'system-health') return wrap(<SystemHealth />);
+  if (currentPage === 'payment-success') return wrap(<PaymentSuccess onNavigate={handleNavigate} />);
 
   if (currentPage === 'public-post' && (publicPostId || publicDiscussionId)) {
     return wrap(
@@ -626,26 +390,8 @@ function AppContent() {
         postId={publicPostId || undefined}
         discussionId={publicDiscussionId || undefined}
         onNavigate={(page) => {
-          if (page === 'home' && user) {
-            handleNavigate('home');
-          } else {
-            handleNavigate(page);
-          }
-        }}
-      />
-    );
-  }
-
-  if (currentPage === 'entity-detail' && entityId && entityType) {
-    return wrap(
-      <EntityDetail
-        entityId={entityId}
-        entityType={entityType}
-        onNavigate={handleNavigate}
-        onEntityClick={(id, type) => {
-          setEntityId(id);
-          setEntityType(type);
-          window.location.hash = `entity/${type}/${id}`;
+          if (page === 'home' && user) handleNavigate('home');
+          else handleNavigate(page);
         }}
       />
     );
@@ -660,9 +406,7 @@ function AppContent() {
   }
 
   if (!user) {
-    if (currentPage === 'auth') {
-      return <Auth />;
-    }
+    if (currentPage === 'auth') return <Auth />;
     if (currentPage === 'profile' && selectedUserId) {
       return (
         <div className="min-h-screen bg-slate-50">
@@ -698,110 +442,53 @@ function AppContent() {
     );
   }
 
-
-  if (needsOnboarding) {
-    return wrap(<Onboarding onComplete={handleOnboardingComplete} />);
-  }
+  if (needsOnboarding) return wrap(<Onboarding onComplete={handleOnboardingComplete} />);
 
   const activePage = currentPage === 'auth' ? 'home' : currentPage;
 
   return (
-    <div
-      className="flex flex-col"
-      style={{ minHeight: '100vh' }}
-    >
+    <div className="flex flex-col" style={{ minHeight: '100vh' }}>
       <Navigation currentPage={activePage} onNavigate={handleNavigate} />
       <main
         className="flex-1 overflow-x-hidden"
         style={{
-          paddingTop: (activePage === 'reasoning' || activePage.startsWith('reasoning-'))
-            ? 'calc(6.5rem + env(safe-area-inset-top, 0px))'
-            : 'calc(4rem + env(safe-area-inset-top, 0px))',
+          paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))',
           paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <PageErrorBoundary>
-        <Suspense fallback={<RouteFallback />}>
-          {activePage === 'home' && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
-          {activePage === 'profile' && <Profile key={`profile-${selectedUserId || 'own'}`} userId={selectedUserId} onNavigate={handleNavigate} initialEditMode={profileEditMode} />}
-          {activePage === 'ai-feed' && <AIFeed key="ai-feed" onNavigate={handleNavigate} />}
-          {activePage === 'ai-insights' && <AIFeed key="ai-feed-opinions" onNavigate={handleNavigate} initialTab="opinions" />}
-          {activePage === 'ideas-archive' && <AIFeed key="ai-feed-ideas" onNavigate={handleNavigate} initialTab="ideas" />}
-          {activePage === 'reasoning' && (
-            <ReasoningHub
-              key="reasoning"
-              onNavigate={handleNavigate}
-            />
-          )}
-          {(activePage === 'reasoning-forecasts' || activePage === 'reasoning-ideas' || activePage === 'reasoning-problems') && reasoningCategory && (
-            <ReasoningCategory
-              key={`reasoning-cat-${reasoningCategory}`}
-              category={reasoningCategory}
-              onNavigate={handleNavigate}
-              onEntityClick={(slug, type) => {
-                const cat = type === 'prediction' ? 'forecasts' : type === 'idea' ? 'ideas' : 'problems';
-                setReasoningSlug(slug);
-                setReasoningEntityType(type);
-                setReasoningCategory(cat);
-                setCurrentPage('reasoning-entity');
-                sessionStorage.setItem('currentPage', 'reasoning-entity');
-                history.pushState(null, '', `/reasoning/${cat}/${slug}`);
-              }}
-            />
-          )}
-          {activePage === 'reasoning-entity' && reasoningSlug && reasoningEntityType && reasoningCategory && (
-            <ReasoningEntityPage
-              key={`reasoning-entity-${reasoningSlug}`}
-              slug={reasoningSlug}
-              type={reasoningEntityType}
-              onNavigate={handleNavigate}
-              onEntityClick={(slug, type) => {
-                const cat = type === 'prediction' ? 'forecasts' : type === 'idea' ? 'ideas' : 'problems';
-                setReasoningSlug(slug);
-                setReasoningEntityType(type);
-                setReasoningCategory(cat);
-                setCurrentPage('reasoning-entity');
-                sessionStorage.setItem('currentPage', 'reasoning-entity');
-                history.pushState(null, '', `/reasoning/${cat}/${slug}`);
-              }}
-            />
-          )}
-          {activePage === 'workspaces' && (
-            <Workspaces key="workspaces" onNavigate={handleNavigate} />
-          )}
-          {activePage === 'workspace-hub' && workspaceId && (
-            <WorkspaceHub
-              key={`workspace-hub-${workspaceId}`}
-              workspaceId={workspaceId}
-              onBack={() => handleNavigate('workspaces')}
-              onSettings={() => handleNavigate('workspace-settings', workspaceId)}
-              onNavigate={handleNavigate}
-              onEntityClick={(id, type) => {
-                setEntityId(id);
-                setEntityType(type);
-                window.location.hash = `entity/${type}/${id}`;
-              }}
-            />
-          )}
-          {activePage === 'workspace-settings' && workspaceId && (
-            <WorkspaceSettings
-              key={`workspace-settings-${workspaceId}`}
-              workspaceId={workspaceId}
-              onBack={() => handleNavigate('workspace-hub', workspaceId)}
-              onNavigate={handleNavigate}
-            />
-          )}
-          {activePage === 'privacy' && <PrivacyPolicy />}
-          {activePage === 'terms' && <TermsOfService />}
-          {activePage === 'pricing' && <Pricing onNavigate={handleNavigate} />}
-        </Suspense>
+          <Suspense fallback={<RouteFallback />}>
+            {activePage === 'home' && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
+            {activePage === 'profile' && <Profile key={`profile-${selectedUserId || 'own'}`} userId={selectedUserId} onNavigate={handleNavigate} initialEditMode={profileEditMode} />}
+            {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
+            {activePage === 'workspace-hub' && workspaceId && (
+              <WorkspaceHub
+                key={`workspace-hub-${workspaceId}`}
+                workspaceId={workspaceId}
+                onBack={() => handleNavigate('workspaces')}
+                onSettings={() => handleNavigate('workspace-settings', workspaceId)}
+                onNavigate={handleNavigate}
+                onEntityClick={(_id, _type) => {}}
+              />
+            )}
+            {activePage === 'workspace-settings' && workspaceId && (
+              <WorkspaceSettings
+                key={`workspace-settings-${workspaceId}`}
+                workspaceId={workspaceId}
+                onBack={() => handleNavigate('workspace-hub', workspaceId)}
+                onNavigate={handleNavigate}
+              />
+            )}
+            {activePage === 'privacy' && <PrivacyPolicy />}
+            {activePage === 'terms' && <TermsOfService />}
+            {activePage === 'pricing' && <Pricing onNavigate={handleNavigate} />}
+          </Suspense>
         </PageErrorBoundary>
       </main>
       <footer className="bg-white border-t border-slate-200 py-6">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-600">
             <a href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</a>
-            <a href="#agent-predictions" className="hover:text-blue-600 transition-colors">Predictions</a>
             <a href="#privacy" className="hover:text-blue-600 transition-colors">Privacy Policy</a>
             <a href="#terms" className="hover:text-blue-600 transition-colors">Terms of Service</a>
             <a href="#contact-us" className="hover:text-blue-600 transition-colors">Contact Us</a>
@@ -811,8 +498,7 @@ function AppContent() {
           </p>
         </div>
       </footer>
-
-<InstallPrompt />
+      <InstallPrompt />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );

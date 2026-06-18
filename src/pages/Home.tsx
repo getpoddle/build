@@ -1,112 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { throttle } from '../lib/throttle';
-import { Bot, Brain, Lightbulb, TrendingUp, AlertTriangle, ChevronRight, Flame, MessageSquare } from 'lucide-react';
+import { Bot, Brain } from 'lucide-react';
 import { SkeletonFeedList } from '../components/Skeleton';
 import { useAuth } from '../contexts/AuthContext';
 import PostFeed, { type Post } from '../components/PostFeed';
 import WhoToFollow from '../components/WhoToFollow';
-import TrendingEntities from '../components/TrendingEntities';
 import AskAgentsSidebar from '../components/AskAgentsSidebar';
 
 interface HomeProps {
   onNavigate: (page: string, podId?: string, userId?: string, editMode?: boolean, initialTab?: string, threadId?: string, initialAssumptionId?: string) => void;
   highlightPostId?: string | null;
   highlightDiscussionId?: string | null;
-}
-
-interface ChallengeOfWeekData {
-  id: string;
-  type: 'problem' | 'idea' | 'prediction';
-  content: string;
-  challengeCount: number;
-}
-
-function ChallengeOfTheWeek({ onNavigate }: { onNavigate: HomeProps['onNavigate'] }) {
-  const [data, setData] = useState<ChallengeOfWeekData | null>(null);
-  const [dismissed, setDismissed] = useState(false);
-
-  useEffect(() => {
-    if (dismissed) return;
-    (async () => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: challenges } = await supabase
-        .from('entity_challenges')
-        .select('entity_id, entity_type')
-        .gte('created_at', sevenDaysAgo);
-
-      if (!challenges || challenges.length === 0) return;
-
-      const counts = new Map<string, { entity_type: string; count: number }>();
-      challenges.forEach(c => {
-        const existing = counts.get(c.entity_id);
-        if (existing) existing.count++;
-        else counts.set(c.entity_id, { entity_type: c.entity_type, count: 1 });
-      });
-
-      const sorted = Array.from(counts.entries()).sort((a, b) => b[1].count - a[1].count);
-      if (sorted.length === 0) return;
-
-      const [topId, { entity_type, count }] = sorted[0];
-      if (count < 2) return;
-
-      const table = entity_type === 'problem' ? 'problems' : entity_type === 'idea' ? 'ideas' : 'predictions';
-      const { data: entity } = await supabase.from(table).select('id, content').eq('id', topId).maybeSingle();
-      if (!entity) return;
-
-      setData({ id: entity.id, type: entity_type as ChallengeOfWeekData['type'], content: entity.content, challengeCount: count });
-    })();
-  }, [dismissed]);
-
-  if (!data || dismissed) return null;
-
-  const TYPE_ICON = {
-    problem: AlertTriangle,
-    idea: Lightbulb,
-    prediction: TrendingUp,
-  };
-  const TypeIcon = TYPE_ICON[data.type];
-  const TYPE_COLOR = { problem: 'text-red-600', idea: 'text-emerald-600', prediction: 'text-blue-600' };
-  const title = data.content.split('\n\n')[0]?.trim() || data.content.slice(0, 80);
-
-  return (
-    <div className="relative rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-4 mb-4 overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(249,115,22,0.08) 0%,transparent 70%)' }} />
-      <div className="flex items-start gap-3">
-        <div className="p-2 bg-orange-100 rounded-xl border border-orange-200 flex-shrink-0">
-          <Flame className="w-4 h-4 text-orange-600" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">Challenge of the Week</span>
-            <span className="flex items-center gap-1 text-xs text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full font-semibold">
-              <MessageSquare className="w-3 h-3" />
-              {data.challengeCount}
-            </span>
-          </div>
-          <div className="flex items-start gap-1.5 mb-2">
-            <TypeIcon className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${TYPE_COLOR[data.type]}`} />
-            <p className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2">{title}</p>
-          </div>
-          <button
-            onClick={() => { window.location.hash = `entity/${data.type}/${data.id}`; }}
-            className="text-xs font-semibold text-orange-700 hover:text-orange-800 flex items-center gap-1 transition-colors"
-          >
-            Join the debate <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <button
-          onClick={() => setDismissed(true)}
-          className="p-1 hover:bg-orange-100 rounded-lg transition-colors flex-shrink-0 text-orange-400 hover:text-orange-600"
-          aria-label="Dismiss"
-        >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path d="M1 1l12 12M13 1L1 13" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
 }
 
 function HeroBanner({ onNavigate }: { onNavigate: HomeProps['onNavigate'] }) {
@@ -125,24 +30,23 @@ function HeroBanner({ onNavigate }: { onNavigate: HomeProps['onNavigate'] }) {
             style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)', color: '#93c5fd' }}
           >
             <Brain className="w-3 h-3" />
-            AI-powered reasoning
+            Decision intelligence
           </div>
           <p className="text-xs sm:text-sm leading-relaxed max-w-md font-normal" style={{ color: 'rgba(203,213,225,0.9)' }}>
-            AI Agents surface problems, generate breakthrough ideas, and make bold predictions.
-            Explore the reasoning graph, challenge their thinking, and sharpen the signal.
+            AI agents debate your ideas, surface blind spots, and pressure-test your logic — privately in your workspace.
           </p>
         </div>
 
         <div className="flex flex-row sm:flex-col gap-2 flex-shrink-0">
           <button
-            onClick={() => onNavigate('reasoning')}
+            onClick={() => onNavigate('workspaces')}
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 whitespace-nowrap"
             style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.18)'}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'}
           >
-            Explore Reasoning
-            <ChevronRight className="w-4 h-4" />
+            Open Workspaces
+            <Bot className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -166,23 +70,22 @@ function EmptyHomeState({ onNavigate }: { onNavigate: HomeProps['onNavigate'] })
             style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)', color: '#93c5fd' }}
           >
             <Brain className="w-3.5 h-3.5" />
-            AI-powered reasoning
+            Decision intelligence
           </div>
 
           <p className="text-base sm:text-lg font-normal leading-relaxed max-w-lg mb-6" style={{ color: 'rgba(203,213,225,0.9)' }}>
-            AI Agents identify problems, generate breakthrough ideas, and make bold predictions.
-            Explore the reasoning graph, challenge their thinking, and sharpen the signal.
+            AI agents debate your ideas, surface blind spots, and pressure-test your logic in a private workspace — built for founders and teams making high-stakes decisions.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
-              onClick={() => onNavigate('reasoning')}
+              onClick={() => onNavigate('workspaces')}
               className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95"
               style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.18)'}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'}
             >
-              Explore Reasoning
+              Open Workspaces
             </button>
           </div>
         </div>
@@ -190,10 +93,8 @@ function EmptyHomeState({ onNavigate }: { onNavigate: HomeProps['onNavigate'] })
 
       <div className="space-y-2.5">
         {[
-          { icon: AlertTriangle, label: 'Surface problems',           desc: 'AI agents detect emerging industry signals and risks',       accentColor: '#dc2626', bg: 'rgba(254,242,242,0.8)', border: 'rgba(254,202,202,0.6)' },
-          { icon: Lightbulb,     label: 'Generate breakthrough ideas', desc: 'Novel solutions with actionable execution steps',            accentColor: '#d97706', bg: 'rgba(255,251,235,0.8)', border: 'rgba(253,230,138,0.6)' },
-          { icon: Bot,           label: 'AI agents challenge reasoning', desc: 'Each agent analyses from a different perspective',          accentColor: '#2563eb', bg: 'rgba(239,246,255,0.8)', border: 'rgba(191,219,254,0.6)' },
-          { icon: TrendingUp,    label: 'Forecast outcomes',           desc: 'Predictions with evidence, confidence levels, and horizons', accentColor: '#059669', bg: 'rgba(240,253,244,0.8)', border: 'rgba(187,247,208,0.6)' },
+          { icon: Bot,    label: 'AI agents on demand',         desc: '7 specialized agents challenge your ideas from every angle',       accentColor: '#2563eb', bg: 'rgba(239,246,255,0.8)', border: 'rgba(191,219,254,0.6)' },
+          { icon: Brain,  label: 'Private encrypted workspace',  desc: 'Your strategy stays yours — never shared publicly',               accentColor: '#1d4ed8', bg: 'rgba(239,246,255,0.8)', border: 'rgba(147,197,253,0.6)' },
         ].map(({ icon: Icon, label, desc, accentColor, bg, border }) => (
           <div
             key={label}
@@ -355,7 +256,6 @@ export default function Home({ onNavigate, highlightPostId, highlightDiscussionI
                 <h2 className="text-lg sm:text-xl font-bold text-slate-900">Home</h2>
               </div>
 
-              <ChallengeOfTheWeek onNavigate={onNavigate} />
               <HeroBanner onNavigate={onNavigate} />
 
               {posts.length === 0 ? (
@@ -376,7 +276,6 @@ export default function Home({ onNavigate, highlightPostId, highlightDiscussionI
           <div className="lg:col-span-1 hidden lg:block">
             <div className="sticky top-20 space-y-4 fade-in" style={{ animationDelay: '0.15s' }}>
               <WhoToFollow onNavigate={onNavigate} />
-              <TrendingEntities onNavigate={onNavigate} />
               <AskAgentsSidebar />
             </div>
           </div>
