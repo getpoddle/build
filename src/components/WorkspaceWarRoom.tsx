@@ -794,26 +794,29 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
   if (!synthesis) {
     return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
-          <Brain className="w-8 h-8 text-white" />
+      <div className="space-y-5">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5"
+            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
+            <Brain className="w-8 h-8 text-white" />
+          </div>
+          <h3 className="text-lg font-black text-slate-900 mb-2">War Room is ready</h3>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto leading-relaxed mb-6">
+            After your team has had some conversations, run a synthesis to surface consensus, conflicts, blind spots, risk signals, financial metrics, and AI-suggested action items.
+          </p>
+          {messageCount >= 3 ? (
+            <button onClick={generate} disabled={generating}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}>
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {generating ? 'Synthesizing…' : 'Run Intelligence Synthesis'}
+            </button>
+          ) : (
+            <p className="text-xs text-slate-400 italic">Start a few conversations first — then run a synthesis.</p>
+          )}
+          {error && <p className="text-sm text-red-600 mt-3 font-medium">{error}</p>}
         </div>
-        <h3 className="text-lg font-black text-slate-900 mb-2">War Room is ready</h3>
-        <p className="text-sm text-slate-500 max-w-sm mx-auto leading-relaxed mb-6">
-          After your team has had some conversations, run a synthesis to surface consensus, conflicts, blind spots, risk signals, financial metrics, and AI-suggested action items.
-        </p>
-        {messageCount >= 3 ? (
-          <button onClick={generate} disabled={generating}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}>
-            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {generating ? 'Synthesizing…' : 'Run Intelligence Synthesis'}
-          </button>
-        ) : (
-          <p className="text-xs text-slate-400 italic">Start a few conversations first — then run a synthesis.</p>
-        )}
-        {error && <p className="text-sm text-red-600 mt-3 font-medium">{error}</p>}
+        <PatternIntelligenceCard workspaceId={workspaceId} />
       </div>
     );
   }
