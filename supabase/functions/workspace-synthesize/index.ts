@@ -138,6 +138,7 @@ Return a JSON object with this exact structure (no markdown, no extra text):
   "open_questions": [{"question":"unresolved question","urgency":"high"}],
   "risk_signals": [{"signal":"specific risk","severity":"critical","category":"market"}],
   "blind_spots": [{"area":"topic","description":"what team is missing"}],
+  "session_decision_category": "strategic",
   "action_items": [{"text":"Verb + concrete action","source_area":"risk","priority":"high"}],
   "financial_metrics": [{"metric":"Budget Assumptions","value":"implied","confidence":"low","note":"brief note"}],
   "operational_metrics": [{"metric":"Timeline Clarity","status":"unclear","note":"brief note"}],
@@ -168,6 +169,7 @@ RULES:
 - memory_update.open_threads: questions or debates still unresolved after this session (max 6).
 - memory_update.key_entities: important nouns (products, competitors, markets, people, milestones) mentioned (max 10).
 - memory_update.summary: must incorporate prior context if provided — write as a continuous record, not just this session.
+- session_decision_category: one word from: strategic, operational, resource, people, technical, market — pick the dominant theme of decisions made in THIS session.
 
 TRANSCRIPT:
 ${transcript}`;
@@ -242,6 +244,18 @@ ${transcript}`;
     const confidenceTrajectory = synthesis.confidence_trajectory
       ? (validTrajectories.includes(String(synthesis.confidence_trajectory).toLowerCase()) ? String(synthesis.confidence_trajectory).toLowerCase() : null)
       : null;
+
+    const validCategories = ['strategic', 'operational', 'resource', 'people', 'technical', 'market'];
+    const sessionDecisionCategory = synthesis.session_decision_category
+      ? (validCategories.includes(String(synthesis.session_decision_category).toLowerCase()) ? String(synthesis.session_decision_category).toLowerCase() : null)
+      : null;
+
+    // Build risk category breakdown: { market: 2, execution: 1, ... }
+    const riskCategoryBreakdown: Record<string, number> = {};
+    for (const r of (riskSignals as Array<{ category?: string }>) ) {
+      const cat = r.category?.toLowerCase();
+      if (cat) riskCategoryBreakdown[cat] = (riskCategoryBreakdown[cat] || 0) + 1;
+    }
 
     const memoryUpdate = (synthesis.memory_update && typeof synthesis.memory_update === 'object')
       ? synthesis.memory_update as { decisions?: string[]; agreements?: string[]; open_threads?: string[]; key_entities?: string[]; summary?: string }
@@ -324,6 +338,9 @@ ${transcript}`;
           operational_score: operationalScore,
           alignment_score: alignmentScore,
           generated_at: generatedAt,
+          session_decision_category: sessionDecisionCategory,
+          bias_flags_snapshot: cognitiveBiasFlags,
+          risk_category_breakdown: riskCategoryBreakdown,
         }).select("id").maybeSingle();
 
         // AI action items

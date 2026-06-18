@@ -9,6 +9,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { exportWarRoomToPDF, exportBoardBriefToPDF } from '../lib/pdfExport';
+import PatternIntelligenceCard from './PatternIntelligenceCard';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -1427,6 +1428,9 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           </button>
         </div>
       )}
+
+      {/* ── Pattern Intelligence ── */}
+      <PatternIntelligenceCard workspaceId={workspaceId} />
 
       {/* ── Board Brief Modal ── */}
       {showBoardSummary && (
