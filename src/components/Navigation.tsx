@@ -1,4 +1,4 @@
-import { Sparkles, User, LogOut, Search, Bell, X, Bot, Lock, Home, Inbox } from 'lucide-react';
+import { Sparkles, User, LogOut, Search, Bell, X, Bot, Lock, Home } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Notifications from './Notifications';
 import UnifiedSearch from './UnifiedSearch';
@@ -23,7 +23,6 @@ interface NavigationProps {
 
 const NAV_ITEMS_AUTH = [
   { id: 'workspaces', label: 'Workspaces', icon: Lock },
-  { id: 'my-inbox', label: 'Inbox', icon: Inbox },
   { id: 'profile', label: 'Profile', icon: User },
 ];
 

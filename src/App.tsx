@@ -32,9 +32,6 @@ const WorkspaceSettings = lazy(() => import('./pages/WorkspaceSettings'));
 const JoinWorkspace = lazy(() => import('./pages/JoinWorkspace'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const ExtensionView = lazy(() => import('./pages/ExtensionView'));
-const InboxSubmit = lazy(() => import('./pages/InboxSubmit'));
-const InboxBrief = lazy(() => import('./pages/InboxBrief'));
-const MyInbox = lazy(() => import('./pages/MyInbox'));
 
 function RouteFallback() {
   return (
@@ -71,8 +68,6 @@ function AppContent() {
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [joinToken, setJoinToken] = useState<string | null>(null);
-  const [inboxSlug, setInboxSlug] = useState<string | null>(null);
-  const [briefToken, setBriefToken] = useState<string | null>(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -188,29 +183,6 @@ function AppContent() {
         return;
       }
 
-      if (hash.startsWith('inbox/')) {
-        const slug = hash.split('/')[1];
-        if (slug && slug.trim()) {
-          setInboxSlug(slug.trim());
-          setCurrentPage('inbox-submit');
-        }
-        return;
-      }
-
-      if (hash.startsWith('brief/')) {
-        const tok = hash.split('/')[1];
-        if (tok && tok.trim()) {
-          setBriefToken(tok.trim());
-          setCurrentPage('inbox-brief');
-        }
-        return;
-      }
-
-      if (hash === 'my-inbox') {
-        setCurrentPage('my-inbox');
-        sessionStorage.setItem('currentPage', 'my-inbox');
-        return;
-      }
     };
 
     checkForSpecialRoutes();
@@ -308,13 +280,6 @@ function AppContent() {
       return;
     }
 
-    if (page === 'inbox-brief' && idParam) {
-      setBriefToken(idParam);
-      setCurrentPage('inbox-brief');
-      history.pushState(null, '', `#brief/${idParam}`);
-      return;
-    }
-
     setCurrentPage(page);
     sessionStorage.setItem('currentPage', page);
     const hashMap: Record<string, string> = {
@@ -322,7 +287,6 @@ function AppContent() {
       profile: userId ? `profile/${userId}` : 'profile',
       pricing: 'pricing',
       workspaces: 'workspaces',
-      'my-inbox': 'my-inbox',
       'payment-success': 'payment-success',
     };
     if (page in hashMap) {
@@ -442,14 +406,6 @@ function AppContent() {
     return wrap(<JoinWorkspace token={joinToken} onNavigate={handleNavigate} />);
   }
 
-  if (currentPage === 'inbox-submit' && inboxSlug) {
-    return wrap(<InboxSubmit slug={inboxSlug} />);
-  }
-
-  if (currentPage === 'inbox-brief' && briefToken) {
-    return wrap(<InboxBrief token={briefToken} onNavigate={handleNavigate} />);
-  }
-
   if (!user) {
     if (currentPage === 'auth') return <Auth />;
     if (currentPage === 'profile' && selectedUserId) {
@@ -506,7 +462,6 @@ function AppContent() {
             {activePage === 'home' && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
             {activePage === 'profile' && <Profile key={`profile-${selectedUserId || 'own'}`} userId={selectedUserId} onNavigate={handleNavigate} initialEditMode={profileEditMode} />}
             {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
-            {activePage === 'my-inbox' && <MyInbox key="my-inbox" onNavigate={handleNavigate} />}
             {activePage === 'workspace-hub' && workspaceId && (
               <WorkspaceHub
                 key={`workspace-hub-${workspaceId}`}
