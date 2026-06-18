@@ -323,7 +323,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         </h1>
 
         <p className="text-base leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'rgba(203,213,225,0.82)' }}>
-          Most bad decisions look reasonable in the room. Poddle brings structured AI reasoning to your team's highest-stakes calls — surfacing cognitive biases, pressure-testing assumptions, and flagging second-order risks before you commit.
+          Poddle is a decision intelligence layer for your team. Structured AI reasoning catches the biases, blind spots, and missing second-order effects before they become expensive mistakes.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
