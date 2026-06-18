@@ -373,18 +373,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 function PricingSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   const tiers = [
     {
-      name: 'Free',
-      price: '$0',
-      per: '/ month',
-      desc: 'For individuals exploring AI-assisted thinking',
-      cta: 'Get started free',
-      ctaAction: () => onNavigate('auth'),
-      highlight: false,
-      badge: null,
-      features: ['AI agent ask & public discussions', 'Post insights, get AI challenges', 'Ask agents questions'],
-      missing: ['No private workspaces', 'No War Room', 'No team collaboration'],
-    },
-    {
       name: 'Pro Individual',
       price: '$19',
       per: '/ month',
@@ -393,7 +381,7 @@ function PricingSection({ onNavigate }: { onNavigate: (p: string) => void }) {
       ctaAction: () => onNavigate('pricing'),
       highlight: true,
       badge: 'Most popular',
-      features: ['Everything in Free', 'Private encrypted workspace', 'War Room access', 'AI agents debate your ideas', 'Up to 5 workspace members', 'AI synthesis & recommendations', 'Export decisions & reports'],
+      features: ['Private encrypted workspace', 'War Room access', 'AI agents debate your ideas', 'Up to 5 workspace members', 'AI synthesis & recommendations', 'Export decisions & reports'],
       missing: [],
     },
     {
@@ -430,13 +418,13 @@ function PricingSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             <CreditCard className="w-3.5 h-3.5" />
             Simple, transparent pricing
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">Start free. Scale when you're ready.</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">Simple, transparent pricing.</h2>
           <p className="text-base text-slate-500 max-w-md mx-auto leading-relaxed">
-            The free tier is genuinely useful. Upgrade for private workspaces, War Room, and team collaboration.
+            Every plan includes private workspaces, War Room, and AI-powered decision intelligence. Cancel anytime.
           </p>
         </RevealSection>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {tiers.map((tier, i) => (
             <RevealSection key={tier.name} delay={i * 60}>
               <div
@@ -486,8 +474,6 @@ function PricingSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                   style={
                     tier.highlight
                       ? { background: 'rgba(255,255,255,1)', color: '#1e2d4a', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }
-                      : tier.name === 'Free'
-                      ? { border: '1px solid rgba(15,23,42,0.12)', color: '#334155', background: '#fff' }
                       : { background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', boxShadow: '0 4px 14px rgba(37,99,235,0.25)' }
                   }
                 >
@@ -500,7 +486,7 @@ function PricingSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 
         <RevealSection className="text-center mt-6" delay={300}>
           <p className="text-xs text-slate-400">
-            No credit card required for free plan. Cancel paid plans anytime.{' '}
+            Cancel anytime. No lock-in.{' '}
             <button onClick={() => onNavigate('pricing')} className="text-blue-500 hover:text-blue-600 underline underline-offset-2 transition-colors ml-1">
               View full feature comparison
             </button>
