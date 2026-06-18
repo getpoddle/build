@@ -224,8 +224,8 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="What decisions or ideas will this workspace focus on?"
-              rows={2}
-              maxLength={200}
+              rows={3}
+              maxLength={500}
               className="w-full px-4 py-3 rounded-xl text-sm border text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
               style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fafafa' }}
             />

@@ -67,14 +67,14 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
       <div className="max-w-3xl mx-auto px-4 py-8">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900 mb-1">Private Workspaces</h1>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-1">Private Workspaces</h1>
             <p className="text-slate-500 text-sm">Encrypted spaces where your team debates proprietary ideas with AI agents.</p>
           </div>
           <button
             onClick={handleCreateClick}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 flex-shrink-0"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 self-start sm:flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 6px 18px rgba(37,99,235,0.3)' }}
           >
             {!isPro && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}

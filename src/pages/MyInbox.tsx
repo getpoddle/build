@@ -374,7 +374,8 @@ function MyInbox({ onNavigate }: MyInboxProps) {
           initialDescription={[
             pendingSubmission.options ? `Options: ${pendingSubmission.options}` : '',
             pendingSubmission.context ? `Context: ${pendingSubmission.context}` : '',
-          ].filter(Boolean).join(' | ').slice(0, 200)}
+            pendingSubmission.submitter_name ? `Submitted by: ${pendingSubmission.submitter_name}` : '',
+          ].filter(Boolean).join('\n').slice(0, 500)}
         />
       )}
     </div>
