@@ -92,19 +92,19 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
 const DEMO_MESSAGES = [
   {
     agent: 'RA', bg: '#7c2d12', color: '#fdba74', label: 'Risk Analyst',
-    msg: "India's EV infrastructure is at 0.6% penetration. Tesla's Supercharger network would need $2B+ in capex before meaningful scale. The unit economics don't work until 2029 at the earliest.",
+    msg: "AI credit scoring models trained on US or UK data carry severe distribution shift risk in Southern and Eastern European markets. Default rate predictions could be off by 40–60% in the first 12 months. You need local training data before you lend at scale.",
   },
   {
-    agent: 'MA', bg: '#0c4a6e', color: '#7dd3fc', label: 'Market Analyst',
-    msg: "India is the world's third-largest auto market with 4.5M annual passenger car sales. Premium segment is growing 23% YoY. BYD and Tata are staking territory now — first-mover advantage erodes every quarter Tesla waits.",
+    agent: 'FS', bg: '#0c4a6e', color: '#7dd3fc', label: 'Financial Strategist',
+    msg: "The EU AI Act classifies AI-driven credit decisions as high-risk. Article 10 requires explainability per decision — not just model-level. Building a compliant audit trail adds 6–9 months to your launch timeline and ongoing cost per decision. Factor that into your unit economics.",
   },
   {
     agent: 'DA', bg: '#14532d', color: '#86efac', label: "Devil's Advocate",
-    msg: 'Every "wait for infrastructure" argument was made about China in 2014. Tesla entered anyway and now holds 12% of the premium EV market there. The question is not readiness — it is who builds the infrastructure.',
+    msg: 'Every incumbent cites compliance complexity as a moat. But Klarna and Monzo scaled across 6+ European jurisdictions in under 3 years. The regtech tooling is genuinely better now. The question is not whether compliance is hard — it is whether your team treats it as a blocker or a process.',
   },
   {
     agent: 'EL', bg: '#1e1b4b', color: '#a5b4fc', label: 'Execution Lead',
-    msg: 'The manufacturing constraint is real: Gigafactory India would take 36–48 months. Importing Model 3 at 100% import duty prices it above ₹50L — viable only for 0.1% of buyers. You need local production to matter.',
+    msg: "Passport your product through Germany first — strictest regulator, highest trust signal. A BaFin approval with clean model documentation unlocks France, Netherlands, and the Nordics far faster than parallel filings. Sequence this, don't parallelize.",
   },
 ];
 
@@ -134,7 +134,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             Watch the agents work.
           </h2>
           <p className="text-base text-slate-500 max-w-lg mx-auto leading-relaxed">
-            A team asks: <strong className="text-slate-700">"Should Tesla enter the Indian market?"</strong> Four specialized agents respond — simultaneously, from entirely different angles.
+            A fintech team asks: <strong className="text-slate-700">"Should we launch our AI lending product across Europe now?"</strong> Four specialized agents respond — simultaneously, from entirely different angles.
           </p>
         </div>
 
@@ -150,7 +150,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             <div className="w-3 h-3 rounded-full" style={{ background: '#10b981' }} />
             <div className="flex items-center gap-2 ml-4 flex-1">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.7)' }}>Private Workspace · Global Strategy</span>
+              <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.7)' }}>Private Workspace · European Expansion</span>
             </div>
             <Lock className="w-3 h-3" style={{ color: 'rgba(100,116,139,0.5)' }} />
           </div>
@@ -169,7 +169,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               </div>
               <div>
                 <p className="text-[11px] font-bold mb-1" style={{ color: '#93c5fd' }}>You</p>
-                <p className="text-sm leading-relaxed text-white font-medium">Should Tesla enter the Indian market now, or wait for infrastructure to mature?</p>
+                <p className="text-sm leading-relaxed text-white font-medium">We're ready to launch our AI-powered lending product. Should we go multi-market across Europe now, or stage the rollout?</p>
               </div>
             </div>
 
@@ -234,7 +234,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                   <span className="text-[11px] font-bold" style={{ color: '#93c5fd' }}>War Room Synthesis</span>
                 </div>
                 <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.9)' }}>
-                  <strong style={{ color: '#e2e8f0' }}>Verdict: Enter, but staged.</strong> Infrastructure risk is real but surmountable — Tesla built China's charger network itself. The window is closing as BYD scales. Recommended path: announce India entry now, import Model 3 at premium price to signal intent, break ground on Gigafactory Maharashtra by Q4 2026. Wait-and-see cedes the market.
+                  <strong style={{ color: '#e2e8f0' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp — it de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year. Parallel multi-market filing will slow you down more than it speeds you up.
                 </p>
               </div>
             )}
