@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Sparkles, ArrowRight, Shield, CheckCircle, Lock, Bot, Users,
-  Crown, Swords, Brain, BarChart2, X, CreditCard, Target, Zap,
-  MessageSquare, LineChart, ChevronDown,
+  Sparkles, ArrowRight, CheckCircle, Lock, Brain,
+  Crown, Swords, X, CreditCard, Zap,
 } from 'lucide-react';
 import JoinPromptModal from '../components/JoinPromptModal';
 
@@ -58,11 +57,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       )}
 
       <HeroSection onNavigate={onNavigate} />
-      <LogoStrip />
-      <FeaturesSection />
-      <HowItWorksSection onNavigate={onNavigate} />
-      <AgentRosterSection onJoin={openJoin} />
-      <WarRoomSection onNavigate={onNavigate} />
+      <LiveDemoSection onNavigate={onNavigate} />
       <PricingSection onNavigate={onNavigate} />
       <FinalCTA onNavigate={onNavigate} />
 
@@ -94,213 +89,186 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
   );
 }
 
-function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const agentPreviews = [
-    { name: 'The Skeptic',    initial: 'SK', bg: '#fef2f2', text: '#b91c1c' },
-    { name: 'Risk Analyst',   initial: 'RA', bg: '#fff7ed', text: '#c2410c' },
-    { name: 'Market Analyst', initial: 'MA', bg: '#f0fdfa', text: '#0f766e' },
-    { name: 'The Optimist',   initial: 'OP', bg: '#f0fdf4', text: '#15803d' },
-    { name: 'Data Detective', initial: 'DD', bg: '#eff6ff', text: '#1d4ed8' },
-  ];
+const DEMO_MESSAGES = [
+  {
+    agent: 'RA', bg: '#7c2d12', color: '#fdba74', label: 'Risk Analyst',
+    msg: "India's EV infrastructure is at 0.6% penetration. Tesla's Supercharger network would need $2B+ in capex before meaningful scale. The unit economics don't work until 2029 at the earliest.",
+  },
+  {
+    agent: 'MA', bg: '#0c4a6e', color: '#7dd3fc', label: 'Market Analyst',
+    msg: "India is the world's third-largest auto market with 4.5M annual passenger car sales. Premium segment is growing 23% YoY. BYD and Tata are staking territory now — first-mover advantage erodes every quarter Tesla waits.",
+  },
+  {
+    agent: 'DA', bg: '#14532d', color: '#86efac', label: "Devil's Advocate",
+    msg: 'Every "wait for infrastructure" argument was made about China in 2014. Tesla entered anyway and now holds 12% of the premium EV market there. The question is not readiness — it is who builds the infrastructure.',
+  },
+  {
+    agent: 'EL', bg: '#1e1b4b', color: '#a5b4fc', label: 'Execution Lead',
+    msg: 'The manufacturing constraint is real: Gigafactory India would take 36–48 months. Importing Model 3 at 100% import duty prices it above ₹50L — viable only for 0.1% of buyers. You need local production to matter.',
+  },
+];
+
+function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const [revealed, setRevealed] = useState(0);
+  const { ref, visible } = useScrollReveal();
+
+  useEffect(() => {
+    if (!visible) return;
+    let i = 0;
+    const tick = () => {
+      i += 1;
+      setRevealed(i);
+      if (i < DEMO_MESSAGES.length) setTimeout(tick, 900);
+    };
+    setTimeout(tick, 300);
+  }, [visible]);
 
   return (
-    <section
-      className="relative overflow-hidden"
-      style={{
-        background: 'linear-gradient(170deg, #0f172a 0%, #1e2d4a 55%, #1e3a5f 100%)',
-        minHeight: '92vh',
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
-      {/* Background mesh */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(37,99,235,0.18) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(6,182,212,0.12) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10">
-        <div className="grid lg:grid-cols-2 gap-14 items-center">
-          <div>
-            <div
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-6"
-              style={{ background: 'rgba(37,99,235,0.15)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.25)' }}
-            >
-              <Brain className="w-3.5 h-3.5" />
-              Decision Intelligence Platform
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-black leading-[1.08] mb-5 text-white">
-              The AI panel that<br />
-              challenges your best{' '}
-              <span style={{ background: 'linear-gradient(135deg,#60a5fa,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                thinking.
-              </span>
-            </h1>
-
-            <p className="text-base leading-relaxed mb-8 max-w-lg" style={{ color: 'rgba(203,213,225,0.85)' }}>
-              Seven specialized AI agents debate your strategy, stress-test assumptions, and surface blind spots — in a private workspace your team actually controls.
-            </p>
-
-            <div className="flex items-center gap-3 mb-8 flex-wrap">
-              <div className="flex -space-x-2">
-                {agentPreviews.map(a => (
-                  <div
-                    key={a.name}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black border-2"
-                    style={{ background: a.bg, color: a.text, borderColor: '#1e2d4a' }}
-                    title={a.name}
-                  >
-                    {a.initial}
-                  </div>
-                ))}
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold border-2" style={{ background: 'rgba(255,255,255,0.08)', color: '#94a3b8', borderColor: '#1e2d4a' }}>+2</div>
-              </div>
-              <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.9)' }}>7 specialized reasoning agents</span>
-            </div>
-
-            <div className="flex flex-wrap gap-3 mb-8">
-              <button
-                onClick={() => onNavigate('auth')}
-                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-                style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 8px 28px rgba(37,99,235,0.4)' }}
-              >
-                <Sparkles className="w-4 h-4" />
-                Start for free
-              </button>
-              <button
-                onClick={() => onNavigate('pricing')}
-                className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-                style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}
-              >
-                View pricing
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-5 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-                <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Free. No card required.</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-                <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Private workspaces from $19/mo</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Product demo card */}
-          <div className="hidden lg:block">
-            <div
-              className="rounded-3xl overflow-hidden"
-              style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}
-            >
-              {/* Window chrome */}
-              <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
-                <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
-                <div className="w-3 h-3 rounded-full" style={{ background: '#f59e0b' }} />
-                <div className="w-3 h-3 rounded-full" style={{ background: '#10b981' }} />
-                <div className="flex items-center gap-2 ml-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.7)' }}>Private Workspace · Series A Prep</span>
-                </div>
-                <Lock className="w-3 h-3 ml-auto" style={{ color: 'rgba(100,116,139,0.6)' }} />
-              </div>
-
-              <div className="p-5 space-y-3">
-                {[
-                  { agent: 'SK', bg: '#7f1d1d', color: '#fca5a5', label: 'The Skeptic', msg: 'Your 40% market penetration assumption in 18 months has no distribution moat behind it. What is the actual acquisition engine?' },
-                  { agent: 'OP', bg: '#14532d', color: '#86efac', label: 'The Optimist', msg: 'The network effect compounds faster than modeled. Each enterprise cohort brings avg 3.2 referrals — that is $50M ARR by month 24.' },
-                  { agent: 'RA', bg: '#7c2d12', color: '#fdba74', label: 'Risk Analyst', msg: 'Key-person concentration is the #1 failure mode. CTO holds 60% of technical IP with no succession plan.' },
-                  { agent: 'DD', bg: '#1e3a5f', color: '#93c5fd', label: 'Data Detective', msg: 'Comparable Series A raises in this category averaged $8.2M at 6.1x ARR multiple. Your $12M ask requires defensible differentiation.' },
-                ].map(({ agent, bg, color, label, msg }) => (
-                  <div key={agent} className="flex gap-3">
-                    <div className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5" style={{ background: bg, color }}>
-                      {agent}
-                    </div>
-                    <div className="flex-1 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                      <p className="text-[11px] font-bold mb-1" style={{ color }}>{label}</p>
-                      <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.75)' }}>{msg}</p>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="rounded-xl p-3.5 mt-1" style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.2),rgba(6,182,212,0.15))', border: '1px solid rgba(37,99,235,0.3)' }}>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-4 h-4 rounded-md flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.3)' }}>
-                      <Brain className="w-2.5 h-2.5" style={{ color: '#93c5fd' }} />
-                    </div>
-                    <span className="text-[11px] font-bold" style={{ color: '#93c5fd' }}>AI Synthesis</span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.85)' }}>
-                    <strong style={{ color: '#e2e8f0' }}>Consensus:</strong> Strong product, thin distribution story. Lock CTO equity, validate GTM via 3-customer pilot, then raise with real retention data.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-center mt-16">
-          <a href="#features" className="flex flex-col items-center gap-2 group" style={{ color: 'rgba(100,116,139,0.6)' }}>
-            <span className="text-xs font-medium group-hover:text-slate-400 transition-colors">Explore features</span>
-            <ChevronDown className="w-5 h-5 group-hover:text-slate-400 transition-colors animate-bounce" />
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function LogoStrip() {
-  const items = [
-    { label: 'Founders' }, { label: 'Product Teams' }, { label: 'Strategy Leaders' },
-    { label: 'Startup Operators' }, { label: 'Board Advisors' }, { label: 'VCs' },
-  ];
-  return (
-    <div style={{ background: '#fff', borderBottom: '1px solid rgba(15,23,42,0.06)' }} className="py-5">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Trusted by decision-makers at</p>
-        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-          {items.map(item => (
-            <span key={item.label} className="text-sm font-bold text-slate-400">{item.label}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FeaturesSection() {
-  const features = [
-    { icon: Lock,         color: '#2563eb', bg: '#eff6ff', title: 'Private & encrypted',       desc: 'Your workspace is invisible to the public. Every decision, assumption, and synthesis stays inside your org.' },
-    { icon: Bot,          color: '#0891b2', bg: '#ecfeff', title: '7 specialized AI agents',   desc: 'The Skeptic, Risk Analyst, Optimist, Data Detective, and three more — each with a distinct analytical lens.' },
-    { icon: Brain,        color: '#7c3aed', bg: '#f5f3ff', title: 'AI synthesis',               desc: 'After the debate, AI synthesizes dissenting views into a clear recommendation with next steps.' },
-    { icon: Swords,       color: '#dc2626', bg: '#fef2f2', title: 'War Room',                   desc: 'Run a structured red-team session before critical decisions: pivots, hires, fundraises, market entries.' },
-    { icon: Users,        color: '#16a34a', bg: '#f0fdf4', title: 'Team collaboration',         desc: 'Invite up to 10 team members. Everyone contributes context; AI agents respond to the full picture.' },
-    { icon: BarChart2,    color: '#ea580c', bg: '#fff7ed', title: 'Scenario modeling',          desc: 'Agents generate best/base/worst-case trees with probability weights and decision paths.' },
-  ];
-
-  return (
-    <section id="features" style={{ background: '#fafafa', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <RevealSection className="text-center mb-14">
+    <section ref={ref} style={{ background: '#fff', borderTop: '1px solid rgba(15,23,42,0.05)', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(37,99,235,0.07)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.12)' }}>
-            Platform capabilities
+            Live example
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">
-            Everything your team needs<br />to decide with confidence
+            Watch the agents work.
           </h2>
-          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Poddle replaces gut-feel decision-making with structured AI debate — in a workspace only your team can see.
+          <p className="text-base text-slate-500 max-w-lg mx-auto leading-relaxed">
+            A team asks: <strong className="text-slate-700">"Should Tesla enter the Indian market?"</strong> Four specialized agents respond — simultaneously, from entirely different angles.
           </p>
-        </RevealSection>
+        </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map(({ icon: Icon, color, bg, title, desc }, i) => (
-            <RevealSection key={title} delay={i * 60}>
+        {/* Browser-style demo */}
+        <div
+          className="rounded-3xl overflow-hidden mx-auto"
+          style={{ maxWidth: 780, background: 'linear-gradient(170deg,#0f172a,#1a2744)', boxShadow: '0 32px 80px rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          {/* Title bar */}
+          <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
+            <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
+            <div className="w-3 h-3 rounded-full" style={{ background: '#f59e0b' }} />
+            <div className="w-3 h-3 rounded-full" style={{ background: '#10b981' }} />
+            <div className="flex items-center gap-2 ml-4 flex-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.7)' }}>Private Workspace · Global Strategy</span>
+            </div>
+            <Lock className="w-3 h-3" style={{ color: 'rgba(100,116,139,0.5)' }} />
+          </div>
+
+          {/* User prompt */}
+          <div className="px-5 pt-5 pb-4">
+            <div
+              className="flex items-start gap-3 rounded-2xl p-4 mb-1"
+              style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.2)' }}
+            >
+              <div
+                className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
+                style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', color: '#fff' }}
+              >
+                YO
+              </div>
+              <div>
+                <p className="text-[11px] font-bold mb-1" style={{ color: '#93c5fd' }}>You</p>
+                <p className="text-sm leading-relaxed text-white font-medium">Should Tesla enter the Indian market now, or wait for infrastructure to mature?</p>
+              </div>
+            </div>
+
+            {/* Agent tags */}
+            <div className="flex items-center gap-2 mt-3 mb-4 flex-wrap">
+              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'rgba(100,116,139,0.6)' }}>Responding:</span>
+              {DEMO_MESSAGES.map((m, i) => (
+                <span
+                  key={m.agent}
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300"
+                  style={i < revealed
+                    ? { background: m.bg, color: m.color, opacity: 1 }
+                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(100,116,139,0.4)' }}
+                >
+                  {m.label}
+                </span>
+              ))}
+            </div>
+
+            {/* Agent responses */}
+            <div className="space-y-3 pb-1">
+              {DEMO_MESSAGES.map((m, i) => (
+                <div
+                  key={m.agent}
+                  className="flex gap-3 transition-all duration-500"
+                  style={{
+                    opacity: i < revealed ? 1 : 0,
+                    transform: i < revealed ? 'translateY(0)' : 'translateY(10px)',
+                  }}
+                >
+                  <div
+                    className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
+                    style={{ background: m.bg, color: m.color }}
+                  >
+                    {m.agent}
+                  </div>
+                  <div
+                    className="flex-1 rounded-xl p-3.5"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                  >
+                    <p className="text-[11px] font-bold mb-1.5" style={{ color: m.color }}>{m.label}</p>
+                    <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.82)' }}>{m.msg}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Synthesis */}
+            {revealed >= DEMO_MESSAGES.length && (
+              <div
+                className="mt-4 rounded-2xl p-4 transition-all duration-700"
+                style={{
+                  background: 'linear-gradient(135deg,rgba(37,99,235,0.18),rgba(6,182,212,0.12))',
+                  border: '1px solid rgba(37,99,235,0.3)',
+                  opacity: revealed >= DEMO_MESSAGES.length ? 1 : 0,
+                }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.3)' }}>
+                    <Brain className="w-3 h-3" style={{ color: '#93c5fd' }} />
+                  </div>
+                  <span className="text-[11px] font-bold" style={{ color: '#93c5fd' }}>War Room Synthesis</span>
+                </div>
+                <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.9)' }}>
+                  <strong style={{ color: '#e2e8f0' }}>Verdict: Enter, but staged.</strong> Infrastructure risk is real but surmountable — Tesla built China's charger network itself. The window is closing as BYD scales. Recommended path: announce India entry now, import Model 3 at premium price to signal intent, break ground on Gigafactory Maharashtra by Q4 2026. Wait-and-see cedes the market.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom bar */}
+          <div className="px-5 py-3.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+            <div className="flex items-center gap-3">
+              <div
+                className="flex-1 h-9 rounded-xl px-3.5 flex items-center gap-2"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <span className="text-xs" style={{ color: 'rgba(100,116,139,0.5)' }}>Ask a follow-up or challenge an agent…</span>
+              </div>
+              <button
+                onClick={() => onNavigate('auth')}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-0.5"
+                style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 4px 12px rgba(37,99,235,0.35)' }}
+              >
+                <Sparkles className="w-3 h-3" />
+                Try it
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Three proof points beneath the demo */}
+        <div className="grid sm:grid-cols-3 gap-5 mt-12">
+          {[
+            { icon: Brain, color: '#2563eb', bg: '#eff6ff', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Scout, People Advisor. Each tuned for a different lens." },
+            { icon: Lock, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Your workspace is encrypted and invisible to the public. Invite your team. Nothing leaves your org.' },
+            { icon: Swords, color: '#dc2626', bg: '#fef2f2', title: 'War Room synthesis', desc: "When agents disagree, AI synthesizes dissenting views into a clear recommendation with explicit reasoning and next steps." },
+          ].map(({ icon: Icon, color, bg, title, desc }, i) => (
+            <RevealSection key={title} delay={i * 80}>
               <div
                 className="h-full p-6 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                 style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
@@ -319,165 +287,84 @@ function FeaturesSection() {
   );
 }
 
-function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const steps = [
-    { number: '01', icon: Lock,     title: 'Create a private workspace',   desc: 'Invite your team. Everything inside is encrypted and never visible to the public. Your strategy stays yours.' },
-    { number: '02', icon: Bot,      title: 'Ask AI agents to weigh in',    desc: 'Seven specialized agents debate your question simultaneously — from The Skeptic to The Optimist — each from a distinct lens.' },
-    { number: '03', icon: Swords,   title: 'Surface blind spots',          desc: 'Agents challenge assumptions, flag key-person risks, question market sizing, and point out what you\'ve missed.' },
-    { number: '04', icon: CheckCircle, title: 'Decide with clarity',       desc: 'AI synthesizes the debate into a clear recommendation with dissenting views. You decide with the full picture.' },
-  ];
-
+function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section style={{ background: '#fff', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <RevealSection className="mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(15,23,42,0.05)', color: '#334155', border: '1px solid rgba(15,23,42,0.08)' }}>
-            How it works
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">From question to decision in four steps</h2>
-          <p className="text-base text-slate-500 max-w-md leading-relaxed">No setup complexity. Open a workspace, ask a question, and your AI panel responds within seconds.</p>
-        </RevealSection>
+    <section
+      className="relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(170deg, #0f172a 0%, #1e2d4a 55%, #1e3a5f 100%)',
+        minHeight: '82vh',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      {/* Background mesh */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(37,99,235,0.18) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(6,182,212,0.12) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
+      </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px rounded-2xl overflow-hidden" style={{ background: 'rgba(15,23,42,0.06)' }}>
-          {steps.map(({ number, icon: Icon, title, desc }, i) => (
-            <RevealSection key={number} delay={i * 80} className="h-full">
-              <div className="h-full p-7 bg-white">
-                <div
-                  className="text-xs font-black mb-5 inline-flex items-center justify-center w-8 h-8 rounded-xl"
-                  style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', color: '#fff' }}
-                >
-                  {number}
-                </div>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(37,99,235,0.07)' }}>
-                  <Icon className="w-4.5 h-4.5 text-blue-600" style={{ width: '1.125rem', height: '1.125rem' }} />
-                </div>
-                <h3 className="text-sm font-bold text-slate-900 mb-2">{title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
-              </div>
-            </RevealSection>
-          ))}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10 text-center">
+        <div
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-7"
+          style={{ background: 'rgba(37,99,235,0.15)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.25)' }}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          Decision Intelligence Platform
         </div>
 
-        <RevealSection className="mt-10 text-center" delay={200}>
+        <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-black leading-[1.07] mb-6 text-white mx-auto max-w-3xl">
+          Seven AI agents that<br />
+          challenge your best{' '}
+          <span style={{ background: 'linear-gradient(135deg,#60a5fa,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            thinking.
+          </span>
+        </h1>
+
+        <p className="text-base leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'rgba(203,213,225,0.82)' }}>
+          Give your team a private workspace where specialized AI agents debate your strategy, stress-test assumptions, and surface the blind spots you can't see from inside the room.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
           <button
             onClick={() => onNavigate('auth')}
-            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 6px 20px rgba(37,99,235,0.3)' }}
+            className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+            style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 8px 28px rgba(37,99,235,0.4)' }}
           >
             <Sparkles className="w-4 h-4" />
-            Try it free — no card needed
+            Start for free
           </button>
-        </RevealSection>
-      </div>
-    </section>
-  );
-}
-
-function AgentRosterSection({ onJoin }: { onJoin: (t: string) => void }) {
-  const agents = [
-    { name: 'The Skeptic',     role: 'Finds the fatal flaw',       initial: 'SK', bg: '#fef2f2', text: '#b91c1c' },
-    { name: 'Risk Analyst',    role: 'Quantifies downside risk',    initial: 'RA', bg: '#fff7ed', text: '#c2410c' },
-    { name: 'The Optimist',    role: 'Spots hidden upside',         initial: 'OP', bg: '#f0fdf4', text: '#15803d' },
-    { name: 'Data Detective',  role: 'Grounds claims in evidence',  initial: 'DD', bg: '#eff6ff', text: '#1d4ed8' },
-    { name: 'Market Analyst',  role: 'Maps competitive dynamics',   initial: 'MA', bg: '#f0fdfa', text: '#0f766e' },
-    { name: 'Systems Thinker', role: 'Traces feedback loops',       initial: 'ST', bg: '#faf5ff', text: '#7c3aed' },
-    { name: 'The Pragmatist',  role: 'What actually ships',         initial: 'PR', bg: '#f8fafc', text: '#475569' },
-  ];
-
-  return (
-    <section style={{ background: 'linear-gradient(170deg,#0f172a,#1e2d4a)', borderBottom: '1px solid rgba(255,255,255,0.06)' }} className="py-20">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <RevealSection className="mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(37,99,235,0.18)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.25)' }}>
-            The Reasoning Panel
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">7 agents. Every angle.</h2>
-          <p className="text-base max-w-xl leading-relaxed" style={{ color: 'rgba(148,163,184,0.85)' }}>
-            No echo chambers. Each agent is built to challenge your thinking from a fundamentally different analytical lens — simultaneously, in every session.
-          </p>
-        </RevealSection>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          {agents.map((agent, i) => (
-            <RevealSection key={agent.name} delay={i * 50}>
-              <button
-                onClick={() => onJoin('ai')}
-                className="w-full flex flex-col items-center gap-2.5 p-4 rounded-2xl text-center transition-all duration-200 hover:-translate-y-1 group"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-              >
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-xs font-black transition-transform duration-200 group-hover:scale-110" style={{ background: agent.bg, color: agent.text }}>
-                  {agent.initial}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-white leading-tight">{agent.name}</p>
-                  <p className="text-[11px] mt-0.5 leading-tight" style={{ color: 'rgba(148,163,184,0.7)' }}>{agent.role}</p>
-                </div>
-              </button>
-            </RevealSection>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function WarRoomSection({ onNavigate }: { onNavigate: (p: string) => void }) {
-  return (
-    <section style={{ background: '#fff', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <RevealSection className="mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(220,38,38,0.07)', color: '#b91c1c', border: '1px solid rgba(220,38,38,0.12)' }}>
-            <Swords className="w-3.5 h-3.5" />
-            War Room
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">Red-team every high-stakes decision</h2>
-          <p className="text-base text-slate-500 max-w-xl leading-relaxed">
-            Before a pivot, a major hire, a fundraise, or a market entry — run it through the War Room. No blind spots. No groupthink.
-          </p>
-        </RevealSection>
-
-        <div className="grid lg:grid-cols-3 gap-5 mb-8">
-          {[
-            { icon: Swords,    color: '#dc2626', bg: '#fef2f2', title: 'Red team your decisions',    desc: 'AI agents actively try to find the fatal flaw in your plan. The Skeptic, Risk Analyst, and Market Analyst challenge every assumption simultaneously.' },
-            { icon: BarChart2, color: '#0369a1', bg: '#f0f9ff', title: 'Scenario intelligence',      desc: 'Model best-case, base-case, and worst-case outcomes. Agents generate scenario trees with probability weights and decision paths.' },
-            { icon: Brain,     color: '#15803d', bg: '#f0fdf4', title: 'Consensus synthesis',        desc: 'When agents disagree, AI synthesizes the debate into a clear recommendation with dissenting views noted. You see the full reasoning.' },
-          ].map(({ icon: Icon, color, bg, title, desc }, i) => (
-            <RevealSection key={title} delay={i * 80}>
-              <div
-                className="h-full p-7 rounded-2xl transition-all duration-200 hover:shadow-md"
-                style={{ background: '#fafafa', border: '1px solid rgba(15,23,42,0.07)' }}
-              >
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: bg }}>
-                  <Icon className="w-5 h-5" style={{ color }} />
-                </div>
-                <h3 className="text-sm font-bold text-slate-900 mb-2">{title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
-              </div>
-            </RevealSection>
-          ))}
-        </div>
-
-        <RevealSection delay={200}>
-          <div
-            className="rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5"
-            style={{ background: 'linear-gradient(135deg,#fef2f2,#fff7ed)', border: '1px solid rgba(220,38,38,0.1)' }}
+          <button
+            onClick={() => onNavigate('pricing')}
+            className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+            style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}
           >
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)' }}>
-              <Swords className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-black text-slate-900">Included in every paid plan</p>
-              <p className="text-xs text-slate-500 mt-0.5">War Room access is built into Pro Individual, Poddle Team, and Enterprise. No add-ons needed.</p>
-            </div>
-            <button
-              onClick={() => onNavigate('pricing')}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all hover:-translate-y-0.5 flex-shrink-0 text-white"
-              style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', boxShadow: '0 4px 14px rgba(220,38,38,0.25)' }}
-            >
-              Unlock War Room <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            View pricing
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center gap-5 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Free. No card required.</span>
           </div>
-        </RevealSection>
+          <div className="flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Private workspaces from $19/mo</span>
+          </div>
+        </div>
+
+        {/* Scroll hint */}
+        <div className="flex justify-center mt-16">
+          <a href="#demo" className="flex flex-col items-center gap-2 group" style={{ color: 'rgba(100,116,139,0.6)' }}>
+            <span className="text-xs font-medium group-hover:text-slate-400 transition-colors">See it in action</span>
+            <div className="w-5 h-5 flex items-center justify-center animate-bounce">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 9l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+          </a>
+        </div>
       </div>
     </section>
   );
