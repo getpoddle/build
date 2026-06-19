@@ -381,7 +381,7 @@ function PricingSection({ onNavigate }: { onNavigate: (p: string) => void }) {
       ctaAction: () => onNavigate('pricing'),
       highlight: true,
       badge: 'Most popular',
-      features: ['Private encrypted workspace', 'War Room access', 'AI agents debate your ideas', 'Up to 5 workspace members', 'AI synthesis & recommendations', 'Export decisions & reports'],
+      features: ['Private encrypted workspace', 'War Room access', 'AI agents debate your ideas', 'Up to 3 workspace members', 'AI synthesis & recommendations', 'Export decisions & reports'],
       missing: [],
     },
     {
@@ -554,14 +554,6 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
               className="inline-block transition-transform hover:-translate-y-0.5"
             >
               <img alt="Poddle on BetaList" width={156} height={54} style={{ width: '156px', height: '54px' }} src="https://betalist.com/badges/featured?id=152531&theme=color" />
-            </a>
-            <a
-              href="https://www.producthunt.com/products/poddle-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-poddle-2"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block transition-transform hover:-translate-y-0.5"
-            >
-              <img alt="Poddle on Product Hunt" width={250} height={54} style={{ width: '250px', height: '54px' }} src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1169789&theme=light&t=1781341577123" />
             </a>
           </div>
         </RevealSection>
