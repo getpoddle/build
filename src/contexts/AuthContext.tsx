@@ -113,6 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .maybeSingle();
 
           if (!profile) {
+            // Guard against deleted accounts: if the auth account is older than
+            // 10 minutes but has no profile, the user was deleted by an admin.
+            // Sign them out immediately instead of recreating their profile.
+            const accountAgeMs = Date.now() - new Date(session.user.created_at).getTime();
+            if (accountAgeMs > 10 * 60 * 1000) {
+              await supabase.auth.signOut({ scope: 'local' });
+              return;
+            }
+          }
+
+          if (!profile) {
             const fullName = getDisplayName({
               full_name: session.user.user_metadata?.full_name,
               first_name: session.user.user_metadata?.first_name,

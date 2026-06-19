@@ -265,6 +265,25 @@ export default function AdminDashboard() {
         result = await supabase.rpc('delete_user_account', {
           target_user_id: moderationAction.userId,
         });
+        if (result?.error) throw result.error;
+
+        // Also delete the auth.users record via the admin API so the user
+        // cannot log back in. The RPC may not have sufficient privileges to
+        // delete from auth.users directly.
+        const { data: { session } } = await supabase.auth.getSession();
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const authDeleteRes = await fetch(`${supabaseUrl}/functions/v1/admin-delete-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ target_user_id: moderationAction.userId }),
+        });
+        const authDeleteJson = await authDeleteRes.json();
+        if (!authDeleteRes.ok && authDeleteJson.error) {
+          console.error('auth user deletion failed:', authDeleteJson.error);
+        }
       }
 
       if (result?.error) throw result.error;
