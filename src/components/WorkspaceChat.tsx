@@ -27,6 +27,11 @@ interface MemberProfile {
   username?: string | null;
 }
 
+interface DocumentContext {
+  filename: string;
+  extractedText: string;
+}
+
 interface WorkspaceChatProps {
   workspaceId: string;
   workspaceName: string;
@@ -34,6 +39,7 @@ interface WorkspaceChatProps {
   initialPrompt?: string;
   onPromptConsumed?: () => void;
   onAgentsReplied?: () => void;
+  documents?: DocumentContext[];
 }
 
 const AGENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -71,7 +77,7 @@ const STARTER_PROMPTS = [
   'What are the top 3 opportunities we might be overlooking?',
 ];
 
-export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTopic, initialPrompt, onPromptConsumed, onAgentsReplied }: WorkspaceChatProps) {
+export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTopic, initialPrompt, onPromptConsumed, onAgentsReplied, documents }: WorkspaceChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberProfile>>({});
@@ -305,7 +311,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token}`,
         },
-        body: JSON.stringify({ workspace_id: workspaceId, message: content, history: historyForApi }),
+        body: JSON.stringify({
+          workspace_id: workspaceId,
+          message: content,
+          history: historyForApi,
+          documents: (documents || []).map(d => ({ filename: d.filename, extractedText: d.extractedText })),
+        }),
       });
 
       const json = await res.json();

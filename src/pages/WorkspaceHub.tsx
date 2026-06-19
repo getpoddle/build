@@ -9,6 +9,7 @@ import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
 import WorkspaceChat from '../components/WorkspaceChat';
 import WorkspaceWarRoom, { WarRoomLockedState } from '../components/WorkspaceWarRoom';
 import UpgradePrompt from '../components/UpgradePrompt';
+import DocumentUploader, { type DocumentContext } from '../components/DocumentUploader';
 
 type MainTab = 'entities' | 'chat';
 
@@ -52,6 +53,8 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
   const [warRoomKey, setWarRoomKey] = useState(0);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [discussedKeys, setDiscussedKeys] = useState<Set<string>>(new Set());
+  // Session-scoped document context — never persisted to DB
+  const [documents, setDocuments] = useState<DocumentContext[]>([]);
 
   function handleDiscuss(prompt: string) {
     setPendingPrompt(prompt);
@@ -83,7 +86,10 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ workspace_id: workspaceId }),
+          body: JSON.stringify({
+            workspace_id: workspaceId,
+            documents: documents.map(d => ({ filename: d.filename, extractedText: d.extractedText })),
+          }),
           signal: controller.signal,
         });
       } catch {
@@ -345,12 +351,25 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
                   initialPrompt={pendingPrompt}
                   onPromptConsumed={() => setPendingPrompt(undefined)}
                   onAgentsReplied={handleAgentsReplied}
+                  documents={documents}
                 />
               </div>
             </div>
           )}
           {mainTab === 'entities' && (
-            <div>
+            <div className="space-y-4">
+              <div
+                className="rounded-2xl p-4"
+                style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
+              >
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Document Context</p>
+                <DocumentUploader
+                  documents={documents}
+                  onChange={setDocuments}
+                  isPro={workspaceIsPro}
+                  onUpgrade={() => setShowUpgrade(true)}
+                />
+              </div>
               {workspaceIsPro ? (
                 <WorkspaceWarRoom
                   key={warRoomKey}
@@ -414,8 +433,8 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           </div>
 
           {/* Right: War Room panel */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-slate-400" />
                 <h2 className="text-sm font-bold text-slate-700">War Room</h2>
@@ -440,6 +459,21 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
                 </button>
               )}
             </div>
+
+            {/* Document context uploader */}
+            <div
+              className="rounded-2xl p-4"
+              style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
+            >
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Document Context</p>
+              <DocumentUploader
+                documents={documents}
+                onChange={setDocuments}
+                isPro={workspaceIsPro}
+                onUpgrade={() => setShowUpgrade(true)}
+              />
+            </div>
+
             {workspaceIsPro ? (
               <WorkspaceWarRoom
                 key={warRoomKey}

@@ -301,7 +301,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { workspace_id, message, history } = await req.json();
+    const { workspace_id, message, history, documents } = await req.json() as {
+      workspace_id: string;
+      message: string;
+      history?: Array<{ role: string; content: string }>;
+      documents?: Array<{ filename: string; extractedText: string }>;
+    };
+
+    const validDocs = Array.isArray(documents)
+      ? documents.filter(d => d?.filename && typeof d.extractedText === "string" && d.extractedText.length > 0).slice(0, 3)
+      : [];
     if (!workspace_id || !message) {
       return new Response(JSON.stringify({ error: "Missing workspace_id or message" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -479,6 +488,25 @@ Deno.serve(async (req: Request) => {
 
     const workspaceHeader = `You are participating in a private team workspace called "${workspace?.name || "Private Workspace"}"${workspace?.description ? ` focused on: ${workspace.description}` : ""}${workspace?.domain ? ` (domain: ${workspace.domain})` : ""}.`;
 
+    // Build document context block from session-scoped uploaded files
+    let documentBlock = "";
+    if (validDocs.length > 0) {
+      const docLines: string[] = [
+        "\n\n=== UPLOADED DOCUMENTS (primary context — highest priority) ===",
+        "The user has uploaded the following document(s) as the basis for this discussion.",
+        "You MUST ground your analysis in this content where relevant.",
+        'Reference it explicitly (e.g. "According to the uploaded business plan...", "The financial projections in your report show...").',
+        "",
+      ];
+      for (const doc of validDocs) {
+        docLines.push(`[${doc.filename}]`);
+        docLines.push(doc.extractedText.slice(0, 10000));
+        docLines.push("");
+      }
+      docLines.push("=== END DOCUMENTS ===");
+      documentBlock = docLines.join("\n");
+    }
+
     // ── Call selected agents in parallel ────────────────────────────────────
     const agentResponses = await Promise.all(
       selectedAgents.map(async (agent) => {
@@ -488,7 +516,7 @@ Deno.serve(async (req: Request) => {
 
         const systemPrompt = `${agent.persona}
 
-${workspaceHeader}${memoryContext}${agentPatternContext}${synthesisContext}
+${workspaceHeader}${documentBlock}${memoryContext}${agentPatternContext}${synthesisContext}
 
 Keep responses under 300 words. Be specific, take clear positions, name concrete things. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging.`;
 

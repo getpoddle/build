@@ -32,12 +32,20 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { workspace_id } = await req.json();
+    const body = await req.json();
+    const { workspace_id, documents } = body as {
+      workspace_id: string;
+      documents?: Array<{ filename: string; extractedText: string }>;
+    };
     if (!workspace_id) {
       return new Response(JSON.stringify({ error: "Missing workspace_id" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const validDocs = Array.isArray(documents)
+      ? documents.filter(d => d?.filename && typeof d.extractedText === "string" && d.extractedText.length > 0).slice(0, 3)
+      : [];
 
     const service = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -89,9 +97,29 @@ Deno.serve(async (req: Request) => {
       memberLabelMap.set(m.user_id, { label, firstName });
     }
 
-    // Build compact transcript — cap each message at 300 chars, total at 5000 chars
+    // Build document context block — prepended to prompt when documents are present
+    let documentBlock = "";
+    if (validDocs.length > 0) {
+      const docLines: string[] = [
+        "=== UPLOADED DOCUMENTS ===",
+        "The user has provided the following document(s) as primary context for this decision.",
+        "You MUST ground your analysis in this content where relevant.",
+        'Reference it explicitly (e.g. "According to the uploaded business plan...", "Based on the financial projections in the uploaded report...").',
+        "",
+      ];
+      for (const doc of validDocs) {
+        docLines.push(`[${doc.filename}]`);
+        docLines.push(doc.extractedText.slice(0, 12000));
+        docLines.push("");
+      }
+      docLines.push("=== END DOCUMENTS ===");
+      documentBlock = docLines.join("\n") + "\n\n";
+    }
+
+    // Build compact transcript — cap each message at 300 chars
+    // Reduce transcript cap when documents present to protect total prompt size
     let transcriptChars = 0;
-    const TRANSCRIPT_CAP = 5000;
+    const TRANSCRIPT_CAP = validDocs.length > 0 ? 3000 : 5000;
     const transcriptLines: string[] = [];
     for (const m of messages) {
       const raw = m.role === "user"
@@ -121,7 +149,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const synthesisPrompt = `You are a strategic intelligence analyst for workspace "${workspace?.name || "Workspace"}"${workspace?.description ? ` (focus: ${workspace.description})` : ""}.${humanNamesNote}${priorMemoryNote}
+    const synthesisPrompt = `${documentBlock}You are a strategic intelligence analyst for workspace "${workspace?.name || "Workspace"}"${workspace?.description ? ` (focus: ${workspace.description})` : ""}.${humanNamesNote}${priorMemoryNote}
 
 Return a JSON object with this exact structure (no markdown, no extra text):
 
