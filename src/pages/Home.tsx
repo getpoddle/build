@@ -1,5 +1,4 @@
 import { Bot, Brain, Lock, Sparkles, ArrowRight, Shield } from 'lucide-react';
-import WhoToFollow from '../components/WhoToFollow';
 import AskAgentsSidebar from '../components/AskAgentsSidebar';
 
 interface HomeProps {
@@ -147,7 +146,6 @@ export default function Home({ onNavigate }: HomeProps) {
 
           <div className="lg:col-span-1 hidden lg:block">
             <div className="sticky top-20 space-y-4">
-              <WhoToFollow onNavigate={onNavigate} />
               <AskAgentsSidebar />
             </div>
           </div>

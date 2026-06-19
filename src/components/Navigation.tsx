@@ -1,11 +1,8 @@
-import { Sparkles, User, LogOut, Search, Bell, X, Bot, Lock, Home } from 'lucide-react';
+import { Sparkles, User, LogOut, Search, X, Bot, Lock, Home } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import Notifications from './Notifications';
 import UnifiedSearch from './UnifiedSearch';
-import MobileNotificationsContent from './MobileNotificationsSheet';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { throttle } from '../lib/throttle';
 
 interface NavigationProps {
   currentPage: string;
@@ -37,8 +34,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
   const [showSearch, setShowSearch] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showMobileNotifications, setShowMobileNotifications] = useState(false);
-  const [mobileUnreadCount, setMobileUnreadCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -58,33 +53,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
       .catch(() => setIsAdmin(false));
   }, [user]);
 
-  const fetchMobileUnreadCount = useCallback(async () => {
-    if (!user) return;
-    try {
-      const { count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-      setMobileUnreadCount(count || 0);
-    } catch {}
-  }, [user]);
-
-  const throttledFetchCount = useMemo(
-    () => throttle(fetchMobileUnreadCount, 1000),
-    [fetchMobileUnreadCount]
-  );
-
-  useEffect(() => {
-    if (!user) return;
-    fetchMobileUnreadCount();
-    const channel = supabase
-      .channel('mobile-notifications-count')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, throttledFetchCount)
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, throttledFetchCount]);
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -93,7 +61,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
       }
       if (e.key === 'Escape') {
         setShowSearch(false);
-        setShowMobileNotifications(false);
         setShowLogoutConfirm(false);
       }
     };
@@ -205,35 +172,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               )}
               {user ? (
                 <>
-                  <button
-                    onClick={() => setShowMobileNotifications(true)}
-                    aria-label={mobileUnreadCount > 0 ? `Notifications — ${mobileUnreadCount} unread` : 'Notifications'}
-                    aria-haspopup="dialog"
-                    className="md:hidden relative flex items-center justify-center w-10 h-10 text-slate-500 hover:text-slate-700 hover:bg-slate-100/80 rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
-                  >
-                    <Bell style={{ width: '1.125rem', height: '1.125rem' }} aria-hidden="true" />
-                    {mobileUnreadCount > 0 && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute flex items-center justify-center text-white font-black rounded-full"
-                        style={{
-                          top: '6px',
-                          right: '6px',
-                          background: 'linear-gradient(135deg,#ef4444,#dc2626)',
-                          minWidth: '1rem',
-                          height: '1rem',
-                          fontSize: '9px',
-                          padding: '0 2px',
-                          boxShadow: '0 2px 6px rgba(220,38,38,0.4)',
-                        }}
-                      >
-                        {mobileUnreadCount > 9 ? '9+' : mobileUnreadCount}
-                      </span>
-                    )}
-                  </button>
-                  <div className="hidden md:block">
-                    <Notifications onNavigate={onNavigate} />
-                  </div>
                   <button
                     onClick={() => setShowLogoutConfirm(true)}
                     disabled={isSigningOut}
@@ -363,42 +301,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
             })}
           </div>
         </nav>
-      )}
-
-      {showMobileNotifications && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Notifications"
-          className="fixed inset-0 z-[60] flex flex-col justify-end"
-        >
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowMobileNotifications(false)}
-            aria-hidden="true"
-          />
-          <div className="relative bg-white rounded-t-2xl shadow-2xl flex flex-col max-h-[80vh] animate-slide-up">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-              <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-slate-700" aria-hidden="true" />
-                <h2 className="text-lg font-semibold text-slate-900">Notifications</h2>
-              </div>
-              <button
-                onClick={() => setShowMobileNotifications(false)}
-                aria-label="Close notifications"
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
-            </div>
-            <div className="overflow-y-auto flex-1" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-              <MobileNotificationsContent
-                onNavigate={(page) => { setShowMobileNotifications(false); onNavigate(page); }}
-                onUnreadCountChange={setMobileUnreadCount}
-              />
-            </div>
-          </div>
-        </div>
       )}
 
       {showSearch && <UnifiedSearch onClose={() => setShowSearch(false)} onNavigate={onNavigate} />}
