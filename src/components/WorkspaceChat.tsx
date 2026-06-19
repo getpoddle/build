@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download, Mic, Square } from 'lucide-react';
+import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download, Mic, Square, Paperclip, FileText, X, Shield, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { acquireChannel, releaseChannel, pauseChannel, resumeChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,6 +30,9 @@ interface MemberProfile {
 interface DocumentContext {
   filename: string;
   extractedText: string;
+  charCount: number;
+  wordCount: number;
+  size: number;
 }
 
 interface WorkspaceChatProps {
@@ -39,7 +42,22 @@ interface WorkspaceChatProps {
   initialPrompt?: string;
   onPromptConsumed?: () => void;
   onAgentsReplied?: () => void;
-  documents?: DocumentContext[];
+  isPro?: boolean;
+  onUpgrade?: () => void;
+}
+
+const MAX_DOC_FILES = 3;
+const MAX_DOC_SIZE = 10 * 1024 * 1024;
+const ACCEPTED_DOC_MIME = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+const ACCEPTED_DOC_EXT = ['.pdf', '.docx'];
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const AGENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -77,7 +95,7 @@ const STARTER_PROMPTS = [
   'What are the top 3 opportunities we might be overlooking?',
 ];
 
-export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTopic, initialPrompt, onPromptConsumed, onAgentsReplied, documents }: WorkspaceChatProps) {
+export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTopic, initialPrompt, onPromptConsumed, onAgentsReplied, isPro, onUpgrade }: WorkspaceChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberProfile>>({});
@@ -90,6 +108,11 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const [micBlocked, setMicBlocked] = useState(false);
+  // Document upload state
+  const [chatDocuments, setChatDocuments] = useState<DocumentContext[]>([]);
+  const [docUploading, setDocUploading] = useState<string[]>([]);
+  const [docErrors, setDocErrors] = useState<Record<string, string>>({});
+  const docInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -315,7 +338,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           workspace_id: workspaceId,
           message: content,
           history: historyForApi,
-          documents: (documents || []).map(d => ({ filename: d.filename, extractedText: d.extractedText })),
+          documents: chatDocuments.map(d => ({ filename: d.filename, extractedText: d.extractedText })),
         }),
       });
 
@@ -588,6 +611,58 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     }
   }
 
+  async function processDocFile(file: File) {
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    const validType = ACCEPTED_DOC_MIME.includes(file.type) || ACCEPTED_DOC_EXT.includes(ext);
+    if (!validType) {
+      setDocErrors(prev => ({ ...prev, [file.name]: 'Only PDF and DOCX files are supported.' }));
+      return;
+    }
+    if (file.size > MAX_DOC_SIZE) {
+      setDocErrors(prev => ({ ...prev, [file.name]: 'File exceeds 10 MB limit.' }));
+      return;
+    }
+    if (chatDocuments.length >= MAX_DOC_FILES) {
+      setDocErrors(prev => ({ ...prev, [file.name]: `Maximum ${MAX_DOC_FILES} files per session.` }));
+      return;
+    }
+    if (chatDocuments.some(d => d.filename === file.name)) {
+      setDocErrors(prev => ({ ...prev, [file.name]: 'A file with this name is already added.' }));
+      return;
+    }
+
+    setDocErrors(prev => { const n = { ...prev }; delete n[file.name]; return n; });
+    setDocUploading(prev => [...prev, file.name]);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch(`${supabaseUrl}/functions/v1/extract-document`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) {
+        setDocErrors(prev => ({ ...prev, [file.name]: json.error || 'Extraction failed. Try saving as PDF from Word.' }));
+        return;
+      }
+      setChatDocuments(prev => [...prev, { ...json, size: file.size }]);
+    } catch {
+      setDocErrors(prev => ({ ...prev, [file.name]: 'Upload failed — check your connection and try again.' }));
+    } finally {
+      setDocUploading(prev => prev.filter(n => n !== file.name));
+    }
+  }
+
+  function removeDoc(filename: string) {
+    setChatDocuments(prev => prev.filter(d => d.filename !== filename));
+    setDocErrors(prev => { const n = { ...prev }; delete n[filename]; return n; });
+  }
+
   function renderUserAvatar(userId: string) {
     const profile = memberProfiles[userId];
     const isMe = userId === user?.id;
@@ -806,6 +881,61 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         </div>
       )}
 
+      {/* Document pills above input */}
+      {(chatDocuments.length > 0 || docUploading.length > 0 || Object.keys(docErrors).length > 0) && (
+        <div className="mt-2 space-y-1.5">
+          {chatDocuments.map(doc => (
+            <div
+              key={doc.filename}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+              style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.12)' }}
+            >
+              <FileText className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+              <span className="text-xs font-semibold text-slate-700 truncate flex-1">{doc.filename}</span>
+              <span className="text-xs text-slate-400 flex-shrink-0">{formatBytes(doc.size)} · {doc.wordCount.toLocaleString()} words</span>
+              <button
+                onClick={() => removeDoc(doc.filename)}
+                className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          {docUploading.map(name => (
+            <div
+              key={name}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+              style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.08)' }}
+            >
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 flex-shrink-0" />
+              <span className="text-xs text-slate-500 truncate">Extracting {name}…</span>
+            </div>
+          ))}
+          {Object.entries(docErrors).map(([name, msg]) => (
+            <div
+              key={name}
+              className="flex items-start gap-2 px-3 py-2 rounded-xl"
+              style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}
+            >
+              <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-red-700 truncate">{name}</p>
+                <p className="text-xs text-red-600">{msg}</p>
+              </div>
+              <button onClick={() => setDocErrors(prev => { const n = { ...prev }; delete n[name]; return n; })} className="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          {chatDocuments.length > 0 && (
+            <div className="flex items-center gap-1.5 px-1">
+              <Shield className="w-3 h-3 text-slate-400 flex-shrink-0" />
+              <p className="text-xs text-slate-400">Documents are used for this session only and are not stored.</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Input area */}
       <div
         className="mt-2 rounded-2xl p-3 flex items-end gap-3"
@@ -860,6 +990,34 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             className="flex-1 resize-none bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none disabled:opacity-60"
             style={{ lineHeight: '1.5', maxHeight: '120px' }}
           />
+        )}
+
+        {/* Paperclip / document upload button */}
+        {!isTranscribing && !isRecording && isPro && chatDocuments.length < MAX_DOC_FILES && docUploading.length === 0 && (
+          <>
+            <button
+              onClick={() => docInputRef.current?.click()}
+              disabled={loading}
+              title="Attach PDF or DOCX document"
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:scale-105"
+              style={{ background: 'rgba(15,23,42,0.06)', border: '1.5px solid rgba(15,23,42,0.1)' }}
+            >
+              <Paperclip className="w-4 h-4 text-slate-500" />
+            </button>
+            <input
+              ref={docInputRef}
+              type="file"
+              accept=".pdf,.docx"
+              multiple
+              className="hidden"
+              onChange={e => {
+                if (e.target.files) {
+                  Array.from(e.target.files).forEach(f => processDocFile(f));
+                  e.target.value = '';
+                }
+              }}
+            />
+          </>
         )}
 
         {/* Mic button */}
