@@ -48,7 +48,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
       if (json.url) {
         window.location.href = json.url;
       } else {
-        setError('To manage your subscription, please email support@poddle.me — our team will assist you within 24 hours.');
+        setError('To manage your subscription — upgrade, downgrade, or cancel — please email support@poddleme.com. Our team will assist you within 24 hours.');
       }
     } catch {
       setError('Something went wrong. Please try again.');
