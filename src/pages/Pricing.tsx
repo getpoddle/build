@@ -32,17 +32,30 @@ export default function Pricing({ onNavigate }: PricingProps) {
     setLoadingPortal(true);
     setError('');
     try {
-      const { data: workspace } = await supabase
+      // Try to find a workspace with a Stripe customer ID (active subscription)
+      let { data: workspace } = await supabase
         .from('workspaces')
-        .select('id')
+        .select('id, stripe_customer_id')
         .eq('owner_id', user.id)
         .not('stripe_customer_id', 'is', null)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
+      // Fallback: any owned workspace (stripe_customer_id may be set, edge function will validate)
       if (!workspace) {
-        setError('No billing account found. Please contact support.');
+        const { data: fallback } = await supabase
+          .from('workspaces')
+          .select('id, stripe_customer_id')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        workspace = fallback;
+      }
+
+      if (!workspace) {
+        setError('No billing account found. Contact support at support@poddle.me.');
         return;
       }
 
@@ -60,8 +73,11 @@ export default function Pricing({ onNavigate }: PricingProps) {
         }),
       });
       const json = await res.json();
-      if (json.url) window.location.href = json.url;
-      else setError(json.error || 'Could not open billing portal.');
+      if (json.url) {
+        window.location.href = json.url;
+      } else {
+        setError(json.error || 'Could not open billing portal. Please try again or contact support.');
+      }
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {

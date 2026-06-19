@@ -44,7 +44,7 @@ const QUICK_ACTIONS = [
 export default function Home({ onNavigate }: HomeProps) {
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-8 lg:py-10">
+      <div className="px-4 sm:px-6 lg:px-6 py-8 lg:py-10">
 
         {/* Page header */}
         <div className="mb-8 lg:mb-10">
@@ -72,9 +72,9 @@ export default function Home({ onNavigate }: HomeProps) {
           ))}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid xl:grid-cols-[1fr_300px] 2xl:grid-cols-[1fr_340px] gap-6 lg:gap-8">
           {/* Main content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="min-w-0 space-y-6">
 
             {/* Hero banner */}
             <div
@@ -177,7 +177,7 @@ export default function Home({ onNavigate }: HomeProps) {
           </div>
 
           {/* Right sidebar */}
-          <div className="hidden lg:block">
+          <div className="hidden xl:block">
             <div className="sticky top-20">
               <AskAgentsSidebar />
             </div>

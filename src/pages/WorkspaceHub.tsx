@@ -154,7 +154,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      <div className="px-4 lg:px-8 xl:px-12 py-6 lg:py-8">
+      <div className="px-4 lg:px-6 py-6 lg:py-8">
 
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
