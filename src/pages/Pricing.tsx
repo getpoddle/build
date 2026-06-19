@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CheckCircle, Sparkles, Zap, ArrowRight, Users, BarChart2, Shield, Bot, Lock, X, Loader2, CreditCard, Mail } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle, Sparkles, Zap, Users, BarChart2, Shield, Bot, Lock, X, Loader2, CreditCard, Mail, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -11,12 +11,52 @@ export default function Pricing({ onNavigate }: PricingProps) {
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<'pro' | 'team' | 'enterprise' | null>(null);
   const [error, setError] = useState('');
+  const [currentTier, setCurrentTier] = useState<'free' | 'pro' | 'team' | 'enterprise'>('free');
+  const [loadingPortal, setLoadingPortal] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setCurrentTier('free'); return; }
+    supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const tier = (data?.subscription_tier as 'free' | 'pro' | 'team' | 'enterprise') || 'free';
+        setCurrentTier(tier);
+      });
+  }, [user]);
+
+  async function handleBillingPortal() {
+    if (!user) return;
+    setLoadingPortal(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/create-billing-portal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ return_url: `${window.location.origin}/#pricing` }),
+      });
+      const json = await res.json();
+      if (json.url) window.location.href = json.url;
+      else setError(json.error || 'Could not open billing portal.');
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoadingPortal(false);
+    }
+  }
 
   async function handleCheckout(plan: 'pro' | 'team') {
     if (!user) {
       onNavigate('auth');
       return;
     }
+    if (currentTier !== 'free') return;
     setLoadingPlan(plan);
     setError('');
     try {
@@ -126,9 +166,14 @@ export default function Pricing({ onNavigate }: PricingProps) {
 
           {/* Free */}
           <div
-            className="rounded-2xl p-6 flex flex-col"
-            style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }}
+            className="rounded-2xl p-6 flex flex-col relative"
+            style={{ background: '#fff', border: currentTier === 'free' ? '2px solid rgba(15,23,42,0.15)' : '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }}
           >
+            {currentTier === 'free' && user && (
+              <div className="absolute top-4 right-4 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(15,23,42,0.07)', color: '#475569' }}>
+                Current plan
+              </div>
+            )}
             <div className="mb-5">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Free</p>
               <div className="flex items-end gap-1 mb-1">
@@ -147,9 +192,10 @@ export default function Pricing({ onNavigate }: PricingProps) {
             </ul>
             <button
               onClick={() => !user && onNavigate('auth')}
-              className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+              disabled={!!user}
+              className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-slate-200 text-slate-700 disabled:opacity-60 disabled:cursor-default hover:border-slate-300 hover:bg-slate-50 disabled:hover:border-slate-200 disabled:hover:bg-transparent"
             >
-              {user ? 'Current plan' : 'Get started free'}
+              {user ? 'Free plan' : 'Get started free'}
             </button>
           </div>
 
@@ -162,7 +208,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
               className="absolute top-4 right-4 text-xs font-bold px-2.5 py-1 rounded-full"
               style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', backdropFilter: 'blur(4px)' }}
             >
-              Most popular
+              {currentTier === 'pro' ? 'Current plan' : 'Most popular'}
             </div>
             <div className="mb-5">
               <p className="text-xs font-bold text-blue-300 uppercase tracking-widest mb-2">Pro Individual</p>
@@ -180,33 +226,45 @@ export default function Pricing({ onNavigate }: PricingProps) {
                 </li>
               ))}
             </ul>
-            <button
-              onClick={() => handleCheckout('pro')}
-              disabled={loadingPlan === 'pro'}
-              className="w-full py-3 rounded-xl text-slate-900 font-bold text-sm bg-white hover:bg-slate-50 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
-              style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}
-            >
-              {loadingPlan === 'pro' ? (
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-              ) : (
-                <>
-                  <CreditCard className="w-4 h-4 text-blue-600" />
-                  {user ? 'Subscribe' : 'Get started'}
-                </>
-              )}
-            </button>
+            {currentTier === 'pro' ? (
+              <button
+                onClick={handleBillingPortal}
+                disabled={loadingPortal}
+                className="w-full py-3 rounded-xl text-slate-900 font-bold text-sm bg-white hover:bg-slate-50 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
+                style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}
+              >
+                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <ExternalLink className="w-4 h-4 text-blue-600" />}
+                Manage subscription
+              </button>
+            ) : (
+              <button
+                onClick={() => handleCheckout('pro')}
+                disabled={loadingPlan === 'pro' || currentTier !== 'free'}
+                className="w-full py-3 rounded-xl text-slate-900 font-bold text-sm bg-white hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}
+              >
+                {loadingPlan === 'pro' ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 text-blue-600" />
+                    {user ? 'Subscribe' : 'Get started'}
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Poddle Team */}
           <div
             className="rounded-2xl p-6 flex flex-col relative overflow-hidden"
-            style={{ background: '#fff', border: '2px solid rgba(37,99,235,0.2)', boxShadow: '0 4px 16px rgba(37,99,235,0.1)' }}
+            style={{ background: '#fff', border: currentTier === 'team' ? '2px solid #2563eb' : '2px solid rgba(37,99,235,0.2)', boxShadow: '0 4px 16px rgba(37,99,235,0.1)' }}
           >
             <div
               className="absolute top-4 right-4 text-xs font-bold px-2.5 py-1 rounded-full"
               style={{ background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}
             >
-              For teams
+              {currentTier === 'team' ? 'Current plan' : 'For teams'}
             </div>
             <div className="mb-5">
               <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#2563eb' }}>Poddle Team</p>
@@ -224,21 +282,33 @@ export default function Pricing({ onNavigate }: PricingProps) {
                 </li>
               ))}
             </ul>
-            <button
-              onClick={() => handleCheckout('team')}
-              disabled={loadingPlan === 'team'}
-              className="w-full py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-70 flex items-center justify-center gap-2 text-white hover:-translate-y-0.5"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
-            >
-              {loadingPlan === 'team' ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Users className="w-4 h-4" />
-                  {user ? 'Subscribe' : 'Get started'}
-                </>
-              )}
-            </button>
+            {currentTier === 'team' ? (
+              <button
+                onClick={handleBillingPortal}
+                disabled={loadingPortal}
+                className="w-full py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-70 flex items-center justify-center gap-2 text-white hover:-translate-y-0.5"
+                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+              >
+                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+                Manage subscription
+              </button>
+            ) : (
+              <button
+                onClick={() => handleCheckout('team')}
+                disabled={loadingPlan === 'team' || currentTier !== 'free'}
+                className="w-full py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white hover:-translate-y-0.5"
+                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+              >
+                {loadingPlan === 'team' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Users className="w-4 h-4" />
+                    {user ? 'Subscribe' : 'Get started'}
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Enterprise */}
@@ -341,15 +411,27 @@ export default function Pricing({ onNavigate }: PricingProps) {
               Get private encrypted workspaces, AI War Room intelligence, and a team that thinks faster — starting today.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button
-                onClick={() => handleCheckout('pro')}
-                disabled={loadingPlan === 'pro'}
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-slate-900 bg-white text-sm hover:-translate-y-0.5 transition-transform disabled:opacity-70"
-                style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
-              >
-                {loadingPlan === 'pro' ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <CreditCard className="w-4 h-4 text-blue-600" />}
-                Get Pro — $19/mo
-              </button>
+              {currentTier !== 'free' ? (
+                <button
+                  onClick={handleBillingPortal}
+                  disabled={loadingPortal}
+                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-slate-900 bg-white text-sm hover:-translate-y-0.5 transition-transform disabled:opacity-70"
+                  style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
+                >
+                  {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <ExternalLink className="w-4 h-4 text-blue-600" />}
+                  Manage subscription
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleCheckout('pro')}
+                  disabled={loadingPlan === 'pro'}
+                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-slate-900 bg-white text-sm hover:-translate-y-0.5 transition-transform disabled:opacity-70"
+                  style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
+                >
+                  {loadingPlan === 'pro' ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <CreditCard className="w-4 h-4 text-blue-600" />}
+                  Get Pro — $19/mo
+                </button>
+              )}
               <button
                 onClick={handleEnterprise}
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-white text-sm hover:-translate-y-0.5 transition-transform"
