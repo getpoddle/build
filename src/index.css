@@ -218,7 +218,7 @@ html.theme-dark {
   }
 
   .input-modern {
-    @apply w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:bg-white outline-none transition-all duration-200;
+    @apply w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all duration-200 text-slate-900 placeholder:text-slate-400;
   }
 
   .card {

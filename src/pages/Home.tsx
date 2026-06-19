@@ -44,7 +44,7 @@ const QUICK_ACTIONS = [
 export default function Home({ onNavigate }: HomeProps) {
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      <div className="max-w-screen-xl mx-auto px-6 lg:px-10 py-8 lg:py-10">
+      <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-8 lg:py-10">
 
         {/* Page header */}
         <div className="mb-8 lg:mb-10">

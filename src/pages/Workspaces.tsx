@@ -63,7 +63,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      <div className="max-w-screen-xl mx-auto px-6 lg:px-10 py-8 lg:py-10">
+      <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-8 lg:py-10">
 
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">

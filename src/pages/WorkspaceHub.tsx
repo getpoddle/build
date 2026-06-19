@@ -154,7 +154,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      <div className="max-w-screen-xl mx-auto px-4 lg:px-10 py-6 lg:py-8">
+      <div className="px-4 lg:px-8 xl:px-12 py-6 lg:py-8">
 
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
@@ -369,7 +369,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         </div>
 
         {/* Desktop: side-by-side layout */}
-        <div className="hidden lg:grid lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] gap-6">
+        <div className="hidden lg:grid lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_480px] 2xl:grid-cols-[1fr_560px] gap-6">
           {/* Left: Chat panel */}
           <div className="relative">
             <div className="flex items-center gap-2 mb-3">
