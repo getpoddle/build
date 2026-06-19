@@ -32,33 +32,6 @@ export default function Pricing({ onNavigate }: PricingProps) {
     setLoadingPortal(true);
     setError('');
     try {
-      // Try to find a workspace with a Stripe customer ID (active subscription)
-      let { data: workspace } = await supabase
-        .from('workspaces')
-        .select('id, stripe_customer_id')
-        .eq('owner_id', user.id)
-        .not('stripe_customer_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      // Fallback: any owned workspace (stripe_customer_id may be set, edge function will validate)
-      if (!workspace) {
-        const { data: fallback } = await supabase
-          .from('workspaces')
-          .select('id, stripe_customer_id')
-          .eq('owner_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        workspace = fallback;
-      }
-
-      if (!workspace) {
-        setError('No billing account found. Contact support at support@poddle.me.');
-        return;
-      }
-
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${supabaseUrl}/functions/v1/create-billing-portal`, {
@@ -68,7 +41,6 @@ export default function Pricing({ onNavigate }: PricingProps) {
           'Authorization': `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({
-          workspace_id: workspace.id,
           return_url: `${window.location.origin}/#pricing`,
         }),
       });
@@ -76,7 +48,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
       if (json.url) {
         window.location.href = json.url;
       } else {
-        setError(json.error || 'Could not open billing portal. Please try again or contact support.');
+        setError('To manage your subscription, please email support@poddle.me — our team will assist you within 24 hours.');
       }
     } catch {
       setError('Something went wrong. Please try again.');

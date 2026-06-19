@@ -516,11 +516,8 @@ function AppContent() {
     <div className="flex" style={{ minHeight: '100vh' }}>
       <Navigation currentPage={activePage} onNavigate={handleNavigate} />
       <main
-        className="flex-1 overflow-x-hidden min-w-0 xl:ml-60"
-        style={{
-          paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
-          paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
-        }}
+        className="flex-1 overflow-x-hidden min-w-0 xl:ml-60 flex flex-col"
+        style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
       >
         <PageErrorBoundary>
           <Suspense fallback={<RouteFallback />}>
@@ -549,21 +546,22 @@ function AppContent() {
             {activePage === 'terms' && <TermsOfService />}
             {activePage === 'pricing' && <Pricing onNavigate={handleNavigate} />}
           </Suspense>
+          <div className="xl:hidden" style={{ height: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }} />
         </PageErrorBoundary>
-      </main>
-      <footer className="bg-white border-t border-slate-200 py-5 hidden xl:block">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
-            <span>&copy; 2026 Poddle, Inc.</span>
-            <div className="flex gap-5">
-              <a href="#pricing" className="hover:text-slate-600 transition-colors">Pricing</a>
-              <a href="#privacy" className="hover:text-slate-600 transition-colors">Privacy</a>
-              <a href="#terms" className="hover:text-slate-600 transition-colors">Terms</a>
-              <a href="#contact-us" className="hover:text-slate-600 transition-colors">Contact</a>
+        <footer className="bg-white border-t border-slate-200 py-5 hidden xl:block">
+          <div className="px-8">
+            <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+              <span>&copy; 2026 Poddle, Inc.</span>
+              <div className="flex gap-5">
+                <a href="#pricing" className="hover:text-slate-600 transition-colors">Pricing</a>
+                <a href="#privacy" className="hover:text-slate-600 transition-colors">Privacy</a>
+                <a href="#terms" className="hover:text-slate-600 transition-colors">Terms</a>
+                <a href="#contact-us" className="hover:text-slate-600 transition-colors">Contact</a>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </main>
       <InstallPrompt />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
