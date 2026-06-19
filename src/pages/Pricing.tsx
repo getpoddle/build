@@ -63,10 +63,11 @@ export default function Pricing({ onNavigate }: PricingProps) {
     'Ideas Archive access',
     'Community discussions',
     'Public Reasoning Hub',
+    '1 free private workspace per month',
   ];
 
   const freeLimitations = [
-    'No private workspaces',
+    'Workspace expires end of month',
     'No team collaboration',
   ];
 

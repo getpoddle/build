@@ -42,7 +42,7 @@ interface CreateWorkspaceProps {
 export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing, initialName = '', initialDescription = '' }: CreateWorkspaceProps) {
   const { user } = useAuth();
   const { isPro, loading: tierLoading } = useSubscriptionTier();
-  const { trialExhausted, trialSlotsRemaining, loading: trialLoading } = useTrialInfo();
+  const { monthlyLimitReached, expiresOn, resetsOn, loading: trialLoading } = useTrialInfo();
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const [name, setName] = useState(initialName);
@@ -53,8 +53,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
   const [error, setError] = useState('');
 
   const loading = tierLoading || trialLoading;
-  // Free users can create if they have trial slots remaining
-  const canCreate = isPro || (!trialExhausted);
+  const canCreate = isPro || !monthlyLimitReached;
 
   async function handleCreate() {
     if (!user) return;
@@ -77,7 +76,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
         plan,
       });
 
-      if (json.errorCode === 'TRIAL_EXHAUSTED') {
+      if (json.errorCode === 'TRIAL_EXHAUSTED' || json.errorCode === 'MONTHLY_LIMIT_REACHED') {
         setShowUpgrade(true);
         return;
       }
@@ -180,19 +179,28 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
           </button>
         </div>
 
-        {/* Trial banner for free users */}
-        {!loading && !isPro && !trialExhausted && (
+        {/* Free monthly workspace banner */}
+        {!loading && !isPro && !monthlyLimitReached && (
           <div
             className="mx-8 mt-5 flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm"
             style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)' }}
           >
             <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#2563eb' }} />
             <span className="text-slate-700">
-              <span className="font-bold" style={{ color: '#2563eb' }}>Free trial workspace</span>
-              {' '}— all Pro features unlocked for 7 days.{' '}
-              <span className="text-slate-500">
-                {trialSlotsRemaining === 1 ? '1 trial slot remaining.' : 'Both trial slots available.'}
-              </span>
+              <span className="font-bold" style={{ color: '#2563eb' }}>1 free workspace per month</span>
+              {' '}— full Pro features until {expiresOn}.
+            </span>
+          </div>
+        )}
+        {!loading && !isPro && monthlyLimitReached && (
+          <div
+            className="mx-8 mt-5 flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm"
+            style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)' }}
+          >
+            <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#b45309' }} />
+            <span className="text-slate-700">
+              <span className="font-bold" style={{ color: '#b45309' }}>Monthly slot used.</span>
+              {' '}Your next free workspace opens {resetsOn}. Upgrade for unlimited.
             </span>
           </div>
         )}

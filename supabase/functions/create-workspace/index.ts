@@ -7,8 +7,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const FREE_TRIAL_LIMIT = 2;
-const TRIAL_DAYS = 7;
+function currentYYYYMM(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function endOfCurrentMonthISO(): string {
+  const now = new Date();
+  // Day 0 of next month = last day of current month
+  const last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+  return last.toISOString();
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -38,7 +47,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { name, description, domain, plan, seats } = await req.json();
+    const { name, description, domain, plan } = await req.json();
 
     if (!name || !name.trim()) {
       return new Response(JSON.stringify({ error: "Workspace name is required." }), {
@@ -52,15 +61,14 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch profile, any Stripe-backed paid workspace, and actual owned workspace count in parallel.
-    const [profileRes, paidWsRes, ownedWsCountRes] = await Promise.all([
+    // Fetch profile and any Stripe-backed paid workspace in parallel.
+    const [profileRes, paidWsRes] = await Promise.all([
       service
         .from("profiles")
-        .select("subscription_tier, trial_workspace_count")
+        .select("subscription_tier, free_workspace_month")
         .eq("id", user.id)
         .maybeSingle(),
       // A "paid" workspace must have an active Stripe subscription.
-      // Trial workspaces (stripe_subscription_id IS NULL, status='trialing') are NOT paid.
       service
         .from("workspaces")
         .select("id")
@@ -68,42 +76,23 @@ Deno.serve(async (req: Request) => {
         .not("stripe_subscription_id", "is", null)
         .eq("subscription_status", "active")
         .limit(1),
-      service
-        .from("workspaces")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", user.id),
     ]);
 
-    // Hard-fail if we can't read the owned workspace count — safer than silently allowing creation.
-    if (ownedWsCountRes.error) {
-      return new Response(JSON.stringify({ error: "Could not verify workspace limit. Please try again." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const profileTier = profileRes.data?.subscription_tier;
-    // trial_workspace_count tracks slots consumed including via invite acceptance.
-    // Use it as the primary counter; use actual owned count as a floor for
-    // pre-migration users whose counter was never set.
-    const storedCount = profileRes.data?.trial_workspace_count ?? 0;
-    const actualOwnedCount = ownedWsCountRes.count ?? 0;
-    const effectiveTrialCount = Math.max(storedCount, actualOwnedCount);
+    const freeWorkspaceMonth = profileRes.data?.free_workspace_month ?? null;
 
-    // isPaid: either the profile was explicitly granted a paid tier by an admin,
-    // OR the user owns a workspace backed by a real Stripe subscription.
-    // Trial workspaces (no stripe_subscription_id) do NOT confer paid status.
     const hasPaidProfile = profileTier === "pro" || profileTier === "enterprise";
     const hasPaidWorkspace = (paidWsRes.data?.length ?? 0) > 0;
     const isPaid = hasPaidProfile || hasPaidWorkspace;
 
-    // Free trial path: enforce 2-workspace cap.
+    // Monthly free workspace gate: 1 free workspace per calendar month.
     if (!isPaid) {
-      if (effectiveTrialCount >= FREE_TRIAL_LIMIT) {
+      const thisMonth = currentYYYYMM();
+      if (freeWorkspaceMonth === thisMonth) {
         return new Response(
           JSON.stringify({
-            error: "You've used both free trial workspaces. Upgrade to Pro to create more.",
-            errorCode: "TRIAL_EXHAUSTED",
+            error: "You've already created your free workspace this month. Upgrade to Pro for unlimited workspaces.",
+            errorCode: "MONTHLY_LIMIT_REACHED",
           }),
           {
             status: 403,
@@ -113,9 +102,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const trialExpiresAt = !isPaid
-      ? new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString()
-      : null;
+    // Free workspaces expire at the end of the current calendar month.
+    const trialExpiresAt = !isPaid ? endOfCurrentMonthISO() : null;
 
     // Seats are determined by plan — never trust client-provided value
     const resolvedPlan = plan === "team" ? "team" : "pro";
@@ -162,12 +150,11 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Increment trial_workspace_count for free users so the cap is correctly
-    // enforced on the next creation attempt (and in the frontend hook).
+    // Stamp free_workspace_month so the monthly limit is enforced next time.
     if (!isPaid) {
       await service
         .from("profiles")
-        .update({ trial_workspace_count: effectiveTrialCount + 1 })
+        .update({ free_workspace_month: currentYYYYMM() })
         .eq("id", user.id);
     }
 

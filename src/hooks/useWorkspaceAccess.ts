@@ -168,39 +168,42 @@ export function useSubscriptionTier() {
 
 export function useTrialInfo() {
   const { user } = useAuth();
-  const [trialCount, setTrialCount] = useState(0);
+  const [freeWorkspaceMonth, setFreeWorkspaceMonth] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
 
-    // Count workspaces the user owns by going through workspace_members (role='owner'),
-    // since the workspaces RLS SELECT policy is is_workspace_member(), not owner_id=auth.uid().
-    // Querying workspaces directly by owner_id returns empty for non-service-role clients.
-    Promise.all([
-      supabase
-        .from('profiles')
-        .select('trial_workspace_count')
-        .eq('id', user.id)
-        .maybeSingle(),
-      supabase
-        .from('workspace_members')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('role', 'owner'),
-    ]).then(([profileRes, wsCountRes]) => {
-      const stored = profileRes.data?.trial_workspace_count ?? 0;
-      const actual = wsCountRes.count ?? 0;
-      setTrialCount(Math.max(stored, actual));
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    supabase
+      .from('profiles')
+      .select('free_workspace_month')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setFreeWorkspaceMonth(data?.free_workspace_month ?? null);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [user]);
 
-  const FREE_LIMIT = 2;
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthlyLimitReached = freeWorkspaceMonth === currentMonth;
+
+  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const resetsOn = nextMonthDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+
+  const endOfMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const expiresOn = endOfMonthDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+
   return {
-    trialCount,
+    monthlyLimitReached,
+    resetsOn,
+    expiresOn,
     loading,
-    trialSlotsRemaining: Math.max(0, FREE_LIMIT - trialCount),
-    trialExhausted: trialCount >= FREE_LIMIT,
+    // legacy aliases kept for backward compatibility
+    trialExhausted: monthlyLimitReached,
+    trialCount: monthlyLimitReached ? 1 : 0,
+    trialSlotsRemaining: monthlyLimitReached ? 0 : 1,
   };
 }

@@ -41,7 +41,7 @@ function daysUntil(dateStr: string | null): number | null {
 export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const { workspaces, loading, refetch } = useUserWorkspaces();
   const { isPro } = useSubscriptionTier();
-  const { trialCount, trialExhausted, trialSlotsRemaining, loading: trialLoading } = useTrialInfo();
+  const { trialExhausted, monthlyLimitReached, resetsOn, expiresOn, loading: trialLoading } = useTrialInfo();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
@@ -60,7 +60,6 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   }
 
   const isLoading = loading || trialLoading;
-  const hasTrialWorkspaces = !isPro && trialCount > 0;
 
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
@@ -82,28 +81,24 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
           </button>
         </div>
 
-        {/* Trial usage banner */}
-        {!isLoading && hasTrialWorkspaces && (
+        {/* Monthly workspace status banner */}
+        {!isLoading && !isPro && monthlyLimitReached && (
           <div
             className="mb-6 flex items-center gap-3 px-5 py-3.5 rounded-2xl"
             style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)' }}
           >
             <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#2563eb' }} />
             <p className="text-sm text-slate-700 flex-1">
-              <span className="font-bold" style={{ color: '#2563eb' }}>{trialCount} of 2 free trial workspaces used.</span>
-              {trialExhausted
-                ? ' Upgrade to Pro to create unlimited workspaces.'
-                : ` ${trialSlotsRemaining} trial slot${trialSlotsRemaining === 1 ? '' : 's'} remaining — trial workspaces are full-featured for 7 days.`}
+              <span className="font-bold" style={{ color: '#2563eb' }}>Free workspace active this month</span>
+              {' '}— expires {expiresOn}. New slot opens {resetsOn}.
             </p>
-            {trialExhausted && (
-              <button
-                onClick={() => setShowUpgrade(true)}
-                className="text-xs font-bold px-3 py-1.5 rounded-xl text-white flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-              >
-                Upgrade
-              </button>
-            )}
+            <button
+              onClick={() => setShowUpgrade(true)}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl text-white flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+            >
+              Upgrade
+            </button>
           </div>
         )}
 
@@ -121,7 +116,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             </div>
             <h2 className="text-xl font-black text-slate-900 mb-2">No private workspaces yet</h2>
             <p className="text-slate-500 text-sm max-w-sm mx-auto mb-6 leading-relaxed">
-              Try two workspaces free — no credit card needed. Full Pro features for 7 days including encrypted team spaces and AI War Room.
+              1 free workspace every month — no credit card needed. Full Pro features until the end of the month, including encrypted team spaces and AI War Room.
             </p>
             <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto mb-8">
               {[
@@ -146,9 +141,9 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
             >
               {trialExhausted ? (
-                <><Sparkles className="w-4 h-4" /> Upgrade to Create Workspace</>
+                <><Sparkles className="w-4 h-4" /> Upgrade for Unlimited Workspaces</>
               ) : (
-                <><Lock className="w-4 h-4" /> Create Free Trial Workspace</>
+                <><Lock className="w-4 h-4" /> Create Your Free Workspace</>
               )}
             </button>
           </div>
@@ -201,7 +196,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                       style={{ background: 'rgba(239,68,68,0.06)', borderBottom: '1px solid rgba(239,68,68,0.12)', color: '#dc2626' }}
                     >
                       <AlertTriangle className="w-3.5 h-3.5" />
-                      Trial expired — workspace is read-only. Upgrade to restore full access.
+                      Expired — this workspace is read-only. Upgrade to restore full access.
                     </div>
                   )}
                   <div className="p-5 flex items-center gap-4">
@@ -262,8 +257,8 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
           </div>
         )}
 
-        {/* Upgrade banner if trial exhausted and has workspaces */}
-        {!isLoading && !isPro && trialExhausted && workspaces.length > 0 && (
+        {/* Upgrade banner when monthly limit reached and workspace list is visible */}
+        {!isLoading && !isPro && monthlyLimitReached && workspaces.length > 0 && (
           <div
             className="mt-6 rounded-2xl p-5 flex items-center gap-4"
             style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdfa)', border: '1px solid rgba(37,99,235,0.15)' }}
@@ -275,8 +270,8 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-bold text-slate-900">Upgrade to create more workspaces</p>
-              <p className="text-xs text-slate-500 mt-0.5">You've used both free trial slots. Go Pro for unlimited workspaces.</p>
+              <p className="text-sm font-bold text-slate-900">Upgrade for unlimited workspaces</p>
+              <p className="text-xs text-slate-500 mt-0.5">Your free workspace resets {resetsOn}, or go Pro now for unlimited.</p>
             </div>
             <button
               onClick={() => setShowUpgrade(true)}
