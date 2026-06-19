@@ -166,7 +166,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
           >
             {/* Table header — hidden on mobile */}
             <div
-              className="hidden lg:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 px-6 py-3 text-xs font-bold uppercase tracking-widest text-slate-400"
+              className="hidden xl:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 px-6 py-3 text-xs font-bold uppercase tracking-widest text-slate-400"
               style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', background: 'rgba(248,250,252,0.8)' }}
             >
               <span>Workspace</span>
@@ -217,7 +217,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                   )}
 
                   {/* Mobile layout */}
-                  <div className="lg:hidden p-5 flex items-center gap-4">
+                  <div className="xl:hidden p-5 flex items-center gap-4">
                     <div
                       className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
                       style={{ background: isExpired ? 'rgba(100,116,139,0.1)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
@@ -256,7 +256,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                   </div>
 
                   {/* Desktop table row */}
-                  <div className="hidden lg:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 items-center px-6 py-4">
+                  <div className="hidden xl:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 items-center px-6 py-4">
                     {/* Name + description */}
                     <div className="flex items-center gap-4 min-w-0">
                       <div

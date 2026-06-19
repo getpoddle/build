@@ -37,8 +37,8 @@ Deno.serve(async (req: Request) => {
 
     const { workspace_id, return_url } = await req.json();
 
-    if (!workspace_id || !return_url) {
-      return new Response(JSON.stringify({ error: "Missing required fields: workspace_id, return_url" }), {
+    if (!return_url) {
+      return new Response(JSON.stringify({ error: "Missing required field: return_url" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -52,36 +52,63 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Fetch workspace — must be owner
-    const { data: workspace, error: wsError } = await supabase
-      .from("workspaces")
-      .select("stripe_customer_id, owner_id")
-      .eq("id", workspace_id)
-      .maybeSingle();
+    let stripeCustomerId: string | null = null;
 
-    if (wsError || !workspace) {
-      return new Response(JSON.stringify({ error: "Workspace not found" }), {
+    // 1. Try workspace-linked customer ID
+    if (workspace_id) {
+      const { data: workspace } = await supabase
+        .from("workspaces")
+        .select("stripe_customer_id, owner_id")
+        .eq("id", workspace_id)
+        .maybeSingle();
+
+      if (workspace && workspace.owner_id === user.id && workspace.stripe_customer_id) {
+        stripeCustomerId = workspace.stripe_customer_id;
+      }
+    }
+
+    // 2. Fallback: search all user-owned workspaces for any stripe_customer_id
+    if (!stripeCustomerId) {
+      const adminSupabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: workspaces } = await adminSupabase
+        .from("workspaces")
+        .select("stripe_customer_id")
+        .eq("owner_id", user.id)
+        .not("stripe_customer_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (workspaces && workspaces.length > 0 && workspaces[0].stripe_customer_id) {
+        stripeCustomerId = workspaces[0].stripe_customer_id;
+      }
+    }
+
+    // 3. Fallback: look up Stripe customer by user email
+    if (!stripeCustomerId && user.email) {
+      const searchRes = await fetch(
+        `https://api.stripe.com/v1/customers/search?query=email:"${encodeURIComponent(user.email)}"&limit=1`,
+        { headers: { "Authorization": `Bearer ${stripeSecretKey}` } }
+      );
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (searchData.data && searchData.data.length > 0) {
+          stripeCustomerId = searchData.data[0].id;
+        }
+      }
+    }
+
+    if (!stripeCustomerId) {
+      return new Response(JSON.stringify({ error: "No Stripe billing account found. Please contact support." }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (workspace.owner_id !== user.id) {
-      return new Response(JSON.stringify({ error: "Only the workspace owner can access billing" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!workspace.stripe_customer_id) {
-      return new Response(JSON.stringify({ error: "No billing account found for this workspace" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const portalBody = new URLSearchParams({
-      customer: workspace.stripe_customer_id,
+      customer: stripeCustomerId,
       return_url,
     });
 
@@ -97,7 +124,7 @@ Deno.serve(async (req: Request) => {
     const portal = await stripeRes.json();
 
     if (!stripeRes.ok) {
-      return new Response(JSON.stringify({ error: "Payment service unavailable. Please try again later." }), {
+      return new Response(JSON.stringify({ error: portal.error?.message || "Payment service unavailable. Please try again later." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -106,7 +133,7 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ url: portal.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch {
+  } catch (err) {
     return new Response(JSON.stringify({ error: "Internal server error." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

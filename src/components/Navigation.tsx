@@ -108,7 +108,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
       {user && (
         <aside
           aria-label="Sidebar navigation"
-          className="hidden lg:flex flex-col fixed top-0 left-0 bottom-0 z-50 w-56 xl:w-60"
+          className="hidden xl:flex flex-col fixed top-0 left-0 bottom-0 z-50 w-60"
           style={{
             background: '#0f172a',
             borderRight: '1px solid rgba(255,255,255,0.06)',
@@ -242,7 +242,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
       <nav
         role="navigation"
         aria-label="Main navigation"
-        className={`fixed top-0 right-0 z-50 transition-all duration-300 ${user ? 'lg:left-56 xl:left-60' : 'left-0'}`}
+        className={`fixed top-0 right-0 z-50 transition-all duration-300 ${user ? 'xl:left-60' : 'left-0'}`}
         style={{
           left: !user ? 0 : undefined,
           paddingTop: 'env(safe-area-inset-top)',
@@ -262,7 +262,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               <button
                 onClick={() => onNavigate(user ? 'workspaces' : 'home')}
                 aria-label="Go to home"
-                className={`flex items-center gap-2.5 group flex-shrink-0 focus-visible:outline-none rounded-xl ${user ? 'lg:hidden' : ''}`}
+                className={`flex items-center gap-2.5 group flex-shrink-0 focus-visible:outline-none rounded-xl ${user ? 'xl:hidden' : ''}`}
               >
                 <div
                   className="w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-200"
@@ -277,7 +277,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
 
               {/* Desktop authenticated: page title */}
               {user && (
-                <div className="hidden lg:flex items-center gap-3">
+                <div className="hidden xl:flex items-center gap-3">
                   <h2 className="text-sm font-semibold text-slate-700 capitalize">
                     {currentPage === 'workspace-hub' || currentPage === 'workspace-settings'
                       ? 'Workspaces'
@@ -323,13 +323,13 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                 <button
                   onClick={() => setShowSearch(true)}
                   aria-label="Search (Cmd+K)"
-                  className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-slate-700 rounded-xl transition-all duration-200 hover:bg-slate-100/80 group lg:hidden"
+                  className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-slate-700 rounded-xl transition-all duration-200 hover:bg-slate-100/80 group xl:hidden"
                 >
                   <Search className="w-4 h-4" />
                 </button>
               )}
               {user ? (
-                <div className="flex items-center gap-1 lg:hidden">
+                <div className="flex items-center gap-1 xl:hidden">
                   <button
                     onClick={() => onNavigate('profile')}
                     aria-label="Account settings"
@@ -405,7 +405,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
       {user && (
         <nav
           aria-label="Mobile navigation"
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
+          className="xl:hidden fixed bottom-0 left-0 right-0 z-50"
           style={{
             background: 'rgba(255,255,255,0.96)',
             backdropFilter: 'blur(32px) saturate(1.8)',

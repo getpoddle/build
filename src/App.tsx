@@ -426,36 +426,36 @@ function AppContent() {
   if (currentPage === 'privacy') return (
     <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+      <div className="flex-1 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><PrivacyPolicy /></Suspense>
-        <div className="lg:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+        <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
       </div>
     </div>
   );
   if (currentPage === 'terms') return (
     <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+      <div className="flex-1 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><TermsOfService /></Suspense>
-        <div className="lg:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+        <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
       </div>
     </div>
   );
   if (currentPage === 'contact-us') return (
     <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+      <div className="flex-1 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><ContactUs /></Suspense>
-        <div className="lg:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+        <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
       </div>
     </div>
   );
   if (currentPage === 'pricing') return (
     <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+      <div className="flex-1 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><Pricing onNavigate={handleNavigate} /></Suspense>
-        <div className="lg:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+        <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
       </div>
     </div>
   );
@@ -499,7 +499,7 @@ function AppContent() {
     return (
       <div className="flex bg-slate-50 min-h-screen">
         <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-        <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="flex-1 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
           <Suspense fallback={<RouteFallback />}>
             <Admin key="admin" />
           </Suspense>
@@ -516,7 +516,7 @@ function AppContent() {
     <div className="flex" style={{ minHeight: '100vh' }}>
       <Navigation currentPage={activePage} onNavigate={handleNavigate} />
       <main
-        className="flex-1 overflow-x-hidden min-w-0 lg:ml-56 xl:ml-60"
+        className="flex-1 overflow-x-hidden min-w-0 xl:ml-60"
         style={{
           paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
           paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
@@ -551,7 +551,7 @@ function AppContent() {
           </Suspense>
         </PageErrorBoundary>
       </main>
-      <footer className="bg-white border-t border-slate-200 py-5 hidden lg:block">
+      <footer className="bg-white border-t border-slate-200 py-5 hidden xl:block">
         <div className="max-w-7xl mx-auto px-8">
           <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
             <span>&copy; 2026 Poddle, Inc.</span>

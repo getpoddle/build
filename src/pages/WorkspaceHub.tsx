@@ -277,7 +277,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         )}
 
         {/* Mobile tab switcher */}
-        <div className="lg:hidden flex items-center gap-1 bg-white rounded-2xl p-1 mb-5" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
+        <div className="xl:hidden flex items-center gap-1 bg-white rounded-2xl p-1 mb-5" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
           <button
             onClick={() => setMainTab('chat')}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all"
@@ -309,7 +309,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         </div>
 
         {/* Mobile: single panel */}
-        <div className="lg:hidden">
+        <div className="xl:hidden">
           {mainTab === 'chat' && (
             <div className="relative">
               {isReadOnly && (
@@ -369,7 +369,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         </div>
 
         {/* Desktop: side-by-side layout */}
-        <div className="hidden lg:grid lg:grid-cols-[1fr_400px] xl:grid-cols-[1fr_480px] 2xl:grid-cols-[1fr_560px] gap-6">
+        <div className="hidden xl:grid xl:grid-cols-[1fr_480px] 2xl:grid-cols-[1fr_560px] gap-6">
           {/* Left: Chat panel */}
           <div className="relative">
             <div className="flex items-center gap-2 mb-3">
