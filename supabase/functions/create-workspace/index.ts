@@ -119,7 +119,7 @@ Deno.serve(async (req: Request) => {
 
     // Seats are determined by plan — never trust client-provided value
     const resolvedPlan = plan === "team" ? "team" : "pro";
-    const resolvedSeats = resolvedPlan === "team" ? 10 : 5;
+    const resolvedSeats = resolvedPlan === "team" ? 10 : 3;
 
     const { data: ws, error: wsError } = await service
       .from("workspaces")

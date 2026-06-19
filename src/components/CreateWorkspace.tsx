@@ -255,7 +255,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
             <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Plan</label>
             <div className="grid grid-cols-2 gap-3">
               {([
-                { value: 'pro', label: 'Pro Individual', seats: 5, desc: 'Up to 5 members' },
+                { value: 'pro', label: 'Pro Individual', seats: 3, desc: 'Up to 3 members' },
                 { value: 'team', label: 'Poddle Team', seats: 10, desc: 'Up to 10 members' },
               ] as const).map(p => (
                 <button

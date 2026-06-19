@@ -119,7 +119,7 @@ export default function PaymentSuccess({ onNavigate }: PaymentSuccessProps) {
             {[
               { icon: Lock, text: 'Create private encrypted workspaces' },
               { icon: Sparkles, text: 'AI agents debate your proprietary ideas' },
-              { icon: CheckCircle, text: isEnterprise ? 'Up to 25 workspace members' : 'Invite up to 5 team members' },
+              { icon: CheckCircle, text: isEnterprise ? 'Up to 25 workspace members' : 'Invite up to 3 team members' },
               ...(isEnterprise ? [{ icon: CheckCircle, text: 'Priority support & SLA guarantee' }] : []),
             ].map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-2.5 text-sm text-slate-700">

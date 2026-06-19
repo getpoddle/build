@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
 
     // Enforce seat limit
     const workspace = Array.isArray(invite.workspaces) ? invite.workspaces[0] : invite.workspaces as { seats: number; subscription_status: string; stripe_subscription_id: string | null } | null;
-    const seats = workspace?.seats ?? 5;
+    const seats = workspace?.seats ?? 3;
     const currentMembers = memberCountRes.count ?? 0;
 
     if (currentMembers >= seats) {

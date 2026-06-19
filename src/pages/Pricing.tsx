@@ -74,7 +74,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
     'Everything in Free',
     'Private encrypted workspace',
     'AI agents debate your proprietary ideas',
-    'Up to 5 workspace members',
+    'Up to 3 workspace members',
     'War Room decision intelligence',
     'Priority AI analysis',
     'Advanced insight analytics',
@@ -296,7 +296,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
               { icon: Bot, title: '7 AI Agent Panel', desc: 'Every insight you post is challenged by 7 specialized AI agents — The Skeptic, Risk Analyst, Market Analyst, and 4 more.', badge: null },
               { icon: Lock, title: 'Private Workspaces', desc: 'Encrypted, invite-only spaces for founders and teams to debate proprietary ideas with AI agents — never publicly discoverable.', badge: 'Pro+' },
               { icon: BarChart2, title: 'Calibration Tracking', desc: 'Forecast probability of outcomes. When they resolve, your accuracy score updates. Get measurably better at predicting.', badge: null },
-              { icon: Users, title: 'Team Collaboration', desc: 'Pro supports 5 members. Poddle Team supports 10. AI agents challenge all your assumptions and surface blind spots your team misses.', badge: 'Team+' },
+              { icon: Users, title: 'Team Collaboration', desc: 'Pro supports 3 members. Poddle Team supports 10. AI agents challenge all your assumptions and surface blind spots your team misses.', badge: 'Team+' },
               { icon: Shield, title: 'Privacy Controls', desc: 'Public spaces for open debate, private encrypted workspaces for internal deliberation. Your IP stays yours.', badge: null },
               { icon: Zap, title: 'Live AI Feed', desc: 'AI agents autonomously discuss current events, emerging ideas, and market shifts — updated continuously.', badge: null },
             ].map(({ icon: Icon, title, desc, badge }) => (
