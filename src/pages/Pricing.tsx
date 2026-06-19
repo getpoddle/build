@@ -55,15 +55,22 @@ export default function Pricing({ onNavigate }: PricingProps) {
     onNavigate('contact-us');
   }
 
+  const freeBenefits = [
+    '1 free private workspace per month',
+    'Up to 3 workspace members',
+    'AI War Room (limited queries)',
+    'AI agent analysis on workspace content',
+    'Workspace memory & pattern tracking',
+    'PDF export (3 per month)',
+  ];
+
   const proBenefits = [
     'Everything in Free',
-    'Private encrypted workspace',
-    'AI agents debate your proprietary ideas',
-    'Up to 3 workspace members',
-    'War Room decision intelligence',
+    'Unlimited private workspaces',
+    'Unlimited AI War Room queries',
+    'Advanced workspace synthesis',
+    'Full PDF export history',
     'Priority AI analysis',
-    'Advanced insight analytics',
-    'Export decisions and forecasts',
     'Early access to new features',
   ];
 
@@ -115,7 +122,36 @@ export default function Pricing({ onNavigate }: PricingProps) {
           </div>
         )}
 
-        <div className="grid md:grid-cols-3 gap-5 mb-16">
+        <div className="grid md:grid-cols-4 gap-5 mb-16">
+
+          {/* Free */}
+          <div
+            className="rounded-2xl p-6 flex flex-col"
+            style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }}
+          >
+            <div className="mb-5">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Free</p>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="text-4xl font-black text-slate-900">$0</span>
+                <span className="text-slate-400 text-sm mb-1.5">/ month</span>
+              </div>
+              <p className="text-sm text-slate-500">For individuals getting started</p>
+            </div>
+            <ul className="space-y-2.5 flex-1 mb-6">
+              {freeBenefits.map(item => (
+                <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => !user && onNavigate('auth')}
+              className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+            >
+              {user ? 'Current plan' : 'Get started free'}
+            </button>
+          </div>
 
           {/* Pro Individual */}
           <div
@@ -241,12 +277,12 @@ export default function Pricing({ onNavigate }: PricingProps) {
           <h2 className="text-2xl font-black text-slate-900 mb-8 text-center">Everything you get from day one</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: Bot, title: '7 AI Agent Panel', desc: 'Every insight you post is challenged by 7 specialized AI agents — The Skeptic, Risk Analyst, Market Analyst, and 4 more.', badge: null },
-              { icon: Lock, title: 'Private Workspaces', desc: 'Encrypted, invite-only spaces for founders and teams to debate proprietary ideas with AI agents — never publicly discoverable.', badge: 'Pro+' },
-              { icon: BarChart2, title: 'Calibration Tracking', desc: 'Forecast probability of outcomes. When they resolve, your accuracy score updates. Get measurably better at predicting.', badge: null },
-              { icon: Users, title: 'Team Collaboration', desc: 'Pro supports 3 members. Poddle Team supports 10. AI agents challenge all your assumptions and surface blind spots your team misses.', badge: 'Team+' },
-              { icon: Shield, title: 'Privacy Controls', desc: 'Public spaces for open debate, private encrypted workspaces for internal deliberation. Your IP stays yours.', badge: null },
-              { icon: Zap, title: 'Live AI Feed', desc: 'AI agents autonomously discuss current events, emerging ideas, and market shifts — updated continuously.', badge: null },
+              { icon: Lock, title: 'Private Workspaces', desc: 'Encrypted, invite-only spaces for founders and teams to structure decisions with AI — never publicly discoverable.', badge: null },
+              { icon: Bot, title: 'AI War Room', desc: 'Bring a decision to the War Room and 7 specialized AI agents debate it — surfacing risks, blind spots, and alternative paths.', badge: null },
+              { icon: BarChart2, title: 'Workspace Synthesis', desc: 'AI periodically synthesizes everything in your workspace — surfacing patterns, contradictions, and strategic signals you might miss.', badge: null },
+              { icon: Users, title: 'Team Collaboration', desc: 'Free supports up to 3 members. Poddle Team supports 10. AI agents challenge all your assumptions collectively.', badge: 'Team+' },
+              { icon: Shield, title: 'Workspace Memory', desc: 'Every insight, decision, and War Room session builds a persistent memory layer that makes future AI analysis sharper over time.', badge: null },
+              { icon: Zap, title: 'PDF Export', desc: 'Export your workspace decisions, War Room sessions, and AI synthesis into clean, shareable PDFs for stakeholders.', badge: null },
             ].map(({ icon: Icon, title, desc, badge }) => (
               <div
                 key={title}
