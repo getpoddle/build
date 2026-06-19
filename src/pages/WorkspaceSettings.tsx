@@ -444,110 +444,142 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
           )}
         </section>
 
-        {/* Billing */}
-        {isOwner && workspace.stripe_customer_id && (
+        {/* Billing — always visible to owner */}
+        {isOwner && (
           <section className="bg-white rounded-2xl p-6 mb-4" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 mb-4">
               <CreditCard className="w-4 h-4" />
               Billing
             </h2>
 
-            {/* Plan details */}
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <p className="text-sm font-bold text-slate-900">
-                    {workspace.plan === 'pro' ? 'Pro Individual' : workspace.plan === 'team' ? 'Poddle Team' : workspace.plan} Plan
-                  </p>
-                  <span
-                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    style={
-                      workspace.subscription_status === 'active'
-                        ? { background: 'rgba(22,163,74,0.1)', color: '#16a34a' }
-                        : workspace.subscription_status === 'cancelled'
-                        ? { background: 'rgba(100,116,139,0.1)', color: '#64748b' }
-                        : workspace.subscription_status === 'past_due'
-                        ? { background: 'rgba(245,158,11,0.1)', color: '#b45309' }
-                        : { background: 'rgba(37,99,235,0.08)', color: '#2563eb' }
-                    }
-                  >
-                    {workspace.subscription_status === 'active' ? 'Active'
-                      : workspace.subscription_status === 'cancelled' ? 'Cancelled'
-                      : workspace.subscription_status === 'past_due' ? 'Past due'
-                      : workspace.subscription_status}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500">{workspace.seats} seats included</p>
-                {workspace.subscription_status === 'cancelled' && (
-                  <p className="text-xs text-slate-400 mt-1.5">
-                    Your workspace stays active until the end of the current billing period.
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={handleBillingPortal}
-                disabled={loadingBilling}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60 flex-shrink-0"
-                style={{ borderColor: 'rgba(15,23,42,0.12)' }}
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                {loadingBilling ? 'Opening…' : 'Manage Billing'}
-              </button>
-            </div>
-
-            {/* Cancel — only visible for active subscriptions */}
-            {workspace.subscription_status === 'active' && !showCancelConfirm && (
-              <div
-                className="flex items-center justify-between p-4 rounded-xl"
-                style={{ background: 'rgba(239,68,68,0.03)', border: '1px solid rgba(239,68,68,0.1)' }}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-800">Cancel subscription</p>
-                  <p className="text-xs text-slate-500 mt-0.5">You'll keep full access until the end of your billing period.</p>
-                </div>
-                <button
-                  onClick={() => setShowCancelConfirm(true)}
-                  className="flex-shrink-0 ml-4 px-4 py-2 rounded-xl text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors"
-                >
-                  Cancel plan
-                </button>
-              </div>
-            )}
-
-            {/* Cancel confirmation */}
-            {workspace.subscription_status === 'active' && showCancelConfirm && (
-              <div
-                className="p-4 rounded-xl space-y-3"
-                style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}
-              >
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">Cancel your subscription?</p>
-                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                      Your workspace stays fully active until the end of the current billing period, then becomes read-only. You can resubscribe at any time.
-                    </p>
+            {workspace.stripe_customer_id ? (
+              <>
+                {/* Plan details */}
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <p className="text-sm font-bold text-slate-900">
+                        {workspace.plan === 'pro' ? 'Pro Individual' : workspace.plan === 'team' ? 'Poddle Team' : workspace.plan} Plan
+                      </p>
+                      <span
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                        style={
+                          workspace.subscription_status === 'active'
+                            ? { background: 'rgba(22,163,74,0.1)', color: '#16a34a' }
+                            : workspace.subscription_status === 'cancelled'
+                            ? { background: 'rgba(100,116,139,0.1)', color: '#64748b' }
+                            : workspace.subscription_status === 'past_due'
+                            ? { background: 'rgba(245,158,11,0.1)', color: '#b45309' }
+                            : { background: 'rgba(37,99,235,0.08)', color: '#2563eb' }
+                        }
+                      >
+                        {workspace.subscription_status === 'active' ? 'Active'
+                          : workspace.subscription_status === 'cancelled' ? 'Cancelled'
+                          : workspace.subscription_status === 'past_due' ? 'Past due'
+                          : workspace.subscription_status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">{workspace.seats} seats included</p>
+                    {workspace.subscription_status === 'cancelled' && (
+                      <p className="text-xs text-slate-400 mt-1.5">
+                        Your workspace stays active until the end of the current billing period.
+                      </p>
+                    )}
                   </div>
-                </div>
-                <div className="flex gap-2">
                   <button
-                    onClick={() => setShowCancelConfirm(false)}
-                    className="px-4 py-2 rounded-xl text-sm font-semibold border text-slate-700 hover:bg-slate-50 transition-colors"
+                    onClick={handleBillingPortal}
+                    disabled={loadingBilling}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60 flex-shrink-0"
                     style={{ borderColor: 'rgba(15,23,42,0.12)' }}
                   >
-                    Keep subscription
-                  </button>
-                  <button
-                    onClick={handleCancelPortal}
-                    disabled={loadingCancel}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
-                  >
-                    {loadingCancel && (
-                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    )}
-                    {loadingCancel ? 'Redirecting…' : 'Yes, cancel subscription'}
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    {loadingBilling ? 'Opening…' : 'Manage Billing'}
                   </button>
                 </div>
+
+                {/* Cancel — only visible for active subscriptions */}
+                {workspace.subscription_status === 'active' && !showCancelConfirm && (
+                  <div
+                    className="flex items-center justify-between p-4 rounded-xl"
+                    style={{ background: 'rgba(239,68,68,0.03)', border: '1px solid rgba(239,68,68,0.1)' }}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800">Cancel subscription</p>
+                      <p className="text-xs text-slate-500 mt-0.5">You'll keep full access until the end of your billing period.</p>
+                    </div>
+                    <button
+                      onClick={() => setShowCancelConfirm(true)}
+                      className="flex-shrink-0 ml-4 px-4 py-2 rounded-xl text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors"
+                    >
+                      Cancel plan
+                    </button>
+                  </div>
+                )}
+
+                {/* Cancel confirmation */}
+                {workspace.subscription_status === 'active' && showCancelConfirm && (
+                  <div
+                    className="p-4 rounded-xl space-y-3"
+                    style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">Cancel your subscription?</p>
+                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                          Your workspace stays fully active until the end of the current billing period, then becomes read-only. You can resubscribe at any time.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowCancelConfirm(false)}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold border text-slate-700 hover:bg-slate-50 transition-colors"
+                        style={{ borderColor: 'rgba(15,23,42,0.12)' }}
+                      >
+                        Keep subscription
+                      </button>
+                      <button
+                        onClick={handleCancelPortal}
+                        disabled={loadingCancel}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+                      >
+                        {loadingCancel && (
+                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        )}
+                        {loadingCancel ? 'Redirecting…' : 'Yes, cancel subscription'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Free trial workspace — show upgrade CTA */
+              <div
+                className="flex items-center gap-4 p-4 rounded-xl"
+                style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdfa)', border: '1px solid rgba(37,99,235,0.15)' }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)' }}
+                >
+                  <CreditCard className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-900">Free trial workspace</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {workspace.subscription_status === 'inactive'
+                      ? 'This workspace has expired. Upgrade to Pro to restore full access.'
+                      : 'Expires end of month. Upgrade to Pro for unlimited, permanent workspaces.'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => onNavigate('pricing')}
+                  className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold text-white"
+                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+                >
+                  Upgrade
+                </button>
               </div>
             )}
           </section>
