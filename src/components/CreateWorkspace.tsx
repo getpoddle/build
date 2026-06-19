@@ -114,7 +114,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
         body: JSON.stringify({
           plan,
           workspace_name: name.trim() || 'My Workspace',
-          seats: plan === 'team' ? 10 : 5,
+          seats: plan === 'team' ? 10 : 3,
           success_url: `${window.location.origin}/?payment_success=1&plan=${plan}`,
           cancel_url: window.location.href,
         }),

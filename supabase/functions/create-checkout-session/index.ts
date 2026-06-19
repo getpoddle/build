@@ -97,7 +97,7 @@ Deno.serve(async (req: Request) => {
       .eq("id", user.id)
       .maybeSingle();
 
-    const defaultSeats = plan === "enterprise" ? 25 : plan === "team" ? 10 : 5;
+    const defaultSeats = plan === "enterprise" ? 25 : plan === "team" ? 10 : 3;
 
     const checkoutBody = new URLSearchParams({
       "mode": "subscription",

@@ -65,7 +65,8 @@ Deno.serve(async (req: Request) => {
       const plan = meta.plan || "pro";
       const workspaceName = meta.workspace_name || "My Workspace";
       const workspaceId = meta.workspace_id || null;
-      const seats = parseInt(meta.seats || "5", 10);
+      const defaultSeats = plan === "enterprise" ? 25 : plan === "team" ? 10 : 3;
+      const seats = parseInt(meta.seats || String(defaultSeats), 10);
       const stripeCustomerId = session.customer;
       const stripeSubscriptionId = session.subscription;
 

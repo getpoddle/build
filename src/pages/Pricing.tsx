@@ -32,7 +32,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         },
         body: JSON.stringify({
           plan,
-          seats: plan === 'team' ? 10 : 5,
+          seats: plan === 'team' ? 10 : 3,
           success_url: `${origin}/?payment_success=1&plan=${plan}`,
           cancel_url: `${origin}/#pricing`,
         }),

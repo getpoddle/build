@@ -163,7 +163,7 @@ export function useSubscriptionTier() {
     load().catch(() => setLoading(false));
   }, [user]);
 
-  return { tier, loading, isPro: tier === 'pro' || tier === 'enterprise' };
+  return { tier, loading, isPro: tier === 'pro' || tier === 'team' || tier === 'enterprise' };
 }
 
 export function useTrialInfo() {
