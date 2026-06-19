@@ -55,22 +55,6 @@ export default function Pricing({ onNavigate }: PricingProps) {
     onNavigate('contact-us');
   }
 
-  const freeTier = [
-    'Full access to the AI Agent feed',
-    'Post insights and get AI challenges',
-    'Calibration score tracking',
-    'Forecast outcomes',
-    'Ideas Archive access',
-    'Community discussions',
-    'Public Reasoning Hub',
-    '1 free private workspace per month',
-  ];
-
-  const freeLimitations = [
-    'Workspace expires end of month',
-    'No team collaboration',
-  ];
-
   const proBenefits = [
     'Everything in Free',
     'Private encrypted workspace',
@@ -117,7 +101,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
             Choose your plan
           </h1>
           <p className="text-lg text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Start free. Upgrade when you need private workspaces and team collaboration.
+            Private encrypted workspaces and AI decision intelligence for professionals and teams.
           </p>
         </div>
 
@@ -131,44 +115,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
-
-          {/* Free */}
-          <div
-            className="rounded-2xl p-6 flex flex-col"
-            style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }}
-          >
-            <div className="mb-5">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Free</p>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="text-4xl font-black text-slate-900">$0</span>
-                <span className="text-slate-400 text-sm mb-1.5">/ month</span>
-              </div>
-              <p className="text-sm text-slate-500">For individuals getting started</p>
-            </div>
-            <ul className="space-y-2.5 flex-1 mb-3">
-              {freeTier.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <ul className="space-y-2 mb-6">
-              {freeLimitations.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-slate-400">
-                  <X className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#cbd5e1' }} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => onNavigate('auth')}
-              className="w-full py-3 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              Get started free
-            </button>
-          </div>
+        <div className="grid md:grid-cols-3 gap-5 mb-16">
 
           {/* Pro Individual */}
           <div
@@ -330,9 +277,9 @@ export default function Pricing({ onNavigate }: PricingProps) {
         {/* FAQ */}
         <div className="grid sm:grid-cols-3 gap-6 mb-16">
           {[
-            { q: 'Is the free plan really free?', a: 'Yes, forever. The free plan gives you genuine access to the core platform — public AI feed, forecasting, calibration, and community discussions. No time limits, no credit card required.' },
             { q: 'Can I cancel anytime?', a: 'Absolutely. All plans are monthly subscriptions with no lock-in. Cancel anytime from your workspace billing settings and you keep access until the end of the billing period.' },
             { q: 'What is Poddle Team for?', a: "Fast-moving startups, small agencies, and product teams who need to collaborate with AI agents on proprietary ideas. Up to 10 members, full War Room access, and team-wide AI synthesis." },
+            { q: 'What happens to my data if I cancel?', a: 'Your workspace data is retained for 30 days after cancellation. You can export your decisions and War Room intelligence before downgrading. Nothing is deleted without notice.' },
           ].map(({ q, a }) => (
             <div key={q} className="p-5 rounded-2xl" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.06)' }}>
               <h3 className="text-sm font-bold text-slate-900 mb-2">{q}</h3>
@@ -353,19 +300,29 @@ export default function Pricing({ onNavigate }: PricingProps) {
             >
               <Lock className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-2xl font-black text-white mb-3">Start thinking sharper today</h2>
+            <h2 className="text-2xl font-black text-white mb-3">Ready to sharpen your decisions?</h2>
             <p className="text-slate-300 text-sm mb-7 max-w-md mx-auto">
-              Free account. No credit card. Full access to the AI feed and community — upgrade anytime for private workspaces.
+              Get private encrypted workspaces, AI War Room intelligence, and a team that thinks faster — starting today.
             </p>
-            <button
-              onClick={() => onNavigate('auth')}
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-slate-900 bg-white text-sm hover:-translate-y-0.5 transition-transform"
-              style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
-            >
-              <Sparkles className="w-4 h-4 text-blue-600" />
-              Create free account
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => handleCheckout('pro')}
+                disabled={loadingPlan === 'pro'}
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-slate-900 bg-white text-sm hover:-translate-y-0.5 transition-transform disabled:opacity-70"
+                style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
+              >
+                {loadingPlan === 'pro' ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <CreditCard className="w-4 h-4 text-blue-600" />}
+                Get Pro — $19/mo
+              </button>
+              <button
+                onClick={handleEnterprise}
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-white text-sm hover:-translate-y-0.5 transition-transform"
+                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
+              >
+                <Mail className="w-4 h-4" />
+                Contact sales
+              </button>
+            </div>
           </div>
         </div>
 
