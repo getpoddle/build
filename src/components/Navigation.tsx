@@ -1,4 +1,4 @@
-import { Sparkles, User, LogOut, Search, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard } from 'lucide-react';
+import { Sparkles, User, LogOut, Search, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard, CreditCard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UnifiedSearch from './UnifiedSearch';
 import { useState, useEffect, useCallback } from 'react';
@@ -21,7 +21,6 @@ interface NavigationProps {
 const NAV_ITEMS_AUTH = [
   { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'workspaces', label: 'Workspaces', icon: Lock },
-  { id: 'profile', label: 'Profile', icon: User },
 ];
 
 const NAV_ITEMS_GUEST = [
@@ -94,7 +93,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
 
   const navItems = user ? NAV_ITEMS_AUTH : NAV_ITEMS_GUEST;
 
-  // Determine active item — workspace sub-pages should highlight "workspaces"
+  // Determine active item
   const activeId = (currentPage === 'workspace-hub' || currentPage === 'workspace-settings')
     ? 'workspaces'
     : currentPage === 'auth' ? 'home' : currentPage;
@@ -189,8 +188,28 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           </nav>
 
           {/* User footer */}
-          <div className="flex-shrink-0 px-3 pb-4 pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          <div className="flex-shrink-0 px-3 pb-4 pt-2 border-t space-y-0.5" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <button
+              onClick={() => handleNavigate('profile')}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+              style={{ color: activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.85)', background: activeId === 'profile' ? 'rgba(37,99,235,0.18)' : '' }}
+              onMouseEnter={e => { if (activeId !== 'profile') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+              onMouseLeave={e => { if (activeId !== 'profile') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
+            >
+              <User className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+              <span>Account Settings</span>
+            </button>
+            <button
+              onClick={() => handleNavigate('pricing')}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+              style={{ color: activeId === 'pricing' ? '#93c5fd' : 'rgba(148,163,184,0.85)', background: activeId === 'pricing' ? 'rgba(37,99,235,0.18)' : '' }}
+              onMouseEnter={e => { if (activeId !== 'pricing') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+              onMouseLeave={e => { if (activeId !== 'pricing') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
+            >
+              <CreditCard className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+              <span>Plans &amp; Billing</span>
+            </button>
+            <div className="flex items-center gap-3 p-3 rounded-xl mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
                 style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
@@ -310,14 +329,23 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                 </button>
               )}
               {user ? (
-                <button
-                  onClick={() => setShowLogoutConfirm(true)}
-                  disabled={isSigningOut}
-                  aria-label="Sign out"
-                  className="lg:hidden flex items-center justify-center w-9 h-9 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1 lg:hidden">
+                  <button
+                    onClick={() => onNavigate('profile')}
+                    aria-label="Account settings"
+                    className="flex items-center justify-center w-9 h-9 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
+                  >
+                    <User className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setShowLogoutConfirm(true)}
+                    disabled={isSigningOut}
+                    aria-label="Sign out"
+                    className="flex items-center justify-center w-9 h-9 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <button

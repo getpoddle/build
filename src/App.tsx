@@ -91,7 +91,6 @@ function AppContent() {
   const [highlightDiscussionId, setHighlightDiscussionId] = useState<string | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const onboardingCheckedRef = useRef(false);
-  const [profileEditMode, setProfileEditMode] = useState(false);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [joinToken, setJoinToken] = useState<string | null>(null);
 
@@ -310,7 +309,7 @@ function AppContent() {
     sessionStorage.setItem('currentPage', page);
     const hashMap: Record<string, string> = {
       home: '',
-      profile: userId ? `profile/${userId}` : 'profile',
+      profile: 'profile',
       pricing: 'pricing',
       workspaces: 'workspaces',
       'payment-success': 'payment-success',
@@ -319,19 +318,7 @@ function AppContent() {
       const newHash = hashMap[page] || '';
       history.pushState(null, '', newHash ? `#${newHash}` : window.location.pathname + window.location.search);
     }
-
-    if (page === 'profile') {
-      if (userId) {
-        setSelectedUserId(userId);
-        sessionStorage.setItem('selectedUserId', userId);
-      } else {
-        setSelectedUserId(null);
-        sessionStorage.removeItem('selectedUserId');
-      }
-      setProfileEditMode(editMode || false);
-    } else {
-      sessionStorage.removeItem('selectedUserId');
-    }
+    sessionStorage.removeItem('selectedUserId');
   };
 
   const handleOnboardingComplete = () => {
@@ -498,18 +485,6 @@ function AppContent() {
 
   if (!user) {
     if (currentPage === 'auth') return <Auth />;
-    if (currentPage === 'profile' && selectedUserId) {
-      return (
-        <div className="min-h-screen bg-slate-50">
-          <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-          <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
-            <Suspense fallback={<RouteFallback />}>
-              <Profile key={`profile-guest-${selectedUserId}`} userId={selectedUserId} onNavigate={handleNavigate} />
-            </Suspense>
-          </div>
-        </div>
-      );
-    }
     return (
       <div className="min-h-screen bg-slate-50">
         <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
@@ -550,7 +525,7 @@ function AppContent() {
         <PageErrorBoundary>
           <Suspense fallback={<RouteFallback />}>
             {activePage === 'home' && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
-            {activePage === 'profile' && <Profile key={`profile-${selectedUserId || 'own'}`} userId={selectedUserId} onNavigate={handleNavigate} initialEditMode={profileEditMode} />}
+            {activePage === 'profile' && <Profile key="profile-settings" onNavigate={handleNavigate} />}
             {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
             {activePage === 'workspace-hub' && workspaceId && (
               <WorkspaceHub
