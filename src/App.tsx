@@ -437,35 +437,31 @@ function AppContent() {
   if (currentPage === 'extension-view') return wrap(<ExtensionView />);
   if (currentPage === 'admin-panel') return wrap(<AdminPanel />);
   if (currentPage === 'privacy') return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <Suspense fallback={<RouteFallback />}><PrivacyPolicy /></Suspense>
-      </div>
+      <Suspense fallback={<RouteFallback />}><PrivacyPolicy /></Suspense>
+      <div className="md:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
     </div>
   );
   if (currentPage === 'terms') return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <Suspense fallback={<RouteFallback />}><TermsOfService /></Suspense>
-      </div>
+      <Suspense fallback={<RouteFallback />}><TermsOfService /></Suspense>
+      <div className="md:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
     </div>
   );
   if (currentPage === 'contact-us') return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <Suspense fallback={<RouteFallback />}><ContactUs /></Suspense>
-      </div>
+      <Suspense fallback={<RouteFallback />}><ContactUs /></Suspense>
+      <div className="md:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
     </div>
   );
   if (currentPage === 'pricing') return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <Suspense fallback={<RouteFallback />}><Pricing onNavigate={handleNavigate} /></Suspense>
-      </div>
+      <Suspense fallback={<RouteFallback />}><Pricing onNavigate={handleNavigate} /></Suspense>
+      <div className="md:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
     </div>
   );
   if (currentPage === 'system-health') return wrap(<SystemHealth />);
