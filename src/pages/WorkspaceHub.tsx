@@ -33,12 +33,9 @@ interface WorkspaceHubProps {
 export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNavigate }: WorkspaceHubProps) {
   const { user } = useAuth();
   const { canAccess, isAdmin, isReadOnly, plan, subscriptionStatus, trialExpiresAt, loading: accessLoading } = useWorkspaceAccess(workspaceId);
-  // War Room is available when the workspace itself is on pro/enterprise,
-  // regardless of the individual member's personal subscription tier.
   const workspaceIsPro = (plan === 'pro' || plan === 'enterprise') &&
     (subscriptionStatus === 'active' || subscriptionStatus === 'trialing');
 
-  // Days remaining on trial
   const daysLeft = trialExpiresAt
     ? Math.max(0, Math.ceil((new Date(trialExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
@@ -47,6 +44,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
+  // On mobile we use a tab switcher; on desktop both panels render side-by-side
   const [mainTab, setMainTab] = useState<MainTab>('chat');
   const [pendingPrompt, setPendingPrompt] = useState<string | undefined>(undefined);
   const [showResynthesisNudge, setShowResynthesisNudge] = useState(false);
@@ -68,7 +66,6 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
   async function handleResynthesis() {
     setResyncing(true);
     setShowResynthesisNudge(false);
-    // Switch to War Room tab immediately so the user sees the loading state
     setMainTab('entities');
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -90,7 +87,6 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           signal: controller.signal,
         });
       } catch {
-        // Network or abort — War Room already visible, will show stale data
         return;
       } finally {
         clearTimeout(timeout);
@@ -100,8 +96,6 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
       try { json = await res.json(); } catch { /* non-critical */ }
 
       if (!json.error) {
-        // Increment key to remount War Room and pull fresh data from DB.
-        // Clear discussed keys — after re-synthesis items may have changed.
         setWarRoomKey(k => k + 1);
         setDiscussedKeys(new Set());
       }
@@ -160,7 +154,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-screen-xl mx-auto px-4 lg:px-10 py-6 lg:py-8">
 
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
@@ -185,16 +179,18 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
               )}
             </div>
           </div>
-          {isAdmin && (
-            <button
-              onClick={onSettings}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 border hover:bg-white transition-all"
-              style={{ borderColor: 'rgba(15,23,42,0.1)' }}
-            >
-              <Settings className="w-4 h-4" />
-              Settings
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={onSettings}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 border hover:bg-white transition-all"
+                style={{ borderColor: 'rgba(15,23,42,0.1)' }}
+              >
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Settings</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Trial expiry warning banner */}
@@ -245,7 +241,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           </div>
         )}
 
-        {/* Trial badge — subtle indicator when active */}
+        {/* Trial badge */}
         {isTrial && !isReadOnly && !expiryWarning && daysLeft !== null && (
           <div className="mb-5 flex items-center gap-2">
             <span
@@ -258,8 +254,30 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           </div>
         )}
 
-        {/* Main tab switcher */}
-        <div className="flex items-center gap-1 bg-white rounded-2xl p-1 mb-6" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
+        {/* Re-synthesis nudge */}
+        {showResynthesisNudge && !isReadOnly && (
+          <div
+            className="mb-5 rounded-2xl p-4 flex items-center gap-3 justify-between"
+            style={{ background: 'linear-gradient(135deg,rgba(30,58,95,0.06),rgba(37,99,235,0.08))', border: '1px solid rgba(37,99,235,0.2)' }}
+          >
+            <div>
+              <p className="text-sm font-bold text-slate-900">Agents have responded</p>
+              <p className="text-xs text-slate-500 mt-0.5">Re-synthesize the War Room to update intelligence with these new insights.</p>
+            </div>
+            <button
+              onClick={handleResynthesis}
+              disabled={resyncing}
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-0.5 disabled:opacity-60"
+              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 12px rgba(37,99,235,0.25)' }}
+            >
+              {resyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {resyncing ? 'Synthesizing…' : 'Re-synthesize'}
+            </button>
+          </div>
+        )}
+
+        {/* Mobile tab switcher */}
+        <div className="lg:hidden flex items-center gap-1 bg-white rounded-2xl p-1 mb-5" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
           <button
             onClick={() => setMainTab('chat')}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all"
@@ -290,12 +308,78 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           </button>
         </div>
 
-        {mainTab === 'chat' && (
+        {/* Mobile: single panel */}
+        <div className="lg:hidden">
+          {mainTab === 'chat' && (
+            <div className="relative">
+              {isReadOnly && (
+                <div
+                  className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl"
+                  style={{ background: 'rgba(248,250,252,0.88)', backdropFilter: 'blur(4px)', pointerEvents: 'none' }}
+                >
+                  <div className="text-center px-6" style={{ pointerEvents: 'auto' }}>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(239,68,68,0.1)' }}>
+                      <Lock className="w-6 h-6 text-red-400" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-700 mb-1">Chat is read-only</p>
+                    <p className="text-xs text-slate-500 mb-4">Upgrade to resume conversations with AI agents.</p>
+                    <button
+                      onClick={() => setShowUpgrade(true)}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+                      style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Upgrade to unlock
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div
+                className="rounded-2xl p-4"
+                style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
+              >
+                <WorkspaceChat
+                  workspaceId={workspaceId}
+                  workspaceName={workspace?.name || 'Workspace'}
+                  workspaceTopic={workspace?.description}
+                  initialPrompt={pendingPrompt}
+                  onPromptConsumed={() => setPendingPrompt(undefined)}
+                  onAgentsReplied={handleAgentsReplied}
+                />
+              </div>
+            </div>
+          )}
+          {mainTab === 'entities' && (
+            <div>
+              {workspaceIsPro ? (
+                <WorkspaceWarRoom
+                  key={warRoomKey}
+                  workspaceId={workspaceId}
+                  workspaceName={workspace?.name || 'Workspace'}
+                  workspaceTopic={workspace?.description}
+                  onDiscuss={handleDiscuss}
+                  discussedKeys={discussedKeys}
+                  onDiscussed={key => setDiscussedKeys(prev => new Set([...prev, key]))}
+                />
+              ) : (
+                <WarRoomLockedState onUpgrade={() => setShowUpgrade(true)} />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: side-by-side layout */}
+        <div className="hidden lg:grid lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] gap-6">
+          {/* Left: Chat panel */}
           <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <MessageSquare className="w-4 h-4 text-slate-400" />
+              <h2 className="text-sm font-bold text-slate-700">AI Collaboration</h2>
+            </div>
             {isReadOnly && (
               <div
                 className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl"
-                style={{ background: 'rgba(248,250,252,0.88)', backdropFilter: 'blur(4px)', pointerEvents: 'none' }}
+                style={{ background: 'rgba(248,250,252,0.88)', backdropFilter: 'blur(4px)', pointerEvents: 'none', top: '2rem' }}
               >
                 <div className="text-center px-6" style={{ pointerEvents: 'auto' }}>
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(239,68,68,0.1)' }}>
@@ -314,28 +398,8 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
                 </div>
               </div>
             )}
-            {showResynthesisNudge && !isReadOnly && (
-              <div
-                className="mb-4 rounded-2xl p-4 flex items-center gap-3 justify-between"
-                style={{ background: 'linear-gradient(135deg,rgba(30,58,95,0.06),rgba(37,99,235,0.08))', border: '1px solid rgba(37,99,235,0.2)' }}
-              >
-                <div>
-                  <p className="text-sm font-bold text-slate-900">Agents have responded</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Re-synthesize the War Room to update intelligence with these new insights.</p>
-                </div>
-                <button
-                  onClick={handleResynthesis}
-                  disabled={resyncing}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-0.5 disabled:opacity-60"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 12px rgba(37,99,235,0.25)' }}
-                >
-                  {resyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  {resyncing ? 'Synthesizing…' : 'Re-synthesize'}
-                </button>
-              </div>
-            )}
             <div
-              className="rounded-2xl p-4 sm:p-5"
+              className="rounded-2xl p-5"
               style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
             >
               <WorkspaceChat
@@ -348,17 +412,34 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
               />
             </div>
           </div>
-        )}
 
-        {mainTab === 'entities' && (
+          {/* Right: War Room panel */}
           <div>
-            {showUpgrade && (
-              <UpgradePrompt
-                context={isReadOnly ? 'trial_exhausted' : 'workspace'}
-                onClose={() => setShowUpgrade(false)}
-                onUpgrade={() => { setShowUpgrade(false); onNavigate('pricing'); }}
-              />
-            )}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-slate-400" />
+                <h2 className="text-sm font-bold text-slate-700">War Room</h2>
+                {!workspaceIsPro && (
+                  <span
+                    className="text-xs font-black px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', fontSize: '9px' }}
+                  >
+                    PRO
+                  </span>
+                )}
+              </div>
+              {workspaceIsPro && !isReadOnly && (
+                <button
+                  onClick={handleResynthesis}
+                  disabled={resyncing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', boxShadow: '0 2px 8px rgba(37,99,235,0.2)' }}
+                >
+                  {resyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  {resyncing ? 'Synthesizing…' : 'Re-synthesize'}
+                </button>
+              )}
+            </div>
             {workspaceIsPro ? (
               <WorkspaceWarRoom
                 key={warRoomKey}
@@ -373,6 +454,15 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
               <WarRoomLockedState onUpgrade={() => setShowUpgrade(true)} />
             )}
           </div>
+        </div>
+
+        {/* Upgrade prompt (mobile War Room tab) */}
+        {showUpgrade && (
+          <UpgradePrompt
+            context={isReadOnly ? 'trial_exhausted' : 'workspace'}
+            onClose={() => setShowUpgrade(false)}
+            onUpgrade={() => { setShowUpgrade(false); onNavigate('pricing'); }}
+          />
         )}
       </div>
     </div>

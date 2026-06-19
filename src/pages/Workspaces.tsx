@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle } from 'lucide-react';
+import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap } from 'lucide-react';
 import { useUserWorkspaces, useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
 import CreateWorkspace from '../components/CreateWorkspace';
 import UpgradePrompt from '../components/UpgradePrompt';
@@ -63,18 +63,18 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-screen-xl mx-auto px-6 lg:px-10 py-8 lg:py-10">
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+        {/* Page header */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
           <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-1">Private Workspaces</h1>
+            <h1 className="text-2xl lg:text-3xl font-black text-slate-900 mb-1">Private Workspaces</h1>
             <p className="text-slate-500 text-sm">Encrypted spaces where your team debates proprietary ideas with AI agents.</p>
           </div>
           <button
             onClick={handleCreateClick}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 self-start sm:flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 6px 18px rgba(37,99,235,0.3)' }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 self-start sm:flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
           >
             {!isPro && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             {!isPro && trialExhausted ? 'Upgrade to Create' : 'New Workspace'}
@@ -105,7 +105,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         {/* Empty state */}
         {!isLoading && workspaces.length === 0 && (
           <div
-            className="rounded-3xl p-12 text-center"
+            className="rounded-2xl p-12 lg:p-16 text-center"
             style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
           >
             <div
@@ -115,10 +115,10 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               <Lock className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-xl font-black text-slate-900 mb-2">No private workspaces yet</h2>
-            <p className="text-slate-500 text-sm max-w-sm mx-auto mb-6 leading-relaxed">
+            <p className="text-slate-500 text-sm max-w-sm mx-auto mb-8 leading-relaxed">
               1 free workspace every month — no credit card needed. Full Pro features until the end of the month, including encrypted team spaces and AI War Room.
             </p>
-            <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto mb-8">
+            <div className="grid grid-cols-3 gap-6 max-w-md mx-auto mb-10">
               {[
                 { icon: Lock, label: 'End-to-end encrypted' },
                 { icon: Users, label: 'Invite-only access' },
@@ -137,7 +137,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             </div>
             <button
               onClick={handleCreateClick}
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
               style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
             >
               {trialExhausted ? (
@@ -152,16 +152,31 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         {/* Loading */}
         {isLoading && (
           <div className="space-y-3">
-            {[1, 2].map(i => (
-              <div key={i} className="h-24 rounded-2xl animate-pulse" style={{ background: 'rgba(15,23,42,0.05)' }} />
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'rgba(15,23,42,0.05)' }} />
             ))}
           </div>
         )}
 
-        {/* Workspace list */}
+        {/* Workspace list — desktop table-style */}
         {!isLoading && workspaces.length > 0 && (
-          <div className="space-y-3">
-            {workspaces.map(ws => {
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
+          >
+            {/* Table header — hidden on mobile */}
+            <div
+              className="hidden lg:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 px-6 py-3 text-xs font-bold uppercase tracking-widest text-slate-400"
+              style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', background: 'rgba(248,250,252,0.8)' }}
+            >
+              <span>Workspace</span>
+              <span className="text-center w-20">Plan</span>
+              <span className="text-center w-20">Status</span>
+              <span className="text-center w-24">Role</span>
+              <span className="w-16" />
+            </div>
+
+            {workspaces.map((ws, idx) => {
               const planStyle = PLAN_BADGE_STYLE[ws.plan] || PLAN_BADGE_STYLE.pro;
               const statusStyle = STATUS_STYLE[ws.subscription_status] || STATUS_STYLE.inactive;
               const statusLabel = STATUS_LABEL[ws.subscription_status] || ws.subscription_status;
@@ -172,19 +187,20 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               const isTrial = ws.subscription_status === 'trialing' && !ws.stripe_customer_id;
               const daysLeft = isTrial ? daysUntil(ws.trial_workspace_expires_at) : null;
               const expiryWarning = daysLeft !== null && daysLeft <= 7;
+              const isLast = idx === workspaces.length - 1;
 
               return (
                 <div
                   key={ws.id}
-                  className="bg-white rounded-2xl overflow-hidden group transition-all duration-200 hover:shadow-md cursor-pointer"
-                  style={{ border: `1px solid ${isExpired ? 'rgba(239,68,68,0.2)' : 'rgba(15,23,42,0.08)'}` }}
+                  className="group cursor-pointer transition-all duration-150 hover:bg-slate-50"
+                  style={!isLast ? { borderBottom: '1px solid rgba(15,23,42,0.06)' } : undefined}
                   onClick={() => onNavigate('workspace-hub', ws.id)}
                 >
-                  {/* Expiry warning strip */}
-                  {expiryWarning && !isExpired && (
+                  {/* Alert strip */}
+                  {(expiryWarning && !isExpired) && (
                     <div
-                      className="flex items-center gap-2 px-5 py-2 text-xs font-semibold"
-                      style={{ background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.15)', color: '#b45309' }}
+                      className="flex items-center gap-2 px-6 py-2 text-xs font-semibold"
+                      style={{ background: 'rgba(245,158,11,0.07)', borderBottom: '1px solid rgba(245,158,11,0.12)', color: '#b45309' }}
                     >
                       <AlertTriangle className="w-3.5 h-3.5" />
                       Trial expires in {daysLeft} day{daysLeft === 1 ? '' : 's'} — upgrade to keep this workspace active
@@ -192,43 +208,30 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                   )}
                   {isExpired && (
                     <div
-                      className="flex items-center gap-2 px-5 py-2 text-xs font-semibold"
-                      style={{ background: 'rgba(239,68,68,0.06)', borderBottom: '1px solid rgba(239,68,68,0.12)', color: '#dc2626' }}
+                      className="flex items-center gap-2 px-6 py-2 text-xs font-semibold"
+                      style={{ background: 'rgba(239,68,68,0.05)', borderBottom: '1px solid rgba(239,68,68,0.1)', color: '#dc2626' }}
                     >
                       <AlertTriangle className="w-3.5 h-3.5" />
                       Expired — this workspace is read-only. Upgrade to restore full access.
                     </div>
                   )}
-                  <div className="p-5 flex items-center gap-4">
+
+                  {/* Mobile layout */}
+                  <div className="lg:hidden p-5 flex items-center gap-4">
                     <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
                       style={{ background: isExpired ? 'rgba(100,116,139,0.1)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
                     >
-                      <Lock className={`w-6 h-6 ${isExpired ? 'text-slate-400' : 'text-white'}`} />
+                      <Lock className={`w-5 h-5 ${isExpired ? 'text-slate-400' : 'text-white'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className={`text-base font-bold truncate ${isExpired ? 'text-slate-400' : 'text-slate-900'}`}>{ws.name}</h3>
-                        <span
-                          className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize"
-                          style={{ ...planStyle }}
-                        >
-                          {ws.plan}
-                        </span>
-                        <span
-                          className="text-xs font-medium px-2 py-0.5 rounded-full"
-                          style={{ ...statusStyle }}
-                        >
-                          {statusLabel}
-                        </span>
-                        {isTrial && daysLeft !== null && !expiryWarning && (
-                          <span className="text-xs text-slate-400">{daysLeft}d left</span>
-                        )}
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <h3 className={`text-sm font-bold truncate ${isExpired ? 'text-slate-400' : 'text-slate-900'}`}>{ws.name}</h3>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={planStyle}>{ws.plan}</span>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={statusStyle}>{statusLabel}</span>
                       </div>
-                      {ws.description && (
-                        <p className="text-sm text-slate-500 truncate mt-0.5">{ws.description}</p>
-                      )}
-                      <div className="flex items-center gap-3 mt-1.5">
+                      {ws.description && <p className="text-xs text-slate-500 truncate">{ws.description}</p>}
+                      <div className="flex items-center gap-3 mt-1">
                         <div className="flex items-center gap-1">
                           <RoleIcon className="w-3 h-3" style={{ color: roleColor }} />
                           <span className="text-xs capitalize" style={{ color: roleColor }}>{role}</span>
@@ -239,16 +242,75 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       {(role === 'owner' || role === 'admin') && (
                         <button
                           onClick={e => { e.stopPropagation(); onNavigate('workspace-settings', ws.id); }}
-                          className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                         >
                           <Settings className="w-4 h-4" />
                         </button>
                       )}
-                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                    </div>
+                  </div>
+
+                  {/* Desktop table row */}
+                  <div className="hidden lg:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 items-center px-6 py-4">
+                    {/* Name + description */}
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: isExpired ? 'rgba(100,116,139,0.1)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+                      >
+                        <Lock className={`w-4.5 h-4.5 ${isExpired ? 'text-slate-400' : 'text-white'}`} style={{ width: '1.125rem', height: '1.125rem' }} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-bold truncate ${isExpired ? 'text-slate-400' : 'text-slate-900'}`}>{ws.name}</p>
+                          {isTrial && daysLeft !== null && !expiryWarning && (
+                            <span className="text-xs text-slate-400 flex-shrink-0">{daysLeft}d left</span>
+                          )}
+                        </div>
+                        {ws.description
+                          ? <p className="text-xs text-slate-400 truncate mt-0.5">{ws.description}</p>
+                          : <p className="text-xs text-slate-300 mt-0.5">No description</p>
+                        }
+                      </div>
+                    </div>
+
+                    {/* Plan */}
+                    <div className="w-20 flex justify-center">
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full capitalize" style={planStyle}>{ws.plan}</span>
+                    </div>
+
+                    {/* Status */}
+                    <div className="w-20 flex justify-center">
+                      <span className="text-xs font-medium px-2.5 py-1 rounded-full" style={statusStyle}>{statusLabel}</span>
+                    </div>
+
+                    {/* Role */}
+                    <div className="w-24 flex justify-center">
+                      <div className="flex items-center gap-1.5">
+                        <RoleIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: roleColor }} />
+                        <span className="text-xs font-medium capitalize" style={{ color: roleColor }}>{role}</span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="w-16 flex items-center justify-end gap-1">
+                      {(role === 'owner' || role === 'admin') && (
+                        <button
+                          onClick={e => { e.stopPropagation(); onNavigate('workspace-settings', ws.id); }}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                          title="Settings"
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <div className="w-8 h-8 flex items-center justify-center">
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -257,7 +319,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
           </div>
         )}
 
-        {/* Upgrade banner when monthly limit reached and workspace list is visible */}
+        {/* Upgrade banner when monthly limit reached */}
         {!isLoading && !isPro && monthlyLimitReached && workspaces.length > 0 && (
           <div
             className="mt-6 rounded-2xl p-5 flex items-center gap-4"
@@ -280,6 +342,31 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             >
               Upgrade
             </button>
+          </div>
+        )}
+
+        {/* Feature callout strip */}
+        {!isLoading && (
+          <div className="mt-8 grid sm:grid-cols-3 gap-4">
+            {[
+              { icon: Lock, title: 'End-to-end encrypted', desc: 'All workspace data encrypted at rest and in transit', color: '#2563eb', bg: 'rgba(37,99,235,0.07)' },
+              { icon: Zap, title: 'AI War Room', desc: 'Synthesize discussions into structured intelligence in under 60s', color: '#7c3aed', bg: 'rgba(124,58,237,0.07)' },
+              { icon: Users, title: 'Team collaboration', desc: 'Invite members and assign roles — owner, admin, or member', color: '#16a34a', bg: 'rgba(22,163,74,0.07)' },
+            ].map(({ icon: Icon, title, desc, color, bg }) => (
+              <div
+                key={title}
+                className="flex items-start gap-3 p-4 rounded-2xl"
+                style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: bg }}>
+                  <Icon className="w-4 h-4" style={{ color }} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-800">{title}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

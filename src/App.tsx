@@ -437,31 +437,39 @@ function AppContent() {
   if (currentPage === 'extension-view') return wrap(<ExtensionView />);
   if (currentPage === 'admin-panel') return wrap(<AdminPanel />);
   if (currentPage === 'privacy') return (
-    <div className="bg-slate-50" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
+    <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <Suspense fallback={<RouteFallback />}><PrivacyPolicy /></Suspense>
-      <div className="md:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+      <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+        <Suspense fallback={<RouteFallback />}><PrivacyPolicy /></Suspense>
+        <div className="lg:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+      </div>
     </div>
   );
   if (currentPage === 'terms') return (
-    <div className="bg-slate-50" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
+    <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <Suspense fallback={<RouteFallback />}><TermsOfService /></Suspense>
-      <div className="md:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+      <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+        <Suspense fallback={<RouteFallback />}><TermsOfService /></Suspense>
+        <div className="lg:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+      </div>
     </div>
   );
   if (currentPage === 'contact-us') return (
-    <div className="bg-slate-50" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
+    <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <Suspense fallback={<RouteFallback />}><ContactUs /></Suspense>
-      <div className="md:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+      <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+        <Suspense fallback={<RouteFallback />}><ContactUs /></Suspense>
+        <div className="lg:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+      </div>
     </div>
   );
   if (currentPage === 'pricing') return (
-    <div className="bg-slate-50" style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
+    <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-      <Suspense fallback={<RouteFallback />}><Pricing onNavigate={handleNavigate} /></Suspense>
-      <div className="md:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+      <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+        <Suspense fallback={<RouteFallback />}><Pricing onNavigate={handleNavigate} /></Suspense>
+        <div className="lg:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+      </div>
     </div>
   );
   if (currentPage === 'system-health') return wrap(<SystemHealth />);
@@ -514,9 +522,9 @@ function AppContent() {
 
   if (currentPage === 'admin') {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="flex bg-slate-50 min-h-screen">
         <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
-        <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="flex-1 lg:ml-56 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
           <Suspense fallback={<RouteFallback />}>
             <Admin key="admin" />
           </Suspense>
@@ -530,12 +538,12 @@ function AppContent() {
   const activePage = currentPage === 'auth' ? 'home' : currentPage;
 
   return (
-    <div className="flex flex-col" style={{ minHeight: '100vh' }}>
+    <div className="flex" style={{ minHeight: '100vh' }}>
       <Navigation currentPage={activePage} onNavigate={handleNavigate} />
       <main
-        className="flex-1 overflow-x-hidden"
+        className="flex-1 overflow-x-hidden min-w-0 lg:ml-56 xl:ml-60"
         style={{
-          paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))',
+          paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
           paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
         }}
       >
@@ -568,17 +576,17 @@ function AppContent() {
           </Suspense>
         </PageErrorBoundary>
       </main>
-      <footer className="bg-white border-t border-slate-200 py-6">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-600">
-            <a href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</a>
-            <a href="#privacy" className="hover:text-blue-600 transition-colors">Privacy Policy</a>
-            <a href="#terms" className="hover:text-blue-600 transition-colors">Terms of Service</a>
-            <a href="#contact-us" className="hover:text-blue-600 transition-colors">Contact Us</a>
+      <footer className="bg-white border-t border-slate-200 py-5 hidden lg:block">
+        <div className="max-w-7xl mx-auto px-8">
+          <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+            <span>&copy; 2026 Poddle, Inc.</span>
+            <div className="flex gap-5">
+              <a href="#pricing" className="hover:text-slate-600 transition-colors">Pricing</a>
+              <a href="#privacy" className="hover:text-slate-600 transition-colors">Privacy</a>
+              <a href="#terms" className="hover:text-slate-600 transition-colors">Terms</a>
+              <a href="#contact-us" className="hover:text-slate-600 transition-colors">Contact</a>
+            </div>
           </div>
-          <p className="text-center text-xs text-slate-500 mt-4">
-            &copy; 2026 Poddle, Inc. All rights reserved.
-          </p>
         </div>
       </footer>
       <InstallPrompt />

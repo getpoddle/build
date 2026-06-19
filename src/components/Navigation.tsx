@@ -1,4 +1,4 @@
-import { Sparkles, User, LogOut, Search, X, Bot, Lock, Home } from 'lucide-react';
+import { Sparkles, User, LogOut, Search, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UnifiedSearch from './UnifiedSearch';
 import { useState, useEffect, useCallback } from 'react';
@@ -19,6 +19,7 @@ interface NavigationProps {
 }
 
 const NAV_ITEMS_AUTH = [
+  { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'workspaces', label: 'Workspaces', icon: Lock },
   { id: 'profile', label: 'Profile', icon: User },
 ];
@@ -35,6 +36,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ full_name: string | null; email?: string } | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -43,13 +45,16 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
   }, []);
 
   useEffect(() => {
-    if (!user) { setIsAdmin(false); return; }
+    if (!user) { setIsAdmin(false); setUserProfile(null); return; }
     supabase
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, full_name')
       .eq('id', user.id)
       .maybeSingle()
-      .then(({ data }) => setIsAdmin(data?.is_admin || false))
+      .then(({ data }) => {
+        setIsAdmin(data?.is_admin || false);
+        setUserProfile({ full_name: data?.full_name || null, email: user.email });
+      })
       .catch(() => setIsAdmin(false));
   }, [user]);
 
@@ -89,112 +94,244 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
 
   const navItems = user ? NAV_ITEMS_AUTH : NAV_ITEMS_GUEST;
 
+  // Determine active item — workspace sub-pages should highlight "workspaces"
+  const activeId = (currentPage === 'workspace-hub' || currentPage === 'workspace-settings')
+    ? 'workspaces'
+    : currentPage === 'auth' ? 'home' : currentPage;
+
+  const displayName = userProfile?.full_name || userProfile?.email?.split('@')[0] || 'Account';
+  const displayEmail = userProfile?.email || '';
+  const initials = displayName.slice(0, 2).toUpperCase();
+
   return (
     <>
+      {/* ── Desktop left sidebar (lg+, authenticated only) ── */}
+      {user && (
+        <aside
+          aria-label="Sidebar navigation"
+          className="hidden lg:flex flex-col fixed top-0 left-0 bottom-0 z-50 w-56 xl:w-60"
+          style={{
+            background: '#0f172a',
+            borderRight: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          {/* Logo */}
+          <div className="flex items-center gap-3 px-5 h-16 flex-shrink-0 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
+            >
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-base font-black text-white tracking-tight">Poddle</span>
+          </div>
+
+          {/* Search */}
+          <div className="px-3 pt-4 pb-2">
+            <button
+              onClick={() => setShowSearch(true)}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors group"
+              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(148,163,184,0.9)' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
+            >
+              <Search className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="flex-1 text-left">Search…</span>
+              <kbd className="text-[10px] px-1.5 py-0.5 rounded-md font-mono" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(148,163,184,0.6)' }}>⌘K</kbd>
+            </button>
+          </div>
+
+          {/* Nav items */}
+          <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto" role="list">
+            <p className="text-[10px] font-bold uppercase tracking-widest px-3 py-2" style={{ color: 'rgba(100,116,139,0.8)' }}>Navigation</p>
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeId === item.id;
+              return (
+                <button
+                  key={item.id}
+                  role="listitem"
+                  onClick={() => handleNavigate(item.id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group"
+                  style={isActive ? {
+                    background: 'rgba(37,99,235,0.18)',
+                    color: '#93c5fd',
+                  } : {
+                    color: 'rgba(148,163,184,0.85)',
+                  }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
+                >
+                  {isActive && <span className="absolute left-0 w-0.5 h-5 rounded-r-full bg-blue-400" aria-hidden="true" />}
+                  <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
+                  <span>{item.label}</span>
+                  {isActive && <ChevronRight className="ml-auto w-3.5 h-3.5 opacity-60" />}
+                </button>
+              );
+            })}
+
+            {isAdmin && (
+              <>
+                <p className="text-[10px] font-bold uppercase tracking-widest px-3 pt-4 pb-2" style={{ color: 'rgba(100,116,139,0.8)' }}>Admin</p>
+                <button
+                  onClick={() => handleNavigate('admin')}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
+                  style={{ color: 'rgba(251,191,36,0.9)' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(251,191,36,0.08)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}
+                >
+                  <Settings className="w-4 h-4 flex-shrink-0" />
+                  <span>Admin Panel</span>
+                </button>
+              </>
+            )}
+          </nav>
+
+          {/* User footer */}
+          <div className="flex-shrink-0 px-3 pb-4 pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
+                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+              >
+                {initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-white truncate">{displayName}</p>
+                <p className="text-[10px] truncate" style={{ color: 'rgba(148,163,184,0.6)' }}>{displayEmail}</p>
+              </div>
+              <button
+                onClick={() => setShowLogoutConfirm(true)}
+                disabled={isSigningOut}
+                aria-label="Sign out"
+                className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors disabled:opacity-50"
+                style={{ color: 'rgba(148,163,184,0.5)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.12)'; (e.currentTarget as HTMLElement).style.color = '#f87171'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.5)'; }}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {/* ── Top bar ── */}
+      {/* On desktop + authenticated: slim top bar spanning right of sidebar */}
+      {/* On mobile / guest: full-width top bar */}
       <nav
         role="navigation"
         aria-label="Main navigation"
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        className={`fixed top-0 right-0 z-50 transition-all duration-300 ${user ? 'lg:left-56 xl:left-60' : 'left-0'}`}
         style={{
+          left: !user ? 0 : undefined,
           paddingTop: 'env(safe-area-inset-top)',
-          background: scrolled ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.7)',
+          background: scrolled ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.82)',
           backdropFilter: 'blur(24px) saturate(1.6)',
           WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
-          borderBottom: scrolled ? '1px solid rgba(15,23,42,0.08)' : '1px solid rgba(15,23,42,0.04)',
-          boxShadow: scrolled ? '0 4px 24px rgba(15,23,42,0.08)' : 'none',
+          borderBottom: '1px solid rgba(15,23,42,0.07)',
+          boxShadow: scrolled ? '0 2px 16px rgba(15,23,42,0.06)' : 'none',
         }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-6 flex-1 md:gap-8">
+        <div className={`${user ? 'px-6 lg:px-8' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'}`}>
+          <div className="flex items-center justify-between h-14">
+
+            {/* Mobile: logo. Desktop+auth: page breadcrumb. Guest: logo */}
+            <div className="flex items-center gap-4 flex-1">
+              {/* Logo — visible on mobile and guest */}
               <button
                 onClick={() => onNavigate(user ? 'workspaces' : 'home')}
                 aria-label="Go to home"
-                className="flex items-center gap-3 group flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl"
+                className={`flex items-center gap-2.5 group flex-shrink-0 focus-visible:outline-none rounded-xl ${user ? 'lg:hidden' : ''}`}
               >
                 <div
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all duration-300"
-                  style={{ background: 'linear-gradient(135deg,#2563eb,#3b82f6,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-200"
+                  style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 3px 10px rgba(37,99,235,0.3)' }}
                 >
-                  <Sparkles className="w-5 h-5 text-white" aria-hidden="true" />
+                  <Sparkles className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-xl font-black hidden sm:block" style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                <span className="text-base font-black hidden sm:block" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                   Poddle
                 </span>
               </button>
 
-              <div className="hidden md:flex items-center gap-2 lg:gap-3 flex-1 justify-center" role="list">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentPage === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      role="listitem"
-                      onClick={() => handleNavigate(item.id)}
-                      aria-current={isActive ? 'page' : undefined}
-                      className="relative flex items-center gap-2 h-10 px-3 lg:px-4 rounded-xl transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
-                      style={isActive ? {
-                        background: 'linear-gradient(135deg,#2563eb,#06b6d4)',
-                        color: '#fff',
-                        boxShadow: '0 3px 12px rgba(37,99,235,0.35)',
-                      } : { color: '#475569' }}
-                    >
-                      {!isActive && (
-                        <span className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-150" style={{ background: 'rgba(15,23,42,0.05)' }} aria-hidden="true" />
-                      )}
-                      <Icon className="relative z-10 transition-transform duration-200 group-hover:scale-110" style={{ width: '1.125rem', height: '1.125rem' }} strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
-                      <span className="relative z-10 text-sm font-semibold whitespace-nowrap">{item.label}</span>
-                    </button>
-                  );
-                })}
-                {isAdmin && (
-                  <button
-                    onClick={() => handleNavigate('admin')}
-                    className="flex items-center h-10 px-3 lg:px-4 rounded-xl transition-all duration-200 text-amber-700 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
-                  >
-                    <span className="text-sm font-bold">Admin</span>
-                  </button>
-                )}
-              </div>
+              {/* Desktop authenticated: page title */}
+              {user && (
+                <div className="hidden lg:flex items-center gap-3">
+                  <h2 className="text-sm font-semibold text-slate-700 capitalize">
+                    {currentPage === 'workspace-hub' || currentPage === 'workspace-settings'
+                      ? 'Workspaces'
+                      : currentPage === 'home' ? 'Dashboard'
+                      : currentPage.replace(/-/g, ' ')}
+                  </h2>
+                </div>
+              )}
+
+              {/* Guest: horizontal nav links */}
+              {!user && (
+                <div className="hidden md:flex items-center gap-1 flex-1 justify-center" role="list">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentPage === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        role="listitem"
+                        onClick={() => handleNavigate(item.id)}
+                        aria-current={isActive ? 'page' : undefined}
+                        className="relative flex items-center gap-2 h-9 px-3 rounded-xl transition-all duration-200 group"
+                        style={isActive ? {
+                          background: 'linear-gradient(135deg,#2563eb,#06b6d4)',
+                          color: '#fff',
+                          boxShadow: '0 3px 10px rgba(37,99,235,0.3)',
+                        } : { color: '#475569' }}
+                        onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(15,23,42,0.05)'; }}
+                        onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = ''; }}
+                      >
+                        <Icon className="w-4 h-4" strokeWidth={isActive ? 2.5 : 2} />
+                        <span className="text-sm font-semibold">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-1">
+            {/* Right side actions */}
+            <div className="flex items-center gap-1.5">
               {user && (
                 <button
                   onClick={() => setShowSearch(true)}
                   aria-label="Search (Cmd+K)"
-                  className="flex items-center gap-2 w-auto px-3 py-2 text-slate-500 hover:text-slate-700 rounded-xl transition-all duration-200 hover:bg-slate-100/80 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+                  className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-slate-700 rounded-xl transition-all duration-200 hover:bg-slate-100/80 group lg:hidden"
                 >
-                  <Search className="w-4.5 h-4.5 group-hover:scale-110 transition-transform" style={{ width: '1.125rem', height: '1.125rem' }} aria-hidden="true" />
-                  <span className="hidden sm:block text-xs text-slate-400 border border-slate-200 rounded-lg px-1.5 py-0.5 font-mono" aria-hidden="true">⌘K</span>
+                  <Search className="w-4 h-4" />
                 </button>
               )}
               {user ? (
-                <>
-                  <button
-                    onClick={() => setShowLogoutConfirm(true)}
-                    disabled={isSigningOut}
-                    aria-label="Sign out"
-                    className="flex items-center justify-center w-10 h-10 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
-                  >
-                    <LogOut style={{ width: '1.125rem', height: '1.125rem' }} aria-hidden="true" />
-                  </button>
-                </>
+                <button
+                  onClick={() => setShowLogoutConfirm(true)}
+                  disabled={isSigningOut}
+                  aria-label="Sign out"
+                  className="lg:hidden flex items-center justify-center w-9 h-9 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               ) : (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onNavigate('auth')}
-                    className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-600 text-sm font-semibold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+                    className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-600 text-sm font-semibold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"
                   >
                     Sign in
                   </button>
                   <button
                     onClick={() => onNavigate('auth')}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
-                    style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all hover:-translate-y-px"
+                    style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
                   >
-                    <Sparkles style={{ width: '0.875rem', height: '0.875rem' }} aria-hidden="true" />
+                    <Sparkles className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Join free</span>
                     <span className="sm:hidden">Join</span>
                   </button>
@@ -205,6 +342,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
         </div>
       </nav>
 
+      {/* ── Guest mobile bottom bar ── */}
       {!user && (
         <div
           className="md:hidden fixed bottom-0 left-0 right-0 z-50"
@@ -220,14 +358,14 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           <div className="flex items-center gap-3 px-4 py-3">
             <button
               onClick={() => onNavigate('auth')}
-              className="flex-1 py-3 rounded-2xl text-white font-bold text-sm transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+              className="flex-1 py-3 rounded-2xl text-white font-bold text-sm transition-all active:scale-95"
               style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
             >
               Join free — it's instant
             </button>
             <button
               onClick={() => onNavigate('auth')}
-              className="py-3 px-4 rounded-2xl text-slate-600 font-semibold text-sm bg-slate-100 active:bg-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
+              className="py-3 px-4 rounded-2xl text-slate-600 font-semibold text-sm bg-slate-100 active:bg-slate-200 transition-colors"
             >
               Sign in
             </button>
@@ -235,10 +373,11 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
         </div>
       )}
 
+      {/* ── Authenticated mobile bottom nav ── */}
       {user && (
         <nav
           aria-label="Mobile navigation"
-          className="md:hidden fixed bottom-0 left-0 right-0 z-50"
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
           style={{
             background: 'rgba(255,255,255,0.96)',
             backdropFilter: 'blur(32px) saturate(1.8)',
@@ -247,14 +386,10 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
             boxShadow: '0 -2px 20px rgba(15,23,42,0.08)',
           }}
         >
-          <div
-            className="flex items-stretch"
-            role="list"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-          >
+          <div className="flex items-stretch" role="list" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentPage === item.id;
+              const isActive = activeId === item.id;
               return (
                 <button
                   key={item.id}
@@ -262,29 +397,27 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                   onClick={() => handleNavigate(item.id)}
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
-                  className="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 min-h-[56px] transition-all duration-200 active:scale-95 touch-manipulation focus-visible:outline-none focus-visible:bg-blue-50"
+                  className="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 min-h-[56px] transition-all duration-200 active:scale-95 touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   {isActive && (
                     <span
                       aria-hidden="true"
                       className="absolute top-1.5 left-1/2 -translate-x-1/2 rounded-full"
-                      style={{ width: '2.5rem', height: '2.5rem', background: 'linear-gradient(135deg,rgba(37,99,235,0.12),rgba(6,182,212,0.12))', backdropFilter: 'blur(4px)' }}
+                      style={{ width: '2.5rem', height: '2.5rem', background: 'rgba(37,99,235,0.1)' }}
                     />
                   )}
                   <Icon
-                    aria-hidden="true"
                     className="relative z-10 transition-all duration-200"
                     style={{
                       width: '1.375rem',
                       height: '1.375rem',
                       color: isActive ? '#2563eb' : '#94a3b8',
-                      transform: isActive ? 'scale(1.08) translateY(-1px)' : 'scale(1)',
                     }}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
                   <span
-                    className="relative z-10 text-[11px] leading-none font-semibold transition-colors duration-200"
+                    className="relative z-10 text-[11px] leading-none font-semibold"
                     style={{ color: isActive ? '#2563eb' : '#94a3b8' }}
                   >
                     {item.label}
@@ -313,10 +446,10 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           className="fixed inset-0 flex items-center justify-center z-[70] p-4"
           style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(8px)' }}
         >
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 animate-scale-in" style={{ boxShadow: '0 24px 64px rgba(15,23,42,0.2)' }}>
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6" style={{ boxShadow: '0 24px 64px rgba(15,23,42,0.2)' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,0.1)' }}>
-                <LogOut className="w-5 h-5 text-red-600" aria-hidden="true" />
+                <LogOut className="w-5 h-5 text-red-600" />
               </div>
               <div>
                 <h3 id="logout-title" className="text-lg font-bold text-slate-900">Sign Out</h3>
@@ -327,14 +460,14 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 disabled={isSigningOut}
-                className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="flex-1 px-4 py-2.5 text-white rounded-xl font-semibold text-sm transition-all disabled:opacity-50 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                className="flex-1 px-4 py-2.5 text-white rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
                 style={{ background: 'linear-gradient(135deg,#dc2626,#ef4444)', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }}
               >
                 {isSigningOut ? 'Signing out…' : 'Sign Out'}
