@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const MAX_EXTRACT_CHARS = 40_000; // ~10k tokens — leaves room for agent prompts + response
+const MAX_EXTRACT_CHARS = 40_000;
 
 const ACCEPTED_TYPES = new Set([
   "application/pdf",
@@ -70,7 +70,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Determine MIME type from header or filename
     let mimeType = file.type;
     if (!mimeType || mimeType === "application/octet-stream") {
       const lower = file.name.toLowerCase();
@@ -93,7 +92,6 @@ Deno.serve(async (req: Request) => {
       extractedText = await extractDocx(arrayBuffer);
     }
 
-    // Normalise whitespace
     extractedText = extractedText
       .replace(/\r\n/g, "\n")
       .replace(/\r/g, "\n")
@@ -123,7 +121,7 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-// ─── DOCX extraction via mammoth ──────────────────────────────────────────────
+// ─── DOCX extraction ─────────────────────────────────────────────────────────
 
 async function extractDocx(arrayBuffer: ArrayBuffer): Promise<string> {
   const result = await mammoth.extractRawText({ arrayBuffer });
@@ -131,90 +129,167 @@ async function extractDocx(arrayBuffer: ArrayBuffer): Promise<string> {
 }
 
 // ─── PDF extraction ───────────────────────────────────────────────────────────
-// Parses PDF text operators (BT/ET blocks, Tj, TJ) and FlateDecode streams.
-// Handles the majority of real-world PDFs without external dependencies.
+// Parses PDF at the binary level — finds content streams, decompresses
+// FlateDecode streams (trying both zlib and raw-deflate), then extracts
+// text from PDF text operators (Tj / TJ). Handles the vast majority of
+// real-world PDFs produced by Word, macOS, Adobe, and common exporters.
 
 async function extractPdf(bytes: Uint8Array): Promise<string> {
-  const latin1 = new TextDecoder("latin1").decode(bytes);
-  const parts: string[] = [];
+  const texts: string[] = [];
 
-  // 1. Try FlateDecode streams (modern PDFs compress text streams with zlib)
-  const streamRegex = /<<[^>]*\/FlateDecode[^>]*>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/g;
-  let m: RegExpExecArray | null;
+  // Byte sequences to search for
+  const STREAM    = strToBytes("stream");
+  const ENDSTREAM = strToBytes("endstream");
 
-  while ((m = streamRegex.exec(latin1)) !== null) {
-    const rawStream = encodeLatin1ToBytes(m[1]);
-    try {
-      const decompressed = await decompressDeflate(rawStream);
-      const text = new TextDecoder("utf-8", { fatal: false }).decode(decompressed);
-      const extracted = extractTextFromPdfOps(text);
-      if (extracted) parts.push(extracted);
-    } catch {
-      // Non-text stream — skip
+  let pos = 0;
+  while (pos < bytes.length - 10) {
+    // Find next 'stream' keyword
+    const streamKw = findSeq(bytes, STREAM, pos);
+    if (streamKw === -1) break;
+
+    // The byte immediately after 'stream' must be LF or CR+LF
+    let dataStart = streamKw + STREAM.length;
+    if (bytes[dataStart] === 0x0D && bytes[dataStart + 1] === 0x0A) {
+      dataStart += 2;
+    } else if (bytes[dataStart] === 0x0A) {
+      dataStart += 1;
+    } else {
+      pos = streamKw + 1;
+      continue;
     }
+
+    // Find matching endstream
+    const endKw = findSeq(bytes, ENDSTREAM, dataStart);
+    if (endKw === -1) break;
+
+    // Strip trailing CR/LF before endstream
+    let dataEnd = endKw;
+    if (dataEnd > 0 && bytes[dataEnd - 1] === 0x0A) dataEnd--;
+    if (dataEnd > 0 && bytes[dataEnd - 1] === 0x0D) dataEnd--;
+
+    // Look at the dictionary before this stream to determine filter
+    const dictWindow = bytes.slice(Math.max(0, streamKw - 400), streamKw);
+    const dictStr = new TextDecoder("latin1").decode(dictWindow);
+
+    // Skip image streams — they won't contain text operators
+    const isImage = /\/Subtype\s*\/Image/.test(dictStr);
+    if (!isImage && dataEnd > dataStart) {
+      const streamData = bytes.slice(dataStart, dataEnd);
+      const isFlateDecode = /\/FlateDecode/.test(dictStr) || /\/Fl(?:\s|\/|>>)/.test(dictStr);
+
+      if (isFlateDecode) {
+        try {
+          const raw = await tryDecompress(streamData);
+          const decoded = new TextDecoder("utf-8", { fatal: false }).decode(raw);
+          const t = extractTextOps(decoded);
+          if (t.trim().length > 0) texts.push(t);
+        } catch {
+          // Decompression failed — stream is not a text content stream
+        }
+      } else {
+        // Uncompressed — decode directly and look for text operators
+        const decoded = new TextDecoder("utf-8", { fatal: false }).decode(streamData);
+        const t = extractTextOps(decoded);
+        if (t.trim().length > 0) texts.push(t);
+      }
+    }
+
+    pos = endKw + ENDSTREAM.length;
   }
 
-  // 2. Uncompressed text streams (older PDFs or inline streams)
-  const btText = extractTextFromPdfOps(latin1);
-  if (btText) parts.push(btText);
+  // Fallback: scan the whole file as latin1 for uncompressed text ops
+  if (texts.length === 0) {
+    const full = new TextDecoder("latin1").decode(bytes);
+    const t = extractTextOps(full);
+    if (t.trim().length > 0) texts.push(t);
+  }
 
-  return parts.join("\n");
+  return texts.join("\n");
 }
 
-function extractTextFromPdfOps(content: string): string {
-  const lines: string[] = [];
+// Try zlib first, then raw deflate — PDF FlateDecode is usually zlib,
+// but some generators omit the header and use raw deflate.
+async function tryDecompress(data: Uint8Array): Promise<Uint8Array> {
+  try {
+    return await decompress(data, "deflate");
+  } catch {
+    return await decompress(data, "deflate-raw");
+  }
+}
 
-  // Tj: (text) Tj
+async function decompress(data: Uint8Array, format: "deflate" | "deflate-raw"): Promise<Uint8Array> {
+  const ds = new DecompressionStream(format);
+  const writer = ds.writable.getWriter();
+  const reader = ds.readable.getReader();
+
+  writer.write(data);
+  writer.close();
+
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) { out.set(c, off); off += c.length; }
+  return out;
+}
+
+// Extract text from PDF content stream using Tj / TJ operators
+function extractTextOps(content: string): string {
+  const parts: string[] = [];
+
+  // (text) Tj — single string
   const tjRe = /\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*Tj/g;
   let m: RegExpExecArray | null;
   while ((m = tjRe.exec(content)) !== null) {
-    const decoded = decodePdfLiteral(m[1]);
-    if (decoded.trim().length > 0) lines.push(decoded);
+    const s = decodePdfStr(m[1]);
+    if (s.trim()) parts.push(s);
   }
 
-  // TJ: [(text) num (text)] TJ
-  const tjArrayRe = /\[([\s\S]*?)\]\s*TJ/g;
-  while ((m = tjArrayRe.exec(content)) !== null) {
-    const parts: string[] = [];
+  // [(text) num (text) ...] TJ — array form
+  const tjArrRe = /\[([^\]]*)\]\s*TJ/g;
+  while ((m = tjArrRe.exec(content)) !== null) {
+    const inner = m[1];
     const strRe = /\(([^)\\]*(?:\\.[^)\\]*)*)\)/g;
-    let s: RegExpExecArray | null;
-    while ((s = strRe.exec(m[1])) !== null) {
-      const decoded = decodePdfLiteral(s[1]);
-      if (decoded.trim()) parts.push(decoded);
+    let s2: RegExpExecArray | null;
+    const seg: string[] = [];
+    while ((s2 = strRe.exec(inner)) !== null) {
+      const t = decodePdfStr(s2[1]);
+      if (t.trim()) seg.push(t);
     }
-    if (parts.length > 0) lines.push(parts.join(""));
+    if (seg.length > 0) parts.push(seg.join(""));
   }
 
-  return lines.join(" ");
+  return parts.join(" ");
 }
 
-function decodePdfLiteral(raw: string): string {
+function decodePdfStr(raw: string): string {
   return raw
-    .replace(/\\n/g, " ")
-    .replace(/\\r/g, " ")
-    .replace(/\\t/g, " ")
+    .replace(/\\n/g, " ").replace(/\\r/g, " ").replace(/\\t/g, " ")
     .replace(/\\([0-7]{1,3})/g, (_, oct) => {
-      const code = parseInt(oct, 8);
-      return code > 31 && code < 128 ? String.fromCharCode(code) : " ";
+      const c = parseInt(oct, 8);
+      return c >= 32 && c < 127 ? String.fromCharCode(c) : " ";
     })
-    .replace(/\\\\/g, "\\")
-    .replace(/\\\)/g, ")")
-    .replace(/\\\(/g, "(");
+    .replace(/\\\\/g, "\\").replace(/\\\)/g, ")").replace(/\\\(/g, "(");
 }
 
-function encodeLatin1ToBytes(str: string): Uint8Array {
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0; i < str.length; i++) {
-    bytes[i] = str.charCodeAt(i) & 0xff;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function strToBytes(s: string): Uint8Array {
+  return new TextEncoder().encode(s);
+}
+
+function findSeq(haystack: Uint8Array, needle: Uint8Array, from = 0): number {
+  outer: for (let i = from; i <= haystack.length - needle.length; i++) {
+    for (let j = 0; j < needle.length; j++) {
+      if (haystack[i + j] !== needle[j]) continue outer;
+    }
+    return i;
   }
-  return bytes;
-}
-
-async function decompressDeflate(compressed: Uint8Array): Promise<Uint8Array> {
-  const ds = new DecompressionStream("deflate");
-  const blob = new Blob([compressed]);
-  const decompressed = blob.stream().pipeThrough(ds);
-  const response = new Response(decompressed);
-  const buf = await response.arrayBuffer();
-  return new Uint8Array(buf);
+  return -1;
 }
