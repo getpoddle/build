@@ -117,14 +117,13 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           }}
         >
           {/* Logo */}
-          <div className="flex items-center gap-3 px-5 h-16 flex-shrink-0 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
-            >
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-base font-black text-white tracking-tight">Poddle</span>
+          <div className="flex items-center gap-2 px-4 h-16 flex-shrink-0 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <img
+              src="/PoddleLogo4.png"
+              alt="Poddle"
+              className="h-8 w-auto flex-shrink-0"
+              style={{ objectFit: 'contain' }}
+            />
           </div>
 
           {/* Search */}
@@ -279,17 +278,14 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               <button
                 onClick={() => onNavigate(user ? 'workspaces' : 'home')}
                 aria-label="Go to home"
-                className={`flex items-center gap-2.5 group flex-shrink-0 focus-visible:outline-none rounded-xl ${user ? 'xl:hidden' : ''}`}
+                className={`flex items-center flex-shrink-0 focus-visible:outline-none rounded-xl group-hover:opacity-90 transition-opacity ${user ? 'xl:hidden' : ''}`}
               >
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-105 transition-all duration-200"
-                  style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 3px 10px rgba(37,99,235,0.3)' }}
-                >
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-base font-black hidden sm:block" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                  Poddle
-                </span>
+                <img
+                  src="/PoddleLogo4.png"
+                  alt="Poddle"
+                  className="h-9 w-auto"
+                  style={{ objectFit: 'contain' }}
+                />
               </button>
 
               {/* Desktop authenticated: page title */}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Sparkles, Lock, CheckCircle } from 'lucide-react';
+import { Lock, CheckCircle } from 'lucide-react';
 
 interface Props {
   onDone: () => void;
@@ -47,13 +47,8 @@ export default function ResetPassword({ onDone }: Props) {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              Poddle
-            </h1>
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src="/PoddleLogo4.png" alt="Poddle" className="h-20 w-auto" style={{ objectFit: 'contain' }} />
           </div>
         </div>
 

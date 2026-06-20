@@ -64,14 +64,8 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       <footer style={{ background: '#0f172a', borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)' }}
-              >
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-white font-black text-lg">Poddle</span>
+            <div className="flex items-center">
+              <img src="/PoddleLogo4.png" alt="Poddle" className="h-10 w-auto" style={{ objectFit: 'contain' }} />
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>

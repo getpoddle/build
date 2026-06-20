@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Sparkles, Mail, Lock, ArrowLeft, User, AtSign, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowLeft, User, AtSign, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 type View = 'signin' | 'signup' | 'forgot';
@@ -137,13 +137,8 @@ export default function Auth() {
 
       <div className="max-w-md w-full relative z-10 scale-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30 floating">
-              <Sparkles className="w-9 h-9 text-white" />
-            </div>
-            <h1 className="text-5xl font-bold gradient-text">
-              Poddle
-            </h1>
+          <div className="inline-flex items-center justify-center mb-6">
+            <img src="/PoddleLogo4.png" alt="Poddle" className="h-24 w-auto floating" style={{ objectFit: 'contain' }} />
           </div>
           <p className="text-slate-600 text-lg font-semibold">
             The home of sharper, smarter decisions

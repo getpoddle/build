@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Sparkles, User as UserIcon, Lock, ChevronDown, Clock } from 'lucide-react';
+import { User as UserIcon, Lock, ChevronDown, Clock } from 'lucide-react';
 import { trackProfileCompleted } from '../lib/analytics';
 import { phSyncProfileProperties } from '../lib/posthog';
 import { useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
@@ -160,11 +160,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
       <div className="max-w-lg w-full relative z-10">
         <div className="text-center mb-8 fade-in">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30 floating">
-              <Sparkles className="w-9 h-9 text-white" />
-            </div>
-            <h1 className="text-4xl sm:text-5xl font-bold gradient-text">Poddle</h1>
+          <div className="inline-flex items-center justify-center mb-6">
+            <img src="/PoddleLogo4.png" alt="Poddle" className="h-24 w-auto floating" style={{ objectFit: 'contain' }} />
           </div>
           <p className="text-lg text-slate-600 font-semibold">AI-powered decision intelligence for teams</p>
         </div>
