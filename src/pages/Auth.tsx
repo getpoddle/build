@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, ArrowLeft, User, AtSign, Eye, EyeOff } from 'lucide-react';
+import PoddleMark from '../components/PoddleMark';
 import { supabase } from '../lib/supabase';
 
 type View = 'signin' | 'signup' | 'forgot';
@@ -137,8 +138,9 @@ export default function Auth() {
 
       <div className="max-w-md w-full relative z-10 scale-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-6">
-            <img src="/PoddleLogo4.png" alt="Poddle" className="h-24 w-auto floating" style={{ objectFit: 'contain' }} />
+          <div className="inline-flex items-center gap-3 mb-6 floating">
+            <PoddleMark size={52} />
+            <h1 className="text-5xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle</h1>
           </div>
           <p className="text-slate-600 text-lg font-semibold">
             The home of sharper, smarter decisions

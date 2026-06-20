@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Lock, CheckCircle } from 'lucide-react';
+import PoddleMark from '../components/PoddleMark';
 
 interface Props {
   onDone: () => void;
@@ -47,8 +48,9 @@ export default function ResetPassword({ onDone }: Props) {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4">
-            <img src="/PoddleLogo4.png" alt="Poddle" className="h-20 w-auto" style={{ objectFit: 'contain' }} />
+          <div className="inline-flex items-center gap-3 mb-4">
+            <PoddleMark size={44} />
+            <h1 className="text-4xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle</h1>
           </div>
         </div>
 

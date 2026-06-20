@@ -2,6 +2,7 @@ import { Sparkles, User, LogOut, Search, Lock, Home, Bot, ChevronRight, Settings
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import UnifiedSearch from './UnifiedSearch';
+import PoddleMark from './PoddleMark';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
@@ -117,13 +118,9 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           }}
         >
           {/* Logo */}
-          <div className="flex items-center gap-2 px-4 h-16 flex-shrink-0 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <img
-              src="/PoddleLogo4.png"
-              alt="Poddle"
-              className="h-8 w-auto flex-shrink-0"
-              style={{ objectFit: 'contain' }}
-            />
+          <div className="flex items-center gap-2.5 px-5 h-16 flex-shrink-0 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <PoddleMark size={28} />
+            <span className="text-base font-black text-white tracking-tight">Poddle</span>
           </div>
 
           {/* Search */}
@@ -269,26 +266,27 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           boxShadow: scrolled ? '0 2px 16px rgba(15,23,42,0.06)' : 'none',
         }}
       >
-        <div className={`${user ? 'px-6 lg:px-8' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'}`}>
-          <div className="flex items-center justify-between h-14">
+        <div className={`${user ? 'px-4' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'}`}>
+          <div className="flex items-center justify-between h-14 gap-3">
 
-            {/* Mobile: logo. Desktop+auth: page breadcrumb. Guest: logo */}
-            <div className="flex items-center gap-4 flex-1">
-              {/* Logo — visible on mobile and guest */}
+            {/* LEFT: logo (mobile) or page title (desktop authenticated) */}
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Logo — mobile + guest always; hidden on xl when authenticated (sidebar has it) */}
               <button
                 onClick={() => onNavigate(user ? 'workspaces' : 'home')}
                 aria-label="Go to home"
-                className={`flex items-center flex-shrink-0 focus-visible:outline-none rounded-xl group-hover:opacity-90 transition-opacity ${user ? 'xl:hidden' : ''}`}
+                className={`flex items-center gap-2 flex-shrink-0 focus-visible:outline-none rounded-lg hover:opacity-80 active:opacity-70 transition-opacity ${user ? 'xl:hidden' : ''}`}
               >
-                <img
-                  src="/PoddleLogo4.png"
-                  alt="Poddle"
-                  className="h-9 w-auto"
-                  style={{ objectFit: 'contain' }}
-                />
+                <PoddleMark size={26} />
+                <span
+                  className="text-[15px] font-black tracking-tight hidden sm:block"
+                  style={{ color: theme === 'dark' ? '#f4f4f5' : '#0f172a' }}
+                >
+                  Poddle
+                </span>
               </button>
 
-              {/* Desktop authenticated: page title */}
+              {/* Desktop authenticated only: page breadcrumb */}
               {user && (
                 <div className="hidden xl:flex items-center gap-3">
                   <h2 className="text-sm font-semibold capitalize" style={{ color: theme === 'dark' ? '#a1a1aa' : '#334155' }}>
@@ -300,7 +298,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                 </div>
               )}
 
-              {/* Guest: horizontal nav links */}
+              {/* Guest center nav links (desktop) */}
               {!user && (
                 <div className="hidden md:flex items-center gap-1 flex-1 justify-center" role="list">
                   {navItems.map((item) => {
@@ -312,7 +310,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                         role="listitem"
                         onClick={() => handleNavigate(item.id)}
                         aria-current={isActive ? 'page' : undefined}
-                        className="relative flex items-center gap-2 h-9 px-3 rounded-xl transition-all duration-200 group"
+                        className="relative flex items-center gap-2 h-9 px-3 rounded-xl transition-all duration-200"
                         style={isActive ? {
                           background: 'linear-gradient(135deg,#2563eb,#06b6d4)',
                           color: '#fff',
@@ -330,30 +328,42 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               )}
             </div>
 
-            {/* Right side actions */}
-            <div className="flex items-center gap-1.5">
+            {/* RIGHT: action icons */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {/* Search (authenticated mobile) */}
               {user && (
                 <button
                   onClick={() => setShowSearch(true)}
                   aria-label="Search (Cmd+K)"
-                  className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-slate-700 rounded-xl transition-all duration-200 hover:bg-slate-100/80 group xl:hidden"
+                  className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 xl:hidden"
+                  style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
                 >
                   <Search className="w-4 h-4" />
                 </button>
               )}
+
+              {/* Authenticated mobile icon row */}
               {user ? (
-                <div className="flex items-center gap-1 xl:hidden">
+                <div className="flex items-center gap-0.5 xl:hidden">
                   <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                    className="flex items-center justify-center w-9 h-9 text-slate-500 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all duration-200"
+                    className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200"
+                    style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)'; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#fbbf24' : '#d97706'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#71717a' : '#64748b'; }}
                   >
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   </button>
                   <button
                     onClick={() => onNavigate('profile')}
                     aria-label="Account settings"
-                    className="flex items-center justify-center w-9 h-9 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
+                    className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200"
+                    style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)'; (e.currentTarget as HTMLElement).style.color = '#2563eb'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#71717a' : '#64748b'; }}
                   >
                     <User className="w-4 h-4" />
                   </button>
@@ -361,7 +371,10 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                     onClick={() => setShowLogoutConfirm(true)}
                     disabled={isSigningOut}
                     aria-label="Sign out"
-                    className="flex items-center justify-center w-9 h-9 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50"
+                    className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 disabled:opacity-50"
+                    style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)'; (e.currentTarget as HTMLElement).style.color = '#ef4444'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#71717a' : '#64748b'; }}
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
