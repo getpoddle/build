@@ -253,9 +253,8 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
       <nav
         role="navigation"
         aria-label="Main navigation"
-        className={`fixed top-0 right-0 z-50 transition-all duration-300 ${user ? 'xl:left-60' : 'left-0'}`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${user ? 'xl:left-60' : ''}`}
         style={{
-          left: !user ? 0 : undefined,
           paddingTop: 'env(safe-area-inset-top)',
           background: theme === 'dark'
             ? (scrolled ? 'rgba(18,18,20,0.98)' : 'rgba(18,18,20,0.92)')
@@ -279,7 +278,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               >
                 <PoddleMark size={26} />
                 <span
-                  className="text-[15px] font-black tracking-tight hidden sm:block"
+                  className="text-[15px] font-black tracking-tight"
                   style={{ color: theme === 'dark' ? '#f4f4f5' : '#0f172a' }}
                 >
                   Poddle
