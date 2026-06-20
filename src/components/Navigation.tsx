@@ -1,5 +1,6 @@
-import { Sparkles, User, LogOut, Search, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard, CreditCard } from 'lucide-react';
+import { Sparkles, User, LogOut, Search, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard, CreditCard, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import UnifiedSearch from './UnifiedSearch';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
@@ -30,6 +31,7 @@ const NAV_ITEMS_GUEST = [
 
 export default function Navigation({ currentPage, onNavigate }: NavigationProps) {
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -209,6 +211,19 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               <CreditCard className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
               <span>Plans &amp; Billing</span>
             </button>
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+              style={{ color: 'rgba(148,163,184,0.85)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; }}
+            >
+              {theme === 'dark'
+                ? <Sun className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                : <Moon className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+              }
+              <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+            </button>
             <div className="flex items-center gap-3 p-3 rounded-xl mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
@@ -246,10 +261,12 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
         style={{
           left: !user ? 0 : undefined,
           paddingTop: 'env(safe-area-inset-top)',
-          background: scrolled ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.82)',
+          background: theme === 'dark'
+            ? (scrolled ? 'rgba(18,18,20,0.98)' : 'rgba(18,18,20,0.92)')
+            : (scrolled ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.82)'),
           backdropFilter: 'blur(24px) saturate(1.6)',
           WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
-          borderBottom: '1px solid rgba(15,23,42,0.07)',
+          borderBottom: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(15,23,42,0.07)',
           boxShadow: scrolled ? '0 2px 16px rgba(15,23,42,0.06)' : 'none',
         }}
       >
@@ -278,7 +295,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               {/* Desktop authenticated: page title */}
               {user && (
                 <div className="hidden xl:flex items-center gap-3">
-                  <h2 className="text-sm font-semibold text-slate-700 capitalize">
+                  <h2 className="text-sm font-semibold capitalize" style={{ color: theme === 'dark' ? '#a1a1aa' : '#334155' }}>
                     {currentPage === 'workspace-hub' || currentPage === 'workspace-settings'
                       ? 'Workspaces'
                       : currentPage === 'home' ? 'Dashboard'
@@ -330,6 +347,13 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               )}
               {user ? (
                 <div className="flex items-center gap-1 xl:hidden">
+                  <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    className="flex items-center justify-center w-9 h-9 text-slate-500 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all duration-200"
+                  >
+                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </button>
                   <button
                     onClick={() => onNavigate('profile')}
                     aria-label="Account settings"
@@ -407,10 +431,10 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           aria-label="Mobile navigation"
           className="xl:hidden fixed bottom-0 left-0 right-0 z-50"
           style={{
-            background: 'rgba(255,255,255,0.96)',
+            background: theme === 'dark' ? 'rgba(18,18,20,0.98)' : 'rgba(255,255,255,0.96)',
             backdropFilter: 'blur(32px) saturate(1.8)',
             WebkitBackdropFilter: 'blur(32px) saturate(1.8)',
-            borderTop: '1px solid rgba(15,23,42,0.08)',
+            borderTop: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(15,23,42,0.08)',
             boxShadow: '0 -2px 20px rgba(15,23,42,0.08)',
           }}
         >
@@ -440,13 +464,13 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                     style={{
                       width: '1.375rem',
                       height: '1.375rem',
-                      color: isActive ? '#2563eb' : '#94a3b8',
+                      color: isActive ? '#2563eb' : (theme === 'dark' ? '#52525b' : '#94a3b8'),
                     }}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
                   <span
                     className="relative z-10 text-[11px] leading-none font-semibold"
-                    style={{ color: isActive ? '#2563eb' : '#94a3b8' }}
+                    style={{ color: isActive ? '#2563eb' : (theme === 'dark' ? '#52525b' : '#94a3b8') }}
                   >
                     {item.label}
                   </span>
@@ -474,21 +498,35 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           className="fixed inset-0 flex items-center justify-center z-[70] p-4"
           style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(8px)' }}
         >
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6" style={{ boxShadow: '0 24px 64px rgba(15,23,42,0.2)' }}>
+          <div
+            className="rounded-2xl max-w-sm w-full p-6"
+            style={{
+              background: theme === 'dark' ? '#18181b' : '#fff',
+              boxShadow: '0 24px 64px rgba(15,23,42,0.2)',
+              border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : 'none',
+            }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,0.1)' }}>
                 <LogOut className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <h3 id="logout-title" className="text-lg font-bold text-slate-900">Sign Out</h3>
-                <p className="text-sm text-slate-500">You'll need to sign in again</p>
+                <h3 id="logout-title" className="text-lg font-bold" style={{ color: theme === 'dark' ? '#f4f4f5' : '#0f172a' }}>Sign Out</h3>
+                <p className="text-sm" style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}>You'll need to sign in again</p>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 disabled={isSigningOut}
-                className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-xl font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
+                style={{
+                  border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
+                  color: theme === 'dark' ? '#a1a1aa' : '#334155',
+                  background: 'transparent',
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#f8fafc'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
               >
                 Cancel
               </button>
