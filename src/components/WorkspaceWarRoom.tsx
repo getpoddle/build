@@ -663,6 +663,58 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // Realtime: track new messages and auto-synthesize when conversation grows
+  useEffect(() => {
+    let autoSynthDebounce: ReturnType<typeof setTimeout> | null = null;
+    let lastAutoSynth = 0;
+    const MIN_INTERVAL_MS = 3 * 60 * 1000; // at most once every 3 minutes
+
+    const channel = supabase
+      .channel(`war-room-msgs-${workspaceId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'workspace_messages', filter: `workspace_id=eq.${workspaceId}` }, (payload) => {
+        // Update message count immediately
+        setMessageCount(prev => prev + 1);
+
+        // Auto-synthesize: debounce 8s, only after AI assistant messages, min 3 min cooldown
+        const isAiMsg = payload.new?.role === 'assistant';
+        if (!isAiMsg) return;
+        if (autoSynthDebounce) clearTimeout(autoSynthDebounce);
+        autoSynthDebounce = setTimeout(() => {
+          const now = Date.now();
+          if (now - lastAutoSynth < MIN_INTERVAL_MS) return;
+          lastAutoSynth = now;
+          // Only auto-synthesize if there's an existing synthesis to update
+          setSynthesis(prev => {
+            if (prev && (prev.message_count != null)) {
+              setMessageCount(mc => {
+                if (mc - prev.message_count >= 3) {
+                  // Trigger background synthesis without blocking UI
+                  supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (!session?.access_token) return;
+                    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-synthesize`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                      body: JSON.stringify({ workspace_id: workspaceId }),
+                    }).then(r => r.json()).then(json => {
+                      if (!json.error) loadAll();
+                    }).catch(() => {/* silent */});
+                  });
+                }
+                return mc;
+              });
+            }
+            return prev;
+          });
+        }, 8000);
+      })
+      .subscribe();
+
+    return () => {
+      if (autoSynthDebounce) clearTimeout(autoSynthDebounce);
+      supabase.removeChannel(channel);
+    };
+  }, [workspaceId, loadAll]);
+
   async function generate() {
     setGenerating(true);
     setError('');

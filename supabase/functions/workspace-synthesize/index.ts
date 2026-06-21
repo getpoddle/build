@@ -173,7 +173,7 @@ Return a JSON object with this exact structure (no markdown, no extra text):
   "non_financial_metrics": [{"metric":"Team Morale","signal":"positive","note":"evidence"}],
   "opportunity_signals": [{"title":"label","description":"specific upside","confidence":"medium","source":"who mentioned it"}],
   "cognitive_bias_flags": [{"bias_name":"Confirmation Bias","explanation":"where it appeared","counter_question":"probing question"}],
-  "executive_summary": "3-4 sentence plain-English summary of the strategic situation: what the team is trying to decide, where they stand, and what matters most right now.",
+  "executive_summary": "REQUIRED. 3-4 flowing prose sentences that synthesize: (1) the core decision context and where the team stands, (2) a specific callout from financial or operational metrics (e.g. budget confidence, timeline clarity), (3) the single most critical risk or blind spot identified, and (4) the most urgent action or unresolved question. Must reference specific findings — never generic.",
   "key_decisions": [{"decision":"a clear decision statement","status":"made|pending|deferred","rationale":"one sentence on the reasoning","owner":"person or role if known"}],
   "memory_update": {
     "decisions": ["key decision 1","key decision 2"],
@@ -194,7 +194,7 @@ RULES:
 - operational_metrics: always return 4 rows (Timeline Clarity, Resource Constraints, Key Dependencies, Bottlenecks). status: clear/unclear/at-risk.
 - non_financial_metrics: always return 5 rows (Team Morale, Stakeholder Buy-in, Customer Impact, Strategic Alignment, Innovation Potential). signal: positive/neutral/negative.
 - opportunity_signals: max 3. cognitive_bias_flags: max 3.
-- executive_summary: 3-4 sentences covering (1) what the team is trying to decide, (2) current strategic position, (3) biggest outstanding risk or blocker. No bullet points — flowing prose for a board audience.
+- executive_summary: MANDATORY — always return a non-empty string. Write this LAST after you have determined all other sections. It must be 3-4 flowing prose sentences that directly reference specific findings you generated: name the top risk from risk_signals by name, cite whether financial confidence is high/medium/low based on financial_metrics, reference whether operational clarity is clear/at-risk based on operational_metrics, mention the most important blind_spot if any, and state the single most urgent action_item. This is a synthesis of the entire report — not a restatement of the transcript. A board member reading only this paragraph should understand the health, the risks, and the next step.
 - key_decisions: max 6 entries. status must be exactly "made", "pending", or "deferred". owner is optional — use "TBD" if not clear.
 - memory_update.decisions: list of concrete decisions REACHED in this or any prior session (max 8, short phrases).
 - memory_update.agreements: list of shared beliefs all/most members hold (max 6).
