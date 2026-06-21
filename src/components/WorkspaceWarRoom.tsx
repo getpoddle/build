@@ -991,6 +991,17 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         ))}
       </div>
 
+      {/* ── EXECUTIVE SUMMARY MISSING NUDGE ── */}
+      {(activeSection === null || activeSection === 'executive') && !hasExecSummary && (
+        <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)' }}>
+          <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: '#7c3aed' }} />
+          <p className="text-sm" style={{ color: '#4c1d95' }}>
+            <span className="font-semibold">Executive Summary not yet generated.</span>{' '}
+            <span className="text-slate-500">Hit Re-synthesize to generate a board-level overview and key decisions for this workspace.</span>
+          </p>
+        </div>
+      )}
+
       {/* ── EXECUTIVE SUMMARY ── */}
       {(activeSection === null || activeSection === 'executive') && hasExecSummary && (
         <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(124,58,237,0.2)' }}>
