@@ -173,6 +173,8 @@ Return a JSON object with this exact structure (no markdown, no extra text):
   "non_financial_metrics": [{"metric":"Team Morale","signal":"positive","note":"evidence"}],
   "opportunity_signals": [{"title":"label","description":"specific upside","confidence":"medium","source":"who mentioned it"}],
   "cognitive_bias_flags": [{"bias_name":"Confirmation Bias","explanation":"where it appeared","counter_question":"probing question"}],
+  "executive_summary": "3-4 sentence plain-English summary of the strategic situation: what the team is trying to decide, where they stand, and what matters most right now.",
+  "key_decisions": [{"decision":"a clear decision statement","status":"made|pending|deferred","rationale":"one sentence on the reasoning","owner":"person or role if known"}],
   "memory_update": {
     "decisions": ["key decision 1","key decision 2"],
     "agreements": ["shared belief 1","shared belief 2"],
@@ -192,6 +194,8 @@ RULES:
 - operational_metrics: always return 4 rows (Timeline Clarity, Resource Constraints, Key Dependencies, Bottlenecks). status: clear/unclear/at-risk.
 - non_financial_metrics: always return 5 rows (Team Morale, Stakeholder Buy-in, Customer Impact, Strategic Alignment, Innovation Potential). signal: positive/neutral/negative.
 - opportunity_signals: max 3. cognitive_bias_flags: max 3.
+- executive_summary: 3-4 sentences covering (1) what the team is trying to decide, (2) current strategic position, (3) biggest outstanding risk or blocker. No bullet points — flowing prose for a board audience.
+- key_decisions: max 6 entries. status must be exactly "made", "pending", or "deferred". owner is optional — use "TBD" if not clear.
 - memory_update.decisions: list of concrete decisions REACHED in this or any prior session (max 8, short phrases).
 - memory_update.agreements: list of shared beliefs all/most members hold (max 6).
 - memory_update.open_threads: questions or debates still unresolved after this session (max 6).
@@ -273,6 +277,9 @@ ${transcript}`;
       ? (validTrajectories.includes(String(synthesis.confidence_trajectory).toLowerCase()) ? String(synthesis.confidence_trajectory).toLowerCase() : null)
       : null;
 
+    const executiveSummary = typeof synthesis.executive_summary === 'string' ? synthesis.executive_summary.slice(0, 1000) : null;
+    const keyDecisions = Array.isArray(synthesis.key_decisions) ? synthesis.key_decisions : [];
+
     const validCategories = ['strategic', 'operational', 'resource', 'people', 'technical', 'market'];
     const sessionDecisionCategory = synthesis.session_decision_category
       ? (validCategories.includes(String(synthesis.session_decision_category).toLowerCase()) ? String(synthesis.session_decision_category).toLowerCase() : null)
@@ -306,6 +313,8 @@ ${transcript}`;
         confidence_trajectory: confidenceTrajectory,
         generated_at: generatedAt,
         message_count: messages.length,
+        executive_summary: executiveSummary,
+        key_decisions: keyDecisions,
       },
     };
 
@@ -335,6 +344,8 @@ ${transcript}`;
           confidence_trajectory: confidenceTrajectory,
           generated_at: generatedAt,
           message_count_at_generation: messages.length,
+          executive_summary: executiveSummary,
+          key_decisions: keyDecisions,
         }, { onConflict: "workspace_id" });
 
         // Synthesis history — insert first so pattern computation can include this session

@@ -32,6 +32,8 @@ interface SynthesisData {
   decision_velocity: string | null;
   confidence_trajectory: string | null;
   health_rationale?: string;
+  executive_summary?: string | null;
+  key_decisions?: Array<{ decision: string; status: string; rationale: string; owner?: string }>;
   generated_at: string;
   message_count: number;
 }
@@ -626,7 +628,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     try {
       const [synthRes, countRes, histRes, actRes, membRes, commitRes] = await Promise.all([
         supabase.from('workspace_synthesis')
-          .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,generated_at,message_count_at_generation')
+          .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,executive_summary,key_decisions,generated_at,message_count_at_generation')
           .eq('workspace_id', workspaceId).maybeSingle(),
         supabase.from('workspace_messages')
           .select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
@@ -690,7 +692,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         setActiveSection(null);
         const [synthRes, countRes, histRes, actRes] = await Promise.all([
           supabase.from('workspace_synthesis')
-            .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,generated_at,message_count_at_generation')
+            .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,executive_summary,key_decisions,generated_at,message_count_at_generation')
             .eq('workspace_id', workspaceId).maybeSingle(),
           supabase.from('workspace_messages')
             .select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
@@ -771,6 +773,12 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       `Decision Health: ${score}/100 (${label})`,
       synthesis.health_rationale ? `"${synthesis.health_rationale}"` : '',
     ];
+    if (synthesis.executive_summary) {
+      lines.push('', 'EXECUTIVE SUMMARY:', synthesis.executive_summary);
+    }
+    if (synthesis.key_decisions && synthesis.key_decisions.length > 0) {
+      lines.push('', 'KEY DECISIONS:', ...synthesis.key_decisions.map((kd, i) => `  ${i + 1}. [${(kd.status || 'pending').toUpperCase()}] ${kd.decision}`));
+    }
     if (subScoreLines.length) { lines.push('', 'SUB-SCORES:', ...subScoreLines); }
     lines.push('', 'TOP CONSENSUS:', ...synthesis.consensus_points.slice(0, 3).map((p, i) => `  ${i + 1}. ${p.text}`));
     lines.push('', 'KEY RISKS:', ...synthesis.risk_signals.slice(0, 3).map((r, i) => `  ${i + 1}. [${r.severity.toUpperCase()}] ${r.signal}`));
@@ -831,7 +839,10 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const hasOpportunities = synthesis.opportunity_signals.length > 0;
   const hasBiases       = synthesis.cognitive_bias_flags.length > 0;
 
+  const hasExecSummary = !!(synthesis.executive_summary || (synthesis.key_decisions && synthesis.key_decisions.length > 0));
+
   const sections = [
+    hasExecSummary && { key: 'executive',     label: 'Executive Summary', icon: Sparkles,      count: (synthesis.key_decisions?.length ?? 0), color: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
     { key: 'consensus',     label: 'Consensus',     icon: CheckCircle2,  count: synthesis.consensus_points.length,      color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
     { key: 'conflicts',     label: 'Conflicts',      icon: GitBranch,     count: synthesis.conflict_zones.length,        color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
     { key: 'questions',     label: 'Questions',      icon: HelpCircle,    count: synthesis.open_questions.length,        color: '#3b82f6', bg: 'rgba(37,99,235,0.08)' },
@@ -874,6 +885,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           <button onClick={() => exportWarRoomToPDF({
             workspaceName, topic: workspaceTopic, generatedAt: synthesis.generated_at, messageCount: synthesis.message_count,
             decisionHealthScore: synthesis.decision_health_score, healthRationale: synthesis.health_rationale,
+            executiveSummary: synthesis.executive_summary, keyDecisions: synthesis.key_decisions,
             financialScore: synthesis.financial_score, operationalScore: synthesis.operational_score, alignmentScore: synthesis.alignment_score,
             decisionVelocity: synthesis.decision_velocity, confidenceTrajectory: synthesis.confidence_trajectory,
             consensusPoints: synthesis.consensus_points, conflictZones: synthesis.conflict_zones,
@@ -978,6 +990,54 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           </button>
         ))}
       </div>
+
+      {/* ── EXECUTIVE SUMMARY ── */}
+      {(activeSection === null || activeSection === 'executive') && hasExecSummary && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(124,58,237,0.2)' }}>
+          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(124,58,237,0.06)' }}>
+            <Sparkles className="w-4 h-4" style={{ color: '#7c3aed' }} />
+            <span className="text-sm font-bold" style={{ color: '#4c1d95' }}>Executive Summary</span>
+            <span className="text-xs ml-auto" style={{ color: '#7c3aed' }}>Board-level overview</span>
+          </div>
+          <div className="p-5 space-y-5">
+            {synthesis.executive_summary && (
+              <div className="rounded-xl p-4" style={{ background: 'rgba(124,58,237,0.04)', border: '1px solid rgba(124,58,237,0.1)' }}>
+                <p className="text-sm leading-relaxed" style={{ color: '#1e293b' }}>{synthesis.executive_summary}</p>
+              </div>
+            )}
+            {synthesis.key_decisions && synthesis.key_decisions.length > 0 && (
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: '#94a3b8' }}>Key Decisions</div>
+                <div className="space-y-3">
+                  {synthesis.key_decisions.map((kd, i) => {
+                    const statusColors: Record<string, { bg: string; text: string }> = {
+                      made:     { bg: 'rgba(22,163,74,0.1)',   text: '#15803d' },
+                      pending:  { bg: 'rgba(245,158,11,0.1)',  text: '#b45309' },
+                      deferred: { bg: 'rgba(100,116,139,0.1)', text: '#475569' },
+                    };
+                    const sc = statusColors[kd.status?.toLowerCase()] ?? statusColors.pending;
+                    return (
+                      <div key={i} className="rounded-xl p-4 flex items-start gap-3" style={{ background: 'rgba(15,23,42,0.02)', border: '1px solid rgba(15,23,42,0.06)' }}>
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white" style={{ background: '#7c3aed' }}>{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                            <span className="text-sm font-semibold" style={{ color: '#0f172a' }}>{kd.decision}</span>
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: sc.bg, color: sc.text }}>{kd.status}</span>
+                            {kd.owner && kd.owner !== 'TBD' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(15,23,42,0.05)', color: '#64748b' }}>{kd.owner}</span>
+                            )}
+                          </div>
+                          {kd.rationale && <p className="text-xs leading-relaxed" style={{ color: '#64748b' }}>{kd.rationale}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── CONSENSUS ── */}
       {(activeSection === null || activeSection === 'consensus') && synthesis.consensus_points.length > 0 && (
@@ -1475,6 +1535,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                     generatedAt: synthesis!.generated_at,
                     decisionHealthScore: synthesis!.decision_health_score,
                     healthRationale: synthesis!.health_rationale,
+                    executiveSummary: synthesis!.executive_summary,
+                    keyDecisions: synthesis!.key_decisions,
                     financialScore: synthesis!.financial_score,
                     operationalScore: synthesis!.operational_score,
                     alignmentScore: synthesis!.alignment_score,

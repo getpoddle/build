@@ -19,6 +19,13 @@ export interface ChatMessageExport {
   created_at: string;
 }
 
+export interface KeyDecision {
+  decision: string;
+  status: string;
+  rationale: string;
+  owner?: string;
+}
+
 export interface WarRoomExport {
   workspaceName: string;
   workspaceId?: string;
@@ -27,6 +34,8 @@ export interface WarRoomExport {
   messageCount: number;
   decisionHealthScore: number;
   healthRationale?: string;
+  executiveSummary?: string | null;
+  keyDecisions?: KeyDecision[];
   financialScore?: number | null;
   operationalScore?: number | null;
   alignmentScore?: number | null;
@@ -52,6 +61,8 @@ export interface BoardBriefExport {
   generatedAt: string;
   decisionHealthScore: number;
   healthRationale?: string;
+  executiveSummary?: string | null;
+  keyDecisions?: KeyDecision[];
   financialScore?: number | null;
   operationalScore?: number | null;
   alignmentScore?: number | null;
@@ -933,6 +944,37 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
       </div>
     </div>
 
+    ${(data.executiveSummary || (data.keyDecisions && data.keyDecisions.length > 0)) ? `
+    <div class="section sec-executive">
+      <div class="section-hdr">&#x2726;&nbsp; Executive Summary</div>
+      <div class="section-body">
+        ${data.executiveSummary ? `<div class="row" style="background:rgba(124,58,237,0.04);border:1px solid rgba(124,58,237,0.12);border-radius:8px;padding:14px 16px;">
+          <p style="font-size:10pt;line-height:1.65;color:#1e293b;margin:0;">${escapeHtml(data.executiveSummary)}</p>
+        </div>` : ''}
+        ${data.keyDecisions && data.keyDecisions.length > 0 ? `
+        <div class="row" style="padding-top:${data.executiveSummary ? '4px' : '0'};">
+          <div style="font-size:7.5pt;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">Key Decisions</div>
+          ${data.keyDecisions.map((kd, i) => {
+            const sc = kd.status === 'made' ? '#15803d' : kd.status === 'deferred' ? '#475569' : '#b45309';
+            const sbg = kd.status === 'made' ? 'rgba(22,163,74,0.12)' : kd.status === 'deferred' ? 'rgba(100,116,139,0.1)' : 'rgba(245,158,11,0.12)';
+            return `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
+              <div style="width:20px;height:20px;border-radius:50%;background:#7c3aed;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:8pt;font-weight:900;color:#fff;">${i + 1}</span>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+                  <span style="font-size:9.5pt;font-weight:700;color:#0f172a;">${escapeHtml(kd.decision)}</span>
+                  <span style="font-size:7pt;font-weight:700;padding:1px 8px;border-radius:999px;text-transform:capitalize;background:${sbg};color:${sc};">${escapeHtml(kd.status)}</span>
+                  ${kd.owner && kd.owner !== 'TBD' ? `<span style="font-size:7pt;padding:1px 8px;border-radius:999px;background:rgba(15,23,42,0.06);color:#64748b;">${escapeHtml(kd.owner)}</span>` : ''}
+                </div>
+                ${kd.rationale ? `<div style="font-size:8.5pt;color:#64748b;">${escapeHtml(kd.rationale)}</div>` : ''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>` : ''}
+      </div>
+    </div>` : ''}
+
     ${sec('consensus',    'Team Consensus',          '&#x2713;',  consensusRows)}
     ${sec('conflicts',    'Strategic Conflict Zones', '&#x26A1;',  conflictRows)}
     ${sec('questions',    'Open Questions',           '?',         questionRows)}
@@ -1058,6 +1100,30 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
         </div>
       </div>
     </div>
+
+    ${(data.executiveSummary || (data.keyDecisions && data.keyDecisions.length > 0)) ? `
+    <div class="bb-section" style="border-left:3px solid #7c3aed;padding-left:14px;">
+      <div class="bb-section-title" style="color:#4c1d95;">Executive Summary &amp; Key Decisions</div>
+      ${data.executiveSummary ? `<div style="background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.12);border-radius:8px;padding:12px 14px;margin-bottom:${data.keyDecisions && data.keyDecisions.length ? '12px' : '0'};">
+        <p style="font-size:9.5pt;line-height:1.65;color:#1e293b;margin:0;">${escapeHtml(data.executiveSummary)}</p>
+      </div>` : ''}
+      ${data.keyDecisions && data.keyDecisions.length > 0 ? `
+      <div>
+        <div style="font-size:7pt;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Key Decisions</div>
+        ${data.keyDecisions.map((kd, i) => {
+          const sc = kd.status === 'made' ? '#15803d' : kd.status === 'deferred' ? '#475569' : '#b45309';
+          const sbg = kd.status === 'made' ? 'rgba(22,163,74,0.1)' : kd.status === 'deferred' ? 'rgba(100,116,139,0.08)' : 'rgba(245,158,11,0.1)';
+          return `<div class="bb-row">
+            <span class="bb-num">${i + 1}.</span>
+            <div style="flex:1;">
+              <div style="font-size:9.5pt;font-weight:600;color:#0f172a;margin-bottom:2px;">${escapeHtml(kd.decision)}</div>
+              ${kd.rationale ? `<div style="font-size:8.5pt;color:#64748b;">${escapeHtml(kd.rationale)}</div>` : ''}
+            </div>
+            <span style="font-size:7pt;font-weight:700;padding:1px 8px;border-radius:999px;flex-shrink:0;text-transform:capitalize;background:${sbg};color:${sc};">${escapeHtml(kd.status)}</span>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+    </div>` : ''}
 
     ${data.consensusPoints.length > 0 ? `
     <div class="bb-section">
