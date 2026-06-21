@@ -154,11 +154,11 @@ Deno.serve(async (req: Request) => {
 Return a JSON object with this exact structure (no markdown, no extra text):
 
 {
-  "decision_health_score": 72,
-  "health_rationale": "one sentence",
-  "financial_score": 65,
-  "operational_score": 58,
-  "alignment_score": 74,
+  "decision_health_score": <integer 0-100, derived strictly from scoring rubric below>,
+  "health_rationale": "one sentence explaining the specific score",
+  "financial_score": <integer 0-100>,
+  "operational_score": <integer 0-100>,
+  "alignment_score": <integer 0-100>,
   "decision_velocity": "Moderate",
   "confidence_trajectory": "rising",
   "consensus_points": [{"text":"belief","confidence":85,"source_count":3}],
@@ -202,6 +202,44 @@ RULES:
 - memory_update.key_entities: important nouns (products, competitors, markets, people, milestones) mentioned (max 10).
 - memory_update.summary: must incorporate prior context if provided — write as a continuous record, not just this session.
 - session_decision_category: one word from: strategic, operational, resource, people, technical, market — pick the dominant theme of decisions made in THIS session.
+
+SCORING RUBRIC — compute all four scores from the actual conversation content, not from defaults:
+
+decision_health_score (0-100): Start at 100, then deduct:
+  - Each critical risk_signal: -12 pts
+  - Each high risk_signal: -7 pts
+  - Each medium risk_signal: -3 pts
+  - Each blind_spot identified: -5 pts
+  - Each open_question with urgency=critical: -8 pts
+  - Each open_question with urgency=high: -4 pts
+  - Each conflict_zone with tension_level >= 70: -6 pts
+  - decision_velocity = "Stalling": -10 pts; "Moderate": -3 pts; "Fast": +0 pts
+  - confidence_trajectory = "falling": -8 pts; "flat": -3 pts; "rising": +5 pts
+  - No financial data discussed at all: -10 pts
+  - No operational plan or timeline discussed: -7 pts
+  Then cap to [0, 100]. A well-structured conversation with clear decisions, few risks, and strong consensus should score 75-90. A vague or conflicted conversation with many open risks should score 30-55.
+
+financial_score (0-100): Assess how well financial aspects are understood. Start at 100, deduct:
+  - Each financial_metric with confidence="low": -12 pts
+  - Each financial_metric with value="Not discussed": -15 pts
+  - financial risk_signal present: -10 pts per financial risk
+  - No revenue or budget discussed at all: -25 pts
+  - Cap to [0, 100]. Strong financial clarity = 75-95; minimal discussion = 20-45.
+
+operational_score (0-100): Assess operational clarity. Start at 100, deduct:
+  - Each operational_metric with status="unclear": -12 pts
+  - Each operational_metric with status="at-risk": -18 pts
+  - execution risk_signal present: -10 pts each
+  - No timeline or resource plan discussed: -20 pts
+  - Cap to [0, 100]. Clear plan with milestones = 70-90; vague execution = 25-55.
+
+alignment_score (0-100): Assess team consensus and direction. Start at 100, deduct:
+  - Each conflict_zone: -8 pts (additional -5 if tension_level >= 70)
+  - Each cognitive_bias_flag: -5 pts
+  - confidence_trajectory = "falling": -12 pts
+  - No consensus_points found: -20 pts
+  - Each consensus_point with confidence >= 70 adds back: +4 pts (max +16)
+  - Cap to [0, 100]. Strong alignment with few conflicts = 75-95; fragmented team = 30-55.
 
 TRANSCRIPT:
 ${transcript}`;
