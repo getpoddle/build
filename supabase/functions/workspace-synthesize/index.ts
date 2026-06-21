@@ -315,7 +315,29 @@ ${transcript}`;
       ? (validTrajectories.includes(String(synthesis.confidence_trajectory).toLowerCase()) ? String(synthesis.confidence_trajectory).toLowerCase() : null)
       : null;
 
-    const executiveSummary = typeof synthesis.executive_summary === 'string' ? synthesis.executive_summary.slice(0, 1000) : null;
+    // Extract AI-provided executive summary
+    const aiExecutiveSummary = typeof synthesis.executive_summary === 'string' && synthesis.executive_summary.trim().length > 20
+      ? synthesis.executive_summary.slice(0, 2500)
+      : null;
+
+    // Guaranteed fallback: build from generated fields if AI omitted it
+    const executiveSummary: string = aiExecutiveSummary ?? (() => {
+      const healthLabel = (synthesis.decision_health_score as number) >= 70 ? 'strong' : (synthesis.decision_health_score as number) >= 45 ? 'developing' : 'fragmented';
+      const score = synthesis.decision_health_score as number;
+      const rationale = typeof synthesis.health_rationale === 'string' ? synthesis.health_rationale : '';
+      const topRisk = (riskSignals as Array<{ signal: string; severity: string }>)[0];
+      const topFinancial = (financialMetrics as Array<{ metric: string; confidence: string; note: string }>)[0];
+      const topBlindSpot = (blindSpots as Array<{ area: string; description: string }>)[0];
+      const topAction = (actionItems as Array<{ text: string }>)[0];
+      const parts: string[] = [];
+      parts.push(`Decision health is ${healthLabel} at ${score}/100${rationale ? ' — ' + rationale : '.'}`);
+      if (topFinancial) parts.push(`Financial confidence on ${topFinancial.metric.toLowerCase()} is ${topFinancial.confidence}${topFinancial.note ? ': ' + topFinancial.note : '.'}`);
+      if (topRisk) parts.push(`Top ${topRisk.severity} risk: ${topRisk.signal}.`);
+      if (topBlindSpot) parts.push(`Key blind spot — ${topBlindSpot.area}: ${topBlindSpot.description}.`);
+      if (topAction) parts.push(`Most urgent action: ${topAction.text}.`);
+      return parts.join(' ');
+    })();
+
     const keyDecisions = Array.isArray(synthesis.key_decisions) ? synthesis.key_decisions : [];
 
     const validCategories = ['strategic', 'operational', 'resource', 'people', 'technical', 'market'];
