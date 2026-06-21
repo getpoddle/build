@@ -507,7 +507,7 @@ Deno.serve(async (req: Request) => {
       documentBlock = docLines.join("\n");
     }
 
-    // ── Call selected agents in parallel ────────────────────────────────────
+    // ── ROUND 1: Independent initial responses (parallel) ───────────────────
     const agentResponses = await Promise.all(
       selectedAgents.map(async (agent) => {
         const agentPatternContext = (agent.role === "risk_analyst" || agent.role === "devils_advocate")
@@ -518,23 +518,19 @@ Deno.serve(async (req: Request) => {
 
 ${workspaceHeader}${documentBlock}${memoryContext}${agentPatternContext}${synthesisContext}
 
-Keep responses under 300 words. Be specific, take clear positions, name concrete things. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging.`;
-
-        const messages = [
-          { role: "system", content: systemPrompt },
-          ...conversationHistory,
-          { role: "user", content: safeMessage },
-        ];
+Keep responses under 280 words. Be specific, take a clear position, name concrete things. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging.
+This is ROUND 1 of a structured debate — state your position clearly so other agents can challenge it.`;
 
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
-          headers: {
-            "Authorization": `Bearer ${openAiKey}`,
-            "Content-Type": "application/json",
-          },
+          headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "gpt-4o-mini",
-            messages,
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...conversationHistory,
+              { role: "user", content: safeMessage },
+            ],
             max_tokens: agent.maxTokens,
             temperature: agent.temperature,
           }),
@@ -546,7 +542,90 @@ Keep responses under 300 words. Be specific, take clear positions, name concrete
       })
     );
 
-    // ── Persist messages ────────────────────────────────────────────────────
+    // ── ROUND 2: Cross-challenge — each agent challenges another (parallel) ──
+    const challengeResponses = await Promise.all(
+      agentResponses.map(async ({ agent, content: myContent }) => {
+        const othersBlock = agentResponses
+          .filter(r => r.agent.role !== agent.role)
+          .map(r => `${r.agent.name} said:\n"${r.content.slice(0, 500)}"`)
+          .join("\n\n");
+
+        const challengePrompt = `${agent.persona}
+
+${workspaceHeader}${memoryContext}${synthesisContext}
+
+You have given your initial analysis. The other agents have now responded:
+
+${othersBlock}
+
+CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning. You must:
+1. Pick the single most problematic or unsupported claim made by one of the other agents. Address them directly by name (e.g. "@Risk Analyst — your claim that X is flawed because..."). Name the specific claim and exactly why it fails, relies on a hidden assumption, or ignores a critical variable.
+2. If another agent surfaced something that actually strengthens or complicates your own analysis, acknowledge it honestly in one sentence — intellectual honesty builds better decisions.
+3. End with a sharp direct question addressed to a specific agent that forces them to defend or revise their weakest point.
+
+150-200 words. Punchy. No preamble. No restating your prior position. Start with the challenge.`;
+
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: challengePrompt },
+              { role: "user", content: safeMessage },
+            ],
+            max_tokens: 380,
+            temperature: agent.temperature,
+          }),
+        });
+
+        const data = await res.json();
+        const content = data.choices?.[0]?.message?.content || "";
+        return { agent, content };
+      })
+    );
+
+    // ── ROUND 3: Consensus formation (single call) ───────────────────────────
+    const debateSummary = [
+      ...agentResponses.map(r => `${r.agent.name} (initial position):\n${r.content.slice(0, 350)}`),
+      ...challengeResponses.filter(r => r.content).map(r => `${r.agent.name} (challenge):\n${r.content.slice(0, 300)}`),
+    ].join("\n\n---\n\n");
+
+    const consensusPrompt = `You are a Consensus Architect facilitating a strategic decision-making debate.
+
+${workspaceHeader}
+
+${selectedAgents.length} strategic AI agents have just debated the team's question across two rounds — initial positions and cross-challenges. Here is the full exchange:
+
+${debateSummary}
+
+Synthesise the debate into a decisive consensus brief. Structure your response as follows:
+
+**Where agents agree** — name 2-3 specific points the agents converge on. These are high-confidence signals the team should treat as near-certain.
+
+**The live tension** — name the single sharpest disagreement that survived the challenge round. Name which agents hold which position and why it matters for this decision.
+
+**Decision signal** — give one clear directional recommendation that integrates the strongest arguments from all sides. Be decisive. Do not hedge.
+
+**The question that breaks the deadlock** — if one factual answer or test would resolve the remaining tension, state it precisely.
+
+200-250 words. The team must leave with a concrete takeaway.`;
+
+    const consensusRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: consensusPrompt }],
+        max_tokens: 500,
+        temperature: 0.5,
+      }),
+    });
+
+    const consensusData = await consensusRes.json();
+    const consensusContent = consensusData.choices?.[0]?.message?.content || "";
+
+    // ── Persist all messages in sequence ────────────────────────────────────
     await service.from("workspace_messages").insert({
       workspace_id,
       user_id: user.id,
@@ -565,14 +644,51 @@ Keep responses under 300 words. Be specific, take clear positions, name concrete
       }))
     );
 
-    return new Response(
-      JSON.stringify({
-        responses: agentResponses.map(({ agent, content }) => ({
+    const validChallenges = challengeResponses.filter(r => r.content.trim().length > 20);
+    if (validChallenges.length > 0) {
+      await service.from("workspace_messages").insert(
+        validChallenges.map(({ agent, content }) => ({
+          workspace_id,
+          user_id: null,
+          role: "assistant",
+          content,
           agent_name: agent.name,
           agent_role: agent.role,
-          content,
-        })),
-      }),
+        }))
+      );
+    }
+
+    if (consensusContent.trim().length > 20) {
+      await service.from("workspace_messages").insert({
+        workspace_id,
+        user_id: null,
+        role: "assistant",
+        content: consensusContent,
+        agent_name: "Consensus",
+        agent_role: "consensus",
+      });
+    }
+
+    // Return all rounds so the client renders the full debate in order
+    const allResponses: Array<{ agent_name: string; agent_role: string; content: string }> = [
+      ...agentResponses.map(({ agent, content }) => ({
+        agent_name: agent.name,
+        agent_role: agent.role,
+        content,
+      })),
+      ...validChallenges.map(({ agent, content }) => ({
+        agent_name: agent.name,
+        agent_role: agent.role,
+        content,
+      })),
+    ];
+
+    if (consensusContent.trim().length > 20) {
+      allResponses.push({ agent_name: "Consensus", agent_role: "consensus", content: consensusContent });
+    }
+
+    return new Response(
+      JSON.stringify({ responses: allResponses }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

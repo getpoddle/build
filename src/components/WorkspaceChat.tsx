@@ -61,16 +61,48 @@ function formatBytes(bytes: number): string {
 }
 
 const AGENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  strategic_analyst: { bg: 'rgba(37,99,235,0.07)', text: '#1d4ed8', border: 'rgba(37,99,235,0.15)' },
-  devils_advocate:   { bg: 'rgba(220,38,38,0.07)',  text: '#b91c1c', border: 'rgba(220,38,38,0.15)' },
-  innovation_scout:  { bg: 'rgba(16,185,129,0.07)', text: '#065f46', border: 'rgba(16,185,129,0.15)' },
+  strategic_analyst:  { bg: 'rgba(37,99,235,0.07)',   text: '#1d4ed8', border: 'rgba(37,99,235,0.15)' },
+  devils_advocate:    { bg: 'rgba(220,38,38,0.07)',    text: '#b91c1c', border: 'rgba(220,38,38,0.15)' },
+  innovation_scout:   { bg: 'rgba(16,185,129,0.07)',   text: '#065f46', border: 'rgba(16,185,129,0.15)' },
+  risk_analyst:       { bg: 'rgba(234,88,12,0.07)',    text: '#c2410c', border: 'rgba(234,88,12,0.15)' },
+  market_analyst:     { bg: 'rgba(37,99,235,0.07)',    text: '#1d4ed8', border: 'rgba(37,99,235,0.15)' },
+  financial_strategist:{ bg: 'rgba(5,150,105,0.07)',  text: '#065f46', border: 'rgba(5,150,105,0.15)' },
+  execution_lead:     { bg: 'rgba(100,116,139,0.07)',  text: '#334155', border: 'rgba(100,116,139,0.15)' },
+  people_advisor:     { bg: 'rgba(168,85,247,0.07)',   text: '#7e22ce', border: 'rgba(168,85,247,0.15)' },
+  consensus:          { bg: 'rgba(15,23,42,0.04)',     text: '#0f172a', border: 'rgba(15,23,42,0.12)' },
 };
 
 const AGENT_ICONS: Record<string, string> = {
-  strategic_analyst: '📊',
-  devils_advocate:   '⚔️',
-  innovation_scout:  '🔭',
+  strategic_analyst:   '📊',
+  devils_advocate:     '⚔️',
+  innovation_scout:    '🔭',
+  risk_analyst:        '⚠️',
+  market_analyst:      '📈',
+  financial_strategist:'💰',
+  execution_lead:      '🎯',
+  people_advisor:      '👥',
+  consensus:           '🤝',
 };
+
+const AGENT_LABELS: Record<string, string> = {
+  strategic_analyst:   'Strategic Analyst',
+  devils_advocate:     "Devil's Advocate",
+  innovation_scout:    'Innovation Scout',
+  risk_analyst:        'Risk Analyst',
+  market_analyst:      'Market Analyst',
+  financial_strategist:'Financial Strategist',
+  execution_lead:      'Execution Lead',
+  people_advisor:      'People Advisor',
+  consensus:           'Consensus',
+};
+
+// Detect which debate phase a message belongs to based on content patterns
+function detectPhase(content: string): 'challenge' | 'consensus' | null {
+  const lower = content.slice(0, 120).toLowerCase();
+  if (lower.includes('@') || lower.match(/^(challenging|i challenge|@\w)/)) return 'challenge';
+  if (lower.includes('where agents agree') || lower.includes('areas of agreement') || lower.includes('live tension') || lower.includes('decision signal')) return 'consensus';
+  return null;
+}
 
 // Deterministic per-user color for avatar backgrounds
 const MEMBER_COLORS = [
@@ -709,14 +741,14 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
       {/* Agent legend */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {Object.entries(AGENT_COLORS).map(([role, colors]) => (
+        {Object.entries(AGENT_COLORS).filter(([role]) => role !== 'consensus').map(([role, colors]) => (
           <span
             key={role}
             className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
             style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
           >
             <span>{AGENT_ICONS[role]}</span>
-            {role === 'strategic_analyst' ? 'Strategic Analyst' : role === 'devils_advocate' ? "Devil's Advocate" : 'Innovation Scout'}
+            {AGENT_LABELS[role] ?? role}
           </span>
         ))}
         <div className="ml-auto flex items-center gap-2">
@@ -813,8 +845,26 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               );
             }
 
-            const colors = AGENT_COLORS[msg.agent_role || ''] ?? { bg: 'rgba(15,23,42,0.05)', text: '#475569', border: 'rgba(15,23,42,0.1)' };
-            const icon = AGENT_ICONS[msg.agent_role || ''] ?? '🤖';
+            const role = msg.agent_role || '';
+            const colors = AGENT_COLORS[role] ?? { bg: 'rgba(15,23,42,0.05)', text: '#475569', border: 'rgba(15,23,42,0.1)' };
+            const icon = AGENT_ICONS[role] ?? '🤖';
+            const isConsensus = role === 'consensus';
+            const phase = isConsensus ? 'consensus' : detectPhase(msg.content);
+
+            if (isConsensus) {
+              return (
+                <div key={msg.id} className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(15,23,42,0.12)', background: 'rgba(15,23,42,0.02)' }}>
+                  <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'rgba(15,23,42,0.05)', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
+                    <span className="text-base">🤝</span>
+                    <span className="text-xs font-black tracking-wide uppercase" style={{ color: '#0f172a' }}>Consensus</span>
+                    <span className="text-xs ml-auto" style={{ color: '#64748b' }}>Agents reached alignment</span>
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <div key={msg.id} className="flex items-start gap-3">
@@ -825,7 +875,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                   {icon}
                 </div>
                 <div className="max-w-[85%]">
-                  <p className="text-xs font-bold mb-1" style={{ color: colors.text }}>{msg.agent_name}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-xs font-bold" style={{ color: colors.text }}>{msg.agent_name}</p>
+                    {phase === 'challenge' && (
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: 'rgba(234,88,12,0.1)', color: '#c2410c' }}>challenges</span>
+                    )}
+                  </div>
                   <div
                     className="rounded-2xl rounded-tl-md px-4 py-3"
                     style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
@@ -844,10 +899,13 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               <Bot className="w-4 h-4 text-slate-400" />
             </div>
             <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(15,23,42,0.05)' }}>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span className="text-xs text-slate-400">Agents analysing, challenging, forming consensus…</span>
               </div>
             </div>
           </div>
