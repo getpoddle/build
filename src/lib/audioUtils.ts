@@ -20,10 +20,11 @@ export async function blobToMp3File(blob: Blob): Promise<File> {
     }
 
     const wavBuffer = encodeWav(decoded);
-    return new File([wavBuffer], 'recording.mp3', { type: 'audio/mpeg' });
+    return new File([wavBuffer], 'recording.wav', { type: 'audio/wav' });
   } catch {
     // Fallback: pass original blob directly — Whisper can handle webm/ogg too
-    return new File([blob], 'recording.mp3', { type: 'audio/mpeg' });
+    const ext = blob.type.includes('ogg') ? 'ogg' : 'webm';
+    return new File([blob], `recording.${ext}`, { type: blob.type || 'audio/webm' });
   }
 }
 

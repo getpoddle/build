@@ -612,6 +612,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
       const formData = new FormData();
       formData.append('audio', file);
+      // Send the browser's locale so Whisper can use it as a language hint
+      formData.append('language', navigator.language.split('-')[0]);
 
       const res = await fetch(`${supabaseUrl}/functions/v1/transcribe-audio`, {
         method: 'POST',

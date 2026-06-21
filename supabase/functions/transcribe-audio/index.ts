@@ -53,11 +53,25 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Client sends browser locale (e.g. "en", "fr", "de") as a Whisper language hint
+    const langHint = formData.get("language");
+    const language = typeof langHint === "string" && langHint.trim().length >= 2
+      ? langHint.trim().toLowerCase().slice(0, 8)
+      : null;
+
+    // Derive filename from the uploaded file's actual type so Whisper parses it correctly
+    const mimeType = (audioFile as File).type || "audio/wav";
+    const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("webm") ? "webm" : mimeType.includes("mp4") ? "mp4" : "wav";
+    const filename = `recording.${ext}`;
+
     // Forward to Whisper
     const whisperForm = new FormData();
-    whisperForm.append("file", audioFile, "recording.mp3");
+    whisperForm.append("file", audioFile, filename);
     whisperForm.append("model", "whisper-1");
     whisperForm.append("response_format", "text");
+    if (language) {
+      whisperForm.append("language", language);
+    }
 
     const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
