@@ -356,35 +356,37 @@ ${transcript}`;
       },
     };
 
-    // Defer all DB writes so response goes back immediately
+    // Upsert the main synthesis BEFORE responding so the client re-fetch always
+    // finds the latest data (including executive_summary).
+    await service.from("workspace_synthesis").upsert({
+      workspace_id,
+      consensus_points: consensusPoints,
+      conflict_zones: conflictZones,
+      open_questions: openQuestions,
+      risk_signals: riskSignals,
+      blind_spots: blindSpots,
+      action_items: actionItems,
+      decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
+      health_rationale: synthesis.health_rationale || null,
+      financial_metrics: financialMetrics,
+      operational_metrics: operationalMetrics,
+      non_financial_metrics: nonFinancialMetrics,
+      opportunity_signals: opportunitySignals,
+      cognitive_bias_flags: cognitiveBiasFlags,
+      financial_score: financialScore,
+      operational_score: operationalScore,
+      alignment_score: alignmentScore,
+      decision_velocity: decisionVelocity,
+      confidence_trajectory: confidenceTrajectory,
+      generated_at: generatedAt,
+      message_count_at_generation: messages.length,
+      executive_summary: executiveSummary,
+      key_decisions: keyDecisions,
+    }, { onConflict: "workspace_id" });
+
+    // Defer non-critical writes (history, memory, action items) in background
     const dbWritePromise = (async () => {
       try {
-        // Upsert main synthesis
-        await service.from("workspace_synthesis").upsert({
-          workspace_id,
-          consensus_points: consensusPoints,
-          conflict_zones: conflictZones,
-          open_questions: openQuestions,
-          risk_signals: riskSignals,
-          blind_spots: blindSpots,
-          action_items: actionItems,
-          decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
-          health_rationale: synthesis.health_rationale || null,
-          financial_metrics: financialMetrics,
-          operational_metrics: operationalMetrics,
-          non_financial_metrics: nonFinancialMetrics,
-          opportunity_signals: opportunitySignals,
-          cognitive_bias_flags: cognitiveBiasFlags,
-          financial_score: financialScore,
-          operational_score: operationalScore,
-          alignment_score: alignmentScore,
-          decision_velocity: decisionVelocity,
-          confidence_trajectory: confidenceTrajectory,
-          generated_at: generatedAt,
-          message_count_at_generation: messages.length,
-          executive_summary: executiveSummary,
-          key_decisions: keyDecisions,
-        }, { onConflict: "workspace_id" });
 
         // Synthesis history — insert first so pattern computation can include this session
         const { data: historyRow } = await service.from("workspace_synthesis_history").insert({
