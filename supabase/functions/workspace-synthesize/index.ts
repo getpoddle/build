@@ -154,6 +154,8 @@ Deno.serve(async (req: Request) => {
 Return a JSON object with this exact structure (no markdown, no extra text):
 
 {
+  "executive_summary": "Write 3-4 prose sentences synthesising the entire report: (1) what the team is deciding and where they stand, (2) key financial/operational finding, (3) top risk or blind spot by name, (4) most urgent action needed.",
+  "key_decisions": [{"decision":"a clear decision statement","status":"made|pending|deferred","rationale":"one sentence on the reasoning","owner":"person or role if known"}],
   "decision_health_score": <integer 0-100, derived strictly from scoring rubric below>,
   "health_rationale": "one sentence explaining the specific score",
   "financial_score": <integer 0-100>,
@@ -173,8 +175,6 @@ Return a JSON object with this exact structure (no markdown, no extra text):
   "non_financial_metrics": [{"metric":"Team Morale","signal":"positive","note":"evidence"}],
   "opportunity_signals": [{"title":"label","description":"specific upside","confidence":"medium","source":"who mentioned it"}],
   "cognitive_bias_flags": [{"bias_name":"Confirmation Bias","explanation":"where it appeared","counter_question":"probing question"}],
-  "executive_summary": "REQUIRED. 3-4 flowing prose sentences that synthesize: (1) the core decision context and where the team stands, (2) a specific callout from financial or operational metrics (e.g. budget confidence, timeline clarity), (3) the single most critical risk or blind spot identified, and (4) the most urgent action or unresolved question. Must reference specific findings — never generic.",
-  "key_decisions": [{"decision":"a clear decision statement","status":"made|pending|deferred","rationale":"one sentence on the reasoning","owner":"person or role if known"}],
   "memory_update": {
     "decisions": ["key decision 1","key decision 2"],
     "agreements": ["shared belief 1","shared belief 2"],
@@ -261,7 +261,7 @@ ${transcript}`;
             { role: "system", content: "You are a strategic intelligence analyst. Return only valid JSON, nothing else." },
             { role: "user", content: synthesisPrompt },
           ],
-          max_tokens: 3500,
+          max_tokens: 5500,
           temperature: 0.25,
           response_format: { type: "json_object" },
         }),
