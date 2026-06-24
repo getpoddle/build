@@ -32,6 +32,8 @@ const WorkspaceSettings = lazy(() => import('./pages/WorkspaceSettings'));
 const JoinWorkspace = lazy(() => import('./pages/JoinWorkspace'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const ExtensionView = lazy(() => import('./pages/ExtensionView'));
+const Blog = lazy(() => import('./pages/Blog'));
+const BlogPost = lazy(() => import('./pages/BlogPost'));
 
 function RouteFallback() {
   return (
@@ -93,6 +95,7 @@ function AppContent() {
   const onboardingCheckedRef = useRef(false);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [joinToken, setJoinToken] = useState<string | null>(null);
+  const [blogSlug, setBlogSlug] = useState<string | null>(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -123,6 +126,12 @@ function AppContent() {
       if (hash === 'pricing') { setCurrentPage('pricing'); return; }
       if (hash.startsWith('payment-success')) { setCurrentPage('payment-success'); return; }
       if (hash === 'system-health') { setCurrentPage('system-health'); return; }
+      if (hash === 'blog') { setCurrentPage('blog'); return; }
+      if (hash.startsWith('blog/')) {
+        const slug = hash.slice('blog/'.length);
+        if (slug) { setBlogSlug(slug); setCurrentPage('blog-post'); }
+        return;
+      }
 
       if (hash.startsWith('assumption/')) {
         const id = hash.split('/')[1];
@@ -305,6 +314,19 @@ function AppContent() {
       return;
     }
 
+    if (page === 'blog') {
+      setCurrentPage('blog');
+      history.pushState(null, '', '#blog');
+      return;
+    }
+
+    if (page === 'blog-post' && idParam) {
+      setBlogSlug(idParam);
+      setCurrentPage('blog-post');
+      history.pushState(null, '', `#blog/${idParam}`);
+      return;
+    }
+
     setCurrentPage(page);
     sessionStorage.setItem('currentPage', page);
     const hashMap: Record<string, string> = {
@@ -481,6 +503,14 @@ function AppContent() {
 
   if (currentPage === 'join-workspace' && joinToken) {
     return wrap(<JoinWorkspace token={joinToken} onNavigate={handleNavigate} />);
+  }
+
+  if (currentPage === 'blog') {
+    return wrap(<Blog onNavigate={handleNavigate} />);
+  }
+
+  if (currentPage === 'blog-post' && blogSlug) {
+    return wrap(<BlogPost slug={blogSlug} onNavigate={handleNavigate} />);
   }
 
   if (!user) {

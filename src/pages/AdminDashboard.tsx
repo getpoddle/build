@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Award, Download, Globe, Bot, Play, RefreshCw, Sparkles, ChevronDown } from 'lucide-react';
+import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Award, Download, Globe, Bot, Play, RefreshCw, Sparkles, ChevronDown, BookOpen } from 'lucide-react';
 import { getAvatarUrl } from '../lib/avatarUtils';
 import VerificationBadge from '../components/VerificationBadge';
 import DomainManagement from '../components/admin/DomainManagement';
+import BlogAdmin from '../components/admin/BlogAdmin';
 
-type AdminView = 'users' | 'domains' | 'ai-discussions' | 'workspaces' | 'upgrades';
+type AdminView = 'users' | 'domains' | 'ai-discussions' | 'workspaces' | 'upgrades' | 'blog';
 
 interface UpgradeRequest {
   id: string;
@@ -555,6 +556,17 @@ export default function AdminDashboard() {
                       {upgradeRequests.filter(r => r.status === 'pending').length}
                     </span>
                   )}
+                </button>
+                <button
+                  onClick={() => setAdminView('blog')}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
+                    adminView === 'blog'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Blog
                 </button>
               </div>
               {adminView === 'users' && (
@@ -1254,6 +1266,8 @@ export default function AdminDashboard() {
           </div>
         </div>
         </div>}
+
+        {adminView === 'blog' && <BlogAdmin />}
       </div>
 
       {showPasswordModal && (
