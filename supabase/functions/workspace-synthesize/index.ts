@@ -51,18 +51,19 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "No messages to synthesize" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Build a rich transcript for the AI, labelling each message clearly
-    const transcript = messages.map(m => {
-      if (m.role === "user") return `[TEAM]: ${m.content}`;
-      const label = m.agent_role ? `[${(m.agent_role as string).toUpperCase().replace(/_/g, " ")}]` : "[AGENT]";
-      return `${label}: ${m.content}`;
-    }).join("\n\n");
-
     const workspaceContext = [
       workspace?.name ? `Topic: ${workspace.name}` : "",
       workspace?.topic ? `Focus: ${workspace.topic}` : "",
       workspace?.description ? `Context: ${workspace.description}` : "",
     ].filter(Boolean).join("\n");
+
+    // Use last 80 messages to stay well within token limits
+    const recentMessages = messages.slice(-80);
+    const transcript = recentMessages.map(m => {
+      if (m.role === "user") return `[TEAM]: ${m.content}`;
+      const label = m.agent_role ? `[${(m.agent_role as string).toUpperCase().replace(/_/g, " ")}]` : "[AGENT]";
+      return `${label}: ${m.content}`;
+    }).join("\n\n");
 
     // ─── SYNTHESIS PROMPT ─────────────────────────────────────────────────────
     // The conflict zone detection is the critical section. It must read the
@@ -182,7 +183,7 @@ Return ONLY valid JSON. No markdown, no commentary outside the JSON.`;
         "Authorization": `Bearer ${openAiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -198,8 +199,10 @@ Return ONLY valid JSON. No markdown, no commentary outside the JSON.`;
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
-      console.error("OpenAI error:", err);
-      return new Response(JSON.stringify({ error: "AI synthesis failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("OpenAI error:", openAiRes.status, err);
+      let detail = "AI synthesis failed";
+      try { const parsed = JSON.parse(err); detail = parsed?.error?.message || detail; } catch { /* use default */ }
+      return new Response(JSON.stringify({ error: detail }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const openAiJson = await openAiRes.json();
