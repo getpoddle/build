@@ -78,102 +78,90 @@ ${transcript}
 
 ---
 
-Produce a JSON object with EXACTLY this structure. All fields are required.
+Produce a JSON object with EXACTLY this structure. Use EXACTLY these field names — do not rename any field.
 
-CRITICAL RULES FOR CONFLICT ZONES (conflict_zones):
-- Read the transcript carefully and identify the REAL fault lines — the places where agents genuinely disagreed about the SUBSTANCE of the decision
-- The conflict must be about what the decision is actually about (e.g., for RTO: mandate vs hybrid model; for product pivot: speed vs validation; for hiring: specialists vs generalists)
-- DO NOT default to "budget" or "financial" conflicts unless budget/cost was explicitly the central disputed axis in the conversation
-- DO NOT manufacture a financial conflict when the real tension is cultural, strategic, operational, or people-related
-- Name the EXACT opposing positions (e.g., "Full mandate now" vs "Permanent hybrid") — never abstract labels
-- The agents field should name the two roles that most sharply held opposing views — based on what they actually said, not on their role names
+CRITICAL RULES FOR CONFLICT ZONES:
+- Read the transcript carefully. Identify the REAL strategic fault lines — where agents disagreed about the SUBSTANCE of the decision.
+- The conflict topic must reflect what the decision is actually about (e.g., for RTO: "Full mandate vs permanent hybrid"; for hiring: "Specialists vs generalists"; for pricing: "Premium positioning vs competitive pricing").
+- DO NOT default to "budget" or "financial" conflicts unless budget/cost was the explicitly central disputed axis.
+- DO NOT manufacture a financial conflict when the real tension is cultural, strategic, operational, or organizational.
+- agent_a and agent_b must be agent role names (e.g., "people_advisor", "risk_analyst") from the transcript.
+- tension_level is a number 0-100 reflecting how unresolved this conflict is (80+ = critical, 50-79 = high, below 50 = moderate).
 
-CRITICAL RULES FOR ACTION ITEMS (action_items):
-- MINIMUM 6, maximum 10 items
-- Each must be a specific, concrete, executable task — not a vague aspiration
-- Include owner role (who should lead it), timeframe (specific, e.g., "2 weeks", "by end of Q3"), and clear success criteria
-- Pull directly from consensus recommendations and concrete next steps mentioned by agents
-- Format: { "task": "...", "owner": "...", "timeframe": "...", "priority": "critical|high|medium" }
+CRITICAL RULES FOR ACTION ITEMS:
+- MINIMUM 6, maximum 10 items. Each must be a specific, concrete, executable task — not vague.
+- source_area is the responsible role or team area (e.g., "HR", "Finance", "Execution Lead").
+- Pull directly from consensus recommendations and concrete next steps mentioned by agents.
 
 CRITICAL RULES FOR RECOMMENDATION:
-- This is the single most important output for the team
-- Write 3-5 sentences of direct, opinionated strategic guidance
-- Start with the actual recommended decision/direction, not a hedge
-- Acknowledge the key tradeoff they must accept
-- End with the one thing they must do in the next 7 days
-- DO NOT be balanced — pick a direction and defend it with the evidence from this debate
+- Write 3-5 sentences of direct, opinionated strategic guidance.
+- Start with the actual recommended direction — not a hedge.
+- Acknowledge the key tradeoff the team must accept.
+- End with the one action needed in the next 7 days.
 
 {
   "consensus_points": [
-    // 3-5 items where agents genuinely converged. Extract verbatim themes from transcript.
-    { "point": "string — specific claim, not abstract", "strength": "strong|moderate|emerging", "supporting_agents": ["role1", "role2"] }
+    { "text": "string — specific point of agent agreement, not abstract", "confidence": 85, "source_count": 4 }
   ],
 
   "conflict_zones": [
-    // 1-3 REAL fault lines from this specific debate. Read what was actually disputed.
     {
-      "topic": "string — the exact strategic question at issue (e.g., 'Full RTO mandate vs permanent hybrid')",
-      "position_a": "string — exact position held by one side, in their words",
-      "position_b": "string — exact position held by the other side, in their words",
-      "agents": ["role_holding_position_a", "role_holding_position_b"],
-      "severity": "critical|high|moderate",
-      "resolution_path": "string — specific action that would resolve or force a decision on this conflict"
+      "topic": "string — exact strategic question at issue (e.g., 'Full mandate vs permanent hybrid model')",
+      "agent_a": "string — role name of agent holding position A (e.g., 'people_advisor')",
+      "position_a": "string — exact position, in the agent's words",
+      "agent_b": "string — role name of agent holding position B (e.g., 'risk_analyst')",
+      "position_b": "string — exact opposing position",
+      "tension_level": 80
     }
   ],
 
   "open_questions": [
-    // 3-5 unresolved questions that the team must answer before deciding
-    { "question": "string — specific, answerable question", "blocker_level": "critical|high|medium" }
+    { "question": "string — specific, answerable question the team must resolve", "urgency": "critical|high|medium" }
   ],
 
   "risk_signals": [
-    // 3-5 concrete risks surfaced in the debate (not generic risks)
-    { "risk": "string", "likelihood": "high|medium|low", "impact": "critical|high|medium", "mitigation": "string — specific action" }
+    { "signal": "string — specific risk", "severity": "critical|high|medium|low", "category": "market|execution|financial|team|technology" }
   ],
 
   "blind_spots": [
-    // 2-4 things the team hasn't considered or has underweighted
-    { "blind_spot": "string — specific gap", "why_it_matters": "string" }
+    { "area": "string — the gap the team has underweighted", "description": "string — why it matters and what could go wrong" }
   ],
 
   "action_items": [
-    // MINIMUM 6, maximum 10. Concrete and specific.
-    { "task": "string", "owner": "string", "timeframe": "string", "priority": "critical|high|medium" }
+    { "text": "string — specific executable task", "source_area": "string — owner role or team", "priority": "critical|high|medium" }
   ],
 
   "financial_metrics": [
-    { "metric": "string", "value": "string", "trend": "positive|negative|neutral|unknown", "confidence": "high|medium|low" }
+    { "metric": "string", "value": "string", "confidence": "high|medium|low", "note": "string — context or implication" }
   ],
 
   "operational_metrics": [
-    { "metric": "string", "status": "on-track|at-risk|unclear", "detail": "string" }
+    { "metric": "string", "status": "on-track|at-risk|unclear", "note": "string — detail" }
   ],
 
   "non_financial_metrics": [
-    { "metric": "string", "value": "string", "trend": "positive|negative|neutral|unknown" }
+    { "metric": "string", "signal": "positive|neutral|negative", "note": "string — detail" }
   ],
 
   "opportunity_signals": [
-    { "opportunity": "string", "potential": "high|medium|low", "time_sensitivity": "urgent|near-term|long-term" }
+    { "title": "string — opportunity name", "description": "string — what it is and why it matters", "confidence": "high|medium|low", "source": "string — where this came from in the debate" }
   ],
 
   "cognitive_bias_flags": [
-    { "bias": "string — named bias (e.g., Sunk Cost, Groupthink, Availability Heuristic)", "manifestation": "string — how it appeared in this specific debate", "debiasing_action": "string" }
+    { "bias_name": "string — named bias (e.g., Sunk Cost Fallacy, Groupthink)", "explanation": "string — how it manifested in this specific debate", "counter_question": "string — reframing question to counteract it" }
   ],
 
   "key_decisions": [
-    // 2-4 decisions the team must make, ranked by urgency
-    { "decision": "string", "options": ["option A", "option B"], "recommended": "string — which option and why", "deadline": "string" }
+    { "decision": "string", "status": "open|in-progress|resolved", "rationale": "string — why this decision matters now", "owner": "string — who should own it" }
   ],
 
-  "decision_velocity": "accelerating|steady|stalling|blocked",
-  "confidence_trajectory": "rising|stable|declining|volatile",
-  "health_rationale": "string — 2-3 sentences explaining decision health based on what was debated",
-
-  "recommendation": "string — 3-5 sentences of direct, opinionated strategic guidance. Start with the recommended direction. Acknowledge the key tradeoff. End with the one action needed in the next 7 days."
+  "decision_velocity": "fast|moderate|stalling",
+  "confidence_trajectory": "rising|flat|falling",
+  "health_rationale": "string — 2-3 sentences explaining the decision health score based on what was debated",
+  "recommendation": "string — 3-5 sentences of direct strategic guidance. Start with the recommended direction. Acknowledge the tradeoff. End with the one action needed in the next 7 days."
 }
 
-Return ONLY valid JSON. No markdown, no commentary outside the JSON.`;
+Return ONLY valid JSON. No markdown fences, no commentary outside the JSON object.`;
 
     // Call OpenAI
     const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {

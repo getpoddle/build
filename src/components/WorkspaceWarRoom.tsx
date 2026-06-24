@@ -132,27 +132,153 @@ const CONF_COLORS: Record<string, { bg: string; text: string }> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function normalizeVelocity(v: unknown): string | null {
+  const s = String(v ?? '').toLowerCase();
+  if (s === 'fast' || s === 'accelerating') return 'fast';
+  if (s === 'moderate' || s === 'steady') return 'moderate';
+  if (s === 'stalling' || s === 'blocked') return 'stalling';
+  return null;
+}
+
+function normalizeTrajectory(v: unknown): string | null {
+  const s = String(v ?? '').toLowerCase();
+  if (s === 'rising') return 'rising';
+  if (s === 'flat' || s === 'stable' || s === 'steady') return 'flat';
+  if (s === 'falling' || s === 'declining' || s === 'volatile') return 'falling';
+  return null;
+}
+
 function sanitizeSynthesis(s: Record<string, unknown>, fallbackCount?: number): SynthesisData {
   const toScore = (v: unknown) =>
     v != null && Number.isFinite(Number(v)) ? Math.max(0, Math.min(100, Number(v))) : null;
+
+  // Normalize each array item to handle both old and new field name conventions
+  const normConsensus = (Array.isArray(s.consensus_points) ? s.consensus_points : []).map((p: unknown) => {
+    const r = p as Record<string, unknown>;
+    return {
+      text:         String(r.text ?? r.point ?? ''),
+      confidence:   Math.max(0, Math.min(100, Number(r.confidence ?? (r.strength === 'strong' ? 90 : r.strength === 'moderate' ? 70 : 50)) || 70)),
+      source_count: Number(r.source_count ?? (Array.isArray(r.supporting_agents) ? r.supporting_agents.length : 2)) || 2,
+    };
+  });
+
+  const normConflicts = (Array.isArray(s.conflict_zones) ? s.conflict_zones : []).map((z: unknown) => {
+    const r = z as Record<string, unknown>;
+    const agents = Array.isArray(r.agents) ? r.agents as string[] : [];
+    const sevMap: Record<string, number> = { critical: 90, high: 70, moderate: 45, medium: 45, low: 20 };
+    return {
+      topic:         String(r.topic ?? ''),
+      agent_a:       String(r.agent_a ?? agents[0] ?? ''),
+      position_a:    String(r.position_a ?? ''),
+      agent_b:       String(r.agent_b ?? agents[1] ?? ''),
+      position_b:    String(r.position_b ?? ''),
+      tension_level: Number(r.tension_level ?? sevMap[String(r.severity ?? '').toLowerCase()] ?? 60),
+      participant_type: (r.participant_type as 'human' | 'agent' | 'mixed' | undefined),
+    };
+  });
+
+  const normQuestions = (Array.isArray(s.open_questions) ? s.open_questions : []).map((q: unknown) => {
+    const r = q as Record<string, unknown>;
+    return {
+      question: String(r.question ?? ''),
+      urgency:  String(r.urgency ?? r.blocker_level ?? 'medium'),
+    };
+  });
+
+  const normRisks = (Array.isArray(s.risk_signals) ? s.risk_signals : []).map((r: unknown) => {
+    const row = r as Record<string, unknown>;
+    // Map new impact/likelihood to old severity: take whichever is more severe
+    const impactMap: Record<string, string> = { critical: 'critical', high: 'high', medium: 'medium', low: 'low' };
+    const severity = String(row.severity ?? impactMap[String(row.impact ?? '').toLowerCase()] ?? 'medium');
+    return {
+      signal:   String(row.signal ?? row.risk ?? ''),
+      severity: severity,
+      category: String(row.category ?? 'execution'),
+    };
+  });
+
+  const normBlindSpots = (Array.isArray(s.blind_spots) ? s.blind_spots : []).map((b: unknown) => {
+    const r = b as Record<string, unknown>;
+    return {
+      area:        String(r.area ?? r.blind_spot ?? ''),
+      description: String(r.description ?? r.why_it_matters ?? ''),
+    };
+  });
+
+  const normActionItems = (Array.isArray(s.action_items) ? s.action_items : []).map((a: unknown) => {
+    const r = a as Record<string, unknown>;
+    return {
+      text:        String(r.text ?? r.task ?? ''),
+      source_area: String(r.source_area ?? r.owner ?? ''),
+      priority:    String(r.priority ?? 'medium'),
+    };
+  });
+
+  const normFinancial = (Array.isArray(s.financial_metrics) ? s.financial_metrics : []).map((m: unknown) => {
+    const r = m as Record<string, unknown>;
+    return {
+      metric:     String(r.metric ?? ''),
+      value:      String(r.value ?? ''),
+      confidence: String(r.confidence ?? 'medium'),
+      note:       String(r.note ?? r.trend ?? ''),
+    };
+  });
+
+  const normOperational = (Array.isArray(s.operational_metrics) ? s.operational_metrics : []).map((m: unknown) => {
+    const r = m as Record<string, unknown>;
+    return {
+      metric: String(r.metric ?? ''),
+      status: String(r.status ?? 'unclear'),
+      note:   String(r.note ?? r.detail ?? ''),
+    };
+  });
+
+  const normNonFinancial = (Array.isArray(s.non_financial_metrics) ? s.non_financial_metrics : []).map((m: unknown) => {
+    const r = m as Record<string, unknown>;
+    return {
+      metric: String(r.metric ?? ''),
+      signal: String(r.signal ?? r.trend ?? 'neutral'),
+      note:   String(r.note ?? r.value ?? ''),
+    };
+  });
+
+  const normOpportunities = (Array.isArray(s.opportunity_signals) ? s.opportunity_signals : []).map((o: unknown) => {
+    const r = o as Record<string, unknown>;
+    return {
+      title:       String(r.title ?? r.opportunity ?? ''),
+      description: String(r.description ?? ''),
+      confidence:  String(r.confidence ?? r.potential ?? 'medium'),
+      source:      String(r.source ?? r.time_sensitivity ?? ''),
+    };
+  });
+
+  const normBiases = (Array.isArray(s.cognitive_bias_flags) ? s.cognitive_bias_flags : []).map((b: unknown) => {
+    const r = b as Record<string, unknown>;
+    return {
+      bias_name:       String(r.bias_name ?? r.bias ?? ''),
+      explanation:     String(r.explanation ?? r.manifestation ?? ''),
+      counter_question:String(r.counter_question ?? r.debiasing_action ?? ''),
+    };
+  });
+
   return {
-    consensus_points:     Array.isArray(s.consensus_points)     ? s.consensus_points     as SynthesisData['consensus_points']     : [],
-    conflict_zones:       Array.isArray(s.conflict_zones)       ? s.conflict_zones       as SynthesisData['conflict_zones']       : [],
-    open_questions:       Array.isArray(s.open_questions)       ? s.open_questions       as SynthesisData['open_questions']       : [],
-    risk_signals:         Array.isArray(s.risk_signals)         ? s.risk_signals         as SynthesisData['risk_signals']         : [],
-    blind_spots:          Array.isArray(s.blind_spots)          ? s.blind_spots          as SynthesisData['blind_spots']          : [],
-    action_items:         Array.isArray(s.action_items)         ? s.action_items         as SynthesisData['action_items']         : [],
-    financial_metrics:    Array.isArray(s.financial_metrics)    ? s.financial_metrics    as SynthesisData['financial_metrics']    : [],
-    operational_metrics:  Array.isArray(s.operational_metrics)  ? s.operational_metrics  as SynthesisData['operational_metrics']  : [],
-    non_financial_metrics:Array.isArray(s.non_financial_metrics)? s.non_financial_metrics as SynthesisData['non_financial_metrics']: [],
-    opportunity_signals:  Array.isArray(s.opportunity_signals)  ? s.opportunity_signals  as SynthesisData['opportunity_signals']  : [],
-    cognitive_bias_flags: Array.isArray(s.cognitive_bias_flags) ? s.cognitive_bias_flags as SynthesisData['cognitive_bias_flags'] : [],
+    consensus_points:      normConsensus,
+    conflict_zones:        normConflicts,
+    open_questions:        normQuestions,
+    risk_signals:          normRisks,
+    blind_spots:           normBlindSpots,
+    action_items:          normActionItems,
+    financial_metrics:     normFinancial,
+    operational_metrics:   normOperational,
+    non_financial_metrics: normNonFinancial,
+    opportunity_signals:   normOpportunities,
+    cognitive_bias_flags:  normBiases,
     decision_health_score: Number.isFinite(Number(s.decision_health_score)) ? Math.max(0, Math.min(100, Number(s.decision_health_score))) : 0,
     financial_score:      toScore(s.financial_score),
     operational_score:    toScore(s.operational_score),
     alignment_score:      toScore(s.alignment_score),
-    decision_velocity:    ['fast','moderate','stalling'].includes(String(s.decision_velocity).toLowerCase()) ? String(s.decision_velocity).toLowerCase() : null,
-    confidence_trajectory:['rising','flat','falling'].includes(String(s.confidence_trajectory).toLowerCase()) ? String(s.confidence_trajectory).toLowerCase() : null,
+    decision_velocity:    normalizeVelocity(s.decision_velocity),
+    confidence_trajectory:normalizeTrajectory(s.confidence_trajectory),
     health_rationale: typeof s.health_rationale === 'string' && s.health_rationale ? s.health_rationale : undefined,
     recommendation: typeof s.recommendation === 'string' && s.recommendation ? s.recommendation : null,
     key_decisions: Array.isArray(s.key_decisions) ? s.key_decisions as SynthesisData['key_decisions'] : undefined,
