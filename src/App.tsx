@@ -78,6 +78,8 @@ function AppContent() {
     if (hash === 'admin' || hash === 'admin-panel' || hash === 'app-icons') {
       return hash;
     }
+    if (hash === 'blog') return 'blog';
+    if (hash.startsWith('blog/')) return 'blog-post';
     const saved = sessionStorage.getItem('currentPage');
     if (!saved || saved === 'auth' || saved === 'home') return 'workspaces';
     return saved;
@@ -95,7 +97,11 @@ function AppContent() {
   const onboardingCheckedRef = useRef(false);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [joinToken, setJoinToken] = useState<string | null>(null);
-  const [blogSlug, setBlogSlug] = useState<string | null>(null);
+  const [blogSlug, setBlogSlug] = useState<string | null>(() => {
+    const hash = window.location.hash.substring(1);
+    if (hash.startsWith('blog/')) return hash.slice('blog/'.length) || null;
+    return null;
+  });
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
