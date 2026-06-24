@@ -70,6 +70,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
               <span className="text-white font-black text-lg tracking-tight">Poddle</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
+              <button onClick={() => onNavigate('blog')} className="hover:text-white transition-colors">Blog</button>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
               <a href="#privacy" className="hover:text-white transition-colors">Privacy</a>
               <a href="#terms" className="hover:text-white transition-colors">Terms</a>
@@ -338,6 +339,14 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           >
             View pricing
             <ArrowRight className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onNavigate('blog')}
+            className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-white"
+            style={{ color: 'rgba(148,163,184,0.75)' }}
+          >
+            Read the blog
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
