@@ -34,6 +34,7 @@ export interface WarRoomExport {
   messageCount: number;
   decisionHealthScore: number;
   healthRationale?: string;
+  recommendation?: string | null;
   keyDecisions?: KeyDecision[];
   financialScore?: number | null;
   operationalScore?: number | null;
@@ -443,6 +444,11 @@ const BASE_STYLES = `
   .sec-biases .section-hdr { background: rgba(245,158,11,0.10) !important; color: #78350f; border-color: rgba(245,158,11,0.28); }
   .sec-biases .section-body { border-color: rgba(245,158,11,0.22); }
   .sec-biases .row { border-color: rgba(245,158,11,0.08); }
+
+  /* Recommendation */
+  .sec-recommendation .section-hdr { background: rgba(30,58,95,0.08) !important; color: #1e3a5f; border-color: rgba(30,58,95,0.22); }
+  .sec-recommendation .section-body { border-color: rgba(30,58,95,0.18); }
+  .sec-recommendation .row { border-color: rgba(30,58,95,0.08); font-size: 10pt; line-height: 1.75; color: #334155; }
 
   /* Tags */
   .tag {
@@ -921,7 +927,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
         </div>
         <div class="meta-right">
           Generated ${formatDate(data.generatedAt)}<br>
-          Based on ${data.messageCount} messages
+          Based on full War Room session
         </div>
       </div>
     </div>
@@ -942,6 +948,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
       </div>
     </div>
 
+    ${data.recommendation ? sec('recommendation', 'Strategic Recommendation', '&#x2728;', [`<div class="row">${escapeHtml(data.recommendation)}</div>`]) : ''}
     ${sec('consensus',    'Team Consensus',          '&#x2713;',  consensusRows)}
     ${sec('conflicts',    'Strategic Conflict Zones', '&#x26A1;',  conflictRows)}
     ${sec('questions',    'Open Questions',           '?',         questionRows)}

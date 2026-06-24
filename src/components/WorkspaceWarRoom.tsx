@@ -32,6 +32,7 @@ interface SynthesisData {
   decision_velocity: string | null;
   confidence_trajectory: string | null;
   health_rationale?: string;
+  recommendation?: string | null;
   key_decisions?: Array<{ decision: string; status: string; rationale: string; owner?: string }>;
   generated_at: string;
   message_count: number;
@@ -153,6 +154,8 @@ function sanitizeSynthesis(s: Record<string, unknown>, fallbackCount?: number): 
     decision_velocity:    ['fast','moderate','stalling'].includes(String(s.decision_velocity).toLowerCase()) ? String(s.decision_velocity).toLowerCase() : null,
     confidence_trajectory:['rising','flat','falling'].includes(String(s.confidence_trajectory).toLowerCase()) ? String(s.confidence_trajectory).toLowerCase() : null,
     health_rationale: typeof s.health_rationale === 'string' && s.health_rationale ? s.health_rationale : undefined,
+    recommendation: typeof s.recommendation === 'string' && s.recommendation ? s.recommendation : null,
+    key_decisions: Array.isArray(s.key_decisions) ? s.key_decisions as SynthesisData['key_decisions'] : undefined,
     generated_at: typeof s.generated_at === 'string' && s.generated_at ? s.generated_at : new Date().toISOString(),
     message_count: Number.isFinite(Number(s.message_count)) ? Number(s.message_count) : (fallbackCount ?? 0),
   };
@@ -627,7 +630,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     try {
       const [synthRes, countRes, histRes, actRes, membRes, commitRes] = await Promise.all([
         supabase.from('workspace_synthesis')
-          .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,key_decisions,generated_at,message_count_at_generation')
+          .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,recommendation,key_decisions,generated_at,message_count_at_generation')
           .eq('workspace_id', workspaceId).maybeSingle(),
         supabase.from('workspace_messages')
           .select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
@@ -743,7 +746,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         setActiveSection(null);
         const [synthRes, countRes, histRes, actRes] = await Promise.all([
           supabase.from('workspace_synthesis')
-            .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,key_decisions,generated_at,message_count_at_generation')
+            .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,recommendation,key_decisions,generated_at,message_count_at_generation')
             .eq('workspace_id', workspaceId).maybeSingle(),
           supabase.from('workspace_messages')
             .select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId),
@@ -887,7 +890,10 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const hasOpportunities = synthesis.opportunity_signals.length > 0;
   const hasBiases       = synthesis.cognitive_bias_flags.length > 0;
 
+  const hasRecommendation = !!synthesis.recommendation;
+
   const sections = [
+    hasRecommendation && { key: 'recommendation', label: 'Recommendation', icon: Sparkles, count: 1,                                    color: '#1e3a5f', bg: 'rgba(30,58,95,0.08)' },
     { key: 'consensus',     label: 'Consensus',     icon: CheckCircle2,  count: synthesis.consensus_points.length,      color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
     { key: 'conflicts',     label: 'Conflicts',      icon: GitBranch,     count: synthesis.conflict_zones.length,        color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
     { key: 'questions',     label: 'Questions',      icon: HelpCircle,    count: synthesis.open_questions.length,        color: '#3b82f6', bg: 'rgba(37,99,235,0.08)' },
@@ -917,7 +923,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           </div>
           <h2 className="text-xl font-black text-slate-900">Strategic Intelligence</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Based on {synthesis.message_count} messages · {new Date(synthesis.generated_at).toLocaleString()}
+            Based on full War Room session · {new Date(synthesis.generated_at).toLocaleString()}
             {history.length > 0 && ` · Run #${history.length}`}
           </p>
         </div>
@@ -938,6 +944,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             financialMetrics: synthesis.financial_metrics, operationalMetrics: synthesis.operational_metrics,
             nonFinancialMetrics: synthesis.non_financial_metrics, opportunitySignals: synthesis.opportunity_signals,
             cognitiveBiasFlags: synthesis.cognitive_bias_flags,
+            recommendation: synthesis.recommendation,
             actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source: a.source })),
           })}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5"
@@ -1035,6 +1042,22 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           </button>
         ))}
       </div>
+
+      {/* ── RECOMMENDATION ── */}
+      {(activeSection === null || activeSection === 'recommendation') && synthesis.recommendation && (
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(30,58,95,0.2)' }}>
+          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(30,58,95,0.06)' }}>
+            <Sparkles className="w-4 h-4" style={{ color: '#1e3a5f' }} />
+            <span className="text-sm font-bold" style={{ color: '#1e3a5f' }}>Strategic Recommendation</span>
+            <span className="text-xs ml-auto hidden sm:inline" style={{ color: '#64748b' }}>From your War Room advisors</span>
+          </div>
+          <div className="p-5 bg-white">
+            <p className="text-sm leading-relaxed text-slate-700" style={{ lineHeight: '1.75' }}>
+              {synthesis.recommendation}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── CONSENSUS ── */}
       {(activeSection === null || activeSection === 'consensus') && synthesis.consensus_points.length > 0 && (

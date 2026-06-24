@@ -116,16 +116,18 @@ Deno.serve(async (req: Request) => {
       documentBlock = docLines.join("\n") + "\n\n";
     }
 
-    // Build compact transcript — cap each message at 300 chars
-    // Reduce transcript cap when documents present to protect total prompt size
+    // Build compact transcript — give more chars to financially-rich messages
+    const FINANCIAL_KEYWORDS = /\$|€|£|%|revenue|budget|burn|mrr|arr|cac|ltv|roi|profit|cost|price|fund|raise|invest|valuation|margin|churn|runway|forecast|projection|growth rate|unit economics|payback/i;
     let transcriptChars = 0;
-    const TRANSCRIPT_CAP = validDocs.length > 0 ? 3000 : 5000;
+    const TRANSCRIPT_CAP = validDocs.length > 0 ? 4000 : 6000;
     const transcriptLines: string[] = [];
     for (const m of messages) {
       const raw = m.role === "user"
         ? `${m.user_id ? (memberLabelMap.get(m.user_id)?.label ?? "Member") : "Member"}: ${m.content}`
         : `[${m.agent_name?.toUpperCase() || "AI"}]: ${m.content}`;
-      const line = raw.slice(0, 300);
+      // Give financial messages more room so numbers aren't truncated
+      const charLimit = FINANCIAL_KEYWORDS.test(m.content) ? 600 : 300;
+      const line = raw.slice(0, charLimit);
       if (transcriptChars + line.length > TRANSCRIPT_CAP) break;
       transcriptLines.push(line);
       transcriptChars += line.length;
@@ -154,13 +156,9 @@ Deno.serve(async (req: Request) => {
 Return a JSON object with this exact structure (no markdown, no extra text):
 
 {
-  "executive_summary": "Write 3-4 prose sentences synthesising the entire report: (1) what the team is deciding and where they stand, (2) key financial/operational finding, (3) top risk or blind spot by name, (4) most urgent action needed.",
+  "recommendation": "Write 4-6 sentences of direct strategic recommendation for this team. This is NOT a summary — it is forward-looking guidance. (1) State clearly what the team should do next and why, based on what the agents debated. (2) Name the single most important thing to resolve or decide before proceeding. (3) Identify which risk or blind spot most threatens the outcome. (4) Give one concrete test or action the team can take in the next 2 weeks to validate their direction. Write as a trusted advisor giving direct counsel, not as a reporter.",
   "key_decisions": [{"decision":"a clear decision statement","status":"made|pending|deferred","rationale":"one sentence on the reasoning","owner":"person or role if known"}],
-  "decision_health_score": <integer 0-100, derived strictly from scoring rubric below>,
-  "health_rationale": "one sentence explaining the specific score",
-  "financial_score": <integer 0-100>,
-  "operational_score": <integer 0-100>,
-  "alignment_score": <integer 0-100>,
+  "health_rationale": "one sentence explaining the decision health",
   "decision_velocity": "Moderate",
   "confidence_trajectory": "rising",
   "consensus_points": [{"text":"belief","confidence":85,"source_count":3}],
@@ -188,13 +186,18 @@ RULES:
 - consensus_points: max 5. conflict_zones: max 4 (tension_level 0-100). open_questions: max 5 (urgency: low/medium/high/critical). Only include questions with NO concrete answer in the transcript.
 - risk_signals: max 5, severity: low/medium/high/critical, category: market/execution/financial/team/technology.
 - blind_spots: max 3 — topics NO ONE raised but strategically important.
-- action_items: max 6, start with a verb, priority: critical/high/medium/low, source_area: risk/blind_spot/open_question/conflict.
+- action_items: max 8, start with a verb, priority: critical/high/medium/low, source_area: risk/blind_spot/open_question/conflict. Include all concrete next steps from agent consensus messages.
 - decision_velocity: "Fast"/"Moderate"/"Stalling". confidence_trajectory: "rising"/"flat"/"falling".
-- financial_metrics: always return 5 rows (Budget Assumptions, Revenue Projections, Burn Rate/Runway, ROI/Return Signals, Financial Risk Exposure). If not discussed, value = "Not discussed".
+- FINANCIAL METRICS — always return exactly 5 rows: Budget Assumptions, Revenue Projections, Burn Rate/Runway, ROI/Return Signals, Financial Risk Exposure.
+  CRITICAL: Scan the ENTIRE transcript for any dollar amounts ($), percentages (%), time-based financial figures, mentions of costs, revenue, funding, budget, burn rate, MRR, ARR, CAC, LTV, payback period, valuation, margins, pricing, or any other financial number.
+  If a figure was stated, use it as the value (e.g. "$2M budget", "18-month runway", "3x ROI target").
+  If a metric is implied or can be reasonably inferred from the decisions being made (e.g. a team discussing a $500K marketing spend implies a budget exists), label confidence "inferred" and explain what was inferred in the note.
+  If truly not mentioned AND cannot be inferred, set value to "Not modelled" and note what information is needed to estimate it.
+  NEVER use "Not discussed" when the team has clearly discussed related topics — infer from context.
 - operational_metrics: always return 4 rows (Timeline Clarity, Resource Constraints, Key Dependencies, Bottlenecks). status: clear/unclear/at-risk.
 - non_financial_metrics: always return 5 rows (Team Morale, Stakeholder Buy-in, Customer Impact, Strategic Alignment, Innovation Potential). signal: positive/neutral/negative.
 - opportunity_signals: max 3. cognitive_bias_flags: max 3.
-- executive_summary: MANDATORY — always return a non-empty string. Write this LAST after you have determined all other sections. It must be 3-4 flowing prose sentences that directly reference specific findings you generated: name the top risk from risk_signals by name, cite whether financial confidence is high/medium/low based on financial_metrics, reference whether operational clarity is clear/at-risk based on operational_metrics, mention the most important blind_spot if any, and state the single most urgent action_item. This is a synthesis of the entire report — not a restatement of the transcript. A board member reading only this paragraph should understand the health, the risks, and the next step.
+- recommendation: MANDATORY — always return a non-empty forward-looking string. This is the most important field. Write as a trusted board advisor, not as a reporter. Reference specific findings: name the top risk, the key open question, and the single most important next action.
 - key_decisions: max 6 entries. status must be exactly "made", "pending", or "deferred". owner is optional — use "TBD" if not clear.
 - memory_update.decisions: list of concrete decisions REACHED in this or any prior session (max 8, short phrases).
 - memory_update.agreements: list of shared beliefs all/most members hold (max 6).
@@ -202,44 +205,7 @@ RULES:
 - memory_update.key_entities: important nouns (products, competitors, markets, people, milestones) mentioned (max 10).
 - memory_update.summary: must incorporate prior context if provided — write as a continuous record, not just this session.
 - session_decision_category: one word from: strategic, operational, resource, people, technical, market — pick the dominant theme of decisions made in THIS session.
-
-SCORING RUBRIC — compute all four scores from the actual conversation content, not from defaults:
-
-decision_health_score (0-100): Start at 100, then deduct:
-  - Each critical risk_signal: -12 pts
-  - Each high risk_signal: -7 pts
-  - Each medium risk_signal: -3 pts
-  - Each blind_spot identified: -5 pts
-  - Each open_question with urgency=critical: -8 pts
-  - Each open_question with urgency=high: -4 pts
-  - Each conflict_zone with tension_level >= 70: -6 pts
-  - decision_velocity = "Stalling": -10 pts; "Moderate": -3 pts; "Fast": +0 pts
-  - confidence_trajectory = "falling": -8 pts; "flat": -3 pts; "rising": +5 pts
-  - No financial data discussed at all: -10 pts
-  - No operational plan or timeline discussed: -7 pts
-  Then cap to [0, 100]. A well-structured conversation with clear decisions, few risks, and strong consensus should score 75-90. A vague or conflicted conversation with many open risks should score 30-55.
-
-financial_score (0-100): Assess how well financial aspects are understood. Start at 100, deduct:
-  - Each financial_metric with confidence="low": -12 pts
-  - Each financial_metric with value="Not discussed": -15 pts
-  - financial risk_signal present: -10 pts per financial risk
-  - No revenue or budget discussed at all: -25 pts
-  - Cap to [0, 100]. Strong financial clarity = 75-95; minimal discussion = 20-45.
-
-operational_score (0-100): Assess operational clarity. Start at 100, deduct:
-  - Each operational_metric with status="unclear": -12 pts
-  - Each operational_metric with status="at-risk": -18 pts
-  - execution risk_signal present: -10 pts each
-  - No timeline or resource plan discussed: -20 pts
-  - Cap to [0, 100]. Clear plan with milestones = 70-90; vague execution = 25-55.
-
-alignment_score (0-100): Assess team consensus and direction. Start at 100, deduct:
-  - Each conflict_zone: -8 pts (additional -5 if tension_level >= 70)
-  - Each cognitive_bias_flag: -5 pts
-  - confidence_trajectory = "falling": -12 pts
-  - No consensus_points found: -20 pts
-  - Each consensus_point with confidence >= 70 adds back: +4 pts (max +16)
-  - Cap to [0, 100]. Strong alignment with few conflicts = 75-95; fragmented team = 30-55.
+- DO NOT include decision_health_score, financial_score, operational_score, or alignment_score in your JSON — these are computed server-side.
 
 TRANSCRIPT:
 ${transcript}`;
@@ -303,9 +269,7 @@ ${transcript}`;
     const nonFinancialMetrics = Array.isArray(synthesis.non_financial_metrics) ? synthesis.non_financial_metrics : [];
     const opportunitySignals = Array.isArray(synthesis.opportunity_signals) ? synthesis.opportunity_signals : [];
     const cognitiveBiasFlags = Array.isArray(synthesis.cognitive_bias_flags) ? synthesis.cognitive_bias_flags : [];
-    const financialScore = synthesis.financial_score != null ? Math.max(0, Math.min(100, Number(synthesis.financial_score))) : null;
-    const operationalScore = synthesis.operational_score != null ? Math.max(0, Math.min(100, Number(synthesis.operational_score))) : null;
-    const alignmentScore = synthesis.alignment_score != null ? Math.max(0, Math.min(100, Number(synthesis.alignment_score))) : null;
+
     const validVelocities = ['fast', 'moderate', 'stalling'];
     const validTrajectories = ['rising', 'flat', 'falling'];
     const decisionVelocity = synthesis.decision_velocity
@@ -315,27 +279,118 @@ ${transcript}`;
       ? (validTrajectories.includes(String(synthesis.confidence_trajectory).toLowerCase()) ? String(synthesis.confidence_trajectory).toLowerCase() : null)
       : null;
 
-    // Extract AI-provided executive summary
-    const aiExecutiveSummary = typeof synthesis.executive_summary === 'string' && synthesis.executive_summary.trim().length > 20
-      ? synthesis.executive_summary.slice(0, 2500)
-      : null;
+    // Deterministic server-side score computation — identical inputs always produce identical scores
+    function computeScores(): { decisionHealth: number; financial: number; operational: number; alignment: number } {
+      type RiskItem = { severity?: string; category?: string };
+      type FinItem  = { confidence?: string; value?: string };
+      type OpItem   = { status?: string };
+      type QItem    = { urgency?: string };
+      type Conflict = { tension_level?: number };
+      type Consensus = { confidence?: number };
 
-    // Guaranteed fallback: build from generated fields if AI omitted it
-    const executiveSummary: string = aiExecutiveSummary ?? (() => {
-      const healthLabel = (synthesis.decision_health_score as number) >= 70 ? 'strong' : (synthesis.decision_health_score as number) >= 45 ? 'developing' : 'fragmented';
-      const score = synthesis.decision_health_score as number;
-      const rationale = typeof synthesis.health_rationale === 'string' ? synthesis.health_rationale : '';
-      const topRisk = (riskSignals as Array<{ signal: string; severity: string }>)[0];
-      const topFinancial = (financialMetrics as Array<{ metric: string; confidence: string; note: string }>)[0];
-      const topBlindSpot = (blindSpots as Array<{ area: string; description: string }>)[0];
+      const risks      = riskSignals as RiskItem[];
+      const fins       = financialMetrics as FinItem[];
+      const ops        = operationalMetrics as OpItem[];
+      const questions  = openQuestions as QItem[];
+      const conflicts  = conflictZones as Conflict[];
+      const consensii  = consensusPoints as Consensus[];
+
+      // ── Decision Health (0-100) ────────────────────────────────────────────
+      let dh = 70; // baseline
+
+      // Risk penalty: critical=-15, high=-8, medium=-3, low=-1
+      const riskPenalties: Record<string, number> = { critical: 15, high: 8, medium: 3, low: 1 };
+      for (const r of risks) dh -= (riskPenalties[r.severity?.toLowerCase() ?? ''] ?? 0);
+
+      // Blind spots penalty: -6 each (max 3)
+      dh -= blindSpots.length * 6;
+
+      // Critical / high open questions penalty
+      for (const q of questions) {
+        if (q.urgency === 'critical') dh -= 8;
+        else if (q.urgency === 'high') dh -= 4;
+      }
+
+      // Consensus bonus: each high-confidence consensus +3 (max +12)
+      const consensusBonus = Math.min(12, consensii.filter(c => (c.confidence ?? 0) >= 70).length * 3);
+      dh += consensusBonus;
+
+      // Velocity modifier
+      if (decisionVelocity === 'fast') dh += 4;
+      else if (decisionVelocity === 'stalling') dh -= 6;
+
+      // Action items present bonus
+      if (actionItems.length >= 3) dh += 4;
+
+      const decisionHealth = Math.max(10, Math.min(100, Math.round(dh)));
+
+      // ── Financial Score (0-100) ────────────────────────────────────────────
+      let fs = 50;
+      for (const f of fins) {
+        const conf = f.confidence?.toLowerCase();
+        const val = (f.value || '').toLowerCase();
+        if (val === 'not discussed' || val === 'not modelled' || conf === 'low') fs -= 4;
+        else if (conf === 'high') fs += 8;
+        else if (conf === 'medium' || conf === 'inferred') fs += 4;
+      }
+      // Financial risk category penalty
+      const financialRisks = risks.filter(r => r.category?.toLowerCase() === 'financial');
+      fs -= financialRisks.length * 6;
+
+      const financial = Math.max(10, Math.min(100, Math.round(fs)));
+
+      // ── Operational Score (0-100) ──────────────────────────────────────────
+      let os = 60;
+      for (const op of ops) {
+        const st = op.status?.toLowerCase();
+        if (st === 'clear' || st === 'on-track') os += 5;
+        else if (st === 'at-risk') os -= 10;
+        else if (st === 'unclear') os -= 5;
+      }
+      const execRisks = risks.filter(r => r.category?.toLowerCase() === 'execution');
+      os -= execRisks.length * 5;
+      if (actionItems.length >= 5) os += 5;
+
+      const operational = Math.max(10, Math.min(100, Math.round(os)));
+
+      // ── Alignment Score (0-100) ────────────────────────────────────────────
+      let as_ = 65;
+      // Tension penalties
+      for (const c of conflicts) {
+        const lvl = Number(c.tension_level) || 0;
+        if (lvl >= 80) as_ -= 12;
+        else if (lvl >= 60) as_ -= 7;
+        else if (lvl >= 40) as_ -= 3;
+      }
+      // Consensus agreement bonus
+      as_ += Math.min(15, consensii.length * 4);
+
+      const alignment = Math.max(10, Math.min(100, Math.round(as_)));
+
+      return { decisionHealth, financial, operational, alignment };
+    }
+
+    const scores = computeScores();
+    const decisionHealthScore = scores.decisionHealth;
+    const financialScore = scores.financial;
+    const operationalScore = scores.operational;
+    const alignmentScore = scores.alignment;
+
+    // Recommendation — mandatory field, AI always returns it; build a fallback if missing
+    const recommendation: string = (() => {
+      const aiRec = typeof synthesis.recommendation === 'string' ? synthesis.recommendation.trim() : '';
+      if (aiRec.length > 30) return aiRec.slice(0, 1500);
+      // Fallback from structured data
+      const topRisk  = (riskSignals as Array<{ signal: string; severity: string }>)[0];
+      const topQ     = (openQuestions as Array<{ question: string; urgency: string }>)[0];
       const topAction = (actionItems as Array<{ text: string }>)[0];
+      const topBlind  = (blindSpots as Array<{ area: string; description: string }>)[0];
       const parts: string[] = [];
-      parts.push(`Decision health is ${healthLabel} at ${score}/100${rationale ? ' — ' + rationale : '.'}`);
-      if (topFinancial) parts.push(`Financial confidence on ${topFinancial.metric.toLowerCase()} is ${topFinancial.confidence}${topFinancial.note ? ': ' + topFinancial.note : '.'}`);
-      if (topRisk) parts.push(`Top ${topRisk.severity} risk: ${topRisk.signal}.`);
-      if (topBlindSpot) parts.push(`Key blind spot — ${topBlindSpot.area}: ${topBlindSpot.description}.`);
-      if (topAction) parts.push(`Most urgent action: ${topAction.text}.`);
-      return parts.join(' ');
+      if (topRisk)   parts.push(`The most pressing risk is ${topRisk.severity}: ${topRisk.signal}.`);
+      if (topQ)      parts.push(`The team must resolve: ${topQ.question}`);
+      if (topBlind)  parts.push(`A key blind spot to address is ${topBlind.area}: ${topBlind.description}.`);
+      if (topAction) parts.push(`Immediate next action: ${topAction.text}.`);
+      return parts.join(' ') || 'Complete the War Room session to generate a strategic recommendation.';
     })();
 
     const keyDecisions = Array.isArray(synthesis.key_decisions) ? synthesis.key_decisions : [];
@@ -366,20 +421,20 @@ ${transcript}`;
         non_financial_metrics: nonFinancialMetrics,
         opportunity_signals: opportunitySignals,
         cognitive_bias_flags: cognitiveBiasFlags,
+        decision_health_score: decisionHealthScore,
         financial_score: financialScore,
         operational_score: operationalScore,
         alignment_score: alignmentScore,
         decision_velocity: decisionVelocity,
         confidence_trajectory: confidenceTrajectory,
+        recommendation,
         generated_at: generatedAt,
         message_count: messages.length,
-        executive_summary: executiveSummary,
         key_decisions: keyDecisions,
       },
     };
 
-    // Upsert the main synthesis BEFORE responding so the client re-fetch always
-    // finds the latest data (including executive_summary).
+    // Upsert the main synthesis before responding so the client re-fetch always finds the latest data.
     await service.from("workspace_synthesis").upsert({
       workspace_id,
       consensus_points: consensusPoints,
@@ -388,7 +443,7 @@ ${transcript}`;
       risk_signals: riskSignals,
       blind_spots: blindSpots,
       action_items: actionItems,
-      decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
+      decision_health_score: decisionHealthScore,
       health_rationale: synthesis.health_rationale || null,
       financial_metrics: financialMetrics,
       operational_metrics: operationalMetrics,
@@ -400,9 +455,9 @@ ${transcript}`;
       alignment_score: alignmentScore,
       decision_velocity: decisionVelocity,
       confidence_trajectory: confidenceTrajectory,
+      recommendation,
       generated_at: generatedAt,
       message_count_at_generation: messages.length,
-      executive_summary: executiveSummary,
       key_decisions: keyDecisions,
     }, { onConflict: "workspace_id" });
 
@@ -413,7 +468,7 @@ ${transcript}`;
         // Synthesis history — insert first so pattern computation can include this session
         const { data: historyRow } = await service.from("workspace_synthesis_history").insert({
           workspace_id,
-          decision_health_score: synthesis.decision_health_score != null ? Number(synthesis.decision_health_score) : 0,
+          decision_health_score: decisionHealthScore,
           consensus_count: consensusPoints.length,
           conflict_count: conflictZones.length,
           open_question_count: openQuestions.length,
