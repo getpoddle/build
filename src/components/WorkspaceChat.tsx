@@ -98,9 +98,15 @@ const AGENT_LABELS: Record<string, string> = {
 
 // Detect which debate phase a message belongs to based on content patterns
 function detectPhase(content: string): 'challenge' | 'consensus' | null {
-  const lower = content.slice(0, 120).toLowerCase();
+  const lower = content.slice(0, 200).toLowerCase();
   if (lower.includes('@') || lower.match(/^(challenging|i challenge|@\w)/)) return 'challenge';
-  if (lower.includes('where agents agree') || lower.includes('areas of agreement') || lower.includes('live tension') || lower.includes('decision signal')) return 'consensus';
+  if (
+    lower.includes('where agents agree') || lower.includes('where agents converge') ||
+    lower.includes('areas of agreement') || lower.includes('live tension') ||
+    lower.includes('unresolved tension') || lower.includes('decision signal') ||
+    lower.includes('strategic signal') || lower.includes('agents converge') ||
+    lower.includes('deadlock-breaker') || lower.includes('concrete next actions')
+  ) return 'consensus';
   return null;
 }
 
@@ -791,7 +797,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             </div>
             <h3 className="text-base font-bold text-slate-800 mb-1">Start a collaboration</h3>
             <p className="text-sm text-slate-500 max-w-xs mx-auto leading-relaxed mb-6">
-              Ask the AI agents anything about your workspace topic. Three specialist agents will each give their perspective.
+              Seven specialist AI advisors will independently analyse your topic, challenge each other's assumptions, and converge on a strategic consensus — built to exceed the depth of a seasoned McKinsey partner.
             </p>
             <div className="grid grid-cols-1 gap-2 max-w-sm mx-auto">
               {STARTER_PROMPTS.map(p => (
@@ -901,13 +907,27 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               <Bot className="w-4 h-4 text-slate-400" />
             </div>
             <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(15,23,42,0.05)' }}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-1.5">
                 <div className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-xs text-slate-400">Agents analysing, challenging, forming consensus…</span>
+                <span className="text-xs font-semibold text-slate-500">War Room in session</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(['R1: Independent analysis', 'R2: Cross-challenge', 'R3: Consensus']).map((phase, i) => (
+                  <span
+                    key={phase}
+                    className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{
+                      background: i === 0 ? 'rgba(37,99,235,0.08)' : i === 1 ? 'rgba(220,38,38,0.07)' : 'rgba(5,150,105,0.08)',
+                      color: i === 0 ? '#1d4ed8' : i === 1 ? '#b91c1c' : '#065f46',
+                    }}
+                  >
+                    {phase}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
