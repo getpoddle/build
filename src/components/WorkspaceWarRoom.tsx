@@ -817,7 +817,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               setMessageCount(mc => {
                 if (mc - prev.message_count >= 3) {
                   // Trigger background synthesis without blocking UI
-                  supabase.auth.getSession().then(({ data: { session } }) => {
+                  supabase.auth.refreshSession().then(({ data: { session } }) => {
                     if (!session?.access_token) return;
                     fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-synthesize`, {
                       method: 'POST',
@@ -847,10 +847,11 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     setGenerating(true);
     setError('');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) { setError('Session expired. Please refresh.'); return; }
+      // refreshSession ensures we get a fresh, valid token (getSession can return expired tokens)
+      const { data: { session } } = await supabase.auth.refreshSession();
+      if (!session?.access_token) { setError('Session expired. Please sign in again.'); return; }
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 55000);
+      const timeout = setTimeout(() => controller.abort(), 90000);
       let res: Response | null = null;
       try {
         res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-synthesize`, {
@@ -860,7 +861,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           signal: controller.signal,
         });
       } catch (e: unknown) {
-        setError(e instanceof Error && e.name === 'AbortError' ? 'Synthesis timed out. Try again.' : 'Network error.');
+        setError(e instanceof Error && e.name === 'AbortError' ? 'Synthesis is taking longer than usual. Try again in a moment.' : 'Network error.');
         return;
       } finally { clearTimeout(timeout); }
       let json: { error?: string; synthesis?: Record<string, unknown> };
