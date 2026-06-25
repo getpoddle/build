@@ -72,8 +72,17 @@ function HealthSparkline({ points }: { points: HealthPoint[] }) {
   const last = scores[scores.length - 1];
   const first = scores[0];
   const trend = last - first;
-  const lineColor = trend >= 0 ? '#16a34a' : '#dc2626';
-  const areaColor = trend >= 0 ? 'rgba(22,163,74,0.08)' : 'rgba(220,38,38,0.06)';
+  const lineColor = trend > 0 ? '#16a34a' : trend < 0 ? '#dc2626' : '#64748b';
+  const areaColor = trend > 0 ? 'rgba(22,163,74,0.08)' : trend < 0 ? 'rgba(220,38,38,0.06)' : 'rgba(100,116,139,0.06)';
+
+  const fmt = (d: string) => new Date(d).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+  const startLabel = fmt(points[0].date);
+  const endLabel = fmt(points[points.length - 1].date);
+  const sameDate = startLabel === endLabel;
+
+  const trendLabel = trend === 0
+    ? 'Stable'
+    : `${trend > 0 ? '+' : ''}${trend} pts ${trend > 0 ? '↑' : '↓'}`;
 
   return (
     <div>
@@ -92,15 +101,19 @@ function HealthSparkline({ points }: { points: HealthPoint[] }) {
         ))}
       </svg>
       <div className="flex items-center justify-between mt-1">
-        <span className="text-[10px] text-slate-400">
-          {new Date(points[0].date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
-        </span>
+        {sameDate ? (
+          <span className="text-[10px] text-slate-400">{startLabel}</span>
+        ) : (
+          <span className="text-[10px] text-slate-400">{startLabel}</span>
+        )}
         <span className="text-[10px] font-bold" style={{ color: lineColor }}>
-          {trend > 0 ? '+' : ''}{trend} pts {trend >= 0 ? '↑' : '↓'}
+          {trendLabel}
         </span>
-        <span className="text-[10px] text-slate-400">
-          {new Date(points[points.length - 1].date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
-        </span>
+        {sameDate ? (
+          <span className="text-[10px] text-slate-400">{points.length} records</span>
+        ) : (
+          <span className="text-[10px] text-slate-400">{endLabel}</span>
+        )}
       </div>
     </div>
   );
