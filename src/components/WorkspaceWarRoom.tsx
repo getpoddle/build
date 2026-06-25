@@ -9,7 +9,6 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { exportWarRoomToPDF, exportBoardBriefToPDF } from '../lib/pdfExport';
-import PatternIntelligenceCard from './PatternIntelligenceCard';
 
 // ─── Agent name formatting ────────────────────────────────────────────────────
 
@@ -1019,7 +1018,6 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           )}
           {error && <p className="text-sm text-red-600 mt-3 font-medium">{error}</p>}
         </div>
-        <PatternIntelligenceCard workspaceId={workspaceId} />
       </div>
     );
   }
@@ -1655,9 +1653,6 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           </button>
         </div>
       )}
-
-      {/* ── Pattern Intelligence ── */}
-      <PatternIntelligenceCard workspaceId={workspaceId} />
 
       {/* ── Board Brief Modal ── */}
       {showBoardSummary && (

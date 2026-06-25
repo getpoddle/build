@@ -323,40 +323,6 @@ Example output: ["financial_strategist", "devils_advocate", "risk_analyst", "mar
   return ["financial_strategist", "devils_advocate", "risk_analyst", "market_analyst"];
 }
 
-// ─── Pattern intelligence context block ──────────────────────────────────────
-
-function buildPatternContext(memory: {
-  recurring_risks?: string[];
-  dominant_bias?: string | null;
-  decision_category_history?: string[];
-  synthesis_count?: number;
-}): string {
-  if ((memory.synthesis_count ?? 0) < 2) return "";
-
-  const parts: string[] = [];
-
-  if (memory.dominant_bias) {
-    parts.push(`DOMINANT BIAS ACROSS SESSIONS: "${memory.dominant_bias}" has appeared more than any other reasoning trap in this workspace's history — the team's most reliable blind spot.`);
-  }
-
-  if (memory.recurring_risks && memory.recurring_risks.length > 0) {
-    parts.push(`RECURRING UNRESOLVED RISKS (appeared in 3+ synthesis sessions): ${memory.recurring_risks.join(", ")}. These categories have surfaced repeatedly without resolution.`);
-  }
-
-  if (memory.decision_category_history && memory.decision_category_history.length >= 3) {
-    const recent = memory.decision_category_history.slice(-5);
-    const counts: Record<string, number> = {};
-    for (const c of recent) counts[c] = (counts[c] || 0) + 1;
-    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    if (top && top[1] >= 3) {
-      parts.push(`SESSION PATTERN: ${top[1]} of the last ${recent.length} sessions have been "${top[0]}" decisions — the team may be over-indexing on one type.`);
-    }
-  }
-
-  if (parts.length === 0) return "";
-
-  return `\n\n=== PATTERN INTELLIGENCE (cross-session patterns — highest priority signal) ===\n${parts.join("\n")}\nThese patterns come from the team's own history. Reference them directly when relevant.\n=== END PATTERN INTELLIGENCE ===`;
-}
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
@@ -480,7 +446,7 @@ Deno.serve(async (req: Request) => {
         .eq("workspace_id", workspace_id)
         .maybeSingle(),
       service.from("workspace_memory")
-        .select("decisions, agreements, open_threads, key_entities, summary, synthesis_count, recurring_risks, dominant_bias, decision_category_history")
+        .select("decisions, agreements, open_threads, key_entities, summary, synthesis_count")
         .eq("workspace_id", workspace_id)
         .maybeSingle(),
       service.from("workspace_messages")
@@ -532,9 +498,6 @@ Deno.serve(async (req: Request) => {
       lines.push(`=== END WORKSPACE MEMORY ===`);
       memoryContext = lines.join("\n");
     }
-
-    // ── Pattern intelligence (Risk Analyst + Devil's Advocate only) ─────────
-    const patternContext = memory ? buildPatternContext(memory) : "";
 
     // ── Synthesis context ───────────────────────────────────────────────────
     let synthesisContext = "";
@@ -620,17 +583,13 @@ Every section of your response must answer: how does this analysis change what t
     // ── ROUND 1: Independent initial responses (parallel) ───────────────────
     const agentResponses = await Promise.all(
       selectedAgents.map(async (agent) => {
-        const agentPatternContext = (agent.role === "risk_analyst" || agent.role === "devils_advocate")
-          ? patternContext
-          : "";
-
         const intakeInstruction = isNewWorkspace
           ? `\n\nNEW WORKSPACE — DEEP INTAKE MODE: This team has just begun their War Room. Your first obligation is to do a comprehensive strategic assessment of the topic, not just respond to the surface question. Go deeper than they asked. Surface what they don't know they should be asking. Apply every analytical framework in your mandate. Think like a partner doing a first-day due diligence read — cover the full landscape, identify the 2-3 critical unknowns that will determine success or failure, and give them a foundation to build from. Be exhaustive within your domain.`
           : "";
 
         const systemPrompt = `${agent.persona}
 
-${workspaceHeader}${topicAnchor}${documentBlock}${memoryContext}${agentPatternContext}${synthesisContext}${intakeInstruction}
+${workspaceHeader}${topicAnchor}${documentBlock}${memoryContext}${synthesisContext}${intakeInstruction}
 
 Respond in 350-450 words. Go deep. Be specific — cite mechanisms, name concrete risks, quote numbers, identify real companies or analogues. Take a definitive position. Apply your full analytical framework to this question, not just the surface layer. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging.
 CRITICAL: Ground every section of your response in the DECISION ANCHOR above. If the user asked about a sub-topic, connect it explicitly back to the central decision.

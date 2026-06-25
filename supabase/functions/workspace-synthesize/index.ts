@@ -663,46 +663,7 @@ RULES:
       );
     }
 
-    // ── Pattern Intelligence: derive per-session data ─────────────────────────
-    const biasFlags = Array.isArray(synthesis.cognitive_bias_flags)
-      ? synthesis.cognitive_bias_flags as Array<{ bias_name?: string; explanation?: string; counter_question?: string }>
-      : [];
-
-    const biasFlagsSnapshot = biasFlags
-      .map(b => typeof b.bias_name === "string" ? b.bias_name : null)
-      .filter(Boolean) as string[];
-
-    // Count risk categories from risk_signals
-    const riskCategoryBreakdown: Record<string, number> = {};
-    const riskSignalsForPattern = Array.isArray(synthesis.risk_signals)
-      ? synthesis.risk_signals as Array<{ category?: string }>
-      : [];
-    for (const r of riskSignalsForPattern) {
-      const cat = typeof r.category === "string" ? r.category : "other";
-      riskCategoryBreakdown[cat] = (riskCategoryBreakdown[cat] ?? 0) + 1;
-    }
-
-    // Classify session decision category by dominant risk category
-    const riskToDecisionCategory: Record<string, string> = {
-      market: "market",
-      execution: "operational",
-      financial: "resource",
-      team: "people",
-      technology: "technical",
-      regulatory: "strategic",
-      competitive: "market",
-    };
-    let dominantRiskCat = "operational";
-    let dominantRiskCount = 0;
-    for (const [cat, count] of Object.entries(riskCategoryBreakdown)) {
-      if (count > dominantRiskCount) {
-        dominantRiskCount = count;
-        dominantRiskCat = cat;
-      }
-    }
-    const sessionDecisionCategory = riskToDecisionCategory[dominantRiskCat] ?? "strategic";
-
-    // Insert history snapshot with pattern fields
+    // Insert history snapshot
     await service.from("workspace_synthesis_history").insert({
       workspace_id,
       decision_health_score: scores.decisionHealth,
@@ -711,88 +672,7 @@ RULES:
       alignment_score: scores.alignment,
       message_count_at_generation: messages.length,
       generated_at: new Date().toISOString(),
-      bias_flags_snapshot: biasFlagsSnapshot,
-      risk_category_breakdown: riskCategoryBreakdown,
-      session_decision_category: sessionDecisionCategory,
     }).then(({ error }) => { if (error) console.error("History insert error:", error); });
-
-    // ── Pattern Intelligence: roll up to workspace_memory ─────────────────────
-    // Fire-and-forget — don't block the response on this
-    (async () => {
-      try {
-        const { data: allHistory } = await service
-          .from("workspace_synthesis_history")
-          .select("bias_flags_snapshot, risk_category_breakdown, session_decision_category")
-          .eq("workspace_id", workspace_id)
-          .order("generated_at", { ascending: true })
-          .limit(20);
-
-        if (!allHistory || allHistory.length === 0) return;
-
-        // Compute dominant_bias: most frequently appearing bias name across all sessions
-        const biasFreq: Record<string, number> = {};
-        for (const row of allHistory) {
-          const flags = Array.isArray(row.bias_flags_snapshot) ? row.bias_flags_snapshot as string[] : [];
-          for (const flag of flags) {
-            if (typeof flag === "string" && flag.length > 0) {
-              biasFreq[flag] = (biasFreq[flag] ?? 0) + 1;
-            }
-          }
-        }
-        let dominantBias: string | null = null;
-        let maxBiasCount = 0;
-        for (const [bias, count] of Object.entries(biasFreq)) {
-          if (count > maxBiasCount) {
-            maxBiasCount = count;
-            dominantBias = bias;
-          }
-        }
-
-        // Compute recurring_risks: categories appearing in 3+ sessions
-        const riskSessionCount: Record<string, number> = {};
-        for (const row of allHistory) {
-          const breakdown = (row.risk_category_breakdown ?? {}) as Record<string, number>;
-          for (const cat of Object.keys(breakdown)) {
-            if ((breakdown[cat] ?? 0) > 0) {
-              riskSessionCount[cat] = (riskSessionCount[cat] ?? 0) + 1;
-            }
-          }
-        }
-        const recurringRisks = Object.entries(riskSessionCount)
-          .filter(([, count]) => count >= 3)
-          .sort((a, b) => b[1] - a[1])
-          .map(([cat]) => cat);
-
-        // Compute decision_category_history: ordered sequence of session categories
-        const decisionCategoryHistory = allHistory
-          .map(r => r.session_decision_category)
-          .filter((c): c is string => typeof c === "string" && c.length > 0);
-
-        // Upsert into workspace_memory
-        const { data: existingMemory } = await service
-          .from("workspace_memory")
-          .select("id")
-          .eq("workspace_id", workspace_id)
-          .maybeSingle();
-
-        if (existingMemory?.id) {
-          await service.from("workspace_memory").update({
-            dominant_bias: dominantBias,
-            recurring_risks: recurringRisks,
-            decision_category_history: decisionCategoryHistory,
-          }).eq("workspace_id", workspace_id);
-        } else {
-          await service.from("workspace_memory").insert({
-            workspace_id,
-            dominant_bias: dominantBias,
-            recurring_risks: recurringRisks,
-            decision_category_history: decisionCategoryHistory,
-          });
-        }
-      } catch (e) {
-        console.error("Pattern rollup error:", e);
-      }
-    })();
 
     // ── Cross-workspace Pattern Intelligence rollup ───────────────────────────
     // Fire-and-forget — runs as the response is already sent
@@ -896,18 +776,6 @@ RULES:
           risk_level: s.risk_level,
         }));
 
-        // ── Decision category history (from workspace_memory rows) ──────────
-        const { data: memoryRows } = await service
-          .from("workspace_memory")
-          .select("workspace_id, decision_category_history")
-          .in("workspace_id", workspaceIds);
-
-        const decisionCategoryHistoryXw: string[] = [];
-        for (const mem of memoryRows ?? []) {
-          const cats = Array.isArray(mem.decision_category_history) ? mem.decision_category_history as string[] : [];
-          if (cats.length > 0) decisionCategoryHistoryXw.push(cats[cats.length - 1]);
-        }
-
         // ── Decision style summary (deterministic label) ─────────────────────
         const avgHealth = workspaceSnapshots.length > 0
           ? workspaceSnapshots.reduce((s, r) => s + r.decision_health_score, 0) / workspaceSnapshots.length
@@ -935,7 +803,6 @@ RULES:
           bias_fingerprint: biasFingerprint,
           dominant_bias: dominantBiasXw,
           risk_tolerance_map: riskToleranceMap,
-          decision_category_history: decisionCategoryHistoryXw,
           decision_style_summary: styleLabel,
           updated_at: new Date().toISOString(),
         };
