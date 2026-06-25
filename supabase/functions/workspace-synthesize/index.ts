@@ -38,14 +38,19 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (!member) return new Response(JSON.stringify({ error: "Not a member" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Fetch workspace + messages
-    const [wsRes, msgsRes] = await Promise.all([
+    // Fetch workspace, messages, and the previous synthesis in parallel
+    const [wsRes, msgsRes, prevSynthRes] = await Promise.all([
       service.from("workspaces").select("name, topic, description").eq("id", workspace_id).maybeSingle(),
       service.from("workspace_messages").select("role, content, agent_name, agent_role, created_at").eq("workspace_id", workspace_id).order("created_at", { ascending: true }).limit(200),
+      service.from("workspace_synthesis")
+        .select("open_questions, conflict_zones, blind_spots, action_items, generated_at")
+        .eq("workspace_id", workspace_id)
+        .maybeSingle(),
     ]);
 
     const workspace = wsRes.data;
     const messages = msgsRes.data || [];
+    const prevSynth = prevSynthRes.data;
 
     if (messages.length === 0) {
       return new Response(JSON.stringify({ error: "No messages to synthesize" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -85,6 +90,49 @@ Wrong: "Surveys should use a 5-point Likert scale and be sent on Tuesday morning
 
 For every consensus point, risk, action item, and recommendation: explicitly connect it back to the central decision. If a tangential topic cannot be connected to the central decision, exclude it.
 === END TOPIC ANCHOR ===
+
+${(() => {
+      if (!prevSynth || !prevSynth.generated_at) return "";
+      const lines: string[] = [
+        "",
+        "=== RESOLUTION TRACKING — HIGHEST PRIORITY INSTRUCTION ===",
+        "A previous synthesis was generated. The team then had FURTHER DISCUSSIONS to address those items.",
+        "For each item below, check whether the transcript AFTER the previous synthesis date resolves, partially addresses, or leaves it open.",
+        "",
+      ];
+
+      const prevQs = Array.isArray(prevSynth.open_questions) ? prevSynth.open_questions as Array<{ question: string; urgency: string }> : [];
+      if (prevQs.length > 0) {
+        lines.push("PREVIOUSLY FLAGGED OPEN QUESTIONS (were these answered in subsequent discussion?):");
+        prevQs.forEach((q, i) => lines.push(`  ${i + 1}. [${q.urgency?.toUpperCase() ?? "?"}] ${q.question}`));
+        lines.push("  → If the discussion provided a clear, concrete answer: REMOVE from open_questions or downgrade urgency.");
+        lines.push("  → If still unresolved: keep at same or higher urgency.");
+        lines.push("");
+      }
+
+      const prevConflicts = Array.isArray(prevSynth.conflict_zones) ? prevSynth.conflict_zones as Array<{ topic: string; tension_level: number }> : [];
+      if (prevConflicts.length > 0) {
+        lines.push("PREVIOUSLY FLAGGED CONFLICTS (did the discussion move toward resolution?):");
+        prevConflicts.forEach((c, i) => lines.push(`  ${i + 1}. "${c.topic}" — tension: ${c.tension_level}/100`));
+        lines.push("  → If the team reached a position or committed to one side: REDUCE tension_level by 20-40 points.");
+        lines.push("  → If fully resolved: REMOVE from conflict_zones.");
+        lines.push("  → If still unresolved or escalated: keep or increase tension.");
+        lines.push("");
+      }
+
+      const prevBlinds = Array.isArray(prevSynth.blind_spots) ? prevSynth.blind_spots as Array<{ area: string }> : [];
+      if (prevBlinds.length > 0) {
+        lines.push("PREVIOUSLY FLAGGED BLIND SPOTS (did the team address these?):");
+        prevBlinds.forEach((b, i) => lines.push(`  ${i + 1}. ${b.area}`));
+        lines.push("  → If the team explicitly discussed and addressed: REMOVE from blind_spots.");
+        lines.push("  → If still unaddressed: keep.");
+        lines.push("");
+      }
+
+      lines.push("This resolution tracking is the MOST IMPORTANT signal in your synthesis. The score should improve when discussions resolve items. Do not mechanically reproduce the previous synthesis — assess actual progress.");
+      lines.push("=== END RESOLUTION TRACKING ===");
+      return lines.join("\n");
+    })()}
 
 FULL DEBATE TRANSCRIPT:
 ${transcript}
@@ -516,6 +564,38 @@ RULES:
     if (upsertError) {
       console.error("Upsert error:", upsertError);
       return new Response(JSON.stringify({ error: "Failed to save synthesis" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── Sync AI action items to workspace_action_items table ──────────────────
+    // The action items tab reads from workspace_action_items, not the synthesis
+    // JSON column. We replace 'todo' AI items (not yet acted on) with the new
+    // set, preserving any items the team has already cycled to in-progress/done.
+    const newActionItems = Array.isArray(synthesis.action_items)
+      ? (synthesis.action_items as Array<{ text?: string; source_area?: string; priority?: string }>)
+          .filter(a => typeof a.text === "string" && a.text.trim().length > 5)
+      : [];
+
+    if (newActionItems.length > 0) {
+      // Delete untouched AI-generated items so we don't accumulate stale ones
+      await service
+        .from("workspace_action_items")
+        .delete()
+        .eq("workspace_id", workspace_id)
+        .eq("source", "ai")
+        .eq("status", "todo");
+
+      // Re-insert fresh set from this synthesis
+      await service.from("workspace_action_items").insert(
+        newActionItems.map(a => ({
+          workspace_id,
+          text: String(a.text).trim(),
+          source: "ai",
+          priority: ["critical", "high", "medium"].includes(String(a.priority)) ? String(a.priority) : "medium",
+          source_area: typeof a.source_area === "string" ? a.source_area : "Strategy",
+          status: "todo",
+          created_by: user.id,
+        }))
+      );
     }
 
     // Insert history snapshot
