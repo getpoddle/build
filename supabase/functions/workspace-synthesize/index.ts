@@ -57,12 +57,14 @@ Deno.serve(async (req: Request) => {
       workspace?.description ? `Context: ${workspace.description}` : "",
     ].filter(Boolean).join("\n");
 
-    // Use last 80 messages to stay well within token limits
-    const recentMessages = messages.slice(-80);
+    // Use last 40 messages, truncating long individual messages to control token usage.
+    // Synthesis quality depends on breadth of debate coverage, not raw verbosity.
+    const recentMessages = messages.slice(-40);
     const transcript = recentMessages.map(m => {
-      if (m.role === "user") return `[TEAM]: ${m.content}`;
+      const content = m.content.length > 800 ? m.content.slice(0, 800) + "…" : m.content;
+      if (m.role === "user") return `[TEAM]: ${content}`;
       const label = m.agent_role ? `[${(m.agent_role as string).toUpperCase().replace(/_/g, " ")}]` : "[AGENT]";
-      return `${label}: ${m.content}`;
+      return `${label}: ${content}`;
     }).join("\n\n");
 
     // ─── SYNTHESIS PROMPT ─────────────────────────────────────────────────────
@@ -90,18 +92,7 @@ OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
 
 ■ BLIND SPOTS: MINIMUM 5, target 6-8. These are important dimensions the debate UNDERWEIGHTED or missed entirely. Each must explain specifically what could go wrong if this gap remains unaddressed.
 
-■ ACTION ITEMS: MINIMUM 15, target 18-22. This is the most critical section. Every action item must be:
-  - Specific and executable (a real task, not a direction)
-  - Assigned to an owner (source_area: HR, Finance, CEO, Product, Legal, Engineering, Risk, Strategy, etc.)
-  - Prioritized (critical/high/medium)
-  - Derived from actual agent recommendations or logical next steps
-  Examples of GOOD action items:
-  - "Conduct 20 customer discovery interviews in the German market to validate pricing assumptions before Q3 launch"
-  - "Commission a legal opinion from EU-specialist counsel on AI Act Article 10 compliance requirements by [date]"
-  - "Build a 3-scenario financial model (bear/base/bull) covering the first 24 months post-launch"
-  Examples of BAD action items (do NOT write these):
-  - "Review the situation" (too vague)
-  - "Consider the financial implications" (not executable)
+■ ACTION ITEMS: MINIMUM 15, target 18-22. Each must be specific and executable (owner + task + enough detail to assign), prioritized (critical/high/medium), and derived from actual agent recommendations.
 
 ■ FINANCIAL METRICS: MINIMUM 5, target 6-8. Include specific numbers, percentages, or ranges mentioned or implied in the debate. If no specific figures were stated, derive reasonable estimates from context and flag as low confidence.
 
@@ -181,7 +172,6 @@ Produce a JSON object with EXACTLY this structure and field names:
   ],
   "decision_velocity": "fast|moderate|stalling",
   "confidence_trajectory": "rising|flat|falling",
-  "health_rationale": "string — 3-4 sentences assessing decision quality, coverage, and readiness based on the debate",
   "recommendation": "string — 5-8 sentences of direct, opinionated strategic direction. Start with the recommended path. State the tradeoff. Identify the 7-day critical action."
 }
 
@@ -203,7 +193,7 @@ Return ONLY valid JSON. No markdown fences. No commentary. Maximum depth and spe
           },
           { role: "user", content: synthesisPrompt },
         ],
-        max_tokens: 8000,
+        max_tokens: 5000,
         temperature: 0.4,
         response_format: { type: "json_object" },
       }),
@@ -444,7 +434,7 @@ RULES:
       body: JSON.stringify({
         model: "gpt-4o",
         messages: [{ role: "user", content: rationalePrompt }],
-        max_tokens: 120,
+        max_tokens: 80,
         temperature: 0.2,
       }),
     });
