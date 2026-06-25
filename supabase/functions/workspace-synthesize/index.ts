@@ -66,9 +66,9 @@ Deno.serve(async (req: Request) => {
     }).join("\n\n");
 
     // ─── SYNTHESIS PROMPT ─────────────────────────────────────────────────────
-    // The conflict zone detection is the critical section. It must read the
-    // ACTUAL disagreements from the transcript, not infer a generic financial one.
-    const synthesisPrompt = `You are a Managing Partner-level strategic synthesis analyst. You have just observed a full War Room debate between seven specialist AI advisors on the topic below. Your job is to produce a rigorous, topic-specific synthesis — grounded entirely in what was actually argued in this transcript.
+    const synthesisPrompt = `You are a world-class Chief Strategy Officer and decision intelligence engine. You have just witnessed a full War Room debate between seven specialist AI advisors. Your mandate is to produce the most comprehensive, rigorous, and exhaustive strategic synthesis possible — the kind that a Board of Directors, Series B investor, or Fortune 500 C-suite would trust to make a multimillion-dollar decision.
+
+Every field must be populated to the maximum. Thin, generic, or vague outputs are unacceptable. Every item must be grounded in the specific debate transcript provided.
 
 WORKSPACE CONTEXT:
 ${workspaceContext}
@@ -78,90 +78,114 @@ ${transcript}
 
 ---
 
-Produce a JSON object with EXACTLY this structure. Use EXACTLY these field names — do not rename any field.
+OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
 
-CRITICAL RULES FOR CONFLICT ZONES:
-- Read the transcript carefully. Identify the REAL strategic fault lines — where agents disagreed about the SUBSTANCE of the decision.
-- The conflict topic must reflect what the decision is actually about (e.g., for RTO: "Full mandate vs permanent hybrid"; for hiring: "Specialists vs generalists"; for pricing: "Premium positioning vs competitive pricing").
-- DO NOT default to "budget" or "financial" conflicts unless budget/cost was the explicitly central disputed axis.
-- DO NOT manufacture a financial conflict when the real tension is cultural, strategic, operational, or organizational.
-- agent_a and agent_b must be agent role names (e.g., "people_advisor", "risk_analyst") from the transcript.
-- tension_level is a number 0-100 reflecting how unresolved this conflict is (80+ = critical, 50-79 = high, below 50 = moderate).
+■ CONSENSUS POINTS: MINIMUM 8, target 10-12. Each must be a substantive, specific statement of what agents actually agreed on — not platitudes. Include the confidence score (0-100) and how many agents endorsed it.
 
-CRITICAL RULES FOR ACTION ITEMS:
-- MINIMUM 6, maximum 10 items. Each must be a specific, concrete, executable task — not vague.
-- source_area is the responsible role or team area (e.g., "HR", "Finance", "Execution Lead").
-- Pull directly from consensus recommendations and concrete next steps mentioned by agents.
+■ CONFLICT ZONES: MINIMUM 4, target 5-7. Identify every real fault line in the debate. The topic must name the exact strategic tension (e.g., "Staged rollout vs simultaneous multi-market launch"). DO NOT default to generic financial conflicts unless cost was the core axis. Each zone must have both positions quoted with precision.
 
-CRITICAL RULES FOR RECOMMENDATION:
-- Write 3-5 sentences of direct, opinionated strategic guidance.
-- Start with the actual recommended direction — not a hedge.
-- Acknowledge the key tradeoff the team must accept.
-- End with the one action needed in the next 7 days.
+■ OPEN QUESTIONS: MINIMUM 8, target 10-14. These are the specific, answerable questions the team MUST resolve before they can move forward. They should be decision-forcing, not vague. Include urgency for each.
+
+■ RISK SIGNALS: MINIMUM 8, target 10-15. Span all categories: market, execution, financial, team, technology, regulatory, competitive. Each signal must be a specific, named risk — not generic. Include severity and category.
+
+■ BLIND SPOTS: MINIMUM 5, target 6-8. These are important dimensions the debate UNDERWEIGHTED or missed entirely. Each must explain specifically what could go wrong if this gap remains unaddressed.
+
+■ ACTION ITEMS: MINIMUM 15, target 18-22. This is the most critical section. Every action item must be:
+  - Specific and executable (a real task, not a direction)
+  - Assigned to an owner (source_area: HR, Finance, CEO, Product, Legal, Engineering, Risk, Strategy, etc.)
+  - Prioritized (critical/high/medium)
+  - Derived from actual agent recommendations or logical next steps
+  Examples of GOOD action items:
+  - "Conduct 20 customer discovery interviews in the German market to validate pricing assumptions before Q3 launch"
+  - "Commission a legal opinion from EU-specialist counsel on AI Act Article 10 compliance requirements by [date]"
+  - "Build a 3-scenario financial model (bear/base/bull) covering the first 24 months post-launch"
+  Examples of BAD action items (do NOT write these):
+  - "Review the situation" (too vague)
+  - "Consider the financial implications" (not executable)
+
+■ FINANCIAL METRICS: MINIMUM 5, target 6-8. Include specific numbers, percentages, or ranges mentioned or implied in the debate. If no specific figures were stated, derive reasonable estimates from context and flag as low confidence.
+
+■ OPERATIONAL METRICS: MINIMUM 4, target 5-7. Specific operational parameters: timelines, team sizes, launch sequencing, capacity, etc.
+
+■ NON-FINANCIAL METRICS: MINIMUM 4, target 5-6. Brand, culture, regulatory posture, talent sentiment, customer NPS, etc.
+
+■ OPPORTUNITY SIGNALS: MINIMUM 4, target 5-7. Concrete opportunities surfaced by the debate — not just the main thesis, but adjacent or second-order opportunities agents identified.
+
+■ COGNITIVE BIAS FLAGS: MINIMUM 3, target 4-6. Name the bias, explain exactly how it appeared in THIS debate, and provide a sharp counter-question the team should ask themselves.
+
+■ KEY DECISIONS: MINIMUM 5, target 6-8. The pivotal decisions the team must make — not vague questions but named binary or multi-choice decisions with clear ownership.
+
+■ RECOMMENDATION: 5-8 sentences minimum. Start with the unambiguous recommended path. State what must be accepted (the tradeoff). Identify the one thing that, if not done in 7 days, will cause meaningful delay or damage. Be direct — no hedging.
+
+---
+
+FIELD RULES:
+
+CONFLICT ZONES:
+- topic = the exact strategic fault line (e.g., "Full mandate vs permanent hybrid model")
+- agent_a, agent_b = role names from transcript (e.g., "people_advisor", "risk_analyst", "devils_advocate", "financial_strategist", "execution_lead", "market_analyst", "innovation_scout")
+- tension_level = 0-100 (80+ = critical, 50-79 = high, <50 = moderate)
+
+ACTION ITEMS:
+- text = specific, executable task with enough detail to assign to a person
+- source_area = owning function (HR, Finance, CEO, Legal, Product, Engineering, Risk, Strategy, Marketing, Operations)
+- priority = critical|high|medium
+
+---
+
+Produce a JSON object with EXACTLY this structure and field names:
 
 {
   "consensus_points": [
-    { "text": "string — specific point of agent agreement, not abstract", "confidence": 85, "source_count": 4 }
+    { "text": "string", "confidence": 85, "source_count": 5 }
   ],
-
   "conflict_zones": [
     {
-      "topic": "string — exact strategic question at issue (e.g., 'Full mandate vs permanent hybrid model')",
-      "agent_a": "string — role name of agent holding position A (e.g., 'people_advisor')",
-      "position_a": "string — exact position, in the agent's words",
-      "agent_b": "string — role name of agent holding position B (e.g., 'risk_analyst')",
-      "position_b": "string — exact opposing position",
+      "topic": "string",
+      "agent_a": "string",
+      "position_a": "string",
+      "agent_b": "string",
+      "position_b": "string",
       "tension_level": 80
     }
   ],
-
   "open_questions": [
-    { "question": "string — specific, answerable question the team must resolve", "urgency": "critical|high|medium" }
+    { "question": "string", "urgency": "critical|high|medium" }
   ],
-
   "risk_signals": [
-    { "signal": "string — specific risk", "severity": "critical|high|medium|low", "category": "market|execution|financial|team|technology" }
+    { "signal": "string", "severity": "critical|high|medium|low", "category": "market|execution|financial|team|technology" }
   ],
-
   "blind_spots": [
-    { "area": "string — the gap the team has underweighted", "description": "string — why it matters and what could go wrong" }
+    { "area": "string", "description": "string" }
   ],
-
   "action_items": [
-    { "text": "string — specific executable task", "source_area": "string — owner role or team", "priority": "critical|high|medium" }
+    { "text": "string", "source_area": "string", "priority": "critical|high|medium" }
   ],
-
   "financial_metrics": [
-    { "metric": "string", "value": "string", "confidence": "high|medium|low", "note": "string — context or implication" }
+    { "metric": "string", "value": "string", "confidence": "high|medium|low", "note": "string" }
   ],
-
   "operational_metrics": [
-    { "metric": "string", "status": "on-track|at-risk|unclear", "note": "string — detail" }
+    { "metric": "string", "status": "on-track|at-risk|unclear", "note": "string" }
   ],
-
   "non_financial_metrics": [
-    { "metric": "string", "signal": "positive|neutral|negative", "note": "string — detail" }
+    { "metric": "string", "signal": "positive|neutral|negative", "note": "string" }
   ],
-
   "opportunity_signals": [
-    { "title": "string — opportunity name", "description": "string — what it is and why it matters", "confidence": "high|medium|low", "source": "string — where this came from in the debate" }
+    { "title": "string", "description": "string", "confidence": "high|medium|low", "source": "string" }
   ],
-
   "cognitive_bias_flags": [
-    { "bias_name": "string — named bias (e.g., Sunk Cost Fallacy, Groupthink)", "explanation": "string — how it manifested in this specific debate", "counter_question": "string — reframing question to counteract it" }
+    { "bias_name": "string", "explanation": "string", "counter_question": "string" }
   ],
-
   "key_decisions": [
-    { "decision": "string", "status": "open|in-progress|resolved", "rationale": "string — why this decision matters now", "owner": "string — who should own it" }
+    { "decision": "string", "status": "open|in-progress|resolved", "rationale": "string", "owner": "string" }
   ],
-
   "decision_velocity": "fast|moderate|stalling",
   "confidence_trajectory": "rising|flat|falling",
-  "health_rationale": "string — 2-3 sentences explaining the decision health score based on what was debated",
-  "recommendation": "string — 3-5 sentences of direct strategic guidance. Start with the recommended direction. Acknowledge the tradeoff. End with the one action needed in the next 7 days."
+  "health_rationale": "string — 3-4 sentences assessing decision quality, coverage, and readiness based on the debate",
+  "recommendation": "string — 5-8 sentences of direct, opinionated strategic direction. Start with the recommended path. State the tradeoff. Identify the 7-day critical action."
 }
 
-Return ONLY valid JSON. No markdown fences, no commentary outside the JSON object.`;
+Return ONLY valid JSON. No markdown fences. No commentary. Maximum depth and specificity in every field.`;
 
     // Call OpenAI
     const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -171,16 +195,16 @@ Return ONLY valid JSON. No markdown fences, no commentary outside the JSON objec
         "Authorization": `Bearer ${openAiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [
           {
             role: "system",
-            content: "You are a world-class strategic synthesis engine. You produce JSON exactly as instructed. You never default to generic outputs — every field is grounded in the specific debate transcript provided.",
+            content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce exhaustive, comprehensive JSON exactly as instructed. You never default to generic outputs — every field is maximally populated and grounded in the specific debate transcript. Thin or vague outputs are a failure. Minimum counts for every array field are non-negotiable.",
           },
           { role: "user", content: synthesisPrompt },
         ],
-        max_tokens: 4000,
-        temperature: 0.3,
+        max_tokens: 8000,
+        temperature: 0.4,
         response_format: { type: "json_object" },
       }),
     });
