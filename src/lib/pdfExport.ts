@@ -95,11 +95,11 @@ function formatDate(iso: string): string {
 }
 
 function scoreColor(s: number): string {
-  return s >= 70 ? '#16a34a' : s >= 45 ? '#f59e0b' : '#dc2626';
+  return s >= 75 ? '#16a34a' : s >= 55 ? '#f59e0b' : s >= 35 ? '#dc2626' : '#7f1d1d';
 }
 
 function scoreLabel(s: number): string {
-  return s >= 70 ? 'Sharp' : s >= 45 ? 'Developing' : 'Fragmented';
+  return s >= 75 ? 'Sharp' : s >= 55 ? 'Developing' : s >= 35 ? 'Fragmented' : 'Critical';
 }
 
 function severityColor(sev: string): string {

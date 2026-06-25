@@ -939,7 +939,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   function buildBoardSummary(): string {
     if (!synthesis) return '';
     const score = synthesis.decision_health_score;
-    const label = score >= 70 ? 'Sharp' : score >= 45 ? 'Developing' : 'Fragmented';
+    const label = score >= 75 ? 'Sharp' : score >= 55 ? 'Developing' : score >= 35 ? 'Fragmented' : 'Critical';
     const pending = actionItems.filter(a => a.status !== 'done').sort((a, b) => {
       const o = ['critical', 'high', 'medium', 'low'];
       return o.indexOf(a.priority) - o.indexOf(b.priority);
@@ -1008,8 +1008,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   }
 
   const score = synthesis.decision_health_score;
-  const scoreLabel = score >= 70 ? 'Sharp' : score >= 45 ? 'Developing' : 'Fragmented';
-  const scoreColor = score >= 70 ? '#16a34a' : score >= 45 ? '#f59e0b' : '#dc2626';
+  const scoreLabel = score >= 75 ? 'Sharp' : score >= 55 ? 'Developing' : score >= 35 ? 'Fragmented' : 'Critical';
+  const scoreColor = score >= 75 ? '#16a34a' : score >= 55 ? '#f59e0b' : score >= 35 ? '#dc2626' : '#7f1d1d';
 
   const hasFinancial    = synthesis.financial_metrics.length > 0;
   const hasOperational  = synthesis.operational_metrics.length > 0;

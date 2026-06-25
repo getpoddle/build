@@ -229,78 +229,149 @@ Return ONLY valid JSON. No markdown fences. No commentary. Maximum depth and spe
     }
 
     // ─── DETERMINISTIC SCORE COMPUTATION ─────────────────────────────────────
-    // All scores are computed from structured fields, never from AI text
+    // Uses the exact fields the AI prompt produces. Every deduction/bonus is
+    // tied to a real structured value — no dead code from mismatched field names.
     function computeScores(): { decisionHealth: number; financial: number; operational: number; alignment: number } {
-      const riskSignals = Array.isArray(synthesis.risk_signals) ? synthesis.risk_signals as Array<{ likelihood?: string; impact?: string }> : [];
+      // Use the actual field names the AI produces
+      const riskSignals = Array.isArray(synthesis.risk_signals)
+        ? synthesis.risk_signals as Array<{ severity?: string; category?: string }>
+        : [];
       const blindSpots = Array.isArray(synthesis.blind_spots) ? synthesis.blind_spots : [];
-      const openQuestions = Array.isArray(synthesis.open_questions) ? synthesis.open_questions as Array<{ blocker_level?: string }> : [];
-      const consensusPoints = Array.isArray(synthesis.consensus_points) ? synthesis.consensus_points as Array<{ strength?: string }> : [];
-      const actionItems = Array.isArray(synthesis.action_items) ? synthesis.action_items : [];
-      const velocity = typeof synthesis.decision_velocity === "string" ? synthesis.decision_velocity : "steady";
+      const openQuestions = Array.isArray(synthesis.open_questions)
+        ? synthesis.open_questions as Array<{ urgency?: string }>
+        : [];
+      const consensusPoints = Array.isArray(synthesis.consensus_points)
+        ? synthesis.consensus_points as Array<{ confidence?: number; source_count?: number }>
+        : [];
+      const conflictZones = Array.isArray(synthesis.conflict_zones)
+        ? synthesis.conflict_zones as Array<{ tension_level?: number }>
+        : [];
+      const actionItems = Array.isArray(synthesis.action_items)
+        ? synthesis.action_items as Array<{ priority?: string }>
+        : [];
+      const financialMetrics = Array.isArray(synthesis.financial_metrics)
+        ? synthesis.financial_metrics as Array<{ confidence?: string }>
+        : [];
+      const operationalMetrics = Array.isArray(synthesis.operational_metrics)
+        ? synthesis.operational_metrics as Array<{ status?: string }>
+        : [];
+      const keyDecisions = Array.isArray(synthesis.key_decisions)
+        ? synthesis.key_decisions as Array<{ status?: string }>
+        : [];
+      const velocity = typeof synthesis.decision_velocity === "string" ? synthesis.decision_velocity : "moderate";
+      const trajectory = typeof synthesis.confidence_trajectory === "string" ? synthesis.confidence_trajectory : "flat";
 
-      // Decision Health
-      let decisionHealth = 70;
+      // ── Decision Health ───────────────────────────────────────────────────────
+      // Base starts at 40 — teams must EARN points through demonstrated progress.
+      // This ensures early sessions score low and improve meaningfully.
+      let decisionHealth = 40;
+
+      // EARN points: consensus = evidence the team is converging
+      for (const c of consensusPoints) {
+        const conf = typeof c.confidence === "number" ? c.confidence : 60;
+        const src = typeof c.source_count === "number" ? c.source_count : 1;
+        if (conf >= 80 && src >= 3) decisionHealth += 4;
+        else if (conf >= 65) decisionHealth += 2;
+        else decisionHealth += 1;
+      }
+
+      // EARN points: action items = team is translating debate into executable work
+      const criticalActions = actionItems.filter(a => a.priority === "critical").length;
+      const highActions = actionItems.filter(a => a.priority === "high").length;
+      decisionHealth += Math.min(criticalActions * 2 + highActions * 1, 8);
+
+      // EARN points: resolved key decisions = forward progress
+      const resolvedDecisions = keyDecisions.filter(d => d.status === "resolved").length;
+      decisionHealth += Math.min(resolvedDecisions * 3, 9);
+
+      // EARN points: financial data available = decisions can be pressure-tested
+      const highConfFinancial = financialMetrics.filter(m => m.confidence === "high").length;
+      decisionHealth += Math.min(highConfFinancial * 2, 6);
+
+      // EARN points: operational clarity
+      const onTrackOps = operationalMetrics.filter(m => m.status === "on-track").length;
+      decisionHealth += Math.min(onTrackOps * 2, 6);
+
+      // LOSE points: unresolved critical/high risk signals
       for (const r of riskSignals) {
-        if (r.impact === "critical") decisionHealth -= 15;
-        else if (r.impact === "high") decisionHealth -= 8;
-        else if (r.impact === "medium") decisionHealth -= 3;
-        else decisionHealth -= 1;
+        if (r.severity === "critical") decisionHealth -= 8;
+        else if (r.severity === "high") decisionHealth -= 4;
+        else if (r.severity === "medium") decisionHealth -= 1;
       }
-      decisionHealth -= blindSpots.length * 6;
+
+      // LOSE points: blind spots = things the team hasn't considered
+      decisionHealth -= Math.min(blindSpots.length * 4, 20);
+
+      // LOSE points: critical/high urgency open questions = blockers
       for (const q of openQuestions) {
-        if (q.blocker_level === "critical") decisionHealth -= 8;
-        else if (q.blocker_level === "high") decisionHealth -= 4;
+        if (q.urgency === "critical") decisionHealth -= 5;
+        else if (q.urgency === "high") decisionHealth -= 2;
       }
-      for (const c of consensusPoints.slice(0, 4)) {
-        if (c.strength === "strong") decisionHealth += 3;
+
+      // LOSE points: unresolved high-tension conflicts = team is stuck
+      for (const z of conflictZones) {
+        const tension = typeof z.tension_level === "number" ? z.tension_level : 50;
+        if (tension >= 80) decisionHealth -= 6;
+        else if (tension >= 60) decisionHealth -= 3;
       }
-      if (velocity === "accelerating") decisionHealth += 4;
-      else if (velocity === "stalling") decisionHealth -= 4;
-      else if (velocity === "blocked") decisionHealth -= 6;
-      if (actionItems.length >= 6) decisionHealth += 4;
+
+      // LOSE points: at-risk or unclear operational metrics
+      const atRiskOps = operationalMetrics.filter(m => m.status === "at-risk").length;
+      decisionHealth -= Math.min(atRiskOps * 5, 15);
+
+      // Velocity modifier
+      if (velocity === "fast") decisionHealth += 5;
+      else if (velocity === "stalling") decisionHealth -= 6;
+
+      // Trajectory modifier
+      if (trajectory === "rising") decisionHealth += 3;
+      else if (trajectory === "falling") decisionHealth -= 4;
+
       decisionHealth = Math.max(10, Math.min(100, decisionHealth));
 
-      // Financial Score
-      const financialMetrics = Array.isArray(synthesis.financial_metrics) ? synthesis.financial_metrics as Array<{ confidence?: string; trend?: string }> : [];
-      const conflictZones = Array.isArray(synthesis.conflict_zones) ? synthesis.conflict_zones as Array<{ severity?: string }> : [];
-      let financial = 50;
+      // ── Financial Score ───────────────────────────────────────────────────────
+      // Starts at 35 — low until financial data is actually present
+      let financial = 35;
       for (const m of financialMetrics) {
-        if (m.confidence === "high" && m.trend === "positive") financial += 8;
-        else if (m.confidence === "high" && m.trend === "negative") financial -= 8;
-        else if (m.confidence === "medium" && m.trend === "positive") financial += 4;
-        else if (m.confidence === "medium" && m.trend === "negative") financial -= 4;
-        else financial += 1;
+        if (m.confidence === "high") financial += 10;
+        else if (m.confidence === "medium") financial += 5;
+        else financial += 2;
       }
+      // Unresolved high-tension conflicts drain financial confidence
       for (const z of conflictZones) {
-        if (z.severity === "critical") financial -= 6;
-        else if (z.severity === "high") financial -= 3;
+        const tension = typeof z.tension_level === "number" ? z.tension_level : 50;
+        if (tension >= 80) financial -= 5;
+        else if (tension >= 60) financial -= 2;
       }
       financial = Math.max(10, Math.min(100, financial));
 
-      // Operational Score
-      const operationalMetrics = Array.isArray(synthesis.operational_metrics) ? synthesis.operational_metrics as Array<{ status?: string }> : [];
-      let operational = 60;
+      // ── Operational Score ─────────────────────────────────────────────────────
+      let operational = 40;
       for (const m of operationalMetrics) {
-        if (m.status === "on-track") operational += 5;
+        if (m.status === "on-track") operational += 8;
         else if (m.status === "at-risk") operational -= 10;
-        else if (m.status === "unclear") operational -= 5;
+        else if (m.status === "unclear") operational -= 4;
       }
       for (const r of riskSignals) {
-        if (r.likelihood === "high" && r.impact === "critical") operational -= 5;
+        if (r.severity === "critical" && r.category === "execution") operational -= 8;
+        else if (r.severity === "high" && r.category === "execution") operational -= 4;
       }
       operational = Math.max(10, Math.min(100, operational));
 
-      // Alignment Score
-      const conflictZonesForAlign = Array.isArray(synthesis.conflict_zones) ? synthesis.conflict_zones as Array<{ severity?: string }> : [];
-      let alignment = 65;
-      for (const z of conflictZonesForAlign) {
-        if (z.severity === "critical") alignment -= 12;
-        else if (z.severity === "high") alignment -= 7;
-        else if (z.severity === "moderate") alignment -= 3;
-      }
+      // ── Alignment Score ───────────────────────────────────────────────────────
+      let alignment = 50;
+      // High consensus = team is aligned
       for (const c of consensusPoints) {
-        if (c.strength === "strong") alignment += 4;
-        else if (c.strength === "moderate") alignment += 2;
+        const conf = typeof c.confidence === "number" ? c.confidence : 60;
+        if (conf >= 75) alignment += 3;
+        else alignment += 1;
+      }
+      // High-tension unresolved conflicts = team is NOT aligned
+      for (const z of conflictZones) {
+        const tension = typeof z.tension_level === "number" ? z.tension_level : 50;
+        if (tension >= 80) alignment -= 10;
+        else if (tension >= 60) alignment -= 5;
+        else if (tension >= 40) alignment -= 2;
       }
       alignment = Math.max(10, Math.min(100, alignment));
 
@@ -309,24 +380,98 @@ Return ONLY valid JSON. No markdown fences. No commentary. Maximum depth and spe
 
     const scores = computeScores();
 
-    // Extract recommendation — use AI output or build fallback
-    let recommendation: string | null = null;
-    if (typeof synthesis.recommendation === "string" && synthesis.recommendation.trim().length > 20) {
-      recommendation = synthesis.recommendation.trim();
-    } else {
-      // Fallback: build from key_decisions and consensus
-      const topDecision = Array.isArray(synthesis.key_decisions) && synthesis.key_decisions.length > 0
-        ? (synthesis.key_decisions[0] as Record<string, unknown>)
-        : null;
-      const topConsensus = Array.isArray(synthesis.consensus_points) && synthesis.consensus_points.length > 0
-        ? (synthesis.consensus_points[0] as Record<string, unknown>)
-        : null;
-      if (topDecision?.recommended) {
-        recommendation = String(topDecision.recommended);
-      } else if (topConsensus?.point) {
-        recommendation = `Based on agent consensus: ${String(topConsensus.point)}`;
+    // ─── SCORE-ANCHORED HEALTH RATIONALE ────────────────────────────────────────
+    // The AI writes the rationale AFTER we compute the score, so it can never
+    // contradict it. We inject the score, label, and specific evidence into the
+    // prompt so the explanation is brutally calibrated to the number.
+    function scoreLabel(s: number): string {
+      if (s >= 75) return "Sharp";
+      if (s >= 55) return "Developing";
+      if (s >= 35) return "Fragmented";
+      return "Critical";
+    }
+
+    const label = scoreLabel(scores.decisionHealth);
+
+    // Build evidence summary to anchor the rationale
+    const riskSignals = Array.isArray(synthesis.risk_signals)
+      ? synthesis.risk_signals as Array<{ severity?: string; signal?: string }>
+      : [];
+    const criticalRisks = riskSignals.filter(r => r.severity === "critical").map(r => r.signal).filter(Boolean);
+    const openQs = Array.isArray(synthesis.open_questions)
+      ? (synthesis.open_questions as Array<{ urgency?: string; question?: string }>).filter(q => q.urgency === "critical" || q.urgency === "high")
+      : [];
+    const blindSpotList = Array.isArray(synthesis.blind_spots)
+      ? (synthesis.blind_spots as Array<{ area?: string }>).map(b => b.area).filter(Boolean)
+      : [];
+    const highTensionConflicts = Array.isArray(synthesis.conflict_zones)
+      ? (synthesis.conflict_zones as Array<{ tension_level?: number; topic?: string }>)
+          .filter(z => (z.tension_level ?? 0) >= 70).map(z => z.topic).filter(Boolean)
+      : [];
+    const resolvedDecisionCount = Array.isArray(synthesis.key_decisions)
+      ? (synthesis.key_decisions as Array<{ status?: string }>).filter(d => d.status === "resolved").length
+      : 0;
+    const consensusCount = Array.isArray(synthesis.consensus_points) ? synthesis.consensus_points.length : 0;
+
+    const evidenceLines = [
+      criticalRisks.length > 0 ? `Critical risks: ${criticalRisks.slice(0, 2).join("; ")}` : null,
+      openQs.length > 0 ? `${openQs.length} critical/high-urgency open questions unresolved` : null,
+      blindSpotList.length > 0 ? `Key blind spots: ${blindSpotList.slice(0, 2).join(", ")}` : null,
+      highTensionConflicts.length > 0 ? `High-tension conflicts: ${highTensionConflicts.slice(0, 2).join("; ")}` : null,
+      resolvedDecisionCount > 0 ? `${resolvedDecisionCount} key decision(s) resolved` : null,
+      consensusCount > 0 ? `${consensusCount} consensus points established` : null,
+    ].filter(Boolean).join(". ");
+
+    const rationalePrompt = `You are a blunt strategic advisor writing a 2-sentence health rationale for a War Room decision intelligence report.
+
+The Decision Health Score is ${scores.decisionHealth}/100. The label is "${label} Team."
+
+Evidence from this session:
+${evidenceLines || "Insufficient data to assess decision quality."}
+
+RULES:
+- Sentence 1: Explain in ONE brutally honest sentence WHY the score is ${scores.decisionHealth}. The tone must match the label. A score of ${scores.decisionHealth} with label "${label}" should NEVER imply competence or positive momentum unless the score is 75+. If the score is below 55, start with what's broken, not what's working.
+- Sentence 2: Name the single most important thing the team must do to improve this score.
+- Do NOT start with "The team", "This team", or "Overall".
+- Do NOT use hedging language like "while there are some challenges" or "despite some gaps."
+- Do NOT contradict the score. A score below 55 means real problems exist.
+- Maximum 60 words total.
+- Return ONLY the two sentences, no preamble.`;
+
+    const rationaleRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: rationalePrompt }],
+        max_tokens: 120,
+        temperature: 0.2,
+      }),
+    });
+
+    let healthRationale: string | null = null;
+    if (rationaleRes.ok) {
+      const rationaleJson = await rationaleRes.json();
+      const rationaleText = rationaleJson.choices?.[0]?.message?.content?.trim() ?? "";
+      if (rationaleText.length > 10) healthRationale = rationaleText;
+    }
+    // Fallback: deterministic rationale if the second call fails
+    if (!healthRationale) {
+      if (scores.decisionHealth < 35) {
+        healthRationale = `Severe gaps in financial data, unresolved critical risks, and multiple unresolved open questions make a confident recommendation impossible at this stage. Resolve the highest-urgency open questions and build financial projections before proceeding.`;
+      } else if (scores.decisionHealth < 55) {
+        healthRationale = `${criticalRisks.length > 0 ? `Critical risks (${criticalRisks[0]}) remain unaddressed` : "Key strategic conflicts remain unresolved"} and the team lacks sufficient consensus to move forward confidently. Focus on resolving the highest-tension conflict and eliminating at least one critical risk signal.`;
+      } else if (scores.decisionHealth < 75) {
+        healthRationale = `The team has established a working foundation but ${openQs.length > 0 ? `${openQs.length} high-urgency question(s) remain open` : "strategic alignment is still fragile"}. Resolve the outstanding decision blockers to push this score into the Sharp tier.`;
+      } else {
+        healthRationale = `Strong consensus across ${consensusCount} points and ${resolvedDecisionCount} resolved key decision(s) show a team that has done the hard work. Maintain momentum by converting action items into owner-assigned deliverables.`;
       }
     }
+
+    // Extract recommendation
+    const recommendation = typeof synthesis.recommendation === "string" && synthesis.recommendation.trim().length > 20
+      ? synthesis.recommendation.trim()
+      : null;
 
     // Upsert into workspace_synthesis
     const { error: upsertError } = await service
@@ -345,9 +490,9 @@ Return ONLY valid JSON. No markdown fences. No commentary. Maximum depth and spe
         opportunity_signals: synthesis.opportunity_signals ?? [],
         cognitive_bias_flags: synthesis.cognitive_bias_flags ?? [],
         key_decisions: synthesis.key_decisions ?? [],
-        decision_velocity: synthesis.decision_velocity ?? "steady",
-        confidence_trajectory: synthesis.confidence_trajectory ?? "stable",
-        health_rationale: synthesis.health_rationale ?? null,
+        decision_velocity: synthesis.decision_velocity ?? "moderate",
+        confidence_trajectory: synthesis.confidence_trajectory ?? "flat",
+        health_rationale: healthRationale,
         recommendation,
         decision_health_score: scores.decisionHealth,
         financial_score: scores.financial,
