@@ -700,7 +700,7 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
       })
     );
 
-    // ── ROUND 3: Consensus formation (single call) ───────────────────────────
+    // ── ROUND 3: Consensus + Action Items extraction (parallel) ────────────────
     const debateSummary = [
       ...agentResponses.map(r => `${r.agent.name} (initial position):\n${r.content.slice(0, 350)}`),
       ...challengeResponses.filter(r => r.content).map(r => `${r.agent.name} (challenge):\n${r.content.slice(0, 300)}`),
@@ -728,19 +728,80 @@ Synthesise the debate into a decisive, actionable consensus brief. Structure you
 
 280-350 words. The team must leave this conversation knowing what to do next.`;
 
-    const consensusRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: consensusPrompt }],
-        max_tokens: 500,
-        temperature: 0.5,
+    // Action items extraction runs in parallel with consensus — zero added latency.
+    // Fires on every chat turn so the Actions tab fills without waiting for synthesis.
+    const actionExtractionPrompt = `You are a Chief of Staff extracting concrete action items from a strategic debate.
+
+CENTRAL DECISION: "${workspace?.name || "the workspace decision"}"${workspace?.description ? `\nContext: ${workspace.description}` : ""}
+
+DEBATE (agents responded to: "${safeMessage}"):
+${debateSummary.slice(0, 5000)}
+
+Extract 5-8 action items that directly emerged from this debate. Each must:
+- Name a specific owner role responsible for delivering it
+- Describe exactly what must be done — concrete enough to assign today
+- Connect explicitly to the central decision above
+
+BAD: "Conduct financial analysis"
+GOOD: "CFO to build three financial scenarios (base/bull/bear) with explicit headcount and cost assumptions for each option, to quantify the decision's financial risk before the board meeting."
+
+Return ONLY valid JSON, no markdown fences:
+{"action_items":[{"text":"string","source_area":"CEO|CFO|HR|Legal|Product|Engineering|Finance|Risk|Strategy|Marketing|Operations|People","priority":"critical|high|medium"}]}`;
+
+    const [consensusRes, actionExtrRes] = await Promise.all([
+      fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: consensusPrompt }],
+          max_tokens: 500,
+          temperature: 0.5,
+        }),
       }),
-    });
+      fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "You extract specific, owner-assigned, immediately executable action items from strategic debates. Every item must name a responsible role, a concrete deliverable, and connect to the central decision. Generic tasks are unacceptable. Return JSON only." },
+            { role: "user", content: actionExtractionPrompt },
+          ],
+          max_tokens: 1200,
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+        }),
+      }),
+    ]);
 
     const consensusData = await consensusRes.json();
     const consensusContent = consensusData.choices?.[0]?.message?.content || "";
+
+    // Write action items to DB — don't await so it doesn't block the response
+    const VALID_SOURCE_AREAS = new Set(["CEO","CFO","HR","Legal","Product","Engineering","Finance","Risk","Strategy","Marketing","Operations","People"]);
+    actionExtrRes.json().then(async (aj) => {
+      try {
+        const raw = aj.choices?.[0]?.message?.content || "{}";
+        const parsed = JSON.parse(raw);
+        const items: Array<{ text?: string; source_area?: string; priority?: string }> = Array.isArray(parsed.action_items) ? parsed.action_items : [];
+        const valid = items.filter(a => typeof a.text === "string" && a.text.trim().length > 15);
+        if (valid.length === 0) { console.log("No action items extracted from chat turn"); return; }
+        const { error } = await service.from("workspace_action_items").insert(
+          valid.map(a => ({
+            workspace_id,
+            text: String(a.text).trim(),
+            source: "ai",
+            priority: ["critical","high","medium"].includes(String(a.priority)) ? String(a.priority) : "high",
+            source_area: VALID_SOURCE_AREAS.has(String(a.source_area)) ? String(a.source_area) : "Strategy",
+            status: "todo",
+            created_by: user.id,
+          }))
+        );
+        if (error) console.error("Action items insert error:", error);
+        else console.log(`Wrote ${valid.length} action items from chat turn`);
+      } catch (e) { console.error("Action items parse/insert failed:", e); }
+    }).catch((e: unknown) => console.error("Action extraction fetch error:", e));
 
     // ── Persist all messages in sequence ────────────────────────────────────
     await service.from("workspace_messages").insert({
