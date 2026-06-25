@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap } from 'lucide-react';
 import { useUserWorkspaces, useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
+import { useAuth } from '../contexts/AuthContext';
 import CreateWorkspace from '../components/CreateWorkspace';
 import UpgradePrompt from '../components/UpgradePrompt';
+import CrossWorkspacePatternCard from '../components/CrossWorkspacePatternCard';
 
 interface WorkspacesProps {
   onNavigate: (page: string, workspaceId?: string) => void;
@@ -39,6 +41,7 @@ function daysUntil(dateStr: string | null): number | null {
 }
 
 export default function Workspaces({ onNavigate }: WorkspacesProps) {
+  const { user } = useAuth();
   const { workspaces, loading, refetch } = useUserWorkspaces();
   const { isPro } = useSubscriptionTier();
   const { trialExhausted, monthlyLimitReached, resetsOn, expiresOn, loading: trialLoading } = useTrialInfo();
@@ -342,6 +345,13 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             >
               Upgrade
             </button>
+          </div>
+        )}
+
+        {/* Cross-workspace Decision Intelligence */}
+        {!isLoading && user && (
+          <div className="mt-6">
+            <CrossWorkspacePatternCard userId={user.id} />
           </div>
         )}
 

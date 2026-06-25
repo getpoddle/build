@@ -794,6 +794,168 @@ RULES:
       }
     })();
 
+    // ── Cross-workspace Pattern Intelligence rollup ───────────────────────────
+    // Fire-and-forget — runs as the response is already sent
+    (async () => {
+      try {
+        // Fetch all workspaces where this user is owner or member
+        const { data: memberRows } = await service
+          .from("workspace_members")
+          .select("workspace_id")
+          .eq("user_id", user.id);
+
+        if (!memberRows || memberRows.length === 0) return;
+
+        const workspaceIds = memberRows.map(r => r.workspace_id as string);
+
+        // Fetch synthesis data for all those workspaces
+        const { data: synthRows } = await service
+          .from("workspace_synthesis")
+          .select("workspace_id, cognitive_bias_flags, risk_signals, decision_health_score, conflict_zones, consensus_points")
+          .in("workspace_id", workspaceIds);
+
+        // Fetch workspace names
+        const { data: wsRows } = await service
+          .from("workspaces")
+          .select("id, name, description")
+          .in("id", workspaceIds);
+
+        if (!synthRows || synthRows.length === 0) return;
+
+        const wsMap: Record<string, { name: string; description: string }> = {};
+        for (const ws of wsRows ?? []) {
+          wsMap[ws.id] = { name: ws.name ?? "Workspace", description: ws.description ?? "" };
+        }
+
+        // ── Bias fingerprint ────────────────────────────────────────────────
+        const biasFingerprint: Record<string, number> = {};
+        for (const row of synthRows) {
+          const flags = Array.isArray(row.cognitive_bias_flags)
+            ? row.cognitive_bias_flags as Array<{ bias_name?: string }>
+            : [];
+          for (const f of flags) {
+            if (typeof f.bias_name === "string" && f.bias_name.length > 0) {
+              biasFingerprint[f.bias_name] = (biasFingerprint[f.bias_name] ?? 0) + 1;
+            }
+          }
+        }
+
+        let dominantBiasXw: string | null = null;
+        let maxBiasXw = 0;
+        for (const [bias, cnt] of Object.entries(biasFingerprint)) {
+          if (cnt > maxBiasXw) { maxBiasXw = cnt; dominantBiasXw = bias; }
+        }
+
+        // ── Risk tolerance map ──────────────────────────────────────────────
+        // Classify each workspace's risk level from its dominant risk_signals severity
+        function riskLevel(row: { risk_signals?: unknown }): "high" | "medium" | "low" {
+          const signals = Array.isArray(row.risk_signals)
+            ? row.risk_signals as Array<{ severity?: string }>
+            : [];
+          const critCount = signals.filter(s => s.severity === "critical").length;
+          const highCount = signals.filter(s => s.severity === "high").length;
+          if (critCount >= 2 || (critCount >= 1 && highCount >= 2)) return "high";
+          if (critCount >= 1 || highCount >= 2) return "medium";
+          return "low";
+        }
+
+        // ── Workspace snapshots ─────────────────────────────────────────────
+        const workspaceSnapshots = synthRows.map(row => {
+          const wsInfo = wsMap[row.workspace_id] ?? { name: "Workspace", description: "" };
+          const flags = Array.isArray(row.cognitive_bias_flags)
+            ? (row.cognitive_bias_flags as Array<{ bias_name?: string }>).map(f => f.bias_name).filter(Boolean)
+            : [];
+          // Dominant risk category for this workspace
+          const riskBreakdown: Record<string, number> = {};
+          const riskSignals = Array.isArray(row.risk_signals)
+            ? row.risk_signals as Array<{ category?: string }>
+            : [];
+          for (const r of riskSignals) {
+            const cat = typeof r.category === "string" ? r.category : "other";
+            riskBreakdown[cat] = (riskBreakdown[cat] ?? 0) + 1;
+          }
+          let domRisk = "execution";
+          let domRiskCount = 0;
+          for (const [cat, cnt] of Object.entries(riskBreakdown)) {
+            if (cnt > domRiskCount) { domRiskCount = cnt; domRisk = cat; }
+          }
+
+          return {
+            workspace_id: row.workspace_id,
+            workspace_name: wsInfo.name,
+            decision_health_score: row.decision_health_score ?? 0,
+            dominant_risk_category: domRisk,
+            bias_flags: flags,
+            risk_level: riskLevel(row),
+          };
+        });
+
+        const riskToleranceMap = workspaceSnapshots.map(s => ({
+          workspace_name: s.workspace_name,
+          health_score: s.decision_health_score,
+          risk_level: s.risk_level,
+        }));
+
+        // ── Decision category history (from workspace_memory rows) ──────────
+        const { data: memoryRows } = await service
+          .from("workspace_memory")
+          .select("workspace_id, decision_category_history")
+          .in("workspace_id", workspaceIds);
+
+        const decisionCategoryHistoryXw: string[] = [];
+        for (const mem of memoryRows ?? []) {
+          const cats = Array.isArray(mem.decision_category_history) ? mem.decision_category_history as string[] : [];
+          if (cats.length > 0) decisionCategoryHistoryXw.push(cats[cats.length - 1]);
+        }
+
+        // ── Decision style summary (deterministic label) ─────────────────────
+        const avgHealth = workspaceSnapshots.length > 0
+          ? workspaceSnapshots.reduce((s, r) => s + r.decision_health_score, 0) / workspaceSnapshots.length
+          : 0;
+        const highRiskCount = workspaceSnapshots.filter(s => s.risk_level === "high").length;
+        const lowRiskCount = workspaceSnapshots.filter(s => s.risk_level === "low").length;
+        let styleLabel: string;
+        if (avgHealth >= 70 && lowRiskCount >= Math.ceil(workspaceSnapshots.length / 2)) {
+          styleLabel = "Systematic and risk-aware";
+        } else if (avgHealth >= 70 && highRiskCount >= Math.ceil(workspaceSnapshots.length / 2)) {
+          styleLabel = "High-conviction, high-stakes";
+        } else if (avgHealth < 50 && highRiskCount >= Math.ceil(workspaceSnapshots.length / 2)) {
+          styleLabel = "Risk-tolerant, process-light";
+        } else if (avgHealth < 50) {
+          styleLabel = "Exploratory, low structure";
+        } else {
+          styleLabel = "Balanced — strategic with managed risk";
+        }
+
+        // ── Upsert user_pattern_intelligence ────────────────────────────────
+        const payload = {
+          user_id: user.id,
+          workspace_count: workspaceSnapshots.length,
+          workspace_snapshots: workspaceSnapshots,
+          bias_fingerprint: biasFingerprint,
+          dominant_bias: dominantBiasXw,
+          risk_tolerance_map: riskToleranceMap,
+          decision_category_history: decisionCategoryHistoryXw,
+          decision_style_summary: styleLabel,
+          updated_at: new Date().toISOString(),
+        };
+
+        const { data: existingXw } = await service
+          .from("user_pattern_intelligence")
+          .select("user_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (existingXw) {
+          await service.from("user_pattern_intelligence").update(payload).eq("user_id", user.id);
+        } else {
+          await service.from("user_pattern_intelligence").insert(payload);
+        }
+      } catch (e) {
+        console.error("Cross-workspace pattern rollup error:", e);
+      }
+    })();
+
     return new Response(JSON.stringify({
       success: true,
       decisionHealthScore: scores.decisionHealth,
