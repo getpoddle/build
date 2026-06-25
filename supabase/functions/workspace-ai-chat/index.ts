@@ -262,18 +262,20 @@ async function selectAgents(
 
   const classificationPrompt = `You are an agent router for a strategic decision-making workspace.
 
+Central decision being evaluated: "${workspaceDescription || workspaceDomain || "strategic decision"}"
 Workspace domain: ${workspaceDomain || "general"}
-Workspace focus: ${workspaceDescription || "strategic decisions"}
 
 Recent conversation context:
 ${recentContext || "(no prior context)"}
 
 Current message: "${message}"
 
+IMPORTANT: The user's message may be a sub-question (e.g., "should we run surveys?"). Select agents based on what is needed to analyze that sub-question IN SERVICE OF the central decision above — not the sub-question in isolation.
+
 Available agents:
 ${agentList}
 
-Select the 4 most relevant agents for this specific message. Return ONLY a JSON array of role strings. No explanation.
+Select the 4 most relevant agents for this message in the context of the central decision. Return ONLY a JSON array of role strings. No explanation.
 Rules:
 - ALWAYS include "financial_strategist" — every decision has financial consequences
 - Always include "devils_advocate" when a decision, plan, or strategy is discussed
@@ -581,6 +583,21 @@ Deno.serve(async (req: Request) => {
 
     const workspaceHeader = `You are participating in a private team workspace called "${workspace?.name || "Private Workspace"}"${workspace?.description ? ` focused on: ${workspace.description}` : ""}${workspace?.domain ? ` (domain: ${workspace.domain})` : ""}.`;
 
+    // ── Topic anchor — prevents session drift ───────────────────────────────
+    // The workspace name IS the decision. Every agent response must be anchored
+    // to this central question, regardless of what subtopic the user raises.
+    const topicAnchor = `
+=== DECISION ANCHOR — NON-NEGOTIABLE CONSTRAINT ===
+The central decision being evaluated in this workspace is: "${workspace?.name || "the workspace decision"}"${workspace?.description ? `\nDecision context: ${workspace.description}` : ""}
+
+This anchor is immovable. No matter what sub-question the user raises (surveys, pricing, headcount, technology, process), you MUST analyze it as a lever that either ADVANCES or UNDERMINES the central decision above — not as a standalone topic.
+
+Correct framing: "In the context of [the central decision], what [the subtopic] tells us is..."
+Wrong framing: General advice about [the subtopic] with no connection back to the decision.
+
+Every section of your response must answer: how does this analysis change what the team should do about the central decision?
+=== END DECISION ANCHOR ===`;
+
     // Build document context block from session-scoped uploaded files
     let documentBlock = "";
     if (validDocs.length > 0) {
@@ -613,10 +630,11 @@ Deno.serve(async (req: Request) => {
 
         const systemPrompt = `${agent.persona}
 
-${workspaceHeader}${documentBlock}${memoryContext}${agentPatternContext}${synthesisContext}${intakeInstruction}
+${workspaceHeader}${topicAnchor}${documentBlock}${memoryContext}${agentPatternContext}${synthesisContext}${intakeInstruction}
 
 Respond in 350-450 words. Go deep. Be specific — cite mechanisms, name concrete risks, quote numbers, identify real companies or analogues. Take a definitive position. Apply your full analytical framework to this question, not just the surface layer. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging.
-This is ROUND 1 of a structured debate — state your position with full analytical depth so other agents can challenge it. The quality of this analysis will determine the quality of the team's decision.`;
+CRITICAL: Ground every section of your response in the DECISION ANCHOR above. If the user asked about a sub-topic, connect it explicitly back to the central decision.
+This is ROUND 1 of a structured debate — state your position with full analytical depth so other agents can challenge it.`;
 
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -649,7 +667,7 @@ This is ROUND 1 of a structured debate — state your position with full analyti
 
         const challengePrompt = `${agent.persona}
 
-${workspaceHeader}${memoryContext}${synthesisContext}
+${workspaceHeader}${topicAnchor}${memoryContext}${synthesisContext}
 
 You have given your initial analysis. The other agents have now responded:
 
@@ -690,7 +708,7 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
 
     const consensusPrompt = `You are a Managing Partner-level Consensus Architect — a seasoned strategist who has facilitated hundreds of high-stakes decision debates. Your role is to take the full intellectual output of this multi-agent debate and convert it into the clearest possible signal for the team.
 
-${workspaceHeader}
+${workspaceHeader}${topicAnchor}
 
 ${selectedAgents.length} elite strategic AI agents have just debated the team's question across two rigorous rounds. Here is the complete debate:
 

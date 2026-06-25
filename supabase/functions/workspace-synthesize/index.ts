@@ -252,72 +252,81 @@ Return ONLY valid JSON. No markdown fences. No commentary. Maximum depth and spe
       const trajectory = typeof synthesis.confidence_trajectory === "string" ? synthesis.confidence_trajectory : "flat";
 
       // ── Decision Health ───────────────────────────────────────────────────────
-      // Base starts at 40 — teams must EARN points through demonstrated progress.
-      // This ensures early sessions score low and improve meaningfully.
-      let decisionHealth = 40;
+      // Base: 55. Teams start there and move up by demonstrating progress, or
+      // down by having unresolved critical blockers.
+      //
+      // IMPORTANT: The synthesis prompt mandates minimum counts of risks, blind
+      // spots, and open questions on EVERY run. Per-signal penalties are therefore
+      // kept small and strictly capped per category, so mandatory minimums don't
+      // crater the score. What should separate a 34 from a 74 is the RESOLUTION
+      // trajectory: resolved decisions, strong consensus, executable action items.
+      let decisionHealth = 55;
 
-      // EARN points: consensus = evidence the team is converging
+      // ── EARN points (max ~45 total) ───────────────────────────────────────
+      // Consensus: strong agreement = team is converging
+      let consensusBonus = 0;
       for (const c of consensusPoints) {
         const conf = typeof c.confidence === "number" ? c.confidence : 60;
         const src = typeof c.source_count === "number" ? c.source_count : 1;
-        if (conf >= 80 && src >= 3) decisionHealth += 4;
-        else if (conf >= 65) decisionHealth += 2;
-        else decisionHealth += 1;
+        if (conf >= 80 && src >= 3) consensusBonus += 3;
+        else if (conf >= 65) consensusBonus += 2;
+        else consensusBonus += 1;
       }
+      decisionHealth += Math.min(consensusBonus, 20);
 
-      // EARN points: action items = team is translating debate into executable work
-      const criticalActions = actionItems.filter(a => a.priority === "critical").length;
-      const highActions = actionItems.filter(a => a.priority === "high").length;
-      decisionHealth += Math.min(criticalActions * 2 + highActions * 1, 8);
+      // Action items: translating debate into executable tasks
+      decisionHealth += Math.min(Math.round(actionItems.length * 0.6), 10);
 
-      // EARN points: resolved key decisions = forward progress
+      // Resolved decisions: concrete forward progress
       const resolvedDecisions = keyDecisions.filter(d => d.status === "resolved").length;
-      decisionHealth += Math.min(resolvedDecisions * 3, 9);
+      decisionHealth += Math.min(resolvedDecisions * 4, 12);
 
-      // EARN points: financial data available = decisions can be pressure-tested
+      // Financial clarity: decisions can be pressure-tested with real numbers
       const highConfFinancial = financialMetrics.filter(m => m.confidence === "high").length;
       decisionHealth += Math.min(highConfFinancial * 2, 6);
 
-      // EARN points: operational clarity
+      // Operational clarity
       const onTrackOps = operationalMetrics.filter(m => m.status === "on-track").length;
       decisionHealth += Math.min(onTrackOps * 2, 6);
 
-      // LOSE points: unresolved critical/high risk signals
-      for (const r of riskSignals) {
-        if (r.severity === "critical") decisionHealth -= 8;
-        else if (r.severity === "high") decisionHealth -= 4;
-        else if (r.severity === "medium") decisionHealth -= 1;
-      }
+      // ── LOSE points (each category strictly capped) ───────────────────────
+      // Critical risks: the only severe penalty — these represent true blockers
+      const criticalRiskCount = riskSignals.filter(r => r.severity === "critical").length;
+      const highRiskCount = riskSignals.filter(r => r.severity === "high").length;
+      decisionHealth -= Math.min(criticalRiskCount * 3, 9);
+      decisionHealth -= Math.min(highRiskCount * 1, 6);
 
-      // LOSE points: blind spots = things the team hasn't considered
-      decisionHealth -= Math.min(blindSpots.length * 4, 20);
+      // Blind spots: existence is structural (synthesis always produces them),
+      // so penalty is mild — it's the quality of resolution that matters
+      decisionHealth -= Math.min(blindSpots.length * 1.5, 8);
 
-      // LOSE points: critical/high urgency open questions = blockers
-      for (const q of openQuestions) {
-        if (q.urgency === "critical") decisionHealth -= 5;
-        else if (q.urgency === "high") decisionHealth -= 2;
-      }
+      // Open questions: only critical-urgency ones are decision blockers
+      const criticalQCount = openQuestions.filter(q => q.urgency === "critical").length;
+      const highQCount = openQuestions.filter(q => q.urgency === "high").length;
+      decisionHealth -= Math.min(criticalQCount * 2, 8);
+      decisionHealth -= Math.min(highQCount * 0.5, 4);
 
-      // LOSE points: unresolved high-tension conflicts = team is stuck
-      for (const z of conflictZones) {
-        const tension = typeof z.tension_level === "number" ? z.tension_level : 50;
-        if (tension >= 80) decisionHealth -= 6;
-        else if (tension >= 60) decisionHealth -= 3;
-      }
+      // Conflict zones: high-tension unresolved conflicts signal the team is stuck
+      const highTensionCount = conflictZones.filter(z => (z.tension_level ?? 0) >= 80).length;
+      const medTensionCount = conflictZones.filter(z => {
+        const t = z.tension_level ?? 0;
+        return t >= 60 && t < 80;
+      }).length;
+      decisionHealth -= Math.min(highTensionCount * 2.5, 8);
+      decisionHealth -= Math.min(medTensionCount * 1, 4);
 
-      // LOSE points: at-risk or unclear operational metrics
+      // At-risk operational metrics
       const atRiskOps = operationalMetrics.filter(m => m.status === "at-risk").length;
-      decisionHealth -= Math.min(atRiskOps * 5, 15);
+      decisionHealth -= Math.min(atRiskOps * 3, 8);
 
-      // Velocity modifier
+      // Velocity and trajectory modifiers
       if (velocity === "fast") decisionHealth += 5;
-      else if (velocity === "stalling") decisionHealth -= 6;
+      else if (velocity === "stalling") decisionHealth -= 5;
 
-      // Trajectory modifier
-      if (trajectory === "rising") decisionHealth += 3;
-      else if (trajectory === "falling") decisionHealth -= 4;
+      if (trajectory === "rising") decisionHealth += 4;
+      else if (trajectory === "falling") decisionHealth -= 3;
 
-      decisionHealth = Math.max(10, Math.min(100, decisionHealth));
+      decisionHealth = Math.max(10, Math.min(100, Math.round(decisionHealth)));
 
       // ── Financial Score ───────────────────────────────────────────────────────
       // Starts at 35 — low until financial data is actually present
