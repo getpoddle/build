@@ -237,27 +237,73 @@ CRITICAL: Generate "action_items" FIRST — it is the most important field and m
 
 Return ONLY valid JSON. No markdown fences. No commentary. Maximum depth and specificity in every field.`;
 
-    // Call OpenAI
-    const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openAiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce exhaustive, comprehensive JSON exactly as instructed. You never default to generic outputs — every field is maximally populated and grounded in the specific debate transcript. Thin or vague outputs are a failure. Minimum counts for every array field are non-negotiable.",
-          },
-          { role: "user", content: synthesisPrompt },
-        ],
-        max_tokens: 7000,
-        temperature: 0.4,
-        response_format: { type: "json_object" },
+    // ─── ACTION ITEMS PROMPT (dedicated call) ────────────────────────────────
+    // Action items are extracted in a SEPARATE focused call so they never compete
+    // for token budget with the 12 other synthesis arrays. This guarantees we
+    // always get 15-22 specific, executable, owner-assigned items.
+    const actionItemsPrompt = `You are a Chief of Staff extracting a comprehensive, immediately executable action plan from a War Room debate.
+
+THE CENTRAL DECISION: "${workspace?.name || "the workspace decision"}"
+${workspace?.description ? `Context: ${workspace.description}` : ""}
+
+DEBATE TRANSCRIPT (last 40 messages):
+${transcript}
+
+YOUR TASK:
+Generate 18-22 action items that decision-makers can assign TODAY. These must be derived from specific things agents said, not generic best-practices.
+
+RULES FOR EACH ACTION ITEM:
+- text: One complete sentence. Include WHO should do it (owner role), WHAT specifically they must do, and WHY it matters for the central decision. Example: "CFO to model three financial scenarios (base/bull/bear) for the RTO decision with specific headcount cost assumptions for each office, to give the board a quantified basis for the final call." Never: "Clarify financial assumptions."
+- source_area: The owning function. Use exactly one of: CEO, CFO, HR, Legal, Product, Engineering, Finance, Risk, Strategy, Marketing, Operations, People
+- priority: critical (must happen in 7 days), high (must happen in 30 days), or medium (this quarter)
+
+PRIORITY DISTRIBUTION: At least 3 critical, at least 8 high, rest medium.
+TOPIC: Every action item must directly address the central decision above — not generic organizational hygiene.
+
+Return ONLY valid JSON in this exact shape, no markdown:
+{
+  "action_items": [
+    { "text": "string — specific, owner-assigned, decision-connected task", "source_area": "string", "priority": "critical|high|medium" }
+  ]
+}`;
+
+    // Run main synthesis and action items calls in parallel
+    const [openAiRes, actionItemsRes] = await Promise.all([
+      fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce exhaustive, comprehensive JSON exactly as instructed. You never default to generic outputs — every field is maximally populated and grounded in the specific debate transcript. Thin or vague outputs are a failure. Minimum counts for every array field are non-negotiable.",
+            },
+            { role: "user", content: synthesisPrompt },
+          ],
+          max_tokens: 7000,
+          temperature: 0.4,
+          response_format: { type: "json_object" },
+        }),
       }),
-    });
+      fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are a Chief of Staff who generates specific, owner-assigned, immediately executable action plans. Every action item must name a responsible role, a concrete deliverable, and connect directly to the decision being evaluated. Generic or vague tasks are unacceptable. You produce JSON only.",
+            },
+            { role: "user", content: actionItemsPrompt },
+          ],
+          max_tokens: 3000,
+          temperature: 0.3,
+          response_format: { type: "json_object" },
+        }),
+      }),
+    ]);
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
@@ -276,6 +322,25 @@ Return ONLY valid JSON. No markdown fences. No commentary. Maximum depth and spe
     } catch {
       console.error("Failed to parse synthesis JSON:", rawContent.slice(0, 500));
       return new Response(JSON.stringify({ error: "Failed to parse synthesis" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Merge dedicated action items into synthesis (overrides whatever the main call produced)
+    if (actionItemsRes.ok) {
+      try {
+        const aiJson = await actionItemsRes.json();
+        const aiRaw = aiJson.choices?.[0]?.message?.content || "{}";
+        const aiParsed = JSON.parse(aiRaw);
+        if (Array.isArray(aiParsed.action_items) && aiParsed.action_items.length > 0) {
+          synthesis.action_items = aiParsed.action_items;
+          console.log(`Action items from dedicated call: ${aiParsed.action_items.length}`);
+        }
+      } catch (e) {
+        console.error("Failed to parse action items response:", e);
+        // Keep whatever action_items the main synthesis produced (may be empty)
+      }
+    } else {
+      const aiErr = await actionItemsRes.text();
+      console.error("Action items call failed:", actionItemsRes.status, aiErr);
     }
 
     // ─── DETERMINISTIC SCORE COMPUTATION ─────────────────────────────────────
