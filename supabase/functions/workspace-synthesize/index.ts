@@ -75,6 +75,17 @@ Every field must be populated to the maximum. Thin, generic, or vague outputs ar
 WORKSPACE CONTEXT:
 ${workspaceContext}
 
+=== TOPIC ANCHOR — READ THIS FIRST AND OBEY IT IN EVERY SECTION ===
+THE CENTRAL DECISION BEING EVALUATED IS: "${workspace?.name || "the workspace decision"}"
+
+This anchor is immovable. Long sessions often drift — agents discuss surveys, tooling, org design, competitor moves, and process details. Your synthesis must NOT follow that drift. Every section you write must answer: "What does this tell us about ${workspace?.name || "the central decision"}?"
+
+Correct: "In the context of the RTO decision, employee survey data tells us that 67% of staff prefer 2 days/week — which shifts the cost-of-talent-attrition risk significantly."
+Wrong: "Surveys should use a 5-point Likert scale and be sent on Tuesday mornings for maximum response rate."
+
+For every consensus point, risk, action item, and recommendation: explicitly connect it back to the central decision. If a tangential topic cannot be connected to the central decision, exclude it.
+=== END TOPIC ANCHOR ===
+
 FULL DEBATE TRANSCRIPT:
 ${transcript}
 
@@ -124,9 +135,13 @@ ACTION ITEMS:
 
 ---
 
-Produce a JSON object with EXACTLY this structure and field names:
+Produce a JSON object with EXACTLY this structure and field names.
+CRITICAL: Generate "action_items" FIRST — it is the most important field and must not be omitted.
 
 {
+  "action_items": [
+    { "text": "string", "source_area": "string", "priority": "critical|high|medium" }
+  ],
   "consensus_points": [
     { "text": "string", "confidence": 85, "source_count": 5 }
   ],
@@ -148,9 +163,6 @@ Produce a JSON object with EXACTLY this structure and field names:
   ],
   "blind_spots": [
     { "area": "string", "description": "string" }
-  ],
-  "action_items": [
-    { "text": "string", "source_area": "string", "priority": "critical|high|medium" }
   ],
   "financial_metrics": [
     { "metric": "string", "value": "string", "confidence": "high|medium|low", "note": "string" }
@@ -193,7 +205,7 @@ Return ONLY valid JSON. No markdown fences. No commentary. Maximum depth and spe
           },
           { role: "user", content: synthesisPrompt },
         ],
-        max_tokens: 5000,
+        max_tokens: 7000,
         temperature: 0.4,
         response_format: { type: "json_object" },
       }),

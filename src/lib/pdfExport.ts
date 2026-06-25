@@ -1,5 +1,20 @@
 import { supabase } from './supabase';
 
+const AGENT_DISPLAY_NAMES: Record<string, string> = {
+  risk_analyst: 'Risk Analyst',
+  devils_advocate: "Devil's Advocate",
+  innovation_scout: 'Innovation Scout',
+  market_analyst: 'Market Analyst',
+  financial_strategist: 'Financial Strategist',
+  execution_lead: 'Execution Lead',
+  people_advisor: 'People Advisor',
+  consensus: 'Consensus',
+};
+
+function formatAgentName(role: string): string {
+  return AGENT_DISPLAY_NAMES[role] ?? role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 async function logExport(exportType: string, workspaceName: string, workspaceId?: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
@@ -790,11 +805,11 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
       </div>
       <div class="conflict-pair">
         <div class="conflict-side cs-a">
-          <div class="ca-a">${escapeHtml(z.agent_a)}</div>
+          <div class="ca-a">${escapeHtml(formatAgentName(z.agent_a))}</div>
           <div style="font-size:9pt;">${escapeHtml(z.position_a)}</div>
         </div>
         <div class="conflict-side cs-b">
-          <div class="ca-b">${escapeHtml(z.agent_b)}</div>
+          <div class="ca-b">${escapeHtml(formatAgentName(z.agent_b))}</div>
           <div style="font-size:9pt;">${escapeHtml(z.position_b)}</div>
         </div>
       </div>

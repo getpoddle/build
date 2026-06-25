@@ -11,6 +11,23 @@ import { useAuth } from '../contexts/AuthContext';
 import { exportWarRoomToPDF, exportBoardBriefToPDF } from '../lib/pdfExport';
 import PatternIntelligenceCard from './PatternIntelligenceCard';
 
+// ─── Agent name formatting ────────────────────────────────────────────────────
+
+const AGENT_DISPLAY_NAMES: Record<string, string> = {
+  risk_analyst: 'Risk Analyst',
+  devils_advocate: "Devil's Advocate",
+  innovation_scout: 'Innovation Scout',
+  market_analyst: 'Market Analyst',
+  financial_strategist: 'Financial Strategist',
+  execution_lead: 'Execution Lead',
+  people_advisor: 'People Advisor',
+  consensus: 'Consensus',
+};
+
+function formatAgentName(role: string): string {
+  return AGENT_DISPLAY_NAMES[role] ?? role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
 interface SynthesisData {
@@ -1252,7 +1269,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                     )}
                     {commit && (
                       <span className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}>
-                        <CheckCircle2 className="w-3 h-3" />Committed: {commit.committed_side === 'a' ? z.agent_a : z.agent_b}
+                        <CheckCircle2 className="w-3 h-3" />Committed: {commit.committed_side === 'a' ? formatAgentName(z.agent_a) : formatAgentName(z.agent_b)}
                       </span>
                     )}
                   </div>
@@ -1263,7 +1280,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                         : { background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.12)' }}>
                       <div className="flex items-center gap-1.5 mb-1">
                         {(z.participant_type === 'human' || z.participant_type === 'mixed') ? <Users className="w-3 h-3 text-emerald-600 flex-shrink-0" /> : <Bot className="w-3 h-3 text-blue-600 flex-shrink-0" />}
-                        <p className={`text-xs font-bold truncate ${z.participant_type === 'human' || z.participant_type === 'mixed' ? 'text-emerald-700' : 'text-blue-700'}`}>{z.agent_a}</p>
+                        <p className={`text-xs font-bold truncate ${z.participant_type === 'human' || z.participant_type === 'mixed' ? 'text-emerald-700' : 'text-blue-700'}`}>{formatAgentName(z.agent_a)}</p>
                       </div>
                       <p className="text-xs text-slate-700 leading-relaxed">{z.position_a}</p>
                     </div>
@@ -1273,14 +1290,14 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                         : { background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.12)' }}>
                       <div className="flex items-center gap-1.5 mb-1">
                         {z.participant_type === 'human' ? <Users className="w-3 h-3 text-amber-600 flex-shrink-0" /> : <Bot className="w-3 h-3 text-red-600 flex-shrink-0" />}
-                        <p className={`text-xs font-bold truncate ${z.participant_type === 'human' ? 'text-amber-700' : 'text-red-700'}`}>{z.agent_b}</p>
+                        <p className={`text-xs font-bold truncate ${z.participant_type === 'human' ? 'text-amber-700' : 'text-red-700'}`}>{formatAgentName(z.agent_b)}</p>
                       </div>
                       <p className="text-xs text-slate-700 leading-relaxed">{z.position_b}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {onDiscuss && (
-                      <button onClick={() => onDiscuss(`Stress test the conflict on "${z.topic}":\n\nAssume ${z.agent_a}'s position: "${z.position_a}" — what are the 3 most important downstream consequences?\n\nNow assume ${z.agent_b}'s position: "${z.position_b}" — what changes most?\n\nWhich carries more risk, and what single decision reduces that risk most?`)}
+                      <button onClick={() => onDiscuss(`Stress test the conflict on "${z.topic}":\n\nAssume ${formatAgentName(z.agent_a)}'s position: "${z.position_a}" — what are the 3 most important downstream consequences?\n\nNow assume ${formatAgentName(z.agent_b)}'s position: "${z.position_b}" — what changes most?\n\nWhich carries more risk, and what single decision reduces that risk most?`)}
                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all hover:scale-105"
                         style={{ background: 'rgba(30,58,95,0.08)', color: '#1e3a5f' }}>
                         <Sword className="w-3 h-3" />Stress Test
@@ -1291,7 +1308,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                         <CheckCircle2 className="w-3 h-3" />Sent
                       </span>
                     ) : (
-                      <button onClick={() => { onDiscuss(`Strategic conflict on "${z.topic}":\n\n${z.agent_a}: ${z.position_a}\n${z.agent_b}: ${z.position_b}\n\nHelp us resolve this disagreement.`); onDiscussed?.(key); }}
+                      <button onClick={() => { onDiscuss(`Strategic conflict on "${z.topic}":\n\n${formatAgentName(z.agent_a)}: ${z.position_a}\n${formatAgentName(z.agent_b)}: ${z.position_b}\n\nHelp us resolve this disagreement.`); onDiscussed?.(key); }}
                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all hover:scale-105"
                         style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309' }}>
                         <MessageSquare className="w-3 h-3" />Resolve
@@ -1319,13 +1336,13 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                         <button onClick={() => commitConflict(z.topic, 'a', z.position_a)}
                           className="flex-1 text-xs font-bold px-3 py-2 rounded-lg text-left transition-all hover:scale-105"
                           style={{ background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}>
-                          <span className="font-black block mb-0.5">{z.agent_a}</span>
+                          <span className="font-black block mb-0.5">{formatAgentName(z.agent_a)}</span>
                           {z.position_a.slice(0, 80)}{z.position_a.length > 80 ? '…' : ''}
                         </button>
                         <button onClick={() => commitConflict(z.topic, 'b', z.position_b)}
                           className="flex-1 text-xs font-bold px-3 py-2 rounded-lg text-left transition-all hover:scale-105"
                           style={{ background: 'rgba(220,38,38,0.08)', color: '#b91c1c' }}>
-                          <span className="font-black block mb-0.5">{z.agent_b}</span>
+                          <span className="font-black block mb-0.5">{formatAgentName(z.agent_b)}</span>
                           {z.position_b.slice(0, 80)}{z.position_b.length > 80 ? '…' : ''}
                         </button>
                         <button onClick={() => setCommitPending(null)} className="px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-slate-600">Cancel</button>
