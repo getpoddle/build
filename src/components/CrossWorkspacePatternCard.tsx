@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const UNLOCK_THRESHOLD = 2;
+const AGENT_ALIGNMENT_THRESHOLD = 5;
 
 const RISK_LEVEL_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   high:   { bg: 'rgba(220,38,38,0.10)',  text: '#dc2626', label: 'High risk'   },
@@ -28,6 +29,12 @@ interface RiskToleranceEntry {
   risk_level: 'high' | 'medium' | 'low';
 }
 
+interface HealthPoint {
+  workspace_name: string;
+  score: number;
+  date: string;
+}
+
 interface PatternIntelligence {
   workspace_count: number;
   workspace_snapshots: WorkspaceSnapshot[];
@@ -41,8 +48,124 @@ interface CrossWorkspacePatternCardProps {
   userId: string;
 }
 
+function HealthSparkline({ points }: { points: HealthPoint[] }) {
+  if (points.length < 2) return null;
+
+  const W = 240;
+  const H = 56;
+  const PAD = 4;
+
+  const scores = points.map(p => p.score);
+  const minS = Math.min(...scores);
+  const maxS = Math.max(...scores);
+  const range = maxS - minS || 1;
+
+  const xs = points.map((_, i) => PAD + (i / (points.length - 1)) * (W - PAD * 2));
+  const ys = points.map(p => H - PAD - ((p.score - minS) / range) * (H - PAD * 2));
+
+  const polyline = xs.map((x, i) => `${x},${ys[i]}`).join(' ');
+  const area =
+    `M${xs[0]},${ys[0]} ` +
+    xs.slice(1).map((x, i) => `L${x},${ys[i + 1]}`).join(' ') +
+    ` L${xs[xs.length - 1]},${H} L${xs[0]},${H} Z`;
+
+  const last = scores[scores.length - 1];
+  const first = scores[0];
+  const trend = last - first;
+  const lineColor = trend >= 0 ? '#16a34a' : '#dc2626';
+  const areaColor = trend >= 0 ? 'rgba(22,163,74,0.08)' : 'rgba(220,38,38,0.06)';
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 56 }}>
+        <path d={area} fill={areaColor} />
+        <polyline
+          points={polyline}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {xs.map((x, i) => (
+          <circle key={i} cx={x} cy={ys[i]} r="2.5" fill={lineColor} opacity={0.7} />
+        ))}
+      </svg>
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-[10px] text-slate-400">
+          {new Date(points[0].date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+        </span>
+        <span className="text-[10px] font-bold" style={{ color: lineColor }}>
+          {trend > 0 ? '+' : ''}{trend} pts {trend >= 0 ? '↑' : '↓'}
+        </span>
+        <span className="text-[10px] text-slate-400">
+          {new Date(points[points.length - 1].date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+type IconComponent = typeof AlertTriangle;
+
+interface Recommendation {
+  icon: IconComponent;
+  color: string;
+  bg: string;
+  text: string;
+}
+
+function deriveRecommendations(data: PatternIntelligence, count: number): Recommendation[] {
+  const recs: Recommendation[] = [];
+
+  if (data.dominant_bias) {
+    recs.push({
+      icon: Eye,
+      color: '#7c3aed',
+      bg: 'rgba(124,58,237,0.06)',
+      text: `Your most flagged bias is "${data.dominant_bias}". Before your next War Room synthesis, explicitly ask the team to argue the opposite position.`,
+    });
+  }
+
+  const avgHealth =
+    data.risk_tolerance_map.length > 0
+      ? data.risk_tolerance_map.reduce((s, e) => s + e.health_score, 0) / data.risk_tolerance_map.length
+      : null;
+
+  if (avgHealth !== null && avgHealth < 55) {
+    recs.push({
+      icon: Activity,
+      color: '#d97706',
+      bg: 'rgba(245,158,11,0.06)',
+      text: `Your average decision health is ${Math.round(avgHealth)} — below the healthy threshold of 55. Focus your next session on resolving open questions and reducing blind spots.`,
+    });
+  }
+
+  const criticalWs = data.risk_tolerance_map.find(e => e.risk_level === 'high' && e.health_score < 50);
+  if (criticalWs) {
+    recs.push({
+      icon: AlertTriangle,
+      color: '#dc2626',
+      bg: 'rgba(220,38,38,0.06)',
+      text: `"${criticalWs.workspace_name}" shows high risk with a health score of ${criticalWs.health_score}. Address its open questions before making strategic commitments.`,
+    });
+  }
+
+  if (count >= UNLOCK_THRESHOLD && count < AGENT_ALIGNMENT_THRESHOLD) {
+    recs.push({
+      icon: Lightbulb,
+      color: '#0891b2',
+      bg: 'rgba(8,145,178,0.06)',
+      text: `You have ${count} synthesized workspace${count === 1 ? '' : 's'}. Run ${AGENT_ALIGNMENT_THRESHOLD - count} more War Room session${AGENT_ALIGNMENT_THRESHOLD - count === 1 ? '' : 's'} to unlock Agent Alignment tracking.`,
+    });
+  }
+
+  return recs.slice(0, 3);
+}
+
 export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatternCardProps) {
   const [data, setData] = useState<PatternIntelligence | null>(null);
+  const [healthHistory, setHealthHistory] = useState<HealthPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -55,15 +178,45 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
       .maybeSingle();
 
     if (row) {
+      const snapshots: WorkspaceSnapshot[] = Array.isArray(row.workspace_snapshots)
+        ? row.workspace_snapshots
+        : [];
+
       setData({
         workspace_count: row.workspace_count ?? 0,
-        workspace_snapshots: Array.isArray(row.workspace_snapshots) ? row.workspace_snapshots : [],
-        bias_fingerprint: (row.bias_fingerprint && typeof row.bias_fingerprint === 'object') ? row.bias_fingerprint : {},
+        workspace_snapshots: snapshots,
+        bias_fingerprint:
+          row.bias_fingerprint && typeof row.bias_fingerprint === 'object'
+            ? row.bias_fingerprint
+            : {},
         dominant_bias: row.dominant_bias ?? null,
         risk_tolerance_map: Array.isArray(row.risk_tolerance_map) ? row.risk_tolerance_map : [],
         decision_style_summary: row.decision_style_summary ?? null,
       });
+
+      if (snapshots.length > 0) {
+        const workspaceIds = snapshots.map(s => s.workspace_id);
+        const { data: history } = await supabase
+          .from('workspace_synthesis_history')
+          .select('workspace_id, decision_health_score, generated_at')
+          .in('workspace_id', workspaceIds)
+          .order('generated_at', { ascending: true })
+          .limit(30);
+
+        if (history && history.length >= 2) {
+          const wsName: Record<string, string> = {};
+          for (const s of snapshots) wsName[s.workspace_id] = s.workspace_name;
+          setHealthHistory(
+            history.map(h => ({
+              workspace_name: wsName[h.workspace_id] ?? 'Workspace',
+              score: h.decision_health_score,
+              date: h.generated_at,
+            }))
+          );
+        }
+      }
     }
+
     setLoading(false);
   };
 
@@ -82,12 +235,13 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
   const remaining = Math.max(0, UNLOCK_THRESHOLD - count);
   const progress = Math.min(1, count / UNLOCK_THRESHOLD);
 
-  // Top biases sorted by frequency
   const topBiases = data
     ? Object.entries(data.bias_fingerprint)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 4)
     : [];
+
+  const recommendations = data && unlocked ? deriveRecommendations(data, count) : [];
 
   return (
     <div
@@ -156,7 +310,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
         <div className="px-5 pb-5">
           {!unlocked ? (
             <>
-              {/* Progress */}
+              {/* Progress bar */}
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs text-slate-500">Workspaces synthesized</span>
@@ -173,14 +327,16 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                 </p>
               </div>
 
-              {/* Locked previews */}
+              {/* Locked feature previews */}
               <div className="space-y-2">
                 {[
-                  { icon: TrendingUp,  color: '#16a34a', bg: 'rgba(22,163,74,0.08)',   title: 'Recurring Themes',       description: 'Topics and domains that appear across your decisions.' },
-                  { icon: Eye,         color: '#7c3aed', bg: 'rgba(124,58,237,0.08)', title: 'Bias Fingerprint',        description: 'Which cognitive biases the AI flags most in your thinking.' },
-                  { icon: Zap,         color: '#2563eb', bg: 'rgba(37,99,235,0.08)',   title: 'Decision Style',         description: 'How you balance risk, speed, and financial conservatism.' },
-                  { icon: BarChart2,   color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', title: 'Risk Tolerance Map',     description: 'How your risk appetite shifts across decision domains.' },
-                  { icon: GitBranch,   color: '#0891b2', bg: 'rgba(8,145,178,0.08)',  title: 'Agent Alignment',        description: 'Which AI agents you most frequently agree or clash with.' },
+                  { icon: Activity,   color: '#2563eb', bg: 'rgba(37,99,235,0.08)',   title: 'Health Score Trend',  description: 'How your decision health evolves over time across workspaces.' },
+                  { icon: TrendingUp, color: '#16a34a', bg: 'rgba(22,163,74,0.08)',   title: 'Recurring Themes',    description: 'Topics and domains that appear across your decisions.' },
+                  { icon: Eye,        color: '#7c3aed', bg: 'rgba(124,58,237,0.08)',  title: 'Bias Fingerprint',    description: 'Which cognitive biases the AI flags most in your thinking.' },
+                  { icon: Zap,        color: '#2563eb', bg: 'rgba(37,99,235,0.08)',   title: 'Decision Style',      description: 'How you balance risk, speed, and financial conservatism.' },
+                  { icon: BarChart2,  color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', title: 'Risk Tolerance Map',  description: 'How your risk appetite shifts across decision domains.' },
+                  { icon: GitBranch,  color: '#0891b2', bg: 'rgba(8,145,178,0.08)',   title: 'Agent Alignment',     description: 'Which AI agents you most frequently agree or clash with.' },
+                  { icon: Lightbulb,  color: '#d97706', bg: 'rgba(245,158,11,0.08)', title: 'Recommendations',     description: 'Personalised next actions based on your decision patterns.' },
                 ].map(({ icon: Icon, color, bg, title, description }) => (
                   <div
                     key={title}
@@ -203,6 +359,30 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
             </>
           ) : data && (
             <div className="space-y-3">
+
+              {/* Health Score Trend — sparkline from synthesis history */}
+              {healthHistory.length >= 2 && (
+                <div
+                  className="rounded-xl p-3.5"
+                  style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.04),rgba(6,182,212,0.03))', border: '1px solid rgba(37,99,235,0.10)' }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(37,99,235,0.10)' }}>
+                      <Activity className="w-3.5 h-3.5" style={{ color: '#2563eb' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-bold text-slate-800">Health Score Trend</p>
+                        <span className="text-[10px] text-slate-400">{healthHistory.length} syntheses</span>
+                      </div>
+                      <HealthSparkline points={healthHistory} />
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                        Decision health across all workspaces over time.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Decision Style */}
               {data.decision_style_summary && (
@@ -315,7 +495,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                 </div>
               )}
 
-              {/* Recurring Themes — derived from workspace names/topics */}
+              {/* Workspaces Analyzed */}
               {data.workspace_snapshots.length >= 2 && (
                 <div
                   className="rounded-xl p-3.5"
@@ -346,7 +526,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                 </div>
               )}
 
-              {/* Decision Focus — derived from dominant risk category per workspace */}
+              {/* Decision Focus Areas */}
               {data.workspace_snapshots.length >= 2 && (() => {
                 const freq: Record<string, number> = {};
                 for (const snap of data.workspace_snapshots) {
@@ -393,23 +573,28 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                 );
               })()}
 
-              {/* Agent Alignment — threshold gate */}
-              {count < 5 && (
+              {/* Recommendations */}
+              {recommendations.length > 0 && (
                 <div
-                  className="flex items-start gap-3 rounded-xl p-3"
-                  style={{ background: 'rgba(15,23,42,0.02)', border: '1px solid rgba(15,23,42,0.05)' }}
+                  className="rounded-xl p-3.5"
+                  style={{ background: 'rgba(15,23,42,0.02)', border: '1px solid rgba(15,23,42,0.07)' }}
                 >
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(8,145,178,0.08)' }}>
-                    <GitBranch className="w-3.5 h-3.5" style={{ color: '#0891b2' }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold text-slate-600">Agent Alignment</span>
-                      <Lock className="w-3 h-3 text-slate-300 flex-shrink-0" />
-                    </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed mt-0.5">
-                      Unlocks after 5 synthesized workspaces — {5 - count} more to go.
-                    </p>
+                  <p className="text-xs font-bold text-slate-800 mb-2.5">Recommendations</p>
+                  <div className="space-y-2.5">
+                    {recommendations.map((rec, i) => {
+                      const Icon = rec.icon;
+                      return (
+                        <div key={i} className="flex items-start gap-2.5">
+                          <div
+                            className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                            style={{ background: rec.bg }}
+                          >
+                            <Icon className="w-3 h-3" style={{ color: rec.color }} />
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed flex-1">{rec.text}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
