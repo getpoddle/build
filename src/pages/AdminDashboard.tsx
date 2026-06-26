@@ -315,7 +315,7 @@ export default function AdminDashboard() {
 
     const { data } = await supabase
       .from('workspace_members')
-      .select('role, joined_at, workspaces(id, name, plan, subscription_status, created_at)')
+      .select('role, joined_at, workspaces(id, name, description, plan, subscription_status, created_at)')
       .eq('user_id', user.id)
       .order('joined_at', { ascending: false });
 
@@ -383,7 +383,7 @@ export default function AdminDashboard() {
       const { data } = await supabase
         .from('workspaces')
         .select(`
-          id, name, plan, subscription_status, seats, created_at,
+          id, name, description, plan, subscription_status, seats, created_at,
           stripe_customer_id, stripe_subscription_id, current_period_end,
           profiles!workspaces_owner_id_fkey (full_name, email)
         `)
@@ -627,6 +627,7 @@ export default function AdminDashboard() {
                     <thead>
                       <tr className="border-b border-slate-100">
                         <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Workspace</th>
+                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Topic</th>
                         <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Owner</th>
                         <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Plan</th>
                         <th className="text-left py-2 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
@@ -640,6 +641,13 @@ export default function AdminDashboard() {
                         return (
                           <tr key={ws.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                             <td className="py-2.5 px-3 font-medium text-slate-900">{ws.name}</td>
+                            <td className="py-2.5 px-3 max-w-[200px]">
+                              {ws.description ? (
+                                <span className="text-xs text-slate-700 line-clamp-2 leading-relaxed" title={ws.description}>{ws.description}</span>
+                              ) : (
+                                <span className="text-xs text-slate-300 italic">No topic</span>
+                              )}
+                            </td>
                             <td className="py-2.5 px-3 text-slate-600">{owner?.full_name || owner?.email || '—'}</td>
                             <td className="py-2.5 px-3">
                               <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(37,99,235,0.08)', color: '#2563eb' }}>
@@ -1424,9 +1432,14 @@ export default function AdminDashboard() {
                       const ws = m.workspaces;
                       return (
                         <div key={i} className="px-4 py-3 flex items-center justify-between hover:bg-slate-50">
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <p className="font-medium text-slate-900 text-sm">{ws?.name ?? 'Unknown'}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            {ws?.description && (
+                              <p className="text-xs text-slate-500 mt-0.5 truncate" title={ws.description}>
+                                <span className="font-semibold text-slate-600">Topic:</span> {ws.description}
+                              </p>
+                            )}
+                            <p className="text-xs text-slate-400 mt-0.5">
                               Role: <span className="font-semibold capitalize">{m.role}</span>
                               {ws?.plan && <> &middot; Plan: <span className="font-semibold capitalize">{ws.plan}</span></>}
                             </p>
