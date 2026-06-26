@@ -717,7 +717,7 @@ RULES:
         // Fetch synthesis data for all those workspaces
         const { data: synthRows } = await service
           .from("workspace_synthesis")
-          .select("workspace_id, cognitive_bias_flags, risk_signals, decision_health_score, conflict_zones, consensus_points")
+          .select("workspace_id, cognitive_bias_flags, risk_signals, decision_health_score, conflict_zones, consensus_points, alignment_score")
           .in("workspace_id", workspaceIds);
 
         // Fetch workspace names
@@ -821,6 +821,46 @@ RULES:
           styleLabel = "Balanced — strategic with managed risk";
         }
 
+        // ── Agent alignment map ──────────────────────────────────────────────
+        // Build per-agent conflict stats from conflict_zones across all workspaces
+        const agentStats: Record<string, { conflicts: number; totalTension: number }> = {};
+        for (const row of synthRows) {
+          const zones = Array.isArray(row.conflict_zones)
+            ? row.conflict_zones as Array<{ agent_a?: string; agent_b?: string; tension_level?: number }>
+            : [];
+          for (const zone of zones) {
+            const tension = typeof zone.tension_level === "number" ? zone.tension_level : 50;
+            for (const agent of [zone.agent_a, zone.agent_b]) {
+              if (!agent || typeof agent !== "string") continue;
+              if (!agentStats[agent]) agentStats[agent] = { conflicts: 0, totalTension: 0 };
+              agentStats[agent].conflicts += 1;
+              agentStats[agent].totalTension += tension;
+            }
+          }
+        }
+
+        const wsCount = workspaceSnapshots.length || 1;
+        const agentAlignmentMap: Record<string, { conflict_count: number; avg_tension: number; alignment_score: number }> = {};
+        for (const [agent, stats] of Object.entries(agentStats)) {
+          const avgTension = stats.conflicts > 0 ? stats.totalTension / stats.conflicts : 0;
+          // Higher conflict frequency + higher tension = lower alignment
+          const conflictRatio = Math.min(1, stats.conflicts / wsCount);
+          const raw = 100 - (conflictRatio * 50) - (avgTension * 0.5);
+          agentAlignmentMap[agent] = {
+            conflict_count: stats.conflicts,
+            avg_tension: Math.round(avgTension),
+            alignment_score: Math.max(0, Math.min(100, Math.round(raw))),
+          };
+        }
+
+        // Average alignment score across workspaces (from stored alignment_score column)
+        const alignmentScores = synthRows
+          .map(r => (typeof r.alignment_score === "number" ? r.alignment_score : null))
+          .filter((s): s is number => s !== null);
+        const avgAlignmentScore = alignmentScores.length > 0
+          ? Math.round(alignmentScores.reduce((a, b) => a + b, 0) / alignmentScores.length)
+          : null;
+
         // ── Upsert user_pattern_intelligence ────────────────────────────────
         const payload = {
           user_id: user.id,
@@ -830,6 +870,8 @@ RULES:
           dominant_bias: dominantBiasXw,
           risk_tolerance_map: riskToleranceMap,
           decision_style_summary: styleLabel,
+          agent_alignment_map: agentAlignmentMap,
+          avg_alignment_score: avgAlignmentScore,
           updated_at: new Date().toISOString(),
         };
 

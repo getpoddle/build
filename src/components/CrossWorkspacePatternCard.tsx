@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity } from 'lucide-react';
+import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const UNLOCK_THRESHOLD = 2;
@@ -35,6 +35,12 @@ interface HealthPoint {
   date: string;
 }
 
+interface AgentAlignmentEntry {
+  conflict_count: number;
+  avg_tension: number;
+  alignment_score: number;
+}
+
 interface PatternIntelligence {
   workspace_count: number;
   workspace_snapshots: WorkspaceSnapshot[];
@@ -42,6 +48,8 @@ interface PatternIntelligence {
   dominant_bias: string | null;
   risk_tolerance_map: RiskToleranceEntry[];
   decision_style_summary: string | null;
+  agent_alignment_map: Record<string, AgentAlignmentEntry>;
+  avg_alignment_score: number | null;
 }
 
 interface CrossWorkspacePatternCardProps {
@@ -205,6 +213,11 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
         dominant_bias: row.dominant_bias ?? null,
         risk_tolerance_map: Array.isArray(row.risk_tolerance_map) ? row.risk_tolerance_map : [],
         decision_style_summary: row.decision_style_summary ?? null,
+        agent_alignment_map:
+          row.agent_alignment_map && typeof row.agent_alignment_map === 'object'
+            ? row.agent_alignment_map
+            : {},
+        avg_alignment_score: typeof row.avg_alignment_score === 'number' ? row.avg_alignment_score : null,
       });
 
       if (snapshots.length > 0) {
@@ -579,6 +592,75 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                         </div>
                         <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
                           Dominant risk category per workspace across {count} decision context{count === 1 ? '' : 's'}.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Agent Alignment — unlocks at AGENT_ALIGNMENT_THRESHOLD workspaces */}
+              {count >= AGENT_ALIGNMENT_THRESHOLD && (() => {
+                const entries = Object.entries(data.agent_alignment_map ?? {})
+                  .sort((a, b) => a[1].alignment_score - b[1].alignment_score);
+                if (entries.length === 0) return null;
+                const alignColor = (score: number) =>
+                  score >= 70 ? '#16a34a' : score >= 45 ? '#d97706' : '#dc2626';
+                const alignLabel = (score: number) =>
+                  score >= 70 ? 'Aligned' : score >= 45 ? 'Mixed' : 'Clashes';
+                const alignBg = (score: number) =>
+                  score >= 70 ? 'rgba(22,163,74,0.10)' : score >= 45 ? 'rgba(245,158,11,0.10)' : 'rgba(220,38,38,0.10)';
+                const mostClashing = entries[0];
+                const mostAligned = entries[entries.length - 1];
+                return (
+                  <div
+                    className="rounded-xl p-3.5"
+                    style={{ background: 'rgba(8,145,178,0.04)', border: '1px solid rgba(8,145,178,0.12)' }}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(8,145,178,0.10)' }}>
+                        <Users className="w-3.5 h-3.5" style={{ color: '#0891b2' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-bold text-slate-800">Agent Alignment</p>
+                          {data.avg_alignment_score !== null && (
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              style={{ background: alignBg(data.avg_alignment_score), color: alignColor(data.avg_alignment_score) }}
+                            >
+                              Avg {data.avg_alignment_score}
+                            </span>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          {entries.map(([agent, stats]) => (
+                            <div key={agent} className="flex items-center gap-2">
+                              <span className="text-[11px] font-medium text-slate-700 truncate flex-1">{agent}</span>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <div className="h-1.5 rounded-full overflow-hidden w-20" style={{ background: 'rgba(15,23,42,0.08)' }}>
+                                  <div
+                                    className="h-full rounded-full transition-all duration-500"
+                                    style={{ width: `${stats.alignment_score}%`, background: alignColor(stats.alignment_score) }}
+                                  />
+                                </div>
+                                <span className="text-[10px] font-bold w-6 text-right" style={{ color: alignColor(stats.alignment_score) }}>
+                                  {stats.alignment_score}
+                                </span>
+                                <span
+                                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full w-14 text-center"
+                                  style={{ background: alignBg(stats.alignment_score), color: alignColor(stats.alignment_score) }}
+                                >
+                                  {alignLabel(stats.alignment_score)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                          {mostClashing && mostAligned && mostClashing[0] !== mostAligned[0]
+                            ? <><span className="font-semibold" style={{ color: '#dc2626' }}>{mostClashing[0]}</span> clashes most in your sessions; <span className="font-semibold" style={{ color: '#16a34a' }}>{mostAligned[0]}</span> is your most aligned agent.</>
+                            : 'Based on conflict zones across your synthesized workspaces.'}
                         </p>
                       </div>
                     </div>
