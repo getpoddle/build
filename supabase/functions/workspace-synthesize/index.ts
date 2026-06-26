@@ -155,33 +155,36 @@ ${transcript}
 
 ---
 
+EVIDENCE RULE — THE MOST IMPORTANT INSTRUCTION:
+Only include items in each section when the TRANSCRIPT PROVIDES DIRECT EVIDENCE. Do NOT invent, estimate, or infer data that was not discussed. Empty arrays [] are correct and expected when a topic was not addressed. A synthesis with 3 accurate items is better than one with 10 fabricated items.
+
 OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
 
-■ CONSENSUS POINTS: MINIMUM 8, target 10-12. Each must be a substantive, specific statement of what agents actually agreed on — not platitudes. Include the confidence score (0-100) and how many agents endorsed it.
+■ CONSENSUS POINTS: Every point must reflect something agents genuinely agreed on in the transcript. Report what was found — do not pad with generic agreements.
 
-■ CONFLICT ZONES: MINIMUM 4, target 5-7. Identify every real fault line in the debate. The topic must name the exact strategic tension (e.g., "Staged rollout vs simultaneous multi-market launch"). DO NOT default to generic financial conflicts unless cost was the core axis. Each zone must have both positions quoted with precision.
+■ CONFLICT ZONES: Only identify real fault lines where agents took opposing positions. If no genuine disagreement occurred, return [].
 
-■ OPEN QUESTIONS: MINIMUM 8, target 10-14. These are the specific, answerable questions the team MUST resolve before they can move forward. They should be decision-forcing, not vague. Include urgency for each.
+■ OPEN QUESTIONS: Only list questions the debate genuinely left unresolved. Do not fabricate questions that were not raised or implied.
 
-■ RISK SIGNALS: MINIMUM 8, target 10-15. Span all categories: market, execution, financial, team, technology, regulatory, competitive. Each signal must be a specific, named risk — not generic. Include severity and category.
+■ RISK SIGNALS: Only include risks explicitly raised or directly implied by what was discussed. Span relevant categories; do not invent risks not grounded in the transcript.
 
-■ BLIND SPOTS: MINIMUM 5, target 6-8. These are important dimensions the debate UNDERWEIGHTED or missed entirely. Each must explain specifically what could go wrong if this gap remains unaddressed.
+■ BLIND SPOTS: Only identify dimensions genuinely underweighted in THIS discussion. Do not list generic strategic gaps that apply to any decision.
 
-■ ACTION ITEMS: MINIMUM 15, target 18-22. Each must be specific and executable (owner + task + enough detail to assign), prioritized (critical/high/medium), and derived from actual agent recommendations.
+■ ACTION ITEMS: Only generate tasks directly derivable from agent recommendations or team statements in the transcript.
 
-■ FINANCIAL METRICS: MINIMUM 5, target 6-8. Include specific numbers, percentages, or ranges mentioned or implied in the debate. If no specific figures were stated, derive reasonable estimates from context and flag as low confidence.
+■ FINANCIAL METRICS: ⚠ EVIDENCE-ONLY. Include ONLY if the transcript contains specific numbers, percentages, costs, revenues, or financial figures that were explicitly stated. Do NOT derive or estimate. If financial data was not discussed, return [].
 
-■ OPERATIONAL METRICS: MINIMUM 4, target 5-7. Specific operational parameters: timelines, team sizes, launch sequencing, capacity, etc.
+■ OPERATIONAL METRICS: ⚠ EVIDENCE-ONLY. Include ONLY if timelines, team sizes, launch sequences, or specific operational parameters were explicitly discussed. If not, return [].
 
-■ NON-FINANCIAL METRICS: MINIMUM 4, target 5-6. Brand, culture, regulatory posture, talent sentiment, customer NPS, etc.
+■ NON-FINANCIAL METRICS: ⚠ EVIDENCE-ONLY. Include ONLY if brand perception, culture, talent sentiment, customer metrics, or qualitative KPIs were substantively discussed. If not, return [].
 
-■ OPPORTUNITY SIGNALS: MINIMUM 4, target 5-7. Concrete opportunities surfaced by the debate — not just the main thesis, but adjacent or second-order opportunities agents identified.
+■ OPPORTUNITY SIGNALS: ⚠ EVIDENCE-ONLY. Include ONLY concrete opportunities explicitly surfaced by agents in the debate. If no opportunities were identified, return [].
 
-■ COGNITIVE BIAS FLAGS: MINIMUM 3, target 4-6. Name the bias, explain exactly how it appeared in THIS debate, and provide a sharp counter-question the team should ask themselves.
+■ COGNITIVE BIAS FLAGS: ⚠ EVIDENCE-ONLY. Include ONLY biases that visibly manifested in this specific discussion. If reasoning was balanced and no clear pattern of bias appeared, return [].
 
-■ KEY DECISIONS: MINIMUM 5, target 6-8. The pivotal decisions the team must make — not vague questions but named binary or multi-choice decisions with clear ownership.
+■ KEY DECISIONS: Include the pivotal decisions that were explicitly named or debated. If no clear decisions were surfaced, return [].
 
-■ RECOMMENDATION: 5-8 sentences minimum. Start with the unambiguous recommended path. State what must be accepted (the tradeoff). Identify the one thing that, if not done in 7 days, will cause meaningful delay or damage. Be direct — no hedging.
+■ RECOMMENDATION: 5-8 sentences. Start with the unambiguous recommended path. State what must be accepted (the tradeoff). Identify the one thing that, if not done in 7 days, will cause meaningful delay or damage. Be direct — no hedging.
 
 ---
 
@@ -266,14 +269,13 @@ DEBATE TRANSCRIPT (last 40 messages):
 ${transcript}
 
 YOUR TASK:
-Generate 18-22 action items that decision-makers can assign TODAY. These must be derived from specific things agents said, not generic best-practices.
+Generate only action items that are directly derivable from specific things agents said or the team discussed. Do NOT pad with generic best-practices or organizational hygiene tasks. Quality over quantity — a focused list of 5 specific, owner-assigned items beats 20 generic ones.
 
 RULES FOR EACH ACTION ITEM:
 - text: One complete sentence. Include WHO should do it (owner role), WHAT specifically they must do, and WHY it matters for the central decision. Example: "CFO to model three financial scenarios (base/bull/bear) for the RTO decision with specific headcount cost assumptions for each office, to give the board a quantified basis for the final call." Never: "Clarify financial assumptions."
 - source_area: The owning function. Use exactly one of: CEO, CFO, HR, Legal, Product, Engineering, Finance, Risk, Strategy, Marketing, Operations, People
 - priority: critical (must happen in 7 days), high (must happen in 30 days), or medium (this quarter)
 
-PRIORITY DISTRIBUTION: At least 3 critical, at least 8 high, rest medium.
 TOPIC: Every action item must directly address the central decision above — not generic organizational hygiene.
 
 Return ONLY valid JSON in this exact shape, no markdown:
@@ -362,7 +364,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     // ─── DETERMINISTIC SCORE COMPUTATION ─────────────────────────────────────
     // Uses the exact fields the AI prompt produces. Every deduction/bonus is
     // tied to a real structured value — no dead code from mismatched field names.
-    function computeScores(): { decisionHealth: number; financial: number; operational: number; alignment: number } {
+    function computeScores(): { decisionHealth: number; financial: number | null; operational: number | null; alignment: number } {
       // Use the actual field names the AI produces
       const riskSignals = Array.isArray(synthesis.risk_signals)
         ? synthesis.risk_signals as Array<{ severity?: string; category?: string }>
@@ -470,33 +472,41 @@ Return ONLY valid JSON in this exact shape, no markdown:
       decisionHealth = Math.max(10, Math.min(100, Math.round(decisionHealth)));
 
       // ── Financial Score ───────────────────────────────────────────────────────
-      // Starts at 35 — low until financial data is actually present
-      let financial = 35;
-      for (const m of financialMetrics) {
-        if (m.confidence === "high") financial += 10;
-        else if (m.confidence === "medium") financial += 5;
-        else financial += 2;
+      // Only computed when financial data was actually discussed.
+      // Returns null (not shown in UI) when no financial metrics were surfaced.
+      let financial: number | null = null;
+      if (financialMetrics.length > 0) {
+        let f = 35;
+        for (const m of financialMetrics) {
+          if (m.confidence === "high") f += 10;
+          else if (m.confidence === "medium") f += 5;
+          else f += 2;
+        }
+        for (const z of conflictZones) {
+          const tension = typeof z.tension_level === "number" ? z.tension_level : 50;
+          if (tension >= 80) f -= 5;
+          else if (tension >= 60) f -= 2;
+        }
+        financial = Math.max(10, Math.min(100, f));
       }
-      // Unresolved high-tension conflicts drain financial confidence
-      for (const z of conflictZones) {
-        const tension = typeof z.tension_level === "number" ? z.tension_level : 50;
-        if (tension >= 80) financial -= 5;
-        else if (tension >= 60) financial -= 2;
-      }
-      financial = Math.max(10, Math.min(100, financial));
 
       // ── Operational Score ─────────────────────────────────────────────────────
-      let operational = 40;
-      for (const m of operationalMetrics) {
-        if (m.status === "on-track") operational += 8;
-        else if (m.status === "at-risk") operational -= 10;
-        else if (m.status === "unclear") operational -= 4;
+      // Only computed when operational data was actually discussed.
+      // Returns null (not shown in UI) when no operational metrics were surfaced.
+      let operational: number | null = null;
+      if (operationalMetrics.length > 0) {
+        let o = 40;
+        for (const m of operationalMetrics) {
+          if (m.status === "on-track") o += 8;
+          else if (m.status === "at-risk") o -= 10;
+          else if (m.status === "unclear") o -= 4;
+        }
+        for (const r of riskSignals) {
+          if (r.severity === "critical" && r.category === "execution") o -= 8;
+          else if (r.severity === "high" && r.category === "execution") o -= 4;
+        }
+        operational = Math.max(10, Math.min(100, o));
       }
-      for (const r of riskSignals) {
-        if (r.severity === "critical" && r.category === "execution") operational -= 8;
-        else if (r.severity === "high" && r.category === "execution") operational -= 4;
-      }
-      operational = Math.max(10, Math.min(100, operational));
 
       // ── Alignment Score ───────────────────────────────────────────────────────
       let alignment = 50;
