@@ -603,7 +603,24 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
               {count >= UNLOCK_THRESHOLD && (() => {
                 const entries = Object.entries(data.agent_alignment_map ?? {})
                   .sort((a, b) => a[1].alignment_score - b[1].alignment_score);
-                if (entries.length === 0) return null;
+                if (entries.length === 0) return (
+                  <div
+                    className="rounded-xl p-3.5"
+                    style={{ background: 'rgba(8,145,178,0.04)', border: '1px solid rgba(8,145,178,0.12)' }}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(8,145,178,0.10)' }}>
+                        <Users className="w-3.5 h-3.5" style={{ color: '#0891b2' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 mb-0.5">Agent Alignment</p>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          No conflict data yet. Re-run the War Room synthesis to start tracking which agents clash or align in your decisions.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
                 const alignColor = (score: number) =>
                   score >= 70 ? '#16a34a' : score >= 45 ? '#d97706' : '#dc2626';
                 const alignLabel = (score: number) =>
