@@ -62,15 +62,31 @@ Deno.serve(async (req: Request) => {
       workspace?.description ? `Context: ${workspace.description}` : "",
     ].filter(Boolean).join("\n");
 
-    // Use last 40 messages, truncating long individual messages to control token usage.
-    // Synthesis quality depends on breadth of debate coverage, not raw verbosity.
-    const recentMessages = messages.slice(-40);
-    const transcript = recentMessages.map(m => {
+    // Build a composite transcript that always includes:
+    //   - The first 10 messages: where the decision framing and initial clarifications are set.
+    //   - The last 50 messages: the most recent debate and any clarifications discussed.
+    // This ensures that re-synthesis after a clarifying discussion captures BOTH the original
+    // parameters AND any refined understanding of the decision that emerged in conversation.
+    function formatMsg(m: { role: string; content: string; agent_role?: string | null }): string {
       const content = m.content.length > 800 ? m.content.slice(0, 800) + "…" : m.content;
       if (m.role === "user") return `[TEAM]: ${content}`;
       const label = m.agent_role ? `[${(m.agent_role as string).toUpperCase().replace(/_/g, " ")}]` : "[AGENT]";
       return `${label}: ${content}`;
-    }).join("\n\n");
+    }
+
+    let transcript: string;
+    if (messages.length <= 50) {
+      // Short session: include everything
+      transcript = messages.map(formatMsg).join("\n\n");
+    } else {
+      // Long session: anchor to early framing + recent discussion
+      const framingMessages = messages.slice(0, 10);
+      const recentMessages = messages.slice(-50);
+      // Avoid duplicates if the session is short enough that slices overlap
+      const framingPart = framingMessages.map(formatMsg).join("\n\n");
+      const recentPart = recentMessages.map(formatMsg).join("\n\n");
+      transcript = `=== SESSION OPENING (decision framing & initial clarifications) ===\n${framingPart}\n\n=== RECENT DISCUSSION (last 50 messages — re-synthesis input) ===\n${recentPart}`;
+    }
 
     // ─── SYNTHESIS PROMPT ─────────────────────────────────────────────────────
     const synthesisPrompt = `You are a world-class Chief Strategy Officer and decision intelligence engine. You have just witnessed a full War Room debate between seven specialist AI advisors. Your mandate is to produce the most comprehensive, rigorous, and exhaustive strategic synthesis possible — the kind that a Board of Directors, Series B investor, or Fortune 500 C-suite would trust to make a multimillion-dollar decision.
