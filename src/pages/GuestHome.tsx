@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Sparkles, ArrowRight, CheckCircle, Lock, Brain,
   Crown, Swords, X, CreditCard, Zap,
+  Download, AlertTriangle, Target, BarChart3, TrendingUp,
+  ChevronRight,
 } from 'lucide-react';
 import JoinPromptModal from '../components/JoinPromptModal';
 import PoddleMark from '../components/PoddleMark';
@@ -105,8 +107,54 @@ const DEMO_MESSAGES = [
   },
 ];
 
+const DEMO_RISKS = [
+  { label: 'Model Distribution Shift', sev: 'critical', desc: 'AI credit models trained on UK/US data may mispredict EU default rates by 40–60% in year one.' },
+  { label: 'EU AI Act Compliance Gap', sev: 'high', desc: 'Article 10 requires per-decision explainability. Building audit trails adds 6–9 months to launch.' },
+  { label: 'Parallel Regulatory Filing', sev: 'high', desc: 'Simultaneous multi-market filings increase rejection risk and slow time-to-revenue.' },
+];
+
+const DEMO_ACTIONS = [
+  { who: 'Legal', task: 'Commission a BaFin pre-submission explainability review for the credit model — target Q2 submission window.', priority: 'critical' },
+  { who: 'Engineering', task: 'Build a per-decision audit trail compliant with EU AI Act Article 10 before Germany launch.', priority: 'critical' },
+  { who: 'CEO', task: 'Sequence market entry: Germany (Q3), France and Netherlands (Q1 next year). Halt parallel filings.', priority: 'high' },
+  { who: 'Risk', task: 'Collect EU-local training data from German open banking sources to reduce model distribution shift by launch.', priority: 'high' },
+];
+
+const SEV_COLORS: Record<string, { bg: string; text: string }> = {
+  critical: { bg: 'rgba(220,38,38,0.1)', text: '#b91c1c' },
+  high:     { bg: 'rgba(245,158,11,0.1)', text: '#b45309' },
+  medium:   { bg: 'rgba(37,99,235,0.1)',  text: '#1d4ed8' },
+};
+
+const PRI_COLORS: Record<string, { bg: string; text: string }> = {
+  critical: { bg: 'rgba(220,38,38,0.08)', text: '#b91c1c' },
+  high:     { bg: 'rgba(245,158,11,0.08)', text: '#b45309' },
+  medium:   { bg: 'rgba(37,99,235,0.07)',  text: '#1d4ed8' },
+};
+
+function ScoreArc({ score, label, color }: { score: number; label: string; color: string }) {
+  const r = 22; const c = 2 * Math.PI * r;
+  const dash = (score / 100) * c;
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative w-14 h-14">
+        <svg className="w-full h-full -rotate-90" viewBox="0 0 56 56">
+          <circle cx="28" cy="28" r={r} fill="none" stroke="rgba(15,23,42,0.08)" strokeWidth="5" />
+          <circle cx="28" cy="28" r={r} fill="none" stroke={color} strokeWidth="5"
+            strokeDasharray={`${dash} ${c}`} strokeLinecap="round" />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-sm font-black" style={{ color }}>{score}</span>
+        </div>
+      </div>
+      <span className="text-[10px] font-semibold text-center leading-tight" style={{ color: '#64748b', maxWidth: 56 }}>{label}</span>
+    </div>
+  );
+}
+
 function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [revealed, setRevealed] = useState(0);
+  const [showPDF, setShowPDF] = useState(false);
   const { ref, visible } = useScrollReveal();
 
   useEffect(() => {
@@ -119,6 +167,13 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
     };
     setTimeout(tick, 300);
   }, [visible]);
+
+  useEffect(() => {
+    if (revealed >= DEMO_MESSAGES.length) {
+      const t = setTimeout(() => setShowPDF(true), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [revealed]);
 
   return (
     <section ref={ref} style={{ background: '#fff', borderTop: '1px solid rgba(15,23,42,0.05)', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
@@ -246,6 +301,16 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               >
                 <span className="text-xs" style={{ color: 'rgba(100,116,139,0.5)' }}>Ask a follow-up or challenge an agent…</span>
               </div>
+              {revealed >= DEMO_MESSAGES.length && (
+                <button
+                  onClick={() => setShowPDF(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5"
+                  style={{ background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  <Download className="w-3 h-3" />
+                  Export PDF
+                </button>
+              )}
               <button
                 onClick={() => onNavigate('auth')}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-0.5"
@@ -253,6 +318,129 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               >
                 <Sparkles className="w-3 h-3" />
                 Try it
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── PDF Export Preview ── */}
+        <div
+          className="mx-auto mt-6 overflow-hidden transition-all duration-700"
+          style={{
+            maxWidth: 780,
+            maxHeight: showPDF ? '2000px' : 0,
+            opacity: showPDF ? 1 : 0,
+          }}
+        >
+          {/* Arrow connector */}
+          <div className="flex flex-col items-center mb-4">
+            <div className="w-0.5 h-6" style={{ background: 'rgba(15,23,42,0.12)' }} />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold" style={{ background: 'rgba(15,23,42,0.06)', color: '#64748b' }}>
+              <Download className="w-3 h-3" />
+              Exported report preview
+            </div>
+            <div className="w-0.5 h-4" style={{ background: 'rgba(15,23,42,0.12)' }} />
+            <div className="w-2 h-2 rotate-45" style={{ background: 'rgba(15,23,42,0.12)', marginTop: -4 }} />
+          </div>
+
+          <div className="rounded-3xl overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)', boxShadow: '0 8px 32px rgba(15,23,42,0.1)' }}>
+            {/* PDF Header */}
+            <div className="px-8 pt-8 pb-6" style={{ borderBottom: '1px solid rgba(15,23,42,0.07)', background: 'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
+                      <Brain className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.7)' }}>Poddle · War Room Report</span>
+                  </div>
+                  <h3 className="text-lg font-black text-white mb-1">European AI Lending Expansion</h3>
+                  <p className="text-xs" style={{ color: 'rgba(148,163,184,0.65)' }}>
+                    Private Workspace · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · 12 messages analysed
+                  </p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-3xl font-black text-white">68</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: '#f59e0b' }}>Developing</div>
+                  <div className="text-[10px]" style={{ color: 'rgba(148,163,184,0.5)' }}>Decision Health</div>
+                </div>
+              </div>
+
+              {/* Score pills */}
+              <div className="flex gap-4 mt-5">
+                <ScoreArc score={74} label="Strategic Alignment" color="#16a34a" />
+                <ScoreArc score={61} label="Operational Readiness" color="#f59e0b" />
+              </div>
+            </div>
+
+            {/* Recommendation */}
+            <div className="px-8 py-6" style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', background: 'rgba(30,58,95,0.03)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="w-4 h-4" style={{ color: '#1e3a5f' }} />
+                <span className="text-xs font-black uppercase tracking-wider" style={{ color: '#1e3a5f' }}>Strategic Recommendation</span>
+              </div>
+              <p className="text-sm leading-relaxed text-slate-700">
+                <strong className="text-slate-900">Stage the rollout. Start with Germany.</strong> BaFin approval is the hardest and most valuable first stamp — it de-risks France, Netherlands, and the Nordics. Target Germany in Q3 with a compliant audit trail in place. Parallel multi-market filing will cost more time than it saves. The EU AI Act compliance burden is real but sequenceable — treat it as process, not blocker.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x" style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', borderColor: 'rgba(15,23,42,0.06)' }}>
+              {/* Risk Signals */}
+              <div className="px-8 py-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800">Risk Signals</span>
+                  <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(220,38,38,0.08)', color: '#b91c1c' }}>3 identified</span>
+                </div>
+                <div className="space-y-3">
+                  {DEMO_RISKS.map((r) => (
+                    <div key={r.label} className="flex gap-2.5">
+                      <span className="mt-0.5 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0" style={SEV_COLORS[r.sev]}>{r.sev}</span>
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-800 leading-tight">{r.label}</p>
+                        <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">{r.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Next Steps */}
+              <div className="px-8 py-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Target className="w-4 h-4 text-blue-600" />
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-800">Action Items</span>
+                  <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(37,99,235,0.08)', color: '#1d4ed8' }}>4 items</span>
+                </div>
+                <div className="space-y-3">
+                  {DEMO_ACTIONS.map((a) => (
+                    <div key={a.task.slice(0, 20)} className="flex gap-2.5">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide" style={PRI_COLORS[a.priority]}>{a.priority}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-black uppercase tracking-wide" style={{ color: '#94a3b8' }}>{a.who}</span>
+                        <p className="text-[11px] text-slate-600 leading-relaxed mt-0.5">{a.task}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-8 py-4 flex items-center justify-between" style={{ background: '#fafafa' }}>
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-3.5 h-3.5" style={{ color: '#94a3b8' }} />
+                <span className="text-[10px] font-semibold" style={{ color: '#94a3b8' }}>3 conflict zones · 6 open questions · 5 blind spots flagged</span>
+              </div>
+              <button
+                onClick={() => onNavigate('auth')}
+                className="flex items-center gap-1.5 text-[10px] font-bold transition-colors hover:text-blue-700"
+                style={{ color: '#2563eb' }}
+              >
+                Get your own report
+                <ChevronRight className="w-3 h-3" />
               </button>
             </div>
           </div>
