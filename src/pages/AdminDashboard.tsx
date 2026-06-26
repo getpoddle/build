@@ -36,6 +36,7 @@ interface UserStats {
   created_at: string;
   workspaces_created: number;
   workspaces_opened: number;
+  workspaces_created_alltime: number;
   pdfs_exported: number;
   pods_joined_count: number;
   account_status?: string;
@@ -118,7 +119,7 @@ export default function AdminDashboard() {
         return;
       }
 
-      type WorkspaceStatsRow = { user_id: string; workspaces_created: number; workspaces_opened: number; pdfs_exported: number };
+      type WorkspaceStatsRow = { user_id: string; workspaces_created: number; workspaces_opened: number; workspaces_created_alltime: number; pdfs_exported: number };
       type ModerationRow = { user_id: string; account_status: string; reason: string | null; suspended_until: string | null; total_reports_against: number; pending_reports_against: number };
       type ReferralRow = { user_id: string; referral_code: string | null; total_referrals: number; recent_referrals: number };
 
@@ -132,7 +133,7 @@ export default function AdminDashboard() {
         (referralRes.data || []).map((r: ReferralRow) => [r.user_id, r])
       );
 
-      const defaultWorkspaceStats: Omit<WorkspaceStatsRow, 'user_id'> = { workspaces_created: 0, workspaces_opened: 0, pdfs_exported: 0 };
+      const defaultWorkspaceStats: Omit<WorkspaceStatsRow, 'user_id'> = { workspaces_created: 0, workspaces_opened: 0, workspaces_created_alltime: 0, pdfs_exported: 0 };
       const defaultModeration: Omit<ModerationRow, 'user_id'> = { account_status: 'active', reason: null, suspended_until: null, total_reports_against: 0, pending_reports_against: 0 };
       const defaultReferral: Omit<ReferralRow, 'user_id'> = { referral_code: null, total_referrals: 0, recent_referrals: 0 };
 
@@ -341,8 +342,9 @@ export default function AdminDashboard() {
       'Username',
       'Status',
       'Verified',
-      'Workspaces Created',
-      'Workspaces Opened',
+      'Workspaces Created (Now)',
+      'Workspaces Opened (Now)',
+      'Workspaces Created (All Time)',
       'PDFs Exported',
       'Total Referrals',
       'Joined Date',
@@ -356,6 +358,7 @@ export default function AdminDashboard() {
       user.verified ? 'Yes' : 'No',
       user.workspaces_created ?? 0,
       user.workspaces_opened ?? 0,
+      user.workspaces_created_alltime ?? 0,
       user.pdfs_exported ?? 0,
       user.total_referrals ?? 0,
       new Date(user.created_at).toLocaleDateString(),
@@ -1119,15 +1122,21 @@ export default function AdminDashboard() {
                         <td className="px-4 py-4">
                           <div className="text-sm space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-500 w-32 text-xs">Created</span>
+                              <span className="text-slate-500 w-36 text-xs">Owned (now)</span>
                               <span className="font-semibold text-slate-900">{user.workspaces_created ?? 0}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-500 w-32 text-xs">Opened</span>
+                              <span className="text-slate-500 w-36 text-xs">Member of (now)</span>
                               <span className="font-semibold text-slate-900">{user.workspaces_opened ?? 0}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-500 w-32 text-xs">PDFs Exported</span>
+                              <span className="text-slate-500 w-36 text-xs">Created (all time)</span>
+                              <span className={`font-semibold ${(user.workspaces_created_alltime ?? 0) > (user.workspaces_created ?? 0) ? 'text-amber-700' : 'text-slate-900'}`}>
+                                {user.workspaces_created_alltime ?? 0}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-500 w-36 text-xs">PDFs Exported</span>
                               <span className="font-semibold text-slate-900">{user.pdfs_exported ?? 0}</span>
                             </div>
                           </div>
@@ -1377,14 +1386,29 @@ export default function AdminDashboard() {
 
             <div className="flex-1 overflow-y-auto p-6">
               {/* Workspace usage summary cards */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
                   <p className="text-2xl font-bold text-blue-700">{selectedUser.workspaces_created ?? 0}</p>
-                  <p className="text-xs font-semibold text-blue-500 mt-1 uppercase tracking-wide">Workspaces Created</p>
+                  <p className="text-xs font-semibold text-blue-500 mt-1 uppercase tracking-wide">Owned Now</p>
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
                   <p className="text-2xl font-bold text-slate-700">{selectedUser.workspaces_opened ?? 0}</p>
-                  <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wide">Workspaces Opened</p>
+                  <p className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wide">Member Of Now</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className={`border rounded-xl p-4 text-center ${(selectedUser.workspaces_created_alltime ?? 0) > (selectedUser.workspaces_created ?? 0) ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
+                  <p className={`text-2xl font-bold ${(selectedUser.workspaces_created_alltime ?? 0) > (selectedUser.workspaces_created ?? 0) ? 'text-amber-700' : 'text-slate-700'}`}>
+                    {selectedUser.workspaces_created_alltime ?? 0}
+                  </p>
+                  <p className={`text-xs font-semibold mt-1 uppercase tracking-wide ${(selectedUser.workspaces_created_alltime ?? 0) > (selectedUser.workspaces_created ?? 0) ? 'text-amber-600' : 'text-slate-500'}`}>
+                    Created All Time
+                    {(selectedUser.workspaces_created_alltime ?? 0) > (selectedUser.workspaces_created ?? 0) && (
+                      <span className="block normal-case font-normal mt-0.5 text-amber-500">
+                        {(selectedUser.workspaces_created_alltime ?? 0) - (selectedUser.workspaces_created ?? 0)} deleted
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-center">
                   <p className="text-2xl font-bold text-green-700">{selectedUser.pdfs_exported ?? 0}</p>
