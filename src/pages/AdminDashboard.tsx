@@ -98,54 +98,12 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
 
-      // Fetch all data in parallel — 4 queries total regardless of user count
-      // Cap at 2000 profiles to prevent unbounded memory/network load
-      const [profilesRes, workspaceStatsRes, moderationRes, referralRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id, full_name, email, username, avatar_url, verified, created_at')
-          .order('created_at', { ascending: false })
-          .limit(2000),
-        supabase.rpc('get_all_users_workspace_pdf_stats'),
-        supabase.rpc('get_all_users_moderation_info'),
-        supabase.rpc('get_all_users_referral_stats'),
-      ]);
+      const { data, error } = await supabase.rpc('get_admin_all_users');
 
-      if (profilesRes.error) throw profilesRes.error;
+      if (error) throw error;
 
-      const profilesData = profilesRes.data || [];
-      if (profilesData.length === 0) {
-        setUsers([]);
-        return;
-      }
-
-      type WorkspaceStatsRow = { user_id: string; workspaces_created: number; workspaces_opened: number; workspaces_created_alltime: number; pdfs_exported: number };
-      type ModerationRow = { user_id: string; account_status: string; reason: string | null; suspended_until: string | null; total_reports_against: number; pending_reports_against: number };
-      type ReferralRow = { user_id: string; referral_code: string | null; total_referrals: number; recent_referrals: number };
-
-      const workspaceStatsMap = new Map<string, WorkspaceStatsRow>(
-        (workspaceStatsRes.data || []).map((r: WorkspaceStatsRow) => [r.user_id, r])
-      );
-      const moderationMap = new Map<string, ModerationRow>(
-        (moderationRes.data || []).map((r: ModerationRow) => [r.user_id, r])
-      );
-      const referralMap = new Map<string, ReferralRow>(
-        (referralRes.data || []).map((r: ReferralRow) => [r.user_id, r])
-      );
-
-      const defaultWorkspaceStats: Omit<WorkspaceStatsRow, 'user_id'> = { workspaces_created: 0, workspaces_opened: 0, workspaces_created_alltime: 0, pdfs_exported: 0 };
-      const defaultModeration: Omit<ModerationRow, 'user_id'> = { account_status: 'active', reason: null, suspended_until: null, total_reports_against: 0, pending_reports_against: 0 };
-      const defaultReferral: Omit<ReferralRow, 'user_id'> = { referral_code: null, total_referrals: 0, recent_referrals: 0 };
-
-      const usersWithStats = profilesData.map((profile) => ({
-        ...profile,
-        pods_joined_count: 0,
-        ...(workspaceStatsMap.get(profile.id) ?? defaultWorkspaceStats),
-        ...(moderationMap.get(profile.id) ?? defaultModeration),
-        ...(referralMap.get(profile.id) ?? defaultReferral),
-      }));
-
-      setUsers(usersWithStats);
+      const rows = (data || []) as UserStats[];
+      setUsers(rows.map(r => ({ ...r, pods_joined_count: 0 })));
     } catch (error) {
       console.error('Error loading users:', error);
       alert('Failed to load users. Check console for details.');
