@@ -172,12 +172,12 @@ function deriveRecommendations(data: PatternIntelligence, count: number): Recomm
     });
   }
 
-  if (count >= UNLOCK_THRESHOLD && count < AGENT_ALIGNMENT_THRESHOLD) {
+  if (count >= UNLOCK_THRESHOLD && count < 5) {
     recs.push({
       icon: Lightbulb,
       color: '#0891b2',
       bg: 'rgba(8,145,178,0.06)',
-      text: `You have ${count} synthesized workspace${count === 1 ? '' : 's'}. Run ${AGENT_ALIGNMENT_THRESHOLD - count} more War Room session${AGENT_ALIGNMENT_THRESHOLD - count === 1 ? '' : 's'} to unlock Agent Alignment tracking.`,
+      text: `You have ${count} synthesized workspace${count === 1 ? '' : 's'}. Run more War Room sessions to strengthen your Agent Alignment and Decision Style patterns.`,
     });
   }
 
@@ -599,8 +599,8 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                 );
               })()}
 
-              {/* Agent Alignment — unlocks at AGENT_ALIGNMENT_THRESHOLD workspaces */}
-              {count >= AGENT_ALIGNMENT_THRESHOLD && (() => {
+              {/* Agent Alignment — available once the card is unlocked */}
+              {count >= UNLOCK_THRESHOLD && (() => {
                 const entries = Object.entries(data.agent_alignment_map ?? {})
                   .sort((a, b) => a[1].alignment_score - b[1].alignment_score);
                 if (entries.length === 0) return null;
