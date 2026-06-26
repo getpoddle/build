@@ -257,45 +257,50 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         )}
 
         {/* Product description */}
-        <div
-          className="mb-6 rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-4"
-          style={{ background: 'linear-gradient(135deg,rgba(30,58,95,0.04),rgba(37,99,235,0.06))', border: '1px solid rgba(37,99,235,0.12)' }}
-        >
-          <div className="flex gap-3">
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* AI Collaboration card */}
+          <div
+            className="rounded-2xl p-4 flex gap-3"
+            style={{ background: '#fff', border: '1px solid rgba(37,99,235,0.18)', boxShadow: '0 1px 4px rgba(37,99,235,0.07)' }}
+          >
             <div
-              className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center mt-0.5"
+              className="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
             >
-              <MessageSquare className="w-4 h-4 text-white" />
+              <MessageSquare className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900 mb-1">AI Collaboration</p>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Chat directly with specialized AI agents in a shared conversation thread. Ask questions, explore ideas, and get real-time responses grounded in your workspace topic. Every agent brings a unique perspective — strategy, research, critique, and more.
+              <p className="text-xs leading-relaxed" style={{ color: '#475569' }}>
+                Chat with specialized AI agents in real time. Ask questions, explore ideas, and get multi-perspective responses tailored to your workspace topic — strategy, research, critique, and more.
               </p>
             </div>
           </div>
-          <div className="flex gap-3">
+          {/* War Room card */}
+          <div
+            className="rounded-2xl p-4 flex gap-3"
+            style={{ background: '#fff', border: '1px solid rgba(217,119,6,0.2)', boxShadow: '0 1px 4px rgba(217,119,6,0.07)' }}
+          >
             <div
-              className="w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center mt-0.5"
-              style={{ background: 'linear-gradient(135deg,#b45309,#d97706)' }}
+              className="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#92400e,#d97706)' }}
             >
-              <Zap className="w-4 h-4 text-white" />
+              <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <p className="text-sm font-bold text-slate-900">War Room</p>
                 {!workspaceIsPro && (
                   <span
-                    className="text-xs font-black px-1.5 py-0.5 rounded-full"
+                    className="font-black px-1.5 py-0.5 rounded-full"
                     style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: '#fff', fontSize: '9px' }}
                   >
                     PRO
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                A living intelligence panel synthesized from your AI conversations. The War Room automatically extracts key entities — people, organizations, themes, risks — and maps relationships across every discussion, giving you a strategic overview at a glance.
+              <p className="text-xs leading-relaxed" style={{ color: '#475569' }}>
+                A living intelligence panel built from your conversations. The War Room auto-extracts key entities — people, orgs, themes, risks — and maps their relationships, giving you a strategic overview at a glance.
               </p>
             </div>
           </div>
