@@ -159,8 +159,17 @@ export default function BlogAdmin() {
     };
 
     if (editing) {
-      const { error: err } = await supabase.from('blog_posts').update(payload).eq('id', editing.id);
+      const { data: updated, error: err } = await supabase
+        .from('blog_posts')
+        .update(payload)
+        .eq('id', editing.id)
+        .select('id');
       if (err) { setError(err.message); setSaving(false); return; }
+      if (!updated || updated.length === 0) {
+        setError('Update was blocked — your session may not have admin permission. Try signing out and back in to the admin panel.');
+        setSaving(false);
+        return;
+      }
     } else {
       const { error: err } = await supabase.from('blog_posts').insert(payload);
       if (err) { setError(err.message); setSaving(false); return; }
