@@ -271,12 +271,8 @@ export default function AdminDashboard() {
     setUserWorkspaces([]);
     setLoadingContributions(true);
 
-    const { data } = await supabase
-      .from('workspace_members')
-      .select('role, joined_at, workspaces(id, name, description, plan, subscription_status, created_at)')
-      .eq('user_id', user.id)
-      .order('joined_at', { ascending: false });
-
+    const { data, error } = await supabase.rpc('get_admin_user_workspaces', { target_user_id: user.id });
+    if (error) console.error('Error loading user workspaces:', error);
     setUserWorkspaces(data || []);
     setLoadingContributions(false);
   };
@@ -338,16 +334,12 @@ export default function AdminDashboard() {
   const loadAdminWorkspaces = async () => {
     setLoadingAdminWorkspaces(true);
     try {
-      const { data } = await supabase
-        .from('workspaces')
-        .select(`
-          id, name, description, plan, subscription_status, seats, created_at,
-          stripe_customer_id, stripe_subscription_id, current_period_end,
-          profiles!workspaces_owner_id_fkey (full_name, email)
-        `)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_admin_all_workspaces');
+      if (error) throw error;
       setAdminWorkspaces(data || []);
-    } catch {}
+    } catch (err) {
+      console.error('Error loading workspaces:', err);
+    }
     setLoadingAdminWorkspaces(false);
   };
 
@@ -590,9 +582,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {adminWorkspaces.map((ws: any) => {
-                        const owner = Array.isArray(ws.profiles) ? ws.profiles[0] : ws.profiles;
-                        return (
+                      {adminWorkspaces.map((ws: any) => (
                           <tr key={ws.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                             <td className="py-2.5 px-3 font-medium text-slate-900">{ws.name}</td>
                             <td className="py-2.5 px-3 max-w-[200px]">
@@ -602,7 +592,7 @@ export default function AdminDashboard() {
                                 <span className="text-xs text-slate-300 italic">No topic</span>
                               )}
                             </td>
-                            <td className="py-2.5 px-3 text-slate-600">{owner?.full_name || owner?.email || '—'}</td>
+                            <td className="py-2.5 px-3 text-slate-600">{ws.owner_full_name || ws.owner_email || '—'}</td>
                             <td className="py-2.5 px-3">
                               <span className="text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(37,99,235,0.08)', color: '#2563eb' }}>
                                 {ws.plan}
@@ -616,8 +606,7 @@ export default function AdminDashboard() {
                             <td className="py-2.5 px-3 text-slate-600">{ws.seats}</td>
                             <td className="py-2.5 px-3 text-slate-400">{new Date(ws.created_at).toLocaleDateString()}</td>
                           </tr>
-                        );
-                      })}
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -1387,37 +1376,34 @@ export default function AdminDashboard() {
                   <div className="p-6 text-center text-slate-500 text-sm">No workspace memberships yet.</div>
                 ) : (
                   <div className="divide-y divide-slate-200">
-                    {userWorkspaces.map((m: any, i: number) => {
-                      const ws = m.workspaces;
-                      return (
-                        <div key={i} className="px-4 py-3 flex items-center justify-between hover:bg-slate-50">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-slate-900 text-sm">{ws?.name ?? 'Unknown'}</p>
-                            {ws?.description && (
-                              <p className="text-xs text-slate-500 mt-0.5 truncate" title={ws.description}>
-                                <span className="font-semibold text-slate-600">Topic:</span> {ws.description}
-                              </p>
-                            )}
-                            <p className="text-xs text-slate-400 mt-0.5">
-                              Role: <span className="font-semibold capitalize">{m.role}</span>
-                              {ws?.plan && <> &middot; Plan: <span className="font-semibold capitalize">{ws.plan}</span></>}
+                    {userWorkspaces.map((m: any, i: number) => (
+                      <div key={i} className="px-4 py-3 flex items-center justify-between hover:bg-slate-50">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900 text-sm">{m.workspace_name ?? 'Unknown'}</p>
+                          {m.workspace_description && (
+                            <p className="text-xs text-slate-500 mt-0.5 truncate" title={m.workspace_description}>
+                              <span className="font-semibold text-slate-600">Topic:</span> {m.workspace_description}
                             </p>
-                          </div>
-                          <div className="text-right">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              ws?.subscription_status === 'active' ? 'bg-green-100 text-green-700' :
-                              ws?.subscription_status === 'trialing' ? 'bg-blue-100 text-blue-700' :
-                              'bg-slate-100 text-slate-600'
-                            }`}>
-                              {ws?.subscription_status ?? 'unknown'}
-                            </span>
-                            <p className="text-xs text-slate-400 mt-1">
-                              {m.joined_at ? new Date(m.joined_at).toLocaleDateString() : ''}
-                            </p>
-                          </div>
+                          )}
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Role: <span className="font-semibold capitalize">{m.role}</span>
+                            {m.workspace_plan && <> &middot; Plan: <span className="font-semibold capitalize">{m.workspace_plan}</span></>}
+                          </p>
                         </div>
-                      );
-                    })}
+                        <div className="text-right">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            m.workspace_status === 'active' ? 'bg-green-100 text-green-700' :
+                            m.workspace_status === 'trialing' ? 'bg-blue-100 text-blue-700' :
+                            'bg-slate-100 text-slate-600'
+                          }`}>
+                            {m.workspace_status ?? 'unknown'}
+                          </span>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {m.joined_at ? new Date(m.joined_at).toLocaleDateString() : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
