@@ -285,43 +285,43 @@ Return ONLY valid JSON in this exact shape, no markdown:
   ]
 }`;
 
-    // Run main synthesis and action items calls in parallel
-    const [openAiRes, actionItemsRes] = await Promise.all([
-      fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce exhaustive, comprehensive JSON exactly as instructed. You never default to generic outputs — every field is maximally populated and grounded in the specific debate transcript. Thin or vague outputs are a failure. Minimum counts for every array field are non-negotiable.",
-            },
-            { role: "user", content: synthesisPrompt },
-          ],
-          max_tokens: 7000,
-          temperature: 0.4,
-          response_format: { type: "json_object" },
-        }),
+    // Run main synthesis first, then action items sequentially to avoid TPM rate limits.
+    // Both calls together can exceed 30k tokens/min when parallelised.
+    const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce comprehensive JSON exactly as instructed, grounded entirely in the transcript provided. Only include items with direct evidence — empty arrays are correct when a topic was not discussed.",
+          },
+          { role: "user", content: synthesisPrompt },
+        ],
+        max_tokens: 6000,
+        temperature: 0.4,
+        response_format: { type: "json_object" },
       }),
-      fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: "You are a Chief of Staff who generates specific, owner-assigned, immediately executable action plans. Every action item must name a responsible role, a concrete deliverable, and connect directly to the decision being evaluated. Generic or vague tasks are unacceptable. You produce JSON only.",
-            },
-            { role: "user", content: actionItemsPrompt },
-          ],
-          max_tokens: 3000,
-          temperature: 0.3,
-          response_format: { type: "json_object" },
-        }),
+    });
+
+    const actionItemsRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a Chief of Staff who generates specific, owner-assigned, immediately executable action plans. Every action item must name a responsible role, a concrete deliverable, and connect directly to the decision being evaluated. Generic or vague tasks are unacceptable. You produce JSON only.",
+          },
+          { role: "user", content: actionItemsPrompt },
+        ],
+        max_tokens: 2000,
+        temperature: 0.3,
+        response_format: { type: "json_object" },
       }),
-    ]);
+    });
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
