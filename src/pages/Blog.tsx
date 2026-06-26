@@ -302,7 +302,7 @@ export default function Blog({ onNavigate, initialSlug }: BlogProps) {
       <div className="border-t border-slate-100 mt-8">
         <div className="max-w-6xl mx-auto px-4 py-12 text-center">
           <h3 className="text-xl font-black text-slate-900 mb-2">Ready to think sharper?</h3>
-          <p className="text-slate-500 mb-6">Join thousands of leaders using Poddle to make better decisions.</p>
+          <p className="text-slate-500 mb-6">Join forward-thinking leaders using Poddle to make better decisions.</p>
           <button
             onClick={() => onNavigate('auth')}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-0.5"
