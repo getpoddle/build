@@ -319,7 +319,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         </h1>
 
         <p className="text-base leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'rgba(203,213,225,0.82)' }}>
-          Seven AI agents that pressure-test your reasoning, surface blind spots, and catch the biases and missing second-order effects before they become expensive mistakes.
+          Turn every critical decision into a structured, multi-perspective challenge before you commit.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
