@@ -61,7 +61,7 @@ export interface WarRoomExport {
   openQuestions: Array<{ question: string; urgency: string }>;
   riskSignals: Array<{ signal: string; severity: string; category: string }>;
   blindSpots: Array<{ area: string; description: string }>;
-  actionItems?: Array<{ text: string; priority: string; status: string; source: string }>;
+  actionItems?: Array<{ text: string; priority: string; status: string; source: string; source_area?: string }>;
   financialMetrics?: Array<{ metric: string; value: string; confidence: string; note: string }>;
   operationalMetrics?: Array<{ metric: string; status: string; note: string }>;
   nonFinancialMetrics?: Array<{ metric: string; signal: string; note: string }>;
@@ -82,7 +82,7 @@ export interface BoardBriefExport {
   alignmentScore?: number | null;
   consensusPoints: Array<{ text: string; confidence: number }>;
   riskSignals: Array<{ signal: string; severity: string }>;
-  actionItems: Array<{ text: string; priority: string; status: string }>;
+  actionItems: Array<{ text: string; priority: string; status: string; source_area?: string }>;
   opportunitySignals?: Array<{ title: string; description: string; confidence: string; source: string }>;
   synthesisRunNumber?: number;
 }
@@ -859,10 +859,11 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
       <span style="font-size:8.5pt;font-weight:700;color:#7c3aed;min-width:18px;flex-shrink:0;">${i + 1}.</span>
       <div style="flex:1;">
         <div style="font-size:9.5pt;${a.status === 'done' ? 'text-decoration:line-through;color:#94a3b8;' : 'color:#1e293b;'}margin-bottom:4px;">${escapeHtml(a.text)}</div>
-        <div style="display:flex;gap:5px;align-items:center;">
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
           <span class="tag tag-${a.priority?.toLowerCase()}">${escapeHtml(a.priority)}</span>
           <span class="tag" style="background:rgba(15,23,42,0.07)!important;color:#475569;text-transform:capitalize;">${a.status.replace('_', ' ')}</span>
           ${a.source === 'ai' ? '<span class="tag" style="background:rgba(124,58,237,0.10)!important;color:#7c3aed;">AI</span>' : ''}
+          ${a.source_area ? `<span class="tag" style="background:rgba(30,58,95,0.10)!important;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.04em;font-size:7pt;">${escapeHtml(a.source_area)}</span>` : ''}
         </div>
       </div>
     </div>`);
@@ -1044,7 +1045,10 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
     <div class="bb-row">
       <span class="bb-num">${i + 1}.</span>
       <div class="bb-text">${escapeHtml(a.text)}</div>
-      <span class="bb-badge bb-priority-${a.priority?.toLowerCase()}">${escapeHtml(a.priority)}</span>
+      <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+        ${a.source_area ? `<span class="bb-badge" style="background:rgba(30,58,95,0.10)!important;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(a.source_area)}</span>` : ''}
+        <span class="bb-badge bb-priority-${a.priority?.toLowerCase()}">${escapeHtml(a.priority)}</span>
+      </div>
     </div>`).join('');
 
   const opportunitiesHtml = (data.opportunitySignals || []).slice(0, 3).map((o, i) => `

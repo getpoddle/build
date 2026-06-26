@@ -1087,7 +1087,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             nonFinancialMetrics: synthesis.non_financial_metrics, opportunitySignals: synthesis.opportunity_signals,
             cognitiveBiasFlags: synthesis.cognitive_bias_flags,
             recommendation: synthesis.recommendation,
-            actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source: a.source })),
+            actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source: a.source, source_area: a.source_area })),
           })}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5"
             style={{ background: 'rgba(15,23,42,0.05)', color: '#475569' }}>
@@ -1701,7 +1701,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                     consensusPoints: synthesis!.consensus_points,
                     riskSignals: synthesis!.risk_signals,
                     opportunitySignals: synthesis!.opportunity_signals,
-                    actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status })),
+                    actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source_area: a.source_area })),
                     synthesisRunNumber: history.length || undefined,
                   })}
                   className="flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold transition-all hover:-translate-y-0.5"
