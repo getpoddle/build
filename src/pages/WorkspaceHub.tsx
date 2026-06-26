@@ -272,7 +272,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
             <div>
               <p className="text-sm font-bold text-slate-900 mb-1">AI Collaboration</p>
               <p className="text-xs leading-relaxed" style={{ color: '#475569' }}>
-                Chat with specialized AI agents in real time. Ask questions, explore ideas, and get multi-perspective responses tailored to your workspace topic — strategy, research, critique, and more.
+                Bring your toughest decisions to a team of specialized AI agents. Get structured, multi-perspective analysis — from strategy and risk to research and critique — so you can make better decisions faster, with full context.
               </p>
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
                 )}
               </div>
               <p className="text-xs leading-relaxed" style={{ color: '#475569' }}>
-                A living intelligence panel built from your conversations. The War Room auto-extracts key entities — people, orgs, themes, risks — and maps their relationships, giving you a strategic overview at a glance.
+                Your decision command center. The War Room synthesizes every conversation into a live strategic map — surfacing key players, risks, dependencies, and emerging patterns so you always know what matters and what to act on next.
               </p>
             </div>
           </div>
