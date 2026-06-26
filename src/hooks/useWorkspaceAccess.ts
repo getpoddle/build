@@ -80,7 +80,27 @@ export function useWorkspaceAccess(workspaceId: string | null): WorkspaceAccess 
     }
 
     load();
-    return () => { cancelled = true; };
+
+    // Re-fetch whenever the workspace's subscription fields change server-side
+    // (e.g. Stripe webhook sets subscription_status = 'active' after payment).
+    const channel = supabase
+      .channel(`workspace-access-${workspaceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'workspaces',
+          filter: `id=eq.${workspaceId}`,
+        },
+        () => { load(); }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [workspaceId, user]);
 
   return state;
