@@ -93,7 +93,7 @@ export async function phSyncProfileProperties(userId: string) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, username, first_name, last_name, country, location, verified, is_admin, insight_score, referral_tier, referral_points, onboarded, created_at, theme_preference')
+    .select('id, username, first_name, last_name, country, location, verified, is_admin, referral_tier, referral_points, onboarded, created_at, theme_preference')
     .eq('id', userId)
     .maybeSingle();
 
@@ -118,7 +118,6 @@ export async function phSyncProfileProperties(userId: string) {
     location: profile.location ?? null,
     verified: !!profile.verified,
     is_admin: !!profile.is_admin,
-    insight_score: profile.insight_score ?? 0,
     referral_tier: profile.referral_tier ?? null,
     referral_points: profile.referral_points ?? 0,
     onboarded: !!profile.onboarded,

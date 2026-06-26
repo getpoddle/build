@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Award, Download, Globe, Bot, Play, RefreshCw, Sparkles, ChevronDown, BookOpen } from 'lucide-react';
+import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Download, Globe, Bot, Play, RefreshCw, Sparkles, ChevronDown, BookOpen } from 'lucide-react';
 import { getAvatarUrl } from '../lib/avatarUtils';
 import VerificationBadge from '../components/VerificationBadge';
 import DomainManagement from '../components/admin/DomainManagement';
@@ -34,7 +34,6 @@ interface UserStats {
   avatar_url: string | null;
   verified: boolean;
   created_at: string;
-  insight_score: number;
   workspaces_created: number;
   workspaces_opened: number;
   pdfs_exported: number;
@@ -103,7 +102,7 @@ export default function AdminDashboard() {
       const [profilesRes, workspaceStatsRes, moderationRes, referralRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('id, full_name, email, username, avatar_url, verified, created_at, insight_score')
+          .select('id, full_name, email, username, avatar_url, verified, created_at')
           .order('created_at', { ascending: false })
           .limit(2000),
         supabase.rpc('get_all_users_workspace_pdf_stats'),
@@ -342,7 +341,6 @@ export default function AdminDashboard() {
       'Username',
       'Status',
       'Verified',
-      'Insight Score',
       'Workspaces Created',
       'Workspaces Opened',
       'PDFs Exported',
@@ -356,7 +354,6 @@ export default function AdminDashboard() {
       user.username ? `@${user.username}` : '',
       user.account_status || 'active',
       user.verified ? 'Yes' : 'No',
-      user.insight_score ?? 0,
       user.workspaces_created ?? 0,
       user.workspaces_opened ?? 0,
       user.pdfs_exported ?? 0,
@@ -473,10 +470,6 @@ export default function AdminDashboard() {
   const suspendedUsers = users.filter(u => u.account_status === 'suspended').length;
   const bannedUsers = users.filter(u => u.account_status === 'banned').length;
   const totalReports = users.reduce((sum, u) => sum + (u.total_reports_against || 0), 0);
-  const totalContributions = users.reduce((sum, u) =>
-    sum + u.assumptions_count + u.challenges_count + u.forecasts_count +
-    u.risks_count + u.scenarios_count + u.challenge_responses_count, 0
-  );
   const totalReferrals = users.reduce((sum, u) => sum + (u.total_referrals || 0), 0);
   const recentReferrals = users.reduce((sum, u) => sum + (u.recent_referrals || 0), 0);
 
@@ -958,16 +951,6 @@ export default function AdminDashboard() {
 
           <div className="bg-white rounded-lg border border-slate-200 p-6">
             <div className="flex items-center gap-3 mb-2">
-              <Award className="w-8 h-8 text-amber-600" />
-              <div>
-                <p className="text-sm text-slate-600">Total Contributions</p>
-                <p className="text-2xl font-bold text-slate-900">{totalContributions}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <div className="flex items-center gap-3 mb-2">
               <AlertTriangle className="w-8 h-8 text-red-600" />
               <div>
                 <p className="text-sm text-slate-600">User Reports</p>
@@ -1059,7 +1042,6 @@ export default function AdminDashboard() {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">User</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Insight</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Workspace Usage</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Referrals</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Reports</th>
@@ -1133,11 +1115,6 @@ export default function AdminDashboard() {
                               </div>
                             )}
                           </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold bg-amber-100 text-amber-800">
-                            {user.insight_score}
-                          </span>
                         </td>
                         <td className="px-4 py-4">
                           <div className="text-sm space-y-1">
