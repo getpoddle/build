@@ -1167,16 +1167,27 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       </div>
 
       {/* ── Section nav pills ── */}
-      <div className="flex flex-wrap gap-2">
+      <div
+        className="sticky top-0 z-10 py-2.5 flex flex-wrap gap-1.5"
+        style={{ background: 'rgba(248,250,252,0.96)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(15,23,42,0.07)', marginLeft: '-1px', marginRight: '-1px', paddingLeft: '1px', paddingRight: '1px' }}
+      >
+        <button
+          onClick={() => setActiveSection(null)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+          style={activeSection === null
+            ? { background: 'rgba(15,23,42,0.12)', color: '#0f172a', border: '1px solid rgba(15,23,42,0.2)' }
+            : { background: 'rgba(15,23,42,0.04)', color: '#94a3b8', border: '1px solid transparent' }}>
+          All
+        </button>
         {sections.map(s => (
           <button key={s.key}
             onClick={() => setActiveSection(activeSection === s.key ? null : s.key)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
             style={activeSection === s.key
               ? { background: s.bg, color: s.color, border: `1px solid ${s.color}33` }
-              : { background: 'rgba(15,23,42,0.05)', color: '#64748b', border: '1px solid transparent' }}>
+              : { background: 'rgba(15,23,42,0.04)', color: '#64748b', border: '1px solid transparent' }}>
             <s.icon className="w-3.5 h-3.5" />
-            {s.label}
+            <span className="hidden sm:inline">{s.label}</span>
             <span className="ml-0.5 text-xs font-black w-4 h-4 rounded-full flex items-center justify-center"
               style={{ background: activeSection === s.key ? `${s.color}22` : 'rgba(15,23,42,0.08)', color: activeSection === s.key ? s.color : '#64748b' }}>
               {s.count}

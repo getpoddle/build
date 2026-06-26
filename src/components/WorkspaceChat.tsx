@@ -864,8 +864,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="overflow-y-auto space-y-4 pr-1"
-        style={{ minHeight: '320px', height: 'clamp(320px, calc(100vh - 420px), 580px)' }}
+        className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1"
       >
         {messages.length === 0 && !loading ? (
           intakeDone || initialPrompt ? (
