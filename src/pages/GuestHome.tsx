@@ -312,15 +312,14 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-black leading-[1.07] mb-6 text-white mx-auto max-w-3xl">
-          Seven AI agents that<br />
-          challenge your best{' '}
+          Judgment infrastructure for{' '}
           <span style={{ background: 'linear-gradient(135deg,#60a5fa,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            thinking.
+            high-stakes decisions.
           </span>
         </h1>
 
         <p className="text-base leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'rgba(203,213,225,0.82)' }}>
-          Poddle is a decision intelligence layer for your team. Structured AI reasoning catches the biases, blind spots, and missing second-order effects before they become expensive mistakes.
+          Seven AI agents that pressure-test your reasoning, surface blind spots, and catch the biases and missing second-order effects before they become expensive mistakes.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3 mb-8">

@@ -8,14 +8,14 @@ export interface SEOData {
 
 export const pageSEO: Record<string, SEOData> = {
   home: {
-    title: 'Poddle - Decision-Making for Teams and Founders',
-    description: 'A sharper way for teams and founders to make decisions. Pressure-test assumptions, forecast outcomes, and ship calls you can defend — with AI agents and trusted peers.',
-    keywords: 'decision-making for teams, decision-making for founders, founder decisions, team decisions, assumption testing, forecasting, strategic analysis, AI decision intelligence',
+    title: 'Poddle – Judgment Infrastructure for High-Stakes Decisions',
+    description: 'Seven AI agents that pressure-test your reasoning, surface blind spots, and sharpen every high-stakes call — before it becomes an expensive mistake.',
+    keywords: 'judgment infrastructure, high-stakes decisions, decision intelligence, AI agents, assumption testing, forecasting, strategic analysis, cognitive bias detection',
   },
   pods: {
-    title: 'Decision Rooms for Teams & Founders | Poddle',
-    description: 'Run decision-making rooms with your team or fellow founders. Pressure-test assumptions, forecast outcomes, and decide together with AI agents on tap.',
-    keywords: 'decision rooms, founder decisions, team decision-making, assumption testing, forecasting, strategic analysis, AI decision intelligence',
+    title: 'Decision Rooms for High-Stakes Calls | Poddle',
+    description: 'Run structured decision rooms with AI agents on tap. Pressure-test assumptions, forecast outcomes, and make calls you can defend.',
+    keywords: 'decision rooms, high-stakes decisions, assumption testing, forecasting, strategic analysis, AI decision intelligence',
   },
   messages: {
     title: 'Direct Messages & Professional Communication | Poddle',
