@@ -1,7 +1,6 @@
-import { Sparkles, User, LogOut, Search, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard, CreditCard, Sun, Moon } from 'lucide-react';
+import { Sparkles, User, LogOut, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard, CreditCard, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import UnifiedSearch from './UnifiedSearch';
 import PoddleMark from './PoddleMark';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
@@ -34,7 +33,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -62,18 +60,13 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        if (user) setShowSearch(true);
-      }
       if (e.key === 'Escape') {
-        setShowSearch(false);
         setShowLogoutConfirm(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [user]);
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     if (isSigningOut) return;
@@ -121,21 +114,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           <div className="flex items-center gap-2.5 px-5 h-16 flex-shrink-0 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
             <PoddleMark size={28} />
             <span className="text-base font-black text-white tracking-tight">Poddle</span>
-          </div>
-
-          {/* Search */}
-          <div className="px-3 pt-4 pb-2">
-            <button
-              onClick={() => setShowSearch(true)}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-colors group"
-              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(148,163,184,0.9)' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'}
-            >
-              <Search className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="flex-1 text-left">Search…</span>
-              <kbd className="text-[10px] px-1.5 py-0.5 rounded-md font-mono" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(148,163,184,0.6)' }}>⌘K</kbd>
-            </button>
           </div>
 
           {/* Nav items */}
@@ -329,20 +307,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
 
             {/* RIGHT: action icons */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Search (authenticated mobile) */}
-              {user && (
-                <button
-                  onClick={() => setShowSearch(true)}
-                  aria-label="Search (Cmd+K)"
-                  className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 xl:hidden"
-                  style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
-                >
-                  <Search className="w-4 h-4" />
-                </button>
-              )}
-
               {/* Authenticated mobile icon row */}
               {user ? (
                 <div className="flex items-center gap-0.5 xl:hidden">
@@ -495,8 +459,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           </div>
         </nav>
       )}
-
-      {showSearch && <UnifiedSearch onClose={() => setShowSearch(false)} onNavigate={onNavigate} />}
 
       {showLogoutConfirm && (
         <div

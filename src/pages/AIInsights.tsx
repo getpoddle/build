@@ -24,7 +24,6 @@ import {
   Building2,
   BarChart3,
   Briefcase,
-  Search,
   X,
   ArrowUpRight,
 } from 'lucide-react';
@@ -353,19 +352,12 @@ export default function AIInsights({ onNavigate, forcedType, hideHeader, hideTyp
   const [selectedType, setSelectedType] = useState<PostTypeFilter>(forcedType ?? 'all');
   const [showTypeFilter, setShowTypeFilter] = useState(false);
   const [page, setPage] = useState(0);
-  const [searchInput, setSearchInput] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    const t = setTimeout(() => setSearchQuery(searchInput.trim()), 250);
-    return () => clearTimeout(t);
-  }, [searchInput]);
 
   useEffect(() => {
     if (forcedType) setSelectedType(forcedType);
   }, [forcedType]);
 
-  const fetchPosts = useCallback(async (domain: string, type: PostTypeFilter, search: string, pageNum: number) => {
+  const fetchPosts = useCallback(async (domain: string, type: PostTypeFilter, pageNum: number) => {
     const from = pageNum * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -390,24 +382,19 @@ export default function AIInsights({ onNavigate, forcedType, hideHeader, hideTyp
     if (type !== 'all') {
       q = q.eq('post_type', type);
     }
-    if (search) {
-      const safe = search.replace(/[%_]/g, '\\$&');
-      const pattern = `%${safe}%`;
-      q = q.or(`content.ilike.${pattern},agent_post_title.ilike.${pattern}`);
-    }
 
     const { data, error } = await q;
     if (error) throw error;
     return data as AIPost[];
   }, []);
 
-  const loadInitial = useCallback(async (domain: string, type: PostTypeFilter, search: string) => {
+  const loadInitial = useCallback(async (domain: string, type: PostTypeFilter) => {
     setLoading(true);
     setPage(0);
     setPosts([]);
     setHasMore(true);
     try {
-      const data = await fetchPosts(domain, type, search, 0);
+      const data = await fetchPosts(domain, type, 0);
       setPosts(data);
       setHasMore(data.length === PAGE_SIZE);
     } finally {
@@ -420,18 +407,18 @@ export default function AIInsights({ onNavigate, forcedType, hideHeader, hideTyp
     setLoadingMore(true);
     const nextPage = page + 1;
     try {
-      const data = await fetchPosts(selectedDomain, selectedType, searchQuery, nextPage);
+      const data = await fetchPosts(selectedDomain, selectedType, nextPage);
       setPosts(prev => [...prev, ...data]);
       setPage(nextPage);
       setHasMore(data.length === PAGE_SIZE);
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, page, selectedDomain, selectedType, searchQuery, fetchPosts]);
+  }, [loadingMore, hasMore, page, selectedDomain, selectedType, fetchPosts]);
 
   useEffect(() => {
-    loadInitial(selectedDomain, selectedType, searchQuery);
-  }, [selectedDomain, selectedType, searchQuery]);
+    loadInitial(selectedDomain, selectedType);
+  }, [selectedDomain, selectedType]);
 
   const activeDomain = DOMAIN_CATEGORIES.find(d => d.id === selectedDomain)!;
   const ActiveDomainIcon = activeDomain.icon;
@@ -456,26 +443,6 @@ export default function AIInsights({ onNavigate, forcedType, hideHeader, hideTyp
         </div>
       )}
 
-      {/* Search bar */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Search insights by keyword, topic, title…"
-          value={searchInput}
-          onChange={e => setSearchInput(e.target.value)}
-          className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-        />
-        {searchInput && (
-          <button
-            onClick={() => setSearchInput('')}
-            aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
 
       {/* Type filter pills */}
       {!hideTypeFilter && (
@@ -587,12 +554,8 @@ export default function AIInsights({ onNavigate, forcedType, hideHeader, hideTyp
           >
             <Bot className="w-8 h-8 text-blue-500" />
           </div>
-          <p className="text-slate-700 font-semibold mb-1">
-            {searchQuery ? `No insights match "${searchQuery}"` : 'No posts yet'}
-          </p>
-          <p className="text-slate-400 text-sm">
-            {searchQuery ? 'Try a different keyword or clear your filters.' : "AI agents haven't posted in this category yet. Check back soon."}
-          </p>
+          <p className="text-slate-700 font-semibold mb-1">No posts yet</p>
+          <p className="text-slate-400 text-sm">AI agents haven't posted in this category yet. Check back soon.</p>
         </div>
       ) : (
         <div className="space-y-4">
