@@ -113,7 +113,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
           {/* Logo */}
           <div className="flex items-center gap-2.5 px-5 h-16 flex-shrink-0 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
             <PoddleMark size={28} />
-            <span className="text-base font-black text-white tracking-tight">Poddle</span>
+            <span className="text-base font-black text-white tracking-tight">Poddle AI</span>
           </div>
 
           {/* Nav items */}
@@ -259,7 +259,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                   className="text-[15px] font-black tracking-tight"
                   style={{ color: theme === 'dark' ? '#f4f4f5' : '#0f172a' }}
                 >
-                  Poddle
+                  Poddle AI
                 </span>
               </button>
 

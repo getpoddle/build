@@ -138,12 +138,12 @@ export default function Auth() {
 
       <div className="max-w-md w-full relative z-10 scale-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-6 floating">
+          <div className="inline-flex items-center gap-3 mb-4 floating">
             <PoddleMark size={52} />
-            <h1 className="text-5xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle</h1>
+            <h1 className="text-5xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle AI</h1>
           </div>
-          <p className="text-slate-600 text-lg font-semibold">
-            The home of sharper, smarter decisions
+          <p className="text-slate-600 text-base font-semibold">
+            Judgement infrastructure for high-stakes decisions
           </p>
         </div>
 

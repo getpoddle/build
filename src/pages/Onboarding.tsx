@@ -161,11 +161,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
       <div className="max-w-lg w-full relative z-10">
         <div className="text-center mb-8 fade-in">
-          <div className="inline-flex items-center gap-3 mb-6 floating">
+          <div className="inline-flex items-center gap-3 mb-4 floating">
             <PoddleMark size={48} />
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle</h1>
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle AI</h1>
           </div>
-          <p className="text-lg text-slate-600 font-semibold">AI-powered decision intelligence for teams</p>
+          <p className="text-base text-slate-600 font-semibold">Judgement infrastructure for high-stakes decisions</p>
         </div>
 
         <div className="glass-card-strong rounded-3xl shadow-2xl p-6 sm:p-10 border scale-in">

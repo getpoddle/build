@@ -69,7 +69,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <PoddleMark size={28} />
-              <span className="text-white font-black text-lg tracking-tight">Poddle</span>
+              <span className="text-white font-black text-lg tracking-tight">Poddle AI</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
               <button onClick={() => onNavigate('blog')} className="hover:text-white transition-colors">Blog</button>
@@ -496,7 +496,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           style={{ background: 'rgba(37,99,235,0.15)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.25)' }}
         >
           <Zap className="w-3.5 h-3.5" />
-          Decision Intelligence Platform
+          Pattern Intelligence Platform
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-black leading-[1.07] mb-6 text-white mx-auto max-w-3xl">
