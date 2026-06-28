@@ -5,6 +5,48 @@ import { supabase } from '../lib/supabase';
 const UNLOCK_THRESHOLD = 2;
 const AGENT_ALIGNMENT_THRESHOLD = 5;
 
+const AGENT_DISPLAY_NAMES: Record<string, string> = {
+  risk_analyst:        'Risk Analyst',
+  execution_lead:      'Execution Lead',
+  market_analyst:      'Market Analyst',
+  people_advisor:      'People Advisor',
+  devils_advocate:     "Devil's Advocate",
+  innovation_scout:    'Innovation Scout',
+  strategic_analyst:   'Strategic Analyst',
+  financial_strategist:'Financial Strategist',
+};
+
+function canonicalAgentName(raw: string): string {
+  const lower = raw.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  return AGENT_DISPLAY_NAMES[lower] ?? raw
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .replace(/devil s advocate/i, "Devil's Advocate");
+}
+
+function mergeAgentAlignmentMap(
+  raw: Record<string, AgentAlignmentEntry>
+): Record<string, AgentAlignmentEntry> {
+  const merged: Record<string, { tension_sum: number; conflict_sum: number; score_sum: number; n: number }> = {};
+  for (const [key, stats] of Object.entries(raw)) {
+    const name = canonicalAgentName(key);
+    if (!merged[name]) merged[name] = { tension_sum: 0, conflict_sum: 0, score_sum: 0, n: 0 };
+    merged[name].tension_sum  += stats.avg_tension;
+    merged[name].conflict_sum += stats.conflict_count;
+    merged[name].score_sum    += stats.alignment_score;
+    merged[name].n            += 1;
+  }
+  const result: Record<string, AgentAlignmentEntry> = {};
+  for (const [name, agg] of Object.entries(merged)) {
+    result[name] = {
+      avg_tension:     Math.round(agg.tension_sum  / agg.n),
+      conflict_count:  agg.conflict_sum,
+      alignment_score: Math.round(agg.score_sum    / agg.n),
+    };
+  }
+  return result;
+}
+
 const RISK_LEVEL_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   high:   { bg: 'rgba(220,38,38,0.10)',  text: '#dc2626', label: 'High risk'   },
   medium: { bg: 'rgba(245,158,11,0.10)', text: '#d97706', label: 'Medium risk' },
@@ -215,7 +257,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
         decision_style_summary: row.decision_style_summary ?? null,
         agent_alignment_map:
           row.agent_alignment_map && typeof row.agent_alignment_map === 'object'
-            ? row.agent_alignment_map
+            ? mergeAgentAlignmentMap(row.agent_alignment_map as Record<string, AgentAlignmentEntry>)
             : {},
         avg_alignment_score: typeof row.avg_alignment_score === 'number' ? row.avg_alignment_score : null,
       });
@@ -353,7 +395,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                   { icon: Eye,        color: '#7c3aed', bg: 'rgba(124,58,237,0.08)',  title: 'Bias Fingerprint',    description: 'Which cognitive biases the AI flags most in your thinking.' },
                   { icon: Zap,        color: '#2563eb', bg: 'rgba(37,99,235,0.08)',   title: 'Decision Style',      description: 'How you balance risk, speed, and financial conservatism.' },
                   { icon: BarChart2,  color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', title: 'Risk Tolerance Map',  description: 'How your risk appetite shifts across decision domains.' },
-                  { icon: GitBranch,  color: '#0891b2', bg: 'rgba(8,145,178,0.08)',   title: 'Agent Alignment',     description: 'Which AI agents you most frequently agree or clash with.' },
+                  { icon: GitBranch,  color: '#0891b2', bg: 'rgba(8,145,178,0.08)',   title: 'Agent Alignment',     description: 'Which AI agents you most frequently agree or conflict with.' },
                   { icon: Lightbulb,  color: '#d97706', bg: 'rgba(245,158,11,0.08)', title: 'Recommendations',     description: 'Personalised next actions based on your decision patterns.' },
                 ].map(({ icon: Icon, color, bg, title, description }) => (
                   <div
@@ -607,7 +649,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-slate-800 mb-0.5">Agent Alignment</p>
                         <p className="text-[11px] text-slate-400 leading-relaxed">
-                          No conflict data yet. Re-run the War Room synthesis to start tracking which agents clash or align in your decisions.
+                          No conflict data yet. Re-run the War Room synthesis to start tracking which agents conflict or align with your decisions.
                         </p>
                       </div>
                     </div>
@@ -616,7 +658,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                 const alignColor = (score: number) =>
                   score >= 70 ? '#16a34a' : score >= 45 ? '#d97706' : '#dc2626';
                 const alignLabel = (score: number) =>
-                  score >= 70 ? 'Aligned' : score >= 45 ? 'Mixed' : 'Clashes';
+                  score >= 70 ? 'Aligned' : score >= 45 ? 'Mixed' : 'Conflicts';
                 const alignBg = (score: number) =>
                   score >= 70 ? 'rgba(22,163,74,0.10)' : score >= 45 ? 'rgba(245,158,11,0.10)' : 'rgba(220,38,38,0.10)';
                 const mostClashing = entries[0];
@@ -668,7 +710,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                         </div>
                         <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
                           {mostClashing && mostAligned && mostClashing[0] !== mostAligned[0]
-                            ? <><span className="font-semibold" style={{ color: '#dc2626' }}>{mostClashing[0]}</span> clashes most in your sessions; <span className="font-semibold" style={{ color: '#16a34a' }}>{mostAligned[0]}</span> is your most aligned agent.</>
+                            ? <><span className="font-semibold" style={{ color: '#dc2626' }}>{mostClashing[0]}</span> has the most conflicts in your sessions; <span className="font-semibold" style={{ color: '#16a34a' }}>{mostAligned[0]}</span> is your most aligned agent.</>
                             : 'Based on conflict zones across your synthesized workspaces.'}
                         </p>
                       </div>
