@@ -294,15 +294,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-900">Decision Intelligence</span>
-              {unlocked && (
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-                  style={{ background: 'rgba(37,99,235,0.10)', color: '#2563eb' }}
-                >
-                  Active
-                </span>
-              )}
+              <span className="text-sm font-bold text-slate-900">Pattern Intelligence</span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
               {loading
