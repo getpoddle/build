@@ -496,7 +496,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           style={{ background: 'rgba(37,99,235,0.15)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.25)' }}
         >
           <Zap className="w-3.5 h-3.5" />
-          Pattern Intelligence Platform
+          Decision Intelligence Platform
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-black leading-[1.07] mb-6 text-white mx-auto max-w-3xl">
