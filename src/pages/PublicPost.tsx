@@ -232,7 +232,7 @@ export default function PublicPost({ postId, discussionId, onNavigate }: PublicP
             className="px-6 py-3 rounded-xl font-semibold text-white transition-all active:scale-95"
             style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
           >
-            {user ? 'Go to Home' : 'Sign In to Poddle'}
+            {user ? 'Go to Home' : 'Sign In to Poddle AI'}
           </button>
         </div>
       </div>
@@ -253,7 +253,7 @@ export default function PublicPost({ postId, discussionId, onNavigate }: PublicP
             style={{ color: '#475569', background: 'rgba(255,255,255,0.7)' }}
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-            {user ? 'Back to feed' : 'Go to Poddle'}
+            {user ? 'Back to feed' : 'Go to Poddle AI'}
           </button>
 
           <ShareButton

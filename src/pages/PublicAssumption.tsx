@@ -270,7 +270,7 @@ export default function PublicAssumption({ assumptionId, onNavigate }: PublicAss
               className="px-6 py-3 rounded-xl font-semibold text-white transition-all active:scale-95"
               style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.35)' }}
             >
-              Sign In to Poddle
+              Sign In to Poddle AI
             </button>
           )}
         </div>

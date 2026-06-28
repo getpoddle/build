@@ -273,10 +273,10 @@ export default function ExtensionView() {
           <PoddleLogo size={28} />
           <p style={s.authHeading}>Sign in to continue</p>
           <p style={s.authSub}>
-            You need a Poddle account to use Lens. Sign in at poddleme.com, then re-open the panel.
+            You need a Poddle AI account to use Lens. Sign in at poddleme.com, then re-open the panel.
           </p>
           <a href="https://poddleme.com" target="_blank" rel="noopener noreferrer" style={s.signInBtn}>
-            <LogIn size={14} /> Go to Poddle
+            <LogIn size={14} /> Go to Poddle AI
           </a>
         </div>
         <style>{spinKeyframe}</style>

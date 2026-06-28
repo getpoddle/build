@@ -386,7 +386,7 @@ function AppContent() {
                 <CheckCircle className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                Poddle
+                Poddle AI
               </h1>
             </div>
           </div>
