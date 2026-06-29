@@ -362,7 +362,8 @@ Deno.serve(async (req: Request) => {
     const validDocs = Array.isArray(documents)
       ? documents.filter(d => d?.filename && typeof d.extractedText === "string" && d.extractedText.length > 0).slice(0, 3)
       : [];
-    if (!workspace_id || !message) {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!workspace_id || !UUID_RE.test(workspace_id) || !message) {
       return new Response(JSON.stringify({ error: "Missing workspace_id or message" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

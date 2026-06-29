@@ -7,6 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+// Server-side authoritative product → plan mapping.
+// Plan/seats are NEVER trusted from user-controlled metadata.
+const PRODUCT_TO_PLAN: Record<string, { plan: string; seats: number }> = {
+  "prod_UXcclPSycEN5dN": { plan: "enterprise", seats: 25 },
+  "prod_UYhkfi8tsa4NJu": { plan: "team", seats: 10 },
+  "prod_UXcbO4NuuJRE5A": { plan: "pro", seats: 3 },
+};
+
 async function verifyStripeSignature(body: string, signature: string, secret: string): Promise<boolean> {
   const parts = signature.split(",");
   const timestamp = parts.find(p => p.startsWith("t="))?.slice(2);
@@ -24,6 +32,24 @@ async function verifyStripeSignature(body: string, signature: string, secret: st
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
   const computed = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
   return computed === v1;
+}
+
+async function resolvePlanFromLineItems(
+  subscriptionId: string | null,
+  stripeKey: string
+): Promise<{ plan: string; seats: number } | null> {
+  if (!subscriptionId) return null;
+  try {
+    const res = await fetch(`https://api.stripe.com/v1/subscriptions/${subscriptionId}?expand[]=items.data.price.product`, {
+      headers: { "Authorization": `Bearer ${stripeKey}` },
+    });
+    if (!res.ok) return null;
+    const sub = await res.json();
+    const productId = sub.items?.data?.[0]?.price?.product?.id ?? sub.items?.data?.[0]?.price?.product;
+    return PRODUCT_TO_PLAN[productId] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -58,15 +84,14 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY")!;
+
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const meta = session.metadata || {};
       const userId = meta.user_id;
-      const plan = meta.plan || "pro";
       const workspaceName = meta.workspace_name || "My Workspace";
       const workspaceId = meta.workspace_id || null;
-      const defaultSeats = plan === "enterprise" ? 25 : plan === "team" ? 10 : 3;
-      const seats = parseInt(meta.seats || String(defaultSeats), 10);
       const stripeCustomerId = session.customer;
       const stripeSubscriptionId = session.subscription;
 
@@ -76,6 +101,12 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      // Derive plan and seats from the actual Stripe subscription line items,
+      // never from user-controllable metadata.
+      const resolved = await resolvePlanFromLineItems(stripeSubscriptionId, stripeSecretKey);
+      const plan = resolved?.plan ?? "pro";
+      const seats = resolved?.seats ?? 3;
+
       // Upgrade profile tier
       await supabase
         .from("profiles")
@@ -83,7 +114,6 @@ Deno.serve(async (req: Request) => {
         .eq("id", userId);
 
       if (workspaceId) {
-        // Update existing workspace with Stripe details
         await supabase
           .from("workspaces")
           .update({
@@ -96,7 +126,6 @@ Deno.serve(async (req: Request) => {
           .eq("id", workspaceId)
           .eq("owner_id", userId);
       } else {
-        // Create new workspace
         const { data: ws } = await supabase
           .from("workspaces")
           .insert({
@@ -114,7 +143,6 @@ Deno.serve(async (req: Request) => {
           .single();
 
         if (ws) {
-          // Add owner as first member
           await supabase.from("workspace_members").insert({
             workspace_id: ws.id,
             user_id: userId,
@@ -123,7 +151,6 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Send subscription confirmation email (fire-and-forget)
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
       fetch(`${supabaseUrl}/functions/v1/send-subscription-confirmation`, {
@@ -170,7 +197,6 @@ Deno.serve(async (req: Request) => {
         .eq("stripe_subscription_id", subscriptionId);
 
       if (ws?.owner_id) {
-        // Check if user has any other active workspaces before downgrading
         const { data: activeWs } = await supabase
           .from("workspaces")
           .select("id")
@@ -192,16 +218,11 @@ Deno.serve(async (req: Request) => {
       const subscriptionId = subscription.id;
       const status = subscription.status;
 
-      // Map Stripe status → our internal status.
-      // Do NOT downgrade on transient statuses like 'incomplete' or 'trialing'
-      // that Stripe emits before/during checkout completion.
       let mappedStatus: string;
       if (status === "active") mappedStatus = "active";
       else if (status === "trialing") mappedStatus = "trialing";
       else if (status === "past_due") mappedStatus = "past_due";
       else if (status === "incomplete") {
-        // Stripe briefly emits 'incomplete' right after checkout — skip downgrading
-        // so the status set by checkout.session.completed is preserved.
         mappedStatus = "active";
       } else {
         mappedStatus = "inactive";
@@ -217,15 +238,17 @@ Deno.serve(async (req: Request) => {
         })
         .eq("stripe_subscription_id", subscriptionId);
 
-      // Keep profiles.subscription_tier in sync when a subscription goes active
+      // Sync plan from authoritative product mapping when subscription goes active
       if (status === "active" || status === "trialing") {
-        const plan = subscription.metadata?.plan;
         const userId = subscription.metadata?.user_id;
-        if (userId && plan) {
-          await supabase
-            .from("profiles")
-            .update({ subscription_tier: plan })
-            .eq("id", userId);
+        if (userId) {
+          const resolved = await resolvePlanFromLineItems(subscriptionId, stripeSecretKey);
+          if (resolved) {
+            await supabase
+              .from("profiles")
+              .update({ subscription_tier: resolved.plan })
+              .eq("id", userId);
+          }
         }
       }
     }
@@ -234,7 +257,7 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal server error", detail: String(err) }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

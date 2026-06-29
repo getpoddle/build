@@ -14,6 +14,20 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
+  // Allow unauthenticated GET for search-engine crawlers (robots.txt / sitemap
+  // discovery), but require a secret header for any automated cron refresh to
+  // prevent unauthenticated abuse of the service-role DB queries.
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  if (cronSecret) {
+    const provided = req.headers.get("x-cron-secret") || req.headers.get("authorization")?.replace("Bearer ", "");
+    if (provided !== cronSecret) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

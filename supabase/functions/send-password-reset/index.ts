@@ -48,6 +48,16 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Enforce a minimum response time to prevent timing-based email enumeration.
+    // Both the "user exists" and "user not found" paths complete in ≥ MIN_RESPONSE_MS.
+    const MIN_RESPONSE_MS = 800;
+    const reqStart = Date.now();
+    const minDelay = () => {
+      const elapsed = Date.now() - reqStart;
+      const remaining = MIN_RESPONSE_MS - elapsed;
+      return remaining > 0 ? new Promise(r => setTimeout(r, remaining)) : Promise.resolve();
+    };
+
     const { email, redirectTo } = await req.json();
 
     if (!email || typeof email !== "string") {
@@ -124,6 +134,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    await minDelay();
     return new Response(
       JSON.stringify({ sent: true }),
       {

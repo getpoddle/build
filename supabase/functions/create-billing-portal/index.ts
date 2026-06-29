@@ -67,7 +67,9 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 2. Fallback: search all user-owned workspaces for any stripe_customer_id
+    // 2. Fallback: search all user-owned workspaces for any stripe_customer_id.
+    // We use service role here but still constrain to owner_id = user.id so
+    // we never return a customer ID belonging to a different user.
     if (!stripeCustomerId) {
       const adminSupabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -85,20 +87,8 @@ Deno.serve(async (req: Request) => {
         stripeCustomerId = workspaces[0].stripe_customer_id;
       }
     }
-
-    // 3. Fallback: look up Stripe customer by user email
-    if (!stripeCustomerId && user.email) {
-      const searchRes = await fetch(
-        `https://api.stripe.com/v1/customers/search?query=email:"${encodeURIComponent(user.email)}"&limit=1`,
-        { headers: { "Authorization": `Bearer ${stripeSecretKey}` } }
-      );
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        if (searchData.data && searchData.data.length > 0) {
-          stripeCustomerId = searchData.data[0].id;
-        }
-      }
-    }
+    // Email-based Stripe customer search removed: it could match a Stripe
+    // customer record belonging to a different account with the same email.
 
     if (!stripeCustomerId) {
       return new Response(JSON.stringify({ error: "No Stripe billing account found. Please contact support." }), {

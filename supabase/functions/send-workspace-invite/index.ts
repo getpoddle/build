@@ -92,7 +92,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Check seat limit
+    // Pre-flight seat check (informational — the atomic DB function enforces the real limit)
     const { count: memberCount } = await supabase
       .from("workspace_members")
       .select("id", { count: "exact", head: true })
@@ -119,7 +119,6 @@ Deno.serve(async (req: Request) => {
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const results: { email: string; success: boolean; error?: string }[] = [];
 
-    // Use service role for inserting invites (bypasses RLS check on invited_by)
     const serviceSupabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -142,21 +141,25 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        // Create invite record
-        const { data: invite, error: inviteError } = await serviceSupabase
-          .from("workspace_invites")
-          .insert({
-            workspace_id,
-            invited_email: email,
-            invited_by: user.id,
+        // Atomically check seat limit and insert the invite in a single
+        // serialized DB transaction — prevents race conditions.
+        const { data: inviteRow, error: inviteError } = await serviceSupabase
+          .rpc("create_workspace_invite", {
+            p_workspace_id: workspace_id,
+            p_invited_email: email,
+            p_invited_by: user.id,
           })
-          .select("token")
-          .single();
+          .maybeSingle();
 
-        if (inviteError || !invite) {
-          results.push({ email, success: false, error: "Failed to create invite" });
+        if (inviteError || !inviteRow || inviteRow.error) {
+          const msg = inviteRow?.error === "No seats available"
+            ? "No seats available"
+            : "Failed to create invite";
+          results.push({ email, success: false, error: msg });
           continue;
         }
+
+        const invite = { token: inviteRow.token };
 
         const inviteUrl = `${appUrl}/#join/${invite.token}`;
         const inviterName = inviterProfile?.full_name || inviterProfile?.email || "A team member";
@@ -210,7 +213,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal server error", detail: String(err) }), {
+    console.error("send-workspace-invite error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

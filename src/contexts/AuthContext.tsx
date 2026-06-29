@@ -5,7 +5,7 @@ import { getDisplayName } from '../lib/displayName';
 import { setUserProperties, trackUserLogin, trackUserSignup } from '../lib/analytics';
 import { phIdentify, phSetPersonProperties, phReset, phCapture, phSyncProfileProperties } from '../lib/posthog';
 
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+const IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 const IDLE_EVENTS = ['mousemove', 'keydown', 'click', 'touchstart'] as const;
 
 interface AuthContextType {
@@ -177,9 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (referralCode) {
                 try {
                   const { data: referrer } = await supabase
-                    .from('referral_codes')
-                    .select('user_id')
-                    .eq('code', referralCode)
+                    .rpc('lookup_referral_code', { p_code: referralCode })
                     .maybeSingle();
 
                   if (referrer && referrer.user_id !== session.user.id) {

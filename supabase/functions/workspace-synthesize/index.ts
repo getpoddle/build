@@ -25,7 +25,8 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json();
     const { workspace_id } = body as { workspace_id: string };
-    if (!workspace_id) return new Response(JSON.stringify({ error: "workspace_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!workspace_id || !UUID_RE.test(workspace_id)) return new Response(JSON.stringify({ error: "workspace_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     // Internal cron calls carry the service role key as their Bearer token.
     // This cannot be spoofed by a regular user JWT.
