@@ -41,42 +41,48 @@ export function useWorkspaceAccess(workspaceId: string | null): WorkspaceAccess 
     let cancelled = false;
 
     async function load() {
-      const [memberRes, workspaceRes, seatsRes] = await Promise.all([
-        supabase
-          .from('workspace_members')
-          .select('role')
-          .eq('workspace_id', workspaceId)
-          .eq('user_id', user!.id)
-          .maybeSingle(),
-        supabase
-          .from('workspaces')
-          .select('plan, subscription_status, seats, trial_workspace_expires_at')
-          .eq('id', workspaceId)
-          .maybeSingle(),
-        supabase
-          .from('workspace_members')
-          .select('id', { count: 'exact', head: true })
-          .eq('workspace_id', workspaceId),
-      ]);
+      try {
+        const [memberRes, workspaceRes, seatsRes] = await Promise.all([
+          supabase
+            .from('workspace_members')
+            .select('role')
+            .eq('workspace_id', workspaceId)
+            .eq('user_id', user!.id)
+            .maybeSingle(),
+          supabase
+            .from('workspaces')
+            .select('plan, subscription_status, seats, trial_workspace_expires_at')
+            .eq('id', workspaceId)
+            .maybeSingle(),
+          supabase
+            .from('workspace_members')
+            .select('id', { count: 'exact', head: true })
+            .eq('workspace_id', workspaceId),
+        ]);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      const role = memberRes.data?.role as 'owner' | 'admin' | 'member' | null ?? null;
-      const workspace = workspaceRes.data;
+        const role = memberRes.data?.role as 'owner' | 'admin' | 'member' | null ?? null;
+        const workspace = workspaceRes.data;
 
-      setState({
-        canAccess: !!role,
-        isOwner: role === 'owner',
-        isAdmin: role === 'owner' || role === 'admin',
-        isReadOnly: workspace?.subscription_status === 'inactive',
-        role,
-        plan: workspace?.plan as 'pro' | 'enterprise' | null ?? null,
-        subscriptionStatus: workspace?.subscription_status ?? null,
-        trialExpiresAt: workspace?.trial_workspace_expires_at ?? null,
-        seatsUsed: seatsRes.count ?? 0,
-        seatsTotal: workspace?.seats ?? 0,
-        loading: false,
-      });
+        setState({
+          canAccess: !!role,
+          isOwner: role === 'owner',
+          isAdmin: role === 'owner' || role === 'admin',
+          isReadOnly: workspace?.subscription_status === 'inactive',
+          role,
+          plan: workspace?.plan as 'pro' | 'enterprise' | null ?? null,
+          subscriptionStatus: workspace?.subscription_status ?? null,
+          trialExpiresAt: workspace?.trial_workspace_expires_at ?? null,
+          seatsUsed: seatsRes.count ?? 0,
+          seatsTotal: workspace?.seats ?? 0,
+          loading: false,
+        });
+      } catch {
+        if (!cancelled) {
+          setState(s => ({ ...s, loading: false, canAccess: false }));
+        }
+      }
     }
 
     load();

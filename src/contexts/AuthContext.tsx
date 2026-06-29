@@ -96,30 +96,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (event === 'SIGNED_IN' && session?.user) {
-            // Check admin status and start idle timeout if admin
-            try {
-              const { data: adminData } = await withTimeout(
-                supabase.from('admins').select('id').eq('id', session.user.id).maybeSingle(),
-                5000
-              );
-              isAdminRef.current = !!adminData;
-              if (isAdminRef.current) resetIdleTimer();
-            } catch {
-              isAdminRef.current = false;
-            }
-
             phIdentify(session.user.id, {
               email: session.user.email,
               signup_at: session.user.created_at,
             });
 
+            // Run admin check and profile fetch in parallel
             let profile: { id: string; first_name: string | null; last_name: string | null; username: string | null } | null = null;
             try {
-              const { data } = await withTimeout(
-                supabase.from('profiles').select('id, first_name, last_name, username').eq('id', session.user.id).maybeSingle(),
-                5000
-              );
-              profile = data;
+              const [adminRes, profileRes] = await Promise.all([
+                withTimeout(
+                  supabase.from('admins').select('id').eq('id', session.user.id).maybeSingle(),
+                  5000
+                ).catch(() => ({ data: null })),
+                withTimeout(
+                  supabase.from('profiles').select('id, first_name, last_name, username').eq('id', session.user.id).maybeSingle(),
+                  5000
+                ),
+              ]);
+              isAdminRef.current = !!adminRes.data;
+              if (isAdminRef.current) resetIdleTimer();
+              profile = profileRes.data;
             } catch {
               console.error('Profile fetch timed out');
               return;
