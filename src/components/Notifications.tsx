@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply } from 'lucide-react';
+import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply, Bot } from 'lucide-react';
 import { SkeletonNotification } from './Skeleton';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -293,6 +293,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       onNavigate('profile');
     } else if (notification.type === 'forecast_resolved') {
       onNavigate('pods');
+    } else if (notification.type === 'workspace_agents_responded') {
+      onNavigate('workspaces');
     }
   }
 
@@ -316,6 +318,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
         return <ThumbsUp className="w-4 h-4" />;
       case 'challenge_replied':
         return <Reply className="w-4 h-4" />;
+      case 'workspace_agents_responded':
+        return <Bot className="w-4 h-4" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
@@ -432,6 +436,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
                               ? 'bg-blue-100 text-blue-600'
                               : notification.type === 'challenge_replied'
                               ? 'bg-slate-100 text-slate-600'
+                              : notification.type === 'workspace_agents_responded'
+                              ? 'bg-blue-100 text-blue-600'
                               : 'bg-green-100 text-green-600'
                           }`}
                         >

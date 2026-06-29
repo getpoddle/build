@@ -23,20 +23,39 @@ Deno.serve(async (req: Request) => {
     });
     const service = createClient(supabaseUrl, serviceKey);
 
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
-    const { workspace_id } = await req.json();
+    const body = await req.json();
+    const { workspace_id, from_queue } = body as { workspace_id: string; from_queue?: boolean };
     if (!workspace_id) return new Response(JSON.stringify({ error: "workspace_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Verify membership
-    const { data: member } = await service
-      .from("workspace_members")
-      .select("user_id")
-      .eq("workspace_id", workspace_id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (!member) return new Response(JSON.stringify({ error: "Not a member" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // When called from the server-side synthesis queue the auth header carries the
+    // service role key rather than a user JWT. In that case we skip user-auth and
+    // look up the workspace owner directly.
+    let user: { id: string } | null = null;
+
+    if (from_queue) {
+      // Service-role call — find workspace owner
+      const { data: ownerRow } = await service
+        .from("workspace_members")
+        .select("user_id")
+        .eq("workspace_id", workspace_id)
+        .eq("role", "owner")
+        .maybeSingle();
+      if (!ownerRow) return new Response(JSON.stringify({ error: "Workspace not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      user = { id: ownerRow.user_id };
+    } else {
+      const { data: { user: authUser } } = await userClient.auth.getUser();
+      if (!authUser) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      user = authUser;
+
+      // Verify membership for user-initiated calls
+      const { data: member } = await service
+        .from("workspace_members")
+        .select("user_id")
+        .eq("workspace_id", workspace_id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!member) return new Response(JSON.stringify({ error: "Not a member" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // Fetch workspace, messages, and the previous synthesis in parallel
     const [wsRes, msgsRes, prevSynthRes] = await Promise.all([
@@ -890,6 +909,13 @@ RULES:
         console.error("Cross-workspace pattern rollup error:", e);
       }
     })();
+
+    // Mark the queue entry as done so the cron won't re-process it
+    await service
+      .from("workspace_synthesis_queue")
+      .update({ status: "done", completed_at: new Date().toISOString() })
+      .eq("workspace_id", workspace_id)
+      .in("status", ["pending", "running"]);
 
     return new Response(JSON.stringify({
       success: true,

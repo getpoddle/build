@@ -806,6 +806,73 @@ Return ONLY valid JSON, no markdown fences:
       });
     }
 
+    // ── Notify all workspace members that agents have responded ──────────────
+    // Runs fire-and-forget so it never delays the response to the user.
+    (async () => {
+      try {
+        // Get all members of this workspace except the user who sent the message
+        const { data: members } = await service
+          .from("workspace_members")
+          .select("user_id")
+          .eq("workspace_id", workspace_id)
+          .neq("user_id", user.id);
+
+        if (!members || members.length === 0) return;
+
+        const workspaceName = workspace?.name ?? "your workspace";
+        const agentNames = selectedAgents.map(a => a.name).join(", ");
+        const shortMsg = safeMessage.slice(0, 80) + (safeMessage.length > 80 ? "…" : "");
+
+        const notifications = members.map(m => ({
+          user_id: m.user_id,
+          type: "workspace_agents_responded",
+          title: `Agents responded in "${workspaceName}"`,
+          content: `${agentNames} have responded to: "${shortMsg}"`,
+          related_id: workspace_id,
+          related_type: "workspace",
+          actor_id: user.id,
+          is_read: false,
+        }));
+
+        await service.from("notifications").insert(notifications);
+      } catch (e) {
+        console.error("Notification insert error:", e);
+      }
+    })();
+
+    // ── Queue auto-synthesis if message count crosses the threshold ──────────
+    // This replaces the browser-side debounce so synthesis runs even if the
+    // user navigates away. The workspace-synthesize function is invoked by the
+    // cron job that processes this queue (or can be triggered manually).
+    (async () => {
+      try {
+        const newCount = messageCount + agentResponses.length + validChallenges.length + (consensusContent.trim().length > 20 ? 1 : 0) + 1;
+        // Check existing synthesis to decide if we should queue
+        const { data: existingSynth } = await service
+          .from("workspace_synthesis")
+          .select("message_count")
+          .eq("workspace_id", workspace_id)
+          .maybeSingle();
+
+        const messagesSinceLastSynth = existingSynth
+          ? newCount - (existingSynth.message_count ?? 0)
+          : newCount;
+
+        // Queue synthesis if 3+ new messages have accumulated since last synthesis
+        if (messagesSinceLastSynth >= 3) {
+          // Insert only if no pending/running entry exists (unique index prevents duplicates)
+          await service
+            .from("workspace_synthesis_queue")
+            .upsert({ workspace_id, status: "pending", triggered_at: new Date().toISOString() }, {
+              onConflict: "workspace_id",
+              ignoreDuplicates: true,
+            });
+        }
+      } catch (e) {
+        console.error("Synthesis queue insert error:", e);
+      }
+    })();
+
     // Return all rounds so the client renders the full debate in order
     const allResponses: Array<{ agent_name: string; agent_role: string; content: string }> = [
       ...agentResponses.map(({ agent, content }) => ({

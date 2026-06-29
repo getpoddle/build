@@ -755,6 +755,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const [members, setMembers] = useState<MemberProfile[]>([]);
   const [commits, setCommits] = useState<ConflictCommit[]>([]);
   const [messageCount, setMessageCount] = useState(0);
+  const [synthQueued, setSynthQueued] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -807,55 +808,72 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Realtime: track new messages and auto-synthesize when conversation grows
+  // Realtime: update message count as new messages arrive
   useEffect(() => {
-    let autoSynthDebounce: ReturnType<typeof setTimeout> | null = null;
-    let lastAutoSynth = 0;
-    const MIN_INTERVAL_MS = 3 * 60 * 1000; // at most once every 3 minutes
-
     const channel = supabase
       .channel(`war-room-msgs-${workspaceId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'workspace_messages', filter: `workspace_id=eq.${workspaceId}` }, (payload) => {
-        // Update message count immediately
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'workspace_messages', filter: `workspace_id=eq.${workspaceId}` }, () => {
         setMessageCount(prev => prev + 1);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workspaceId]);
 
-        // Auto-synthesize: debounce 8s, only after AI assistant messages, min 3 min cooldown
-        const isAiMsg = payload.new?.role === 'assistant';
-        if (!isAiMsg) return;
-        if (autoSynthDebounce) clearTimeout(autoSynthDebounce);
-        autoSynthDebounce = setTimeout(() => {
-          const now = Date.now();
-          if (now - lastAutoSynth < MIN_INTERVAL_MS) return;
-          lastAutoSynth = now;
-          // Only auto-synthesize if there's an existing synthesis to update
-          setSynthesis(prev => {
-            if (prev && (prev.message_count != null)) {
-              setMessageCount(mc => {
-                if (mc - prev.message_count >= 3) {
-                  // Trigger background synthesis without blocking UI
-                  supabase.auth.refreshSession().then(({ data: { session } }) => {
-                    if (!session?.access_token) return;
-                    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-synthesize`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                      body: JSON.stringify({ workspace_id: workspaceId }),
-                    }).then(r => r.json()).then(json => {
-                      if (!json.error) loadAll();
-                    }).catch(() => {/* silent */});
-                  });
-                }
-                return mc;
-              });
-            }
-            return prev;
-          });
-        }, 8000);
+  // Poll the synthesis queue so we can show "synthesis pending" state even
+  // after the user navigates back to the page. When the queue clears (server
+  // finished) we reload the synthesis data.
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const checkQueue = async () => {
+      const { data } = await supabase
+        .from('workspace_synthesis_queue')
+        .select('status')
+        .eq('workspace_id', workspaceId)
+        .in('status', ['pending', 'running'])
+        .maybeSingle();
+
+      const isQueued = !!data;
+      setSynthQueued(isQueued);
+
+      // When the queue entry disappears the synthesis just completed — reload
+      if (!isQueued && interval) {
+        clearInterval(interval);
+        interval = null;
+        loadAll();
+      }
+    };
+
+    // Also subscribe to realtime on the queue table
+    const queueChannel = supabase
+      .channel(`synth-queue-${workspaceId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'workspace_synthesis_queue',
+        filter: `workspace_id=eq.${workspaceId}`,
+      }, (payload) => {
+        const status = (payload.new as { status?: string })?.status;
+        if (status === 'pending' || status === 'running') {
+          setSynthQueued(true);
+          // Start polling as fallback in case realtime misses the completion event
+          if (!interval) {
+            interval = setInterval(checkQueue, 8000);
+          }
+        } else {
+          setSynthQueued(false);
+          if (interval) { clearInterval(interval); interval = null; }
+          loadAll();
+        }
       })
       .subscribe();
 
+    // Initial check on mount so navigating back shows correct state
+    checkQueue();
+
     return () => {
-      if (autoSynthDebounce) clearTimeout(autoSynthDebounce);
-      supabase.removeChannel(channel);
+      if (interval) clearInterval(interval);
+      supabase.removeChannel(queueChannel);
     };
   }, [workspaceId, loadAll]);
 
@@ -1093,11 +1111,11 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             style={{ background: 'rgba(15,23,42,0.05)', color: '#475569' }}>
             <Download className="w-4 h-4" />Export PDF
           </button>
-          <button onClick={generate} disabled={generating}
+          <button onClick={generate} disabled={generating || synthQueued}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-50"
             style={{ background: stale ? 'linear-gradient(135deg,#1e3a5f,#2563eb)' : 'rgba(15,23,42,0.05)', color: stale ? '#fff' : '#475569' }}>
-            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            {generating ? 'Synthesizing…' : 'Re-synthesize'}
+            {(generating || synthQueued) ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            {generating ? 'Synthesizing…' : synthQueued ? 'Running in background…' : 'Re-synthesize'}
           </button>
         </div>
       </div>
@@ -1105,6 +1123,17 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       {error && (
         <div className="p-3 rounded-xl text-sm text-red-700 font-medium" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
           {error}
+        </div>
+      )}
+
+      {/* ── Background synthesis in-progress banner ── */}
+      {synthQueued && !generating && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium"
+          style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.07),rgba(6,182,212,0.05))', border: '1px solid rgba(37,99,235,0.18)' }}>
+          <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" style={{ color: '#2563eb' }} />
+          <span style={{ color: '#1e40af' }}>
+            Synthesis is running in the background — you can leave this page and we'll update the intelligence report automatically when it's done.
+          </span>
         </div>
       )}
 
