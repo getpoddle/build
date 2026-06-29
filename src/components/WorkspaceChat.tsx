@@ -84,17 +84,6 @@ const AGENT_ICONS: Record<string, string> = {
   consensus:           '🤝',
 };
 
-const AGENT_LABELS: Record<string, string> = {
-  strategic_analyst:   'Strategic Analyst',
-  devils_advocate:     "Devil's Advocate",
-  innovation_scout:    'Innovation Scout',
-  risk_analyst:        'Risk Analyst',
-  market_analyst:      'Market Analyst',
-  financial_strategist:'Financial Strategist',
-  execution_lead:      'Execution Lead',
-  people_advisor:      'People Advisor',
-  consensus:           'Consensus',
-};
 
 // Detect which debate phase a message belongs to based on content patterns
 function detectPhase(content: string): 'challenge' | 'consensus' | null {
@@ -827,37 +816,25 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
   return (
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
-      {/* Agent legend */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {Object.entries(AGENT_COLORS).filter(([role]) => role !== 'consensus').map(([role, colors]) => (
-          <span
-            key={role}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
-            style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
-          >
-            <span>{AGENT_ICONS[role]}</span>
-            {AGENT_LABELS[role] ?? role}
-          </span>
-        ))}
-        <div className="ml-auto flex items-center gap-2">
-          {messages.length > 0 && (
-            <button
-              onClick={() => exportChatToPDF(messages, workspaceName, workspaceTopic)}
-              className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-slate-700 transition-colors"
-              style={{ background: 'rgba(15,23,42,0.05)' }}
-              title="Export discussion as PDF"
-            >
-              <Download className="w-3 h-3" /> Export PDF
-            </button>
-          )}
+      {/* Toolbar */}
+      <div className="flex items-center justify-end gap-2 mb-4">
+        {messages.length > 0 && (
           <button
-            onClick={() => { loadMessages(); loadMemberProfiles(); }}
+            onClick={() => exportChatToPDF(messages, workspaceName, workspaceTopic)}
             className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-slate-700 transition-colors"
             style={{ background: 'rgba(15,23,42,0.05)' }}
+            title="Export discussion as PDF"
           >
-            <RefreshCw className="w-3 h-3" /> Refresh
+            <Download className="w-3 h-3" /> Export PDF
           </button>
-        </div>
+        )}
+        <button
+          onClick={() => { loadMessages(); loadMemberProfiles(); }}
+          className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-slate-700 transition-colors"
+          style={{ background: 'rgba(15,23,42,0.05)' }}
+        >
+          <RefreshCw className="w-3 h-3" /> Refresh
+        </button>
       </div>
 
       {/* Message feed */}
