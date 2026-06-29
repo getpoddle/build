@@ -73,6 +73,18 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Verify the authenticated user's email matches the invited email.
+    // This prevents anyone who obtains the invite URL from joining with a
+    // different account.
+    const userEmail = (user.email ?? "").toLowerCase().trim();
+    const invitedEmail = (invite.invited_email ?? "").toLowerCase().trim();
+    if (!invitedEmail || userEmail !== invitedEmail) {
+      return new Response(
+        JSON.stringify({ error: "This invite was sent to a different email address. Please sign in with the account that received the invitation." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Check already a member + current member count in parallel
     const [existingRes, memberCountRes] = await Promise.all([
       service

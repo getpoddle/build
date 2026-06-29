@@ -8,7 +8,7 @@ interface JoinWorkspaceProps {
   onNavigate: (page: string, workspaceId?: string) => void;
 }
 
-type Status = 'loading' | 'valid' | 'accepted' | 'already_member' | 'expired' | 'invalid' | 'error' | 'unauthenticated';
+type Status = 'loading' | 'valid' | 'accepted' | 'already_member' | 'expired' | 'invalid' | 'error' | 'unauthenticated' | 'wrong_account';
 
 interface InviteInfo {
   workspace_id: string;
@@ -122,6 +122,10 @@ export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps)
       if (json.error === 'Invite already accepted') {
         setWorkspaceId(json.workspace_id);
         setStatus('accepted');
+        return;
+      }
+      if (json.error && (json.error as string).includes('different email')) {
+        setStatus('wrong_account');
         return;
       }
       if (json.error) {
@@ -264,6 +268,28 @@ export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps)
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
           >
             Open Workspace <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'wrong_account') {
+    return (
+      <div className={containerClass} style={{ background: '#f8fafc' }}>
+        <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center" style={cardStyle}>
+          <div className="w-14 h-14 rounded-3xl flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(239,68,68,0.08)' }}>
+            <AlertTriangle className="w-7 h-7 text-red-500" />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 mb-2">Wrong account</h2>
+          <p className="text-slate-500 text-sm leading-relaxed mb-2">
+            This invite was sent to <strong>{invite?.invited_email}</strong>.
+          </p>
+          <p className="text-slate-500 text-sm leading-relaxed mb-6">
+            Please sign in with that email address to accept this invitation.
+          </p>
+          <button onClick={() => onNavigate('auth')} className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
+            Sign in with the correct account
           </button>
         </div>
       </div>
