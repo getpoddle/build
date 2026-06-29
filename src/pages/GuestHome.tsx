@@ -79,8 +79,17 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
               <a href="#contact-us" className="hover:text-white transition-colors">Contact</a>
             </div>
           </div>
-          <div className="mt-8 pt-8 text-center text-xs" style={{ color: 'rgba(100,116,139,0.7)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-            &copy; 2026 Poddle, Inc. All rights reserved.
+          <div className="mt-8 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <span style={{ color: 'rgba(100,116,139,0.7)' }}>&copy; 2026 Poddle, Inc. All rights reserved.</span>
+            <a
+              href="/poddle-security-audit-2026.html"
+              download="Poddle-Security-Audit-2026.html"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90"
+              style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' }}
+            >
+              <Download className="w-3 h-3" />
+              Security Audit Report
+            </a>
           </div>
         </div>
       </footer>
