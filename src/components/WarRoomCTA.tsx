@@ -14,7 +14,7 @@ export default function WarRoomCTA({ onNavigate, topic }: WarRoomCTAProps) {
     if (user) {
       onNavigate('workspaces');
     } else {
-      sessionStorage.setItem('postLoginRedirect', window.location.href);
+      sessionStorage.setItem('postLoginRedirect', window.location.hash || '#');
       onNavigate('auth');
     }
   };
@@ -112,7 +112,7 @@ export function StickyWarRoomCTA({ onNavigate, topic }: WarRoomCTAProps) {
     if (user) {
       onNavigate('workspaces');
     } else {
-      sessionStorage.setItem('postLoginRedirect', window.location.href);
+      sessionStorage.setItem('postLoginRedirect', window.location.hash || '#');
       onNavigate('auth');
     }
   };

@@ -394,6 +394,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (!["owner", "admin", "editor", "member"].includes(membership.role)) {
+      return new Response(JSON.stringify({ error: "Insufficient permissions to send messages" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Daily quota
     const today = new Date().toISOString().slice(0, 10);
     const { error: upsertErr } = await service.rpc("increment_daily_ai_usage", {

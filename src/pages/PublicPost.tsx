@@ -459,7 +459,7 @@ export default function PublicPost({ postId, discussionId, onNavigate }: PublicP
               </div>
               <button
                 onClick={() => {
-                  sessionStorage.setItem('postLoginRedirect', shareUrl);
+                  sessionStorage.setItem('postLoginRedirect', '#' + shareUrl.split('#')[1]);
                   onNavigate('auth');
                 }}
                 className="w-full px-6 py-3.5 rounded-xl font-bold text-white transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -471,7 +471,7 @@ export default function PublicPost({ postId, discussionId, onNavigate }: PublicP
                 Already have an account?{' '}
                 <button
                   onClick={() => {
-                    sessionStorage.setItem('postLoginRedirect', shareUrl);
+                    sessionStorage.setItem('postLoginRedirect', '#' + shareUrl.split('#')[1]);
                     onNavigate('auth');
                   }}
                   className="text-blue-600 hover:underline font-medium"

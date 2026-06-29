@@ -20,6 +20,7 @@ export default function Auth() {
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetCooldownUntil, setResetCooldownUntil] = useState(0);
 
   const checkUsernameAvailability = async (usernameToCheck: string) => {
     if (!usernameToCheck || usernameToCheck.length < 3) return;
@@ -65,6 +66,14 @@ export default function Auth() {
 
     try {
       if (view === 'forgot') {
+        const now = Date.now();
+        if (now < resetCooldownUntil) {
+          const secsLeft = Math.ceil((resetCooldownUntil - now) / 1000);
+          setError(`Please wait ${secsLeft} seconds before requesting another reset link.`);
+          setLoading(false);
+          return;
+        }
+
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
         const res = await fetch(`${supabaseUrl}/functions/v1/send-password-reset`, {
@@ -86,6 +95,7 @@ export default function Auth() {
         } else if (!res.ok || data.error) {
           setError(data.error || 'Something went wrong. Please try again.');
         } else {
+          setResetCooldownUntil(Date.now() + 60_000);
           setSuccessMessage('If an account exists for that email, a reset link has been sent. Check your inbox.');
         }
       } else if (view === 'signup') {

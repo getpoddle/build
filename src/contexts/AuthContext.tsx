@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isAdminRef.current) return;
     clearIdleTimer();
     idleTimerRef.current = setTimeout(() => {
-      supabase.auth.signOut({ scope: 'local' });
+      supabase.auth.signOut({ scope: 'global' });
     }, IDLE_TIMEOUT_MS);
   };
 
@@ -73,121 +73,151 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
+    const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+      Promise.race([promise, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
-        if (event === 'PASSWORD_RECOVERY') {
+        try {
+          if (event === 'PASSWORD_RECOVERY') {
+            setSession(session);
+            setUser(session?.user ?? null);
+            setLoading(false);
+            setIsPasswordRecovery(true);
+            return;
+          }
+
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
-          setIsPasswordRecovery(true);
-          return;
-        }
 
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+          if (event === 'USER_UPDATED' && session?.user?.email_confirmed_at) {
+            setSignupEmailPending(null);
+          }
 
-        if (event === 'USER_UPDATED' && session?.user?.email_confirmed_at) {
-          setSignupEmailPending(null);
-        }
+          if (event === 'SIGNED_IN' && session?.user) {
+            // Check admin status and start idle timeout if admin
+            try {
+              const { data: adminData } = await withTimeout(
+                supabase.from('admins').select('id').eq('id', session.user.id).maybeSingle(),
+                5000
+              );
+              isAdminRef.current = !!adminData;
+              if (isAdminRef.current) resetIdleTimer();
+            } catch {
+              isAdminRef.current = false;
+            }
 
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Check admin status and start idle timeout if admin
-          const { data: adminData } = await supabase
-            .from('admins')
-            .select('id')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          isAdminRef.current = !!adminData;
-          if (isAdminRef.current) resetIdleTimer();
+            phIdentify(session.user.id, {
+              email: session.user.email,
+              signup_at: session.user.created_at,
+            });
 
-          phIdentify(session.user.id, {
-            email: session.user.email,
-            signup_at: session.user.created_at,
-          });
-
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, username')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (!profile) {
-            // Guard against deleted accounts: if the auth account is older than
-            // 10 minutes but has no profile, the user was deleted by an admin.
-            // Sign them out immediately instead of recreating their profile.
-            const accountAgeMs = Date.now() - new Date(session.user.created_at).getTime();
-            if (accountAgeMs > 10 * 60 * 1000) {
-              await supabase.auth.signOut({ scope: 'local' });
+            let profile: { id: string; first_name: string | null; last_name: string | null; username: string | null } | null = null;
+            try {
+              const { data } = await withTimeout(
+                supabase.from('profiles').select('id, first_name, last_name, username').eq('id', session.user.id).maybeSingle(),
+                5000
+              );
+              profile = data;
+            } catch {
+              console.error('Profile fetch timed out');
               return;
             }
-          }
 
-          if (!profile) {
-            const fullName = getDisplayName({
-              full_name: session.user.user_metadata?.full_name,
-              first_name: session.user.user_metadata?.first_name,
-              last_name: session.user.user_metadata?.last_name
-            }) !== 'Anonymous'
-              ? getDisplayName({
-                  full_name: session.user.user_metadata?.full_name,
-                  first_name: session.user.user_metadata?.first_name,
-                  last_name: session.user.user_metadata?.last_name
-                })
-              : session.user.email?.split('@')[0] || 'User';
-
-            await supabase.from('profiles').insert({
-              id: session.user.id,
-              email: session.user.email!,
-              first_name: session.user.user_metadata?.first_name || null,
-              last_name: session.user.user_metadata?.last_name || null,
-              username: session.user.user_metadata?.username || null,
-              full_name: fullName,
-              onboarded: false,
-            });
-
-            const referralCode = localStorage.getItem('poddle_referral');
-            if (referralCode) {
-              try {
-                const { data: referrer } = await supabase
-                  .from('referral_codes')
-                  .select('user_id')
-                  .eq('code', referralCode)
-                  .maybeSingle();
-
-                if (referrer && referrer.user_id !== session.user.id) {
-                  await supabase.from('referral_signups').insert({
-                    referrer_id: referrer.user_id,
-                    referred_id: session.user.id,
-                    referral_code: referralCode,
-                  });
-
-                  await supabase.from('notifications').insert({
-                    user_id: referrer.user_id,
-                    type: 'referral',
-                    content: `Someone joined Poddle using your invite link!`,
-                    created_at: new Date().toISOString(),
-                  });
-                }
-
-                localStorage.removeItem('poddle_referral');
-              } catch (error) {
-                console.error('Error tracking referral:', error);
+            if (!profile) {
+              // Guard against deleted accounts: if the auth account is older than
+              // 10 minutes but has no profile, the user was deleted by an admin.
+              // Sign them out immediately instead of recreating their profile.
+              const accountAgeMs = Date.now() - new Date(session.user.created_at).getTime();
+              if (accountAgeMs > 10 * 60 * 1000) {
+                await supabase.auth.signOut({ scope: 'local' });
+                return;
               }
             }
-          } else {
-            trackUserLogin('email');
-            setUserProperties({
-              verified: profile.username ? true : false,
-            });
-            phSetPersonProperties({
-              username: profile.username || null,
-              first_name: profile.first_name || null,
-              last_name: profile.last_name || null,
-            });
-            phCapture('user_login', { method: 'email' });
-            phSyncProfileProperties(session.user.id);
+
+            if (!profile) {
+              const fullName = getDisplayName({
+                full_name: session.user.user_metadata?.full_name,
+                first_name: session.user.user_metadata?.first_name,
+                last_name: session.user.user_metadata?.last_name
+              }) !== 'Anonymous'
+                ? getDisplayName({
+                    full_name: session.user.user_metadata?.full_name,
+                    first_name: session.user.user_metadata?.first_name,
+                    last_name: session.user.user_metadata?.last_name
+                  })
+                : session.user.email?.split('@')[0] || 'User';
+
+              try {
+                const { error: insertErr } = await withTimeout(
+                  supabase.from('profiles').insert({
+                    id: session.user.id,
+                    email: session.user.email!,
+                    first_name: session.user.user_metadata?.first_name || null,
+                    last_name: session.user.user_metadata?.last_name || null,
+                    username: session.user.user_metadata?.username || null,
+                    full_name: fullName,
+                    onboarded: false,
+                  }),
+                  5000
+                );
+                if (insertErr) {
+                  console.error('Profile creation failed:', insertErr);
+                  await supabase.auth.signOut({ scope: 'local' });
+                  return;
+                }
+              } catch {
+                console.error('Profile creation timed out');
+                await supabase.auth.signOut({ scope: 'local' });
+                return;
+              }
+
+              const referralCode = localStorage.getItem('poddle_referral');
+              if (referralCode) {
+                try {
+                  const { data: referrer } = await supabase
+                    .from('referral_codes')
+                    .select('user_id')
+                    .eq('code', referralCode)
+                    .maybeSingle();
+
+                  if (referrer && referrer.user_id !== session.user.id) {
+                    await supabase.from('referral_signups').insert({
+                      referrer_id: referrer.user_id,
+                      referred_id: session.user.id,
+                      referral_code: referralCode,
+                    });
+
+                    await supabase.from('notifications').insert({
+                      user_id: referrer.user_id,
+                      type: 'referral',
+                      content: `Someone joined Poddle using your invite link!`,
+                      created_at: new Date().toISOString(),
+                    });
+                  }
+
+                  localStorage.removeItem('poddle_referral');
+                } catch (error) {
+                  console.error('Error tracking referral:', error);
+                }
+              }
+            } else {
+              trackUserLogin('email');
+              setUserProperties({
+                verified: profile.username ? true : false,
+              });
+              phSetPersonProperties({
+                username: profile.username || null,
+                first_name: profile.first_name || null,
+                last_name: profile.last_name || null,
+              });
+              phCapture('user_login', { method: 'email' });
+              phSyncProfileProperties(session.user.id);
+            }
           }
+        } catch (err) {
+          console.error('onAuthStateChange handler error:', err);
         }
       })();
     });
@@ -265,6 +295,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearIdleTimer();
       phCapture('user_logout');
       phReset();
+      sessionStorage.removeItem('pendingInviteToken');
+      sessionStorage.removeItem('postLoginRedirect');
+      localStorage.removeItem('poddle_referral');
       await supabase.auth.signOut({ scope: 'local' });
       setUser(null);
       setSession(null);
