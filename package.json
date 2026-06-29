@@ -21,6 +21,8 @@
     "@capacitor/status-bar": "^8.0.1",
     "@sentry/react": "^10.56.0",
     "@supabase/supabase-js": "^2.57.4",
+    "@types/dompurify": "^3.0.5",
+    "dompurify": "^3.4.11",
     "lucide-react": "^0.344.0",
     "posthog-js": "^1.372.3",
     "react": "^18.3.1",

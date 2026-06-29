@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Clock, Calendar, Tag, Eye, Share2, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import { supabase } from '../lib/supabase';
 
 interface BlogPostData {
@@ -223,7 +224,7 @@ export default function BlogPost({ slug, onNavigate }: BlogPostProps) {
             lineHeight: '1.8',
             color: '#1e293b',
           }}
-          dangerouslySetInnerHTML={{ __html: post.content }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
         />
       </div>
 
