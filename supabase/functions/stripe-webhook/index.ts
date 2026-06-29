@@ -89,17 +89,50 @@ Deno.serve(async (req: Request) => {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const meta = session.metadata || {};
-      const userId = meta.user_id;
+      const userIdFromMeta = meta.user_id;
       const workspaceName = meta.workspace_name || "My Workspace";
       const workspaceId = meta.workspace_id || null;
       const stripeCustomerId = session.customer;
       const stripeSubscriptionId = session.subscription;
 
-      if (!userId) {
+      if (!userIdFromMeta) {
         return new Response(JSON.stringify({ received: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // Verify user_id from metadata is legitimate:
+      // If this Stripe customer ID already exists in our database, the user_id
+      // must match — otherwise an attacker injected a victim's user_id into metadata.
+      const { data: existingCustomer } = await supabase
+        .from("stripe_customers")
+        .select("user_id")
+        .eq("customer_id", stripeCustomerId)
+        .maybeSingle();
+
+      if (existingCustomer && existingCustomer.user_id !== userIdFromMeta) {
+        // Customer record belongs to a different user — metadata was spoofed.
+        console.error(`Stripe metadata spoofing detected: customer ${stripeCustomerId} belongs to ${existingCustomer.user_id}, not ${userIdFromMeta}`);
+        return new Response(JSON.stringify({ received: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // For new customers, verify the profile exists for the claimed user_id.
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userIdFromMeta)
+        .maybeSingle();
+
+      if (!profile) {
+        console.error(`Stripe webhook: no profile found for user_id ${userIdFromMeta}`);
+        return new Response(JSON.stringify({ received: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const userId = userIdFromMeta;
 
       // Derive plan and seats from the actual Stripe subscription line items,
       // never from user-controllable metadata.
@@ -238,16 +271,21 @@ Deno.serve(async (req: Request) => {
         })
         .eq("stripe_subscription_id", subscriptionId);
 
-      // Sync plan from authoritative product mapping when subscription goes active
+      // Sync plan from authoritative product mapping when subscription goes active.
+      // Derive user_id from the workspace record — never trust metadata.
       if (status === "active" || status === "trialing") {
-        const userId = subscription.metadata?.user_id;
-        if (userId) {
+        const { data: wsForSub } = await supabase
+          .from("workspaces")
+          .select("owner_id")
+          .eq("stripe_subscription_id", subscriptionId)
+          .maybeSingle();
+        if (wsForSub?.owner_id) {
           const resolved = await resolvePlanFromLineItems(subscriptionId, stripeSecretKey);
           if (resolved) {
             await supabase
               .from("profiles")
               .update({ subscription_tier: resolved.plan })
-              .eq("id", userId);
+              .eq("id", wsForSub.owner_id);
           }
         }
       }
