@@ -24,16 +24,17 @@ Deno.serve(async (req: Request) => {
     const service = createClient(supabaseUrl, serviceKey);
 
     const body = await req.json();
-    const { workspace_id, from_queue } = body as { workspace_id: string; from_queue?: boolean };
+    const { workspace_id } = body as { workspace_id: string };
     if (!workspace_id) return new Response(JSON.stringify({ error: "workspace_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // When called from the server-side synthesis queue the auth header carries the
-    // service role key rather than a user JWT. In that case we skip user-auth and
-    // look up the workspace owner directly.
+    // Internal cron calls carry the service role key as their Bearer token.
+    // This cannot be spoofed by a regular user JWT.
+    const isInternalCall = authHeader === `Bearer ${serviceKey}`;
+
     let user: { id: string } | null = null;
 
-    if (from_queue) {
-      // Service-role call — find workspace owner
+    if (isInternalCall) {
+      // Server-side call — look up the workspace owner to run synthesis on their behalf
       const { data: ownerRow } = await service
         .from("workspace_members")
         .select("user_id")
