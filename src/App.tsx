@@ -71,7 +71,21 @@ function AppContent() {
   useEffect(() => {
     return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
   }, []);
-  const { toasts, dismissToast } = useToast();
+  const { toasts, dismissToast, addToast } = useToast();
+
+  // Fire any pending Slack OAuth result toasts after the handler is registered
+  useEffect(() => {
+    const connected = sessionStorage.getItem('slackConnectedToast');
+    const error = sessionStorage.getItem('slackErrorToast');
+    if (connected) {
+      sessionStorage.removeItem('slackConnectedToast');
+      addToast('success', 'Slack connected successfully!');
+    } else if (error) {
+      sessionStorage.removeItem('slackErrorToast');
+      const readable = error === 'not_configured' ? 'Slack is not configured yet.' : `Slack connection failed: ${error}`;
+      addToast('error', readable);
+    }
+  }, [addToast]);
   const [currentPage, setCurrentPage] = useState(() => {
     if (window.location.pathname === '/extension-view') return 'extension-view';
     const hash = window.location.hash.substring(1);
@@ -118,6 +132,23 @@ function AppContent() {
     if (urlParams.get('payment_success') === '1') {
       setCurrentPage('payment-success');
       return;
+    }
+
+    // Slack OAuth return: /?workspace=<id>&slack_connected=1  or  /?slack_error=<reason>
+    const slackConnected = urlParams.get('slack_connected');
+    const slackError = urlParams.get('slack_error');
+    const slackWorkspaceId = urlParams.get('workspace');
+    if (slackConnected === '1' && slackWorkspaceId) {
+      // Clean the URL then navigate to workspace settings
+      history.replaceState(null, '', `#workspace-settings/${slackWorkspaceId}`);
+      setWorkspaceId(slackWorkspaceId);
+      setCurrentPage('workspace-settings');
+      sessionStorage.setItem('slackConnectedToast', '1');
+      return;
+    }
+    if (slackError) {
+      history.replaceState(null, '', '/');
+      sessionStorage.setItem('slackErrorToast', slackError);
     }
 
     const checkForSpecialRoutes = () => {

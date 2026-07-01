@@ -18,7 +18,7 @@ Deno.serve(async (req: Request) => {
   const error = url.searchParams.get("error");
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const appUrl = Deno.env.get("APP_URL") ?? supabaseUrl.replace(".supabase.co", ".netlify.app");
+  const appUrl = Deno.env.get("APP_URL") ?? "https://poddleme.netlify.app";
 
   if (error || !code || !state) {
     const reason = error ?? "missing_code";
