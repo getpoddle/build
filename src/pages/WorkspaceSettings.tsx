@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard } from 'lucide-react';
+import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Zap, Link2, Unlink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
@@ -43,6 +43,13 @@ interface Workspace {
   owner_id: string;
 }
 
+interface SlackConnection {
+  id: string;
+  slack_team_id: string;
+  slack_team_name: string | null;
+  created_at: string;
+}
+
 const ROLE_ICONS = { owner: Crown, admin: Shield, member: User };
 const ROLE_COLORS = { owner: '#f59e0b', admin: '#2563eb', member: '#64748b' };
 
@@ -73,8 +80,11 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [loadingCancel, setLoadingCancel] = useState(false);
 
+  const [slackConnection, setSlackConnection] = useState<SlackConnection | null>(null);
+  const [disconnectingSlack, setDisconnectingSlack] = useState(false);
+
   const fetchData = useCallback(async () => {
-    const [wsRes, membersRes, invitesRes] = await Promise.all([
+    const [wsRes, membersRes, invitesRes, slackRes] = await Promise.all([
       supabase.from('workspaces').select('*').eq('id', workspaceId).maybeSingle(),
       supabase
         .from('workspace_members')
@@ -88,6 +98,11 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
         .is('accepted_at', null)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false }),
+      supabase
+        .from('slack_workspaces')
+        .select('id, slack_team_id, slack_team_name, created_at')
+        .eq('poddle_workspace_id', workspaceId)
+        .maybeSingle(),
     ]);
 
     if (wsRes.data) {
@@ -103,6 +118,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
       })) as Member[]
     );
     setInvites(invitesRes.data || []);
+    setSlackConnection(slackRes.data ?? null);
     setLoading(false);
   }, [workspaceId]);
 
@@ -221,6 +237,28 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
   const handleBillingPortal = () => openBillingPortal(setLoadingBilling);
   const handleCancelPortal = () => openBillingPortal(setLoadingCancel);
+
+  function handleSlackConnect() {
+    const clientId = import.meta.env.VITE_SLACK_CLIENT_ID;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!clientId) {
+      alert('Slack client ID is not configured. Add VITE_SLACK_CLIENT_ID to your environment variables.');
+      return;
+    }
+    const redirectUri = encodeURIComponent(`${supabaseUrl}/functions/v1/slack-oauth-install`);
+    const state = encodeURIComponent(`${workspaceId}:${user?.id}`);
+    const scopes = encodeURIComponent('commands,chat:write,chat:write.public');
+    window.location.href =
+      `https://slack.com/oauth/v2/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}&state=${state}`;
+  }
+
+  async function handleSlackDisconnect() {
+    if (!slackConnection) return;
+    setDisconnectingSlack(true);
+    await supabase.from('slack_workspaces').delete().eq('id', slackConnection.id);
+    setSlackConnection(null);
+    setDisconnectingSlack(false);
+  }
 
   async function copyInviteLink(token: string) {
     const url = `${window.location.origin}/#join/${token}`;
@@ -582,6 +620,93 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                 </button>
               </div>
             )}
+          </section>
+        )}
+
+        {/* Slack integration — visible to owners and admins */}
+        {isAdmin && (
+          <section className="bg-white rounded-2xl p-6 mb-4" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 mb-1">
+              <Zap className="w-4 h-4" />
+              Integrations
+            </h2>
+            <p className="text-xs text-slate-400 mb-4">Connect external tools to your workspace.</p>
+
+            <div className="rounded-xl p-4" style={{ background: '#f8fafc', border: '1px solid rgba(15,23,42,0.08)' }}>
+              <div className="flex items-start gap-3">
+                {/* Slack logo placeholder using SVG colours */}
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg,#4a154b,#e01e5a)' }}
+                >
+                  <Zap className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-sm font-bold text-slate-900">Slack</p>
+                    {slackConnection && (
+                      <span
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}
+                      >
+                        Connected
+                      </span>
+                    )}
+                  </div>
+                  {slackConnection ? (
+                    <p className="text-xs text-slate-500">
+                      {slackConnection.slack_team_name
+                        ? `${slackConnection.slack_team_name} · `
+                        : ''}
+                      Connected {new Date(slackConnection.created_at).toLocaleDateString()}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      Use <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-mono">/poddle</code> in any channel to kick off a War Room session.
+                    </p>
+                  )}
+                </div>
+                {slackConnection ? (
+                  <button
+                    onClick={handleSlackDisconnect}
+                    disabled={disconnectingSlack}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
+                  >
+                    <Unlink className="w-3.5 h-3.5" />
+                    {disconnectingSlack ? 'Disconnecting…' : 'Disconnect'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSlackConnect}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-0.5"
+                    style={{ background: 'linear-gradient(135deg,#4a154b,#e01e5a)' }}
+                  >
+                    <Link2 className="w-3.5 h-3.5" />
+                    Connect Slack
+                  </button>
+                )}
+              </div>
+
+              {slackConnection && (
+                <div
+                  className="mt-3 p-3 rounded-xl"
+                  style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.06)' }}
+                >
+                  <p className="text-xs font-semibold text-slate-600 mb-1">Slash command</p>
+                  <div className="flex items-center gap-2">
+                    <code
+                      className="flex-1 text-xs font-mono text-slate-700 px-2.5 py-1.5 rounded-lg overflow-x-auto"
+                      style={{ background: '#f1f5f9' }}
+                    >
+                      /poddle should we raise the enterprise price by 15%?
+                    </code>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    Type <code className="font-mono">/poddle</code> followed by your decision question in any channel. Poddle will run a full War Room analysis and post the Board Brief back to that channel.
+                  </p>
+                </div>
+              )}
+            </div>
           </section>
         )}
 
