@@ -712,6 +712,12 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     const userCountry: string | null = profileData?.country ?? null;
 
+    // Actions that call OpenAI are quota-gated. save-context is a DB-only write.
+    if (action !== "save-context") {
+      const quotaDenied = await checkAndIncrementQuota(user.id, supabase);
+      if (quotaDenied) return quotaDenied;
+    }
+
     if (action === "generate") {
       return await handleGenerate(body, supabase, userCountry, user.id);
     }
@@ -1016,6 +1022,82 @@ Suggest 1-2 reference links.`;
   }
 }
 
+const DAILY_AI_LIMIT = 100;
+
+// Returns a 429 Response if the user has exceeded their daily limit, otherwise null.
+async function checkAndIncrementQuota(
+  userId: string,
+  supabase: ReturnType<typeof createClient>,
+): Promise<Response | null> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { error: upsertErr } = await supabase.rpc("increment_daily_ai_usage", {
+    p_user_id: userId,
+    p_date: today,
+  });
+
+  const { data: usageRow } = await supabase
+    .from("daily_ai_usage")
+    .select("message_count")
+    .eq("user_id", userId)
+    .eq("date", today)
+    .maybeSingle();
+
+  const count = usageRow?.message_count ?? 0;
+
+  if (upsertErr && count >= DAILY_AI_LIMIT) {
+    return new Response(
+      JSON.stringify({ error: "Daily AI limit reached. Please try again tomorrow.", quota_exceeded: true }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+  if (!upsertErr && count > DAILY_AI_LIMIT) {
+    return new Response(
+      JSON.stringify({ error: "Daily AI limit reached. Please try again tomorrow.", quota_exceeded: true }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+  return null;
+}
+
+// Verifies that userId can access the assumption's pod.
+// Returns a 403 Response if denied, otherwise null.
+async function checkAssumptionAccess(
+  assumptionId: string,
+  userId: string,
+  supabase: ReturnType<typeof createClient>,
+): Promise<Response | null> {
+  const { data: assumption } = await supabase
+    .from("pod_assumptions")
+    .select("pod_id, pods(is_public)")
+    .eq("id", assumptionId)
+    .maybeSingle();
+
+  if (!assumption) {
+    return new Response(
+      JSON.stringify({ error: "Assumption not found" }),
+      { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const pod = assumption.pods as { is_public: boolean } | null;
+  if (pod?.is_public) return null;
+
+  const { data: membership } = await supabase
+    .from("pod_members")
+    .select("id")
+    .eq("pod_id", assumption.pod_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!membership) {
+    return new Response(
+      JSON.stringify({ error: "Access denied: not a member of this pod" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+  return null;
+}
+
 const TOKEN_LIMITS: Record<string, number> = {
   challenge: 200,
   risk: 200,
@@ -1250,6 +1332,11 @@ async function handleChat(body: Record<string, unknown>, supabase: ReturnType<ty
     });
   }
 
+  if (userId && assumptionId) {
+    const denied = await checkAssumptionAccess(assumptionId, userId, supabase);
+    if (denied) return denied;
+  }
+
   const persona = getPersonaForAgent(agentName, userCountry);
   if (!persona) {
     return new Response(JSON.stringify({ error: "Unknown agent" }), {
@@ -1351,6 +1438,11 @@ async function handleGenerate(body: Record<string, unknown>, supabase: ReturnTyp
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  if (userId) {
+    const denied = await checkAssumptionAccess(assumptionId, userId, supabase);
+    if (denied) return denied;
   }
 
   const { data: agents } = await supabase
@@ -1521,6 +1613,11 @@ async function handleConsensus(body: Record<string, unknown>, supabase: ReturnTy
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  if (userId) {
+    const denied = await checkAssumptionAccess(assumptionId, userId, supabase);
+    if (denied) return denied;
   }
 
   if (!forceRegenerate) {
