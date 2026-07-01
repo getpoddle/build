@@ -82,6 +82,8 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
   const [slackConnection, setSlackConnection] = useState<SlackConnection | null>(null);
   const [disconnectingSlack, setDisconnectingSlack] = useState(false);
+  const [connectingSlack, setConnectingSlack] = useState(false);
+  const [slackError, setSlackError] = useState('');
 
   const fetchData = useCallback(async () => {
     const [wsRes, membersRes, invitesRes, slackRes] = await Promise.all([
@@ -239,6 +241,8 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   const handleCancelPortal = () => openBillingPortal(setLoadingCancel);
 
   async function handleSlackConnect() {
+    setConnectingSlack(true);
+    setSlackError('');
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const { data: { session } } = await supabase.auth.getSession();
     try {
@@ -251,8 +255,16 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
         body: JSON.stringify({ workspace_id: workspaceId, user_id: user?.id }),
       });
       const json = await res.json();
-      if (json.url) window.location.href = json.url;
-    } catch {}
+      if (json.url) {
+        window.location.href = json.url;
+      } else {
+        setSlackError(json.error ?? 'Failed to start Slack connection.');
+        setConnectingSlack(false);
+      }
+    } catch {
+      setSlackError('Network error. Please try again.');
+      setConnectingSlack(false);
+    }
   }
 
   async function handleSlackDisconnect() {
@@ -681,14 +693,23 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                 ) : (
                   <button
                     onClick={handleSlackConnect}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-0.5"
+                    disabled={connectingSlack}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0"
                     style={{ background: 'linear-gradient(135deg,#4a154b,#e01e5a)' }}
                   >
-                    <Link2 className="w-3.5 h-3.5" />
-                    Connect Slack
+                    {connectingSlack ? (
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Link2 className="w-3.5 h-3.5" />
+                    )}
+                    {connectingSlack ? 'Connecting…' : 'Connect Slack'}
                   </button>
                 )}
               </div>
+
+              {slackError && (
+                <p className="mt-2 text-xs text-red-600 font-medium">{slackError}</p>
+              )}
 
               {slackConnection && (
                 <div

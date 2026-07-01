@@ -303,7 +303,7 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const appUrl = Deno.env.get("APP_URL") ?? supabaseUrl.replace(".supabase.co", ".netlify.app");
+  const appUrl = Deno.env.get("APP_URL") ?? "https://poddleme.com";
   const service = createClient(supabaseUrl, serviceKey);
 
   // Look up the Slack team → Poddle workspace mapping
