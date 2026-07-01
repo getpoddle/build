@@ -287,7 +287,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#f8fafc' }}>
+    <div className="flex-1 overflow-y-auto" style={{ background: '#f8fafc', minHeight: '100vh' }}>
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Back */}
         <button

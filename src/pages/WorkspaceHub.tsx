@@ -164,7 +164,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
   }
 
   return (
-    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh', background: '#f1f5f9' }}>
+    <div className="flex flex-col overflow-hidden" style={{ flex: '1 1 0', minHeight: 0, background: '#f1f5f9' }}>
 
       {/* ── Top header bar ── */}
       <div className="flex-shrink-0 bg-white" style={{ borderBottom: '1px solid rgba(15,23,42,0.08)' }}>

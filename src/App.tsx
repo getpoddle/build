@@ -549,10 +549,10 @@ function AppContent() {
   const activePage = currentPage === 'auth' ? 'home' : currentPage;
 
   return (
-    <div className="flex" style={{ minHeight: '100vh' }}>
+    <div className="flex" style={{ height: '100dvh', overflow: 'hidden' }}>
       <Navigation currentPage={activePage} onNavigate={handleNavigate} />
       <main
-        className="flex-1 overflow-x-hidden min-w-0 xl:ml-60 flex flex-col"
+        className="flex-1 overflow-x-hidden overflow-y-auto min-w-0 xl:ml-60 flex flex-col"
         style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
       >
         <PageErrorBoundary>
