@@ -11,9 +11,10 @@ const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 function getClientIp(req: Request): string {
+  // cf-connecting-ip is set by Cloudflare and cannot be spoofed by the client.
+  // x-forwarded-for is client-controllable and must not be used for security decisions.
   return (
     req.headers.get("cf-connecting-ip") ||
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
     req.headers.get("x-real-ip") ||
     "unknown"
   );

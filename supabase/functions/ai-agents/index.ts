@@ -681,7 +681,7 @@ Deno.serve(async (req: Request) => {
     const isServiceRole = authHeader === `Bearer ${supabaseServiceKey}`;
     const xCronSecret = req.headers.get("x-cron-secret");
 
-    const isCronRequest = Boolean(xCronSecret) || (cronSecret != null && (authHeader === `Bearer ${cronSecret}` || xCronSecret === cronSecret));
+    const isCronRequest = cronSecret != null && (authHeader === `Bearer ${cronSecret}` || xCronSecret === cronSecret);
 
     if (action === "agent-discussion" && (isServiceRole || isCronRequest)) {
       const startedAt = Date.now();

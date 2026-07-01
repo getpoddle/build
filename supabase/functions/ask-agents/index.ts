@@ -112,9 +112,13 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 function getClientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for") || "";
-  const first = fwd.split(",")[0].trim();
-  return first || req.headers.get("x-real-ip") || "unknown";
+  // cf-connecting-ip is set by Cloudflare and cannot be spoofed by the client.
+  // x-forwarded-for is client-controllable and must not be used for security decisions.
+  return (
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
 }
 
 async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens = 220): Promise<string> {
@@ -251,11 +255,23 @@ Deno.serve(async (req: Request) => {
     const ip = getClientIp(req);
     const ipHash = await sha256Hex(`${ip}|${new Date().toISOString().slice(0, 10)}`);
 
-    // Sessions prefixed with "ext-{userId}-" are authenticated extension users.
-    // Extract userId for a per-user limit instead of the stricter IP/guest limits.
-    const extUserMatch = clientSessionId.match(/^ext-([0-9a-f-]{36})-/);
-    const isAuthenticatedUser = !!extUserMatch;
-    const authUserId = extUserMatch?.[1] ?? null;
+    // Verify identity via JWT — never trust client-supplied session_id to derive auth status.
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const jwtToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    let isAuthenticatedUser = false;
+    let authUserId: string | null = null;
+    if (jwtToken) {
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: `Bearer ${jwtToken}` } },
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const { data: { user } } = await userClient.auth.getUser();
+      if (user) {
+        isAuthenticatedUser = true;
+        authUserId = user.id;
+      }
+    }
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
