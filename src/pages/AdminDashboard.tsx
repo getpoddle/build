@@ -221,14 +221,8 @@ export default function AdminDashboard() {
           reason_param: moderationReason,
         });
       } else if (moderationAction.action === 'delete') {
-        result = await supabase.rpc('delete_user_account', {
-          target_user_id: moderationAction.userId,
-        });
-        if (result?.error) throw result.error;
-
-        // Also delete the auth.users record via the admin API so the user
-        // cannot log back in. The RPC may not have sufficient privileges to
-        // delete from auth.users directly.
+        // The edge function deletes all public-schema data AND removes the auth.users
+        // record in one atomic sequence, ensuring the email is free to re-register.
         const { data: { session } } = await supabase.auth.getSession();
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const authDeleteRes = await fetch(`${supabaseUrl}/functions/v1/admin-delete-user`, {
@@ -240,8 +234,8 @@ export default function AdminDashboard() {
           body: JSON.stringify({ target_user_id: moderationAction.userId }),
         });
         const authDeleteJson = await authDeleteRes.json();
-        if (!authDeleteRes.ok && authDeleteJson.error) {
-          console.error('auth user deletion failed:', authDeleteJson.error);
+        if (!authDeleteRes.ok) {
+          throw new Error(authDeleteJson.error ?? 'Failed to delete user');
         }
       }
 

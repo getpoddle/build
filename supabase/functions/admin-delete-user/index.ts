@@ -62,14 +62,22 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Delete the auth user via the admin API — this permanently removes their
-    // ability to log in, regardless of whether the SQL function's DELETE FROM
-    // auth.users succeeded or not.
-    const { error: deleteError } = await service.auth.admin.deleteUser(target_user_id);
+    // Step 1: delete all public-schema data for the user.
+    const { error: rpcError } = await service.rpc("delete_user_account", {
+      target_user_id,
+    });
+    if (rpcError) {
+      return new Response(
+        JSON.stringify({ error: "Failed to delete user data", detail: rpcError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
+    // Step 2: delete from auth.users so the email is free to re-register.
+    const { error: deleteError } = await service.auth.admin.deleteUser(target_user_id);
     if (deleteError) {
       const msg = deleteError.message.toLowerCase();
-      // "not found" means the SQL function already removed them — treat as success
+      // "not found" means they were already removed — treat as success.
       if (!msg.includes("not found") && !msg.includes("user not found")) {
         return new Response(
           JSON.stringify({ error: "Failed to delete auth user", detail: deleteError.message }),
