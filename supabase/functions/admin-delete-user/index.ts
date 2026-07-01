@@ -63,21 +63,21 @@ Deno.serve(async (req: Request) => {
     );
 
     // Step 1: delete all public-schema data for the user.
+    // Log but never abort on failure — the critical step is removing from auth.users.
     const { error: rpcError } = await service.rpc("delete_user_account", {
       target_user_id,
     });
     if (rpcError) {
-      return new Response(
-        JSON.stringify({ error: "Failed to delete user data", detail: rpcError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("delete_user_account rpc error (continuing):", rpcError.message);
     }
 
-    // Step 2: delete from auth.users so the email is free to re-register.
-    const { error: deleteError } = await service.auth.admin.deleteUser(target_user_id);
+    // Step 2: hard-delete from auth.users so the email is immediately free to re-register.
+    const { error: deleteError } = await service.auth.admin.deleteUser(
+      target_user_id,
+      false, // shouldSoftDelete = false → hard delete, email freed immediately
+    );
     if (deleteError) {
       const msg = deleteError.message.toLowerCase();
-      // "not found" means they were already removed — treat as success.
       if (!msg.includes("not found") && !msg.includes("user not found")) {
         return new Response(
           JSON.stringify({ error: "Failed to delete auth user", detail: deleteError.message }),
@@ -86,9 +86,10 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: true, rpc_warning: rpcError?.message ?? null }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (err) {
     return new Response(
       JSON.stringify({ error: "Internal server error", detail: String(err) }),
