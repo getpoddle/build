@@ -238,18 +238,21 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   const handleBillingPortal = () => openBillingPortal(setLoadingBilling);
   const handleCancelPortal = () => openBillingPortal(setLoadingCancel);
 
-  function handleSlackConnect() {
-    const clientId = import.meta.env.VITE_SLACK_CLIENT_ID;
+  async function handleSlackConnect() {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (!clientId) {
-      alert('Slack client ID is not configured. Add VITE_SLACK_CLIENT_ID to your environment variables.');
-      return;
-    }
-    const redirectUri = encodeURIComponent(`${supabaseUrl}/functions/v1/slack-oauth-install`);
-    const state = encodeURIComponent(`${workspaceId}:${user?.id}`);
-    const scopes = encodeURIComponent('commands,chat:write,chat:write.public');
-    window.location.href =
-      `https://slack.com/oauth/v2/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}&state=${state}`;
+    const { data: { session } } = await supabase.auth.getSession();
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/slack-start-oauth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ workspace_id: workspaceId, user_id: user?.id }),
+      });
+      const json = await res.json();
+      if (json.url) window.location.href = json.url;
+    } catch {}
   }
 
   async function handleSlackDisconnect() {
