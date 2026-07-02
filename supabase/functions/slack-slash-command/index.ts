@@ -199,6 +199,21 @@ function buildSlackBlocks(
     });
   }
 
+  // Blind Spots — elevated to top-tier visibility
+  if (blindSpots.length > 0) {
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text:
+          `*🕳️ Blind Spots*\n_What your team may not be seeing:_\n` +
+          blindSpots
+            .map((b) => `• *${b.area}* — ${b.description}`)
+            .join("\n"),
+      },
+    });
+  }
+
   // Financial Metrics
   if (financialMetrics.length > 0) {
     blocks.push({
@@ -310,22 +325,6 @@ function buildSlackBlocks(
           conflictZones
             .slice(0, 3)
             .map((c) => `• *${c.topic}*${c.position_a && c.position_b ? `: "${c.position_a}" vs "${c.position_b}"` : ""}`)
-            .join("\n"),
-      },
-    });
-  }
-
-  // Blind Spots
-  if (blindSpots.length > 0) {
-    blocks.push({
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text:
-          `*🕳️ Blind Spots*\n` +
-          blindSpots
-            .slice(0, 3)
-            .map((b) => `• *${b.area}* — ${b.description}`)
             .join("\n"),
       },
     });
