@@ -367,7 +367,7 @@ async function runWarRoom(
   supabaseUrl: string,
   serviceKey: string,
   slackSessionId: string,
-  workspaceId: string,
+  installedByUserId: string,
   question: string,
   responseUrl: string,
   appUrl: string,
@@ -379,20 +379,44 @@ async function runWarRoom(
       .update({ status: "processing" })
       .eq("id", slackSessionId);
 
-    // Find workspace owner to attribute the message
-    const { data: ownerRow } = await service
-      .from("workspace_members")
-      .select("user_id")
-      .eq("workspace_id", workspaceId)
-      .eq("role", "owner")
-      .maybeSingle();
+    // Create a fresh, isolated workspace for this specific Slack question.
+    // Each /poddle command gets its own War Room so prior conversations never contaminate results.
+    const workspaceName = question.length > 100 ? question.slice(0, 97) + "…" : question;
+    const { data: newWorkspace, error: wsErr } = await service
+      .from("workspaces")
+      .insert({
+        name: workspaceName,
+        description: "Created from Slack slash command",
+        owner_id: installedByUserId,
+        source: "slack",
+        plan: "pro",
+        subscription_status: "trialing",
+        trial_workspace_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      })
+      .select("id")
+      .single();
 
-    if (!ownerRow) throw new Error("Workspace owner not found");
+    if (wsErr || !newWorkspace) throw new Error(`Failed to create workspace: ${wsErr?.message}`);
 
-    // Insert the decision question as a workspace message
+    const workspaceId = newWorkspace.id;
+
+    // Insert the Slack user as workspace owner — required for message attribution and access checks
+    await service.from("workspace_members").insert({
+      workspace_id: workspaceId,
+      user_id: installedByUserId,
+      role: "owner",
+    });
+
+    // Record the new workspace on the session for deep-link routing
+    await service
+      .from("slack_sessions")
+      .update({ poddle_workspace_id: workspaceId })
+      .eq("id", slackSessionId);
+
+    // Insert the decision question as the opening workspace message
     await service.from("workspace_messages").insert({
       workspace_id: workspaceId,
-      user_id: ownerRow.user_id,
+      user_id: installedByUserId,
       role: "user",
       content: question,
       metadata: { source: "slack_slash_command", slack_session_id: slackSessionId },
@@ -507,10 +531,10 @@ Deno.serve(async (req: Request) => {
   const appUrl = Deno.env.get("APP_URL") ?? "https://poddleme.com";
   const service = createClient(supabaseUrl, serviceKey);
 
-  // Look up the Slack team → Poddle workspace mapping
+  // Look up the Slack team → Poddle user mapping
   const { data: slackWs } = await service
     .from("slack_workspaces")
-    .select("id, poddle_workspace_id")
+    .select("id, poddle_workspace_id, installed_by_user_id")
     .eq("slack_team_id", teamId)
     .maybeSingle();
 
@@ -558,7 +582,7 @@ Deno.serve(async (req: Request) => {
       supabaseUrl,
       serviceKey,
       sessionId,
-      slackWs.poddle_workspace_id,
+      slackWs.installed_by_user_id,
       question,
       responseUrl,
       appUrl,

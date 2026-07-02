@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap } from 'lucide-react';
+import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, MessageSquare, ExternalLink } from 'lucide-react';
 import { useUserWorkspaces, useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import CreateWorkspace from '../components/CreateWorkspace';
@@ -64,6 +64,14 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
   const isLoading = loading || trialLoading;
 
+  const appWorkspaces = workspaces.filter(w => w.source !== 'slack');
+  const slackWorkspaces = workspaces.filter(w => w.source === 'slack')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  function formatDate(dateStr: string) {
+    return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
       <div className="px-4 sm:px-6 lg:px-6 py-8 lg:py-10">
@@ -106,7 +114,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         )}
 
         {/* Empty state */}
-        {!isLoading && workspaces.length === 0 && (
+        {!isLoading && appWorkspaces.length === 0 && (
           <div
             className="rounded-2xl p-12 lg:p-16 text-center"
             style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
@@ -162,7 +170,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         )}
 
         {/* Workspace list — desktop table-style */}
-        {!isLoading && workspaces.length > 0 && (
+        {!isLoading && appWorkspaces.length > 0 && (
           <div
             className="rounded-2xl overflow-hidden"
             style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
@@ -179,7 +187,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               <span className="w-16" />
             </div>
 
-            {workspaces.map((ws, idx) => {
+            {appWorkspaces.map((ws, idx) => {
               const planStyle = PLAN_BADGE_STYLE[ws.plan] || PLAN_BADGE_STYLE.pro;
               const statusStyle = STATUS_STYLE[ws.subscription_status] || STATUS_STYLE.inactive;
               const statusLabel = STATUS_LABEL[ws.subscription_status] || ws.subscription_status;
@@ -190,7 +198,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               const isTrial = ws.subscription_status === 'trialing' && !ws.stripe_customer_id;
               const daysLeft = isTrial ? daysUntil(ws.trial_workspace_expires_at) : null;
               const expiryWarning = daysLeft !== null && daysLeft <= 7;
-              const isLast = idx === workspaces.length - 1;
+              const isLast = idx === appWorkspaces.length - 1;
 
               return (
                 <div
@@ -323,7 +331,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         )}
 
         {/* Upgrade banner when monthly limit reached */}
-        {!isLoading && !isPro && monthlyLimitReached && workspaces.length > 0 && (
+        {!isLoading && !isPro && monthlyLimitReached && appWorkspaces.length > 0 && (
           <div
             className="mt-6 rounded-2xl p-5 flex items-center gap-4"
             style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdfa)', border: '1px solid rgba(37,99,235,0.15)' }}
@@ -345,6 +353,92 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             >
               Upgrade
             </button>
+          </div>
+        )}
+
+        {/* Slack Sessions */}
+        {!isLoading && (
+          <div className="mt-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(74,21,75,0.08)' }}
+              >
+                <MessageSquare className="w-4 h-4" style={{ color: '#4a154b' }} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Slack Sessions</h2>
+                <p className="text-xs text-slate-500">War Rooms generated from <code className="font-mono">/poddle</code> commands — each question gets its own isolated workspace.</p>
+              </div>
+            </div>
+
+            {slackWorkspaces.length === 0 ? (
+              <div
+                className="rounded-2xl p-6 flex items-center gap-4"
+                style={{ background: '#fff', border: '1px dashed rgba(15,23,42,0.12)' }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(74,21,75,0.07)' }}
+                >
+                  <MessageSquare className="w-5 h-5" style={{ color: '#4a154b' }} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">No Slack sessions yet</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Use <code className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">/poddle &lt;your question&gt;</code> in Slack to generate a fresh War Room for any decision.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {slackWorkspaces.map(ws => {
+                  const daysLeft = daysUntil(ws.trial_workspace_expires_at);
+                  const isExpired = ws.subscription_status === 'inactive' || (daysLeft !== null && daysLeft <= 0);
+                  return (
+                    <div
+                      key={ws.id}
+                      className="group flex items-center gap-4 px-5 py-4 rounded-2xl cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
+                      style={{
+                        background: '#fff',
+                        border: '1px solid rgba(15,23,42,0.08)',
+                        boxShadow: '0 1px 4px rgba(15,23,42,0.04)',
+                        opacity: isExpired ? 0.65 : 1,
+                      }}
+                      onClick={() => onNavigate('workspace-hub', ws.id)}
+                    >
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: isExpired ? 'rgba(100,116,139,0.1)' : 'rgba(74,21,75,0.1)' }}
+                      >
+                        <MessageSquare className="w-4 h-4" style={{ color: isExpired ? '#94a3b8' : '#4a154b' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold truncate ${isExpired ? 'text-slate-400' : 'text-slate-800'}`}>{ws.name}</p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-xs text-slate-400">{formatDate(ws.created_at)}</span>
+                          {daysLeft !== null && daysLeft > 0 && (
+                            <span className="text-xs text-slate-400">· expires in {daysLeft}d</span>
+                          )}
+                          {isExpired && (
+                            <span className="text-xs font-medium" style={{ color: '#dc2626' }}>· expired</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span
+                          className="hidden sm:inline text-xs font-semibold px-2.5 py-1 rounded-full"
+                          style={{ background: 'rgba(74,21,75,0.08)', color: '#4a154b' }}
+                        >
+                          Slack
+                        </span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

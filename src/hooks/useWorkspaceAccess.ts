@@ -127,6 +127,8 @@ export function useUserWorkspaces() {
     role: string;
     owner_id: string;
     stripe_customer_id: string | null;
+    source: string;
+    created_at: string;
   }>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -138,7 +140,8 @@ export function useUserWorkspaces() {
         role,
         workspaces (
           id, name, description, domain, plan, subscription_status,
-          trial_workspace_expires_at, seats, is_encrypted, owner_id, stripe_customer_id
+          trial_workspace_expires_at, seats, is_encrypted, owner_id, stripe_customer_id,
+          source, created_at
         )
       `)
       .eq('user_id', user.id);
