@@ -1068,7 +1068,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ElementType; count: number; color: string; bg: string }>;
 
   return (
-    <div className="flex flex-col" style={{ height: '100%', minHeight: 0 }}>
+    <div className="flex-1 flex flex-col min-h-0">
 
       {/* ── Fixed top zone: header + health panel + section nav ── */}
       <div className="flex-shrink-0 px-5 pt-5 pb-0 space-y-4" style={{ background: '#f8fafc' }}>

@@ -427,7 +427,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
             </div>
 
             {/* War Room content */}
-            <div className="flex-1 min-h-0 flex flex-col" style={{ background: '#f8fafc' }}>
+            <div className="flex-1 min-h-0 flex flex-col overflow-hidden" style={{ background: '#f8fafc' }}>
               {workspaceIsPro ? (
                 <WorkspaceWarRoom
                   key={warRoomKey}
