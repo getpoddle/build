@@ -1,6 +1,17 @@
-// Pure functions extracted from the stripe-webhook edge function.
-// These have no runtime dependencies so they can be unit tested directly.
+/**
+ * Shared Stripe verification and product-mapping logic.
+ * Used by: supabase/functions/stripe-webhook/index.ts
+ * Tested by: src/tests/stripe.test.ts
+ *
+ * Kept in _shared/ so the same implementation is imported by both the
+ * edge function (Deno) and the Vitest test suite (Node), guaranteeing
+ * tests validate the code that actually runs in production.
+ */
 
+/**
+ * Server-side authoritative product → plan mapping.
+ * Plan/seats are NEVER trusted from user-controlled metadata.
+ */
 export const PRODUCT_TO_PLAN: Record<string, { plan: string; seats: number }> = {
   "prod_UXcclPSycEN5dN": { plan: "enterprise", seats: 25 },
   "prod_UYhkfi8tsa4NJu": { plan: "team", seats: 10 },

@@ -22,7 +22,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { shouldBlockQuota } from "../lib/quotaLogic";
+import { shouldBlockQuota } from "../../supabase/functions/_shared/quotaLogic";
 
 const LIMIT = 100;
 

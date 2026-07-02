@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { shouldBlockQuota } from "../_shared/quotaLogic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1040,9 +1041,7 @@ async function checkAndIncrementQuota(
 
   const count = usageRow?.message_count ?? 0;
 
-  // Fail closed: any increment error blocks the request. We cannot confirm the
-  // usage was recorded, so granting the request would allow quota bypass.
-  if (upsertErr || count > DAILY_AI_LIMIT) {
+  if (shouldBlockQuota(count, DAILY_AI_LIMIT, !!upsertErr)) {
     return new Response(
       JSON.stringify({ error: "Daily AI limit reached. Please try again tomorrow.", quota_exceeded: true }),
       { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },

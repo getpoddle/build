@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { verifyStripeSignature, planFromProductId } from "../lib/stripeLogic";
+import { verifyStripeSignature, planFromProductId } from "../../supabase/functions/_shared/stripeLogic";
 
 // Helper: compute a valid Stripe-style HMAC-SHA256 signature header.
 async function buildSignatureHeader(body: string, secret: string, timestamp: string): Promise<string> {

@@ -1,38 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { verifyStripeSignature, planFromProductId } from "../_shared/stripeLogic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
-
-// Server-side authoritative product → plan mapping.
-// Plan/seats are NEVER trusted from user-controlled metadata.
-const PRODUCT_TO_PLAN: Record<string, { plan: string; seats: number }> = {
-  "prod_UXcclPSycEN5dN": { plan: "enterprise", seats: 25 },
-  "prod_UYhkfi8tsa4NJu": { plan: "team", seats: 10 },
-  "prod_UXcbO4NuuJRE5A": { plan: "pro", seats: 3 },
-};
-
-async function verifyStripeSignature(body: string, signature: string, secret: string): Promise<boolean> {
-  const parts = signature.split(",");
-  const timestamp = parts.find(p => p.startsWith("t="))?.slice(2);
-  const v1 = parts.find(p => p.startsWith("v1="))?.slice(3);
-  if (!timestamp || !v1) return false;
-
-  const payload = `${timestamp}.${body}`;
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
-  const computed = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
-  return computed === v1;
-}
 
 async function resolvePlanFromLineItems(
   subscriptionId: string | null,
@@ -46,7 +20,7 @@ async function resolvePlanFromLineItems(
     if (!res.ok) return null;
     const sub = await res.json();
     const productId = sub.items?.data?.[0]?.price?.product?.id ?? sub.items?.data?.[0]?.price?.product;
-    return PRODUCT_TO_PLAN[productId] ?? null;
+    return planFromProductId(productId);
   } catch {
     return null;
   }
