@@ -759,7 +759,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string | null>('recommendation');
   const [newActionText, setNewActionText] = useState('');
   const [addingAction, setAddingAction] = useState(false);
   const [savingAction, setSavingAction] = useState(false);
@@ -1068,7 +1068,10 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ElementType; count: number; color: string; bg: string }>;
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col" style={{ height: '100%', minHeight: 0 }}>
+
+      {/* ── Fixed top zone: header + health panel + section nav ── */}
+      <div className="flex-shrink-0 px-5 pt-5 pb-0 space-y-4" style={{ background: '#f8fafc' }}>
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1197,8 +1200,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── Section nav pills ── */}
       <div
-        className="sticky top-0 z-10 py-2.5 flex flex-wrap gap-1.5"
-        style={{ background: 'rgba(248,250,252,0.96)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(15,23,42,0.07)', marginLeft: '-1px', marginRight: '-1px', paddingLeft: '1px', paddingRight: '1px' }}
+        className="flex flex-wrap gap-1.5 pb-3"
+        style={{ borderBottom: '1px solid rgba(15,23,42,0.07)' }}
       >
         <button
           onClick={() => setActiveSection(null)}
@@ -1224,6 +1227,12 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           </button>
         ))}
       </div>
+
+      </div>{/* end fixed top zone */}
+
+      {/* ── Scrollable sections body ── */}
+      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+      <div className="px-5 py-4 space-y-4">
 
       {/* ── RECOMMENDATION ── */}
       {(activeSection === null || activeSection === 'recommendation') && synthesis.recommendation && (
@@ -1693,6 +1702,9 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           </button>
         </div>
       )}
+
+      </div>{/* end px-5 py-4 */}
+      </div>{/* end scrollable body */}
 
       {/* ── Board Brief Modal ── */}
       {showBoardSummary && (

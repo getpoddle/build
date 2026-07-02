@@ -330,36 +330,22 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
         {/* ── MOBILE: War Room tab ── */}
         {mainTab === 'warroom' && (
-          <div className="lg:hidden flex-1 overflow-y-auto">
-            <div className="p-3 sm:p-4 space-y-1">
-              {/* Mobile re-synthesize */}
-              {workspaceIsPro && !isReadOnly && (
-                <div className="mb-4 flex justify-end">
-                  <button
-                    onClick={handleResynthesis}
-                    disabled={resyncing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff' }}
-                  >
-                    {resyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                    {resyncing ? 'Synthesizing…' : 'Re-synthesize'}
-                  </button>
-                </div>
-              )}
-              {workspaceIsPro ? (
-                <WorkspaceWarRoom
-                  key={warRoomKey}
-                  workspaceId={workspaceId}
-                  workspaceName={workspace?.name || 'Workspace'}
-                  workspaceTopic={workspace?.description}
-                  onDiscuss={p => { handleDiscuss(p); setMainTab('chat'); }}
-                  discussedKeys={discussedKeys}
-                  onDiscussed={key => setDiscussedKeys(prev => new Set([...prev, key]))}
-                />
-              ) : (
+          <div className="lg:hidden flex-1 min-h-0 flex flex-col">
+            {workspaceIsPro ? (
+              <WorkspaceWarRoom
+                key={warRoomKey}
+                workspaceId={workspaceId}
+                workspaceName={workspace?.name || 'Workspace'}
+                workspaceTopic={workspace?.description}
+                onDiscuss={p => { handleDiscuss(p); setMainTab('chat'); }}
+                discussedKeys={discussedKeys}
+                onDiscussed={key => setDiscussedKeys(prev => new Set([...prev, key]))}
+              />
+            ) : (
+              <div className="p-4">
                 <WarRoomLockedState onUpgrade={() => setShowUpgrade(true)} />
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -435,22 +421,22 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
             </div>
 
             {/* War Room content */}
-            <div className="flex-1 min-h-0 overflow-y-auto" style={{ background: '#f8fafc' }}>
-              <div className="p-5">
-                {workspaceIsPro ? (
-                  <WorkspaceWarRoom
-                    key={warRoomKey}
-                    workspaceId={workspaceId}
-                    workspaceName={workspace?.name || 'Workspace'}
-                    workspaceTopic={workspace?.description}
-                    onDiscuss={handleDiscuss}
-                    discussedKeys={discussedKeys}
-                    onDiscussed={key => setDiscussedKeys(prev => new Set([...prev, key]))}
-                  />
-                ) : (
+            <div className="flex-1 min-h-0 flex flex-col" style={{ background: '#f8fafc' }}>
+              {workspaceIsPro ? (
+                <WorkspaceWarRoom
+                  key={warRoomKey}
+                  workspaceId={workspaceId}
+                  workspaceName={workspace?.name || 'Workspace'}
+                  workspaceTopic={workspace?.description}
+                  onDiscuss={handleDiscuss}
+                  discussedKeys={discussedKeys}
+                  onDiscussed={key => setDiscussedKeys(prev => new Set([...prev, key]))}
+                />
+              ) : (
+                <div className="p-5">
                   <WarRoomLockedState onUpgrade={() => setShowUpgrade(true)} />
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
