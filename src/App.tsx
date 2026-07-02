@@ -596,35 +596,37 @@ function AppContent() {
         className="flex-1 overflow-x-hidden overflow-y-auto min-w-0 xl:ml-60 flex flex-col"
         style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
       >
-        <PageErrorBoundary>
-          <Suspense fallback={<RouteFallback />}>
-            {activePage === 'home' && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
-            {activePage === 'profile' && <Profile key="profile-settings" onNavigate={handleNavigate} />}
-            {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
-            {activePage === 'workspace-hub' && workspaceId && (
-              <WorkspaceHub
-                key={`workspace-hub-${workspaceId}`}
-                workspaceId={workspaceId}
-                onBack={() => handleNavigate('workspaces')}
-                onSettings={() => handleNavigate('workspace-settings', workspaceId)}
-                onNavigate={handleNavigate}
-                onEntityClick={(_id, _type) => {}}
-              />
-            )}
-            {activePage === 'workspace-settings' && workspaceId && (
-              <WorkspaceSettings
-                key={`workspace-settings-${workspaceId}`}
-                workspaceId={workspaceId}
-                onBack={() => handleNavigate('workspace-hub', workspaceId)}
-                onNavigate={handleNavigate}
-              />
-            )}
-            {activePage === 'privacy' && <PrivacyPolicy />}
-            {activePage === 'terms' && <TermsOfService />}
-            {activePage === 'pricing' && <Pricing onNavigate={handleNavigate} />}
-          </Suspense>
-          <div className="xl:hidden" style={{ height: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }} />
-        </PageErrorBoundary>
+        <div className="flex-1">
+          <PageErrorBoundary>
+            <Suspense fallback={<RouteFallback />}>
+              {activePage === 'home' && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
+              {activePage === 'profile' && <Profile key="profile-settings" onNavigate={handleNavigate} />}
+              {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
+              {activePage === 'workspace-hub' && workspaceId && (
+                <WorkspaceHub
+                  key={`workspace-hub-${workspaceId}`}
+                  workspaceId={workspaceId}
+                  onBack={() => handleNavigate('workspaces')}
+                  onSettings={() => handleNavigate('workspace-settings', workspaceId)}
+                  onNavigate={handleNavigate}
+                  onEntityClick={(_id, _type) => {}}
+                />
+              )}
+              {activePage === 'workspace-settings' && workspaceId && (
+                <WorkspaceSettings
+                  key={`workspace-settings-${workspaceId}`}
+                  workspaceId={workspaceId}
+                  onBack={() => handleNavigate('workspace-hub', workspaceId)}
+                  onNavigate={handleNavigate}
+                />
+              )}
+              {activePage === 'privacy' && <PrivacyPolicy />}
+              {activePage === 'terms' && <TermsOfService />}
+              {activePage === 'pricing' && <Pricing onNavigate={handleNavigate} />}
+            </Suspense>
+            <div className="xl:hidden" style={{ height: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }} />
+          </PageErrorBoundary>
+        </div>
         <footer className="bg-white border-t border-slate-200 py-5 hidden xl:block">
           <div className="px-8">
             <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
