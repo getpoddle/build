@@ -34,25 +34,10 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    type SlugRow = { slug: string; updated_at: string };
-
-    const [problemsRes, ideasRes, predictionsRes] = await Promise.all([
-      supabase.from("problems").select("slug, updated_at").not("slug", "is", null).order("updated_at", { ascending: false }).limit(2000),
-      supabase.from("ideas").select("slug, updated_at").not("slug", "is", null).order("updated_at", { ascending: false }).limit(2000),
-      supabase.from("predictions").select("slug, updated_at").not("slug", "is", null).order("updated_at", { ascending: false }).limit(2000),
-    ]);
-
-    const problems: SlugRow[] = (problemsRes.data || []).filter((r: SlugRow) => r.slug);
-    const ideas: SlugRow[] = (ideasRes.data || []).filter((r: SlugRow) => r.slug);
-    const predictions: SlugRow[] = (predictionsRes.data || []).filter((r: SlugRow) => r.slug);
-
     const now = new Date().toISOString().split("T")[0];
 
     const staticUrls = [
-      { loc: `${BASE_URL}/`,                    changefreq: "daily",   priority: "1.0", lastmod: now },
-      { loc: `${BASE_URL}/reasoning/forecasts`, changefreq: "daily",   priority: "0.9", lastmod: now },
-      { loc: `${BASE_URL}/reasoning/ideas`,     changefreq: "daily",   priority: "0.9", lastmod: now },
-      { loc: `${BASE_URL}/reasoning/problems`,  changefreq: "daily",   priority: "0.9", lastmod: now },
+      { loc: `${BASE_URL}/`, changefreq: "daily", priority: "1.0", lastmod: now },
     ];
 
     const urlXml = (loc: string, lastmod: string, changefreq: string, priority: string) =>
@@ -60,9 +45,6 @@ Deno.serve(async (req: Request) => {
 
     const entries = [
       ...staticUrls.map(u => urlXml(u.loc, u.lastmod, u.changefreq, u.priority)),
-      ...predictions.map((r: SlugRow) => urlXml(`${BASE_URL}/reasoning/forecasts/${r.slug}`, r.updated_at ? r.updated_at.split("T")[0] : now, "weekly", "0.8")),
-      ...ideas.map((r: SlugRow) => urlXml(`${BASE_URL}/reasoning/ideas/${r.slug}`, r.updated_at ? r.updated_at.split("T")[0] : now, "weekly", "0.8")),
-      ...problems.map((r: SlugRow) => urlXml(`${BASE_URL}/reasoning/problems/${r.slug}`, r.updated_at ? r.updated_at.split("T")[0] : now, "weekly", "0.8")),
     ];
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.join("")}\n</urlset>`;

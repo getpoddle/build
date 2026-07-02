@@ -754,10 +754,6 @@ Deno.serve(async (req: Request) => {
       return await handleAgentDiscussion(body, supabase);
     }
 
-    if (action === "challenge-reply") {
-      return await handleChallengeReply(body, supabase, userCountry);
-    }
-
     if (action === "post-challenge-reply") {
       return await handlePostChallengeReply(body, supabase, userCountry);
     }
@@ -2340,92 +2336,6 @@ Write their weekly summary.`;
   if (insertError) throw insertError;
 
   return new Response(JSON.stringify({ digest, cached: false }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-async function handleChallengeReply(body: Record<string, unknown>, supabase: ReturnType<typeof createClient>, userCountry?: string | null) {
-  const { challengeId, assumptionId, challengeContent, assumptionContext, assumptionDescription, podContext, insightType } = body as {
-    challengeId: string;
-    assumptionId: string;
-    challengeContent: string;
-    assumptionContext?: string;
-    assumptionDescription?: string;
-    podContext?: string;
-    insightType?: string;
-  };
-
-  if (!challengeId || !assumptionId || !challengeContent) {
-    return new Response(JSON.stringify({ error: "Missing challengeId, assumptionId, or challengeContent" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const { data: existing } = await supabase
-    .from("challenge_ai_replies")
-    .select("id")
-    .eq("challenge_id", challengeId)
-    .maybeSingle();
-
-  if (existing) {
-    return new Response(JSON.stringify({ error: "Already replied to this challenge" }), {
-      status: 409,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const topic = classifyTopic(challengeContent, podContext);
-  const replyAgents = ["The Skeptic", "Devil's Advocate", "Risk Analyst", "Data Detective", "The Pragmatist", "Systems Thinker"];
-  const weights = TOPIC_AGENT_WEIGHTS[topic];
-  const sorted = replyAgents.sort((a, b) => (weights[b] ?? 0) - (weights[a] ?? 0));
-  const pickedAgent = sorted[Math.floor(Math.random() * Math.min(3, sorted.length))];
-
-  const persona = getPersonaForAgent(pickedAgent, userCountry);
-
-  const assumptionBlock = assumptionContext
-    ? buildAssumptionContext(assumptionContext, assumptionDescription, podContext, insightType)
-    : "";
-
-  const systemPrompt = `${persona.systemPrompt}
-
-You are reading a community challenge/pushback posted about an assumption. Your job is to respond directly to this challenge — engage with their argument. You might agree partially, push back on their logic, raise what they missed, or offer a nuanced take. Be direct, conversational, 2-3 sentences. No lists, no headers.`;
-
-  const userMessage = `The original insight: ${assumptionContext || "not provided"}
-
-Someone just challenged it with:
-"${challengeContent}"
-
-Respond to their challenge. Engage with what they actually said.`;
-
-  const content = await callOpenAI(systemPrompt, userMessage, TOKEN_LIMITS.challenge_reply);
-  const confidence = Math.floor(Math.random() * 20) + 65;
-
-  const roleInfo = AGENT_ROLES.find(r => r.role === pickedAgent);
-  const agentRole = roleInfo ? roleInfo.responseType : "analysis";
-
-  const { data: reply, error: insertError } = await supabase
-    .from("challenge_ai_replies")
-    .insert({
-      challenge_id: challengeId,
-      assumption_id: assumptionId,
-      agent_name: pickedAgent,
-      agent_role: agentRole,
-      display_name: persona.displayName,
-      content,
-      confidence_score: confidence,
-    })
-    .select()
-    .single();
-
-  if (insertError) {
-    return new Response(JSON.stringify({ error: String(insertError.message) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  return new Response(JSON.stringify({ reply }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
