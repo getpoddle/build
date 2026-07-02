@@ -151,6 +151,16 @@ function AppContent() {
       sessionStorage.setItem('slackErrorToast', slackError);
     }
 
+    // Slack "View Full War Room" deep-link: /?workspace=<id>
+    const deepLinkWorkspaceId = urlParams.get('workspace');
+    if (deepLinkWorkspaceId && !slackConnected) {
+      history.replaceState(null, '', `#workspace/${deepLinkWorkspaceId}`);
+      setWorkspaceId(deepLinkWorkspaceId);
+      setCurrentPage('workspace-hub');
+      sessionStorage.setItem('currentPage', 'workspace-hub');
+      return;
+    }
+
     const checkForSpecialRoutes = () => {
       const hash = window.location.hash.substring(1);
 
