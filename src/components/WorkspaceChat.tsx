@@ -162,6 +162,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   );
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
@@ -383,27 +384,49 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     setMessages(prev => [...prev, optimisticUser]);
     setTimeout(() => scrollToBottom(), 50);
 
+    setSendError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const historyForApi = messages.slice(-8).map(m => ({ role: m.role, content: m.content }));
 
-      const res = await fetch(`${supabaseUrl}/functions/v1/workspace-ai-chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({
-          workspace_id: workspaceId,
-          message: content,
-          history: historyForApi,
-          documents: chatDocuments.map(d => ({ filename: d.filename, extractedText: d.extractedText })),
-        }),
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 90_000);
+
+      let res: Response;
+      try {
+        res = await fetch(`${supabaseUrl}/functions/v1/workspace-ai-chat`, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            workspace_id: workspaceId,
+            message: content,
+            history: historyForApi,
+            documents: chatDocuments.map(d => ({ filename: d.filename, extractedText: d.extractedText })),
+          }),
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
 
       const json = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 429 || json.quota_exceeded) {
+          setSendError("You've reached today's message limit. Agents will be available again tomorrow.");
+        } else if (res.status === 401) {
+          setSendError("Your session has expired. Please refresh the page and try again.");
+        } else {
+          setSendError(json.error || "The agents couldn't respond. Please try again in a moment.");
+        }
+        return;
+      }
+
       if (json.responses) {
         const agentMsgs: Message[] = json.responses.map((r: { agent_name: string; agent_role: string; content: string }) => ({
           id: crypto.randomUUID(),
@@ -417,8 +440,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         setTimeout(() => scrollToBottom(), 50);
         onAgentsReplied?.();
       }
-    } catch {
-      // silently fail — user message still visible
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setSendError("The agents are taking longer than expected. Please try again — your question was saved.");
+      } else {
+        setSendError("Something went wrong. Please try again.");
+      }
     } finally {
       setLoading(false);
       textareaRef.current?.focus();
@@ -1165,6 +1192,14 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               <p className="text-xs text-slate-400">Documents are used for this session only and are not stored.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Error banner */}
+      {sendError && (
+        <div className="mt-2 flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm" style={{ background: 'rgba(254,226,226,0.9)', border: '1px solid #fca5a5', color: '#7f1d1d' }}>
+          <span className="flex-1">{sendError}</span>
+          <button onClick={() => setSendError(null)} className="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors">✕</button>
         </div>
       )}
 

@@ -247,9 +247,9 @@ async function selectAgents(
   openAiKey: string,
   messageCount: number,
 ): Promise<string[]> {
-  // For new workspaces (first few messages), run all 7 agents for a comprehensive intake
+  // For new workspaces (first few messages), run 4 core agents to avoid timeouts
   if (messageCount <= 4) {
-    return Object.keys(AGENT_ROSTER);
+    return ["financial_strategist", "risk_analyst", "devils_advocate", "market_analyst"];
   }
 
   const agentList = Object.values(AGENT_ROSTER).map(a =>
@@ -871,7 +871,7 @@ Return ONLY valid JSON, no markdown fences:
           await service
             .from("workspace_synthesis_queue")
             .upsert({ workspace_id, status: "pending", triggered_at: new Date().toISOString() }, {
-              onConflict: "workspace_id",
+              onConflict: "workspace_id,status",
               ignoreDuplicates: true,
             });
         }
