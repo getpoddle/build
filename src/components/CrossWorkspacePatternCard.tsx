@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity, Users, CheckSquare, ThumbsUp, ThumbsDown, RotateCcw, XCircle, Globe, ToggleLeft, ToggleRight, Award } from 'lucide-react';
+import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity, Users, CheckSquare, ThumbsUp, ThumbsDown, RotateCcw, XCircle, Globe, ToggleLeft, ToggleRight, Award, Cpu } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const UNLOCK_THRESHOLD = 2;
@@ -260,6 +260,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
   const [benchmarkPercentile, setBenchmarkPercentile] = useState<number | null>(null);
   const [benchmarkCategory, setBenchmarkCategory] = useState<string | null>(null);
   const [togglingBenchmark, setTogglingBenchmark] = useState(false);
+  const [trainingContributions, setTrainingContributions] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -369,6 +370,10 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
         }
       }
     }
+
+    // Training contribution count (Direction 4 badge)
+    const { data: contribCount } = await supabase.rpc('get_my_training_contribution_count', { p_user_id: userId });
+    if (typeof contribCount === 'number') setTrainingContributions(contribCount);
 
     setLoading(false);
   };
@@ -501,6 +506,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                   { icon: GitBranch,  color: '#0891b2', bg: 'rgba(8,145,178,0.08)',   title: 'Agent Alignment',     description: 'Which AI agents you most frequently agree or conflict with.' },
                   { icon: CheckSquare, color: '#16a34a', bg: 'rgba(22,163,74,0.08)', title: 'Action Track Record', description: 'What percentage of your completed actions actually succeeded.' },
                   { icon: Globe,      color: '#0891b2', bg: 'rgba(8,145,178,0.08)',  title: 'Benchmark Mode',      description: 'See how your decision health compares to other teams in the same category.' },
+                  { icon: Cpu,        color: '#2563eb', bg: 'rgba(37,99,235,0.08)',  title: 'Model Contribution',  description: 'Your outcomes contribute to training a proprietary decision intelligence model.' },
                   { icon: Lightbulb,  color: '#d97706', bg: 'rgba(245,158,11,0.08)', title: 'Recommendations',     description: 'Personalised next actions based on your decision patterns.' },
                 ].map(({ icon: Icon, color, bg, title, description }) => (
                   <div
@@ -1035,6 +1041,31 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                       <p className="text-xs font-bold text-slate-800 mb-0.5">Building {CATEGORY_LABELS[benchmarkCategory] ?? benchmarkCategory} Benchmark</p>
                       <p className="text-[11px] text-slate-400 leading-relaxed">
                         Not enough contributors yet to show a meaningful benchmark. Your score has been added to the pool — comparisons will appear once more teams opt in.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Contributing to Model — shown when user has ≥1 high-quality training pair */}
+              {trainingContributions !== null && trainingContributions > 0 && (
+                <div
+                  className="rounded-xl p-3.5"
+                  style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.04),rgba(6,182,212,0.03))', border: '1px solid rgba(37,99,235,0.12)' }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(37,99,235,0.10)' }}>
+                      <Cpu className="w-3.5 h-3.5" style={{ color: '#2563eb' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-xs font-bold text-slate-800">Contributing to Model Training</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(37,99,235,0.10)', color: '#2563eb' }}>
+                          {trainingContributions} workspace{trainingContributions !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Your decision data — synthesis depth and recorded outcomes — is part of the training dataset that will power Poddle's future domain-specific model. The more outcomes you record, the higher your contribution quality.
                       </p>
                     </div>
                   </div>

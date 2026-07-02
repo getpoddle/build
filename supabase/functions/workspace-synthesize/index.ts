@@ -908,6 +908,82 @@ RULES:
           await service.from("user_pattern_intelligence").insert(payload);
         }
 
+        // ── Training pair upsert (Direction 4) ──────────────────────────────────
+        // Always write a row regardless of benchmark opt-in. The pair captures
+        // synthesis depth signals (counts only, no content) so we can score
+        // the quality of each workspace's decision data for future fine-tuning.
+        {
+          const riskSignals = Array.isArray(synthesis.risk_signals) ? synthesis.risk_signals : [];
+          const blindSpots = Array.isArray(synthesis.blind_spots) ? synthesis.blind_spots : [];
+          const consensusPoints = Array.isArray(synthesis.consensus_points) ? synthesis.consensus_points : [];
+          const conflictZones = Array.isArray(synthesis.conflict_zones) ? synthesis.conflict_zones : [];
+          const openQuestions = Array.isArray(synthesis.open_questions) ? synthesis.open_questions : [];
+          const actionItems = Array.isArray(synthesis.action_items) ? synthesis.action_items : [];
+          const biasFlagsArr = Array.isArray(synthesis.cognitive_bias_flags) ? synthesis.cognitive_bias_flags : [];
+
+          // Dominant category for this specific workspace (not cross-workspace avg)
+          const wsRiskBreakdown: Record<string, number> = {};
+          for (const r of riskSignals as Array<{ category?: string }>) {
+            const cat = typeof r.category === "string" ? r.category : "execution";
+            wsRiskBreakdown[cat] = (wsRiskBreakdown[cat] ?? 0) + 1;
+          }
+          let wsCategory = "execution";
+          let wsMaxFreq = 0;
+          for (const [cat, freq] of Object.entries(wsRiskBreakdown)) {
+            if (freq > wsMaxFreq) { wsMaxFreq = freq; wsCategory = cat; }
+          }
+
+          // Quality score: higher synthesis depth + outcomes = more useful for training
+          const depthScore = Math.min(50,
+            Math.min(riskSignals.length, 5) * 3 +
+            Math.min(consensusPoints.length, 5) * 3 +
+            Math.min(actionItems.length, 8) * 2 +
+            Math.min(blindSpots.length, 4) * 2 +
+            Math.min(conflictZones.length, 4) * 2
+          );
+          const healthBonusScore = scores.decisionHealth >= 70 ? 10 : scores.decisionHealth >= 50 ? 5 : 0;
+          const baseQuality = Math.min(50, depthScore) + healthBonusScore;
+
+          // Fetch existing outcome counts for this workspace (preserved across re-synthesis)
+          const { data: existingPair } = await service
+            .from("synthesis_training_pairs")
+            .select("outcomes_recorded, outcomes_succeeded, outcomes_failed, outcomes_reversed, outcomes_abandoned")
+            .eq("workspace_id", workspace_id)
+            .maybeSingle();
+
+          const outcomesRecorded = existingPair?.outcomes_recorded ?? 0;
+          const outcomesBonus = Math.min(20, outcomesRecorded * 4);
+          const finalQuality = Math.min(100, baseQuality + outcomesBonus);
+
+          const successRate = outcomesRecorded > 0 && existingPair
+            ? Math.round(((existingPair.outcomes_succeeded ?? 0) / outcomesRecorded) * 100 * 100) / 100
+            : null;
+
+          await service.from("synthesis_training_pairs").upsert({
+            workspace_id,
+            decision_category: wsCategory,
+            decision_health_score: scores.decisionHealth,
+            decision_style: styleLabel,
+            risk_signal_count: riskSignals.length,
+            blind_spot_count: blindSpots.length,
+            consensus_point_count: consensusPoints.length,
+            conflict_zone_count: conflictZones.length,
+            open_question_count: openQuestions.length,
+            action_item_count: actionItems.length,
+            cognitive_bias_count: biasFlagsArr.length,
+            dominant_bias: dominantBiasXw,
+            outcomes_recorded: existingPair?.outcomes_recorded ?? 0,
+            outcomes_succeeded: existingPair?.outcomes_succeeded ?? 0,
+            outcomes_failed: existingPair?.outcomes_failed ?? 0,
+            outcomes_reversed: existingPair?.outcomes_reversed ?? 0,
+            outcomes_abandoned: existingPair?.outcomes_abandoned ?? 0,
+            success_rate: successRate,
+            quality_score: finalQuality,
+            synthesis_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "workspace_id" });
+        }
+
         // ── Benchmark contribution ─────────────────────────────────────────────
         // Only contribute when the user has explicitly opted in.
         // We upsert one row per (user_hash, dominant_category) so re-synthesis

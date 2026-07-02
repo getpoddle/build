@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Download, Globe, Bot, Play, RefreshCw, Sparkles, ChevronDown, BookOpen } from 'lucide-react';
+import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Download, Globe, Bot, Play, RefreshCw, Sparkles, ChevronDown, BookOpen, Database } from 'lucide-react';
 import { getAvatarUrl } from '../lib/avatarUtils';
 import VerificationBadge from '../components/VerificationBadge';
 import DomainManagement from '../components/admin/DomainManagement';
 import BlogAdmin from '../components/admin/BlogAdmin';
 
-type AdminView = 'users' | 'domains' | 'ai-discussions' | 'workspaces' | 'upgrades' | 'blog';
+type AdminView = 'users' | 'domains' | 'ai-discussions' | 'workspaces' | 'upgrades' | 'blog' | 'dataset';
 
 interface UpgradeRequest {
   id: string;
@@ -89,10 +89,33 @@ export default function AdminDashboard() {
   const [upgradeFilter, setUpgradeFilter] = useState<'pending' | 'all' | 'approved' | 'rejected'>('pending');
   const [processingUpgrade, setProcessingUpgrade] = useState<string | null>(null);
   const [upgradeAdminNote, setUpgradeAdminNote] = useState<Record<string, string>>({});
+  const [datasetStats, setDatasetStats] = useState<any>(null);
+  const [datasetPairs, setDatasetPairs] = useState<any[]>([]);
+  const [loadingDataset, setLoadingDataset] = useState(false);
 
   useEffect(() => {
     loadUsers();
   }, []);
+
+  const loadDataset = async () => {
+    setLoadingDataset(true);
+    try {
+      const [statsRes, pairsRes] = await Promise.all([
+        supabase.rpc('get_training_dataset_stats'),
+        supabase
+          .from('synthesis_training_pairs')
+          .select('*')
+          .order('quality_score', { ascending: false })
+          .limit(50),
+      ]);
+      if (statsRes.data) setDatasetStats(statsRes.data);
+      if (pairsRes.data) setDatasetPairs(pairsRes.data);
+    } catch (e) {
+      console.error('Error loading dataset:', e);
+    } finally {
+      setLoadingDataset(false);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -507,6 +530,17 @@ export default function AdminDashboard() {
                 >
                   <BookOpen className="w-4 h-4" />
                   Blog
+                </button>
+                <button
+                  onClick={() => { setAdminView('dataset'); loadDataset(); }}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
+                    adminView === 'dataset'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Database className="w-4 h-4" />
+                  Dataset
                 </button>
               </div>
               {adminView === 'users' && (
@@ -1203,6 +1237,108 @@ export default function AdminDashboard() {
         </div>}
 
         {adminView === 'blog' && <BlogAdmin />}
+
+        {adminView === 'dataset' && (
+          <div className="space-y-4">
+            {/* Stats cards */}
+            {loadingDataset ? (
+              <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-sm">Loading dataset…</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Total pairs', value: datasetStats?.total_pairs ?? 0, color: '#2563eb' },
+                    { label: 'High quality (≥70)', value: datasetStats?.high_quality_pairs ?? 0, color: '#16a34a' },
+                    { label: 'Pairs with outcomes', value: datasetStats?.pairs_with_outcomes ?? 0, color: '#7c3aed' },
+                    { label: 'Total outcomes', value: datasetStats?.total_outcomes ?? 0, color: '#d97706' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="bg-white rounded-xl border border-slate-200 p-4">
+                      <p className="text-xs text-slate-500 mb-1">{label}</p>
+                      <p className="text-2xl font-bold" style={{ color }}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {datasetStats?.avg_health_score != null && (
+                  <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-6 text-sm">
+                    <span className="text-slate-500">Avg health score: <strong className="text-slate-800">{datasetStats.avg_health_score}</strong></span>
+                    {datasetStats.avg_success_rate != null && (
+                      <span className="text-slate-500">Avg success rate: <strong className="text-slate-800">{datasetStats.avg_success_rate}%</strong></span>
+                    )}
+                    {datasetStats.category_breakdown && (
+                      <span className="text-slate-500">
+                        Categories:{' '}
+                        {Object.entries(datasetStats.category_breakdown as Record<string, number>)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([cat, cnt]) => (
+                            <span key={cat} className="inline-flex items-center gap-1 ml-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                              {cat} {cnt}
+                            </span>
+                          ))}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Pairs table */}
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-800">Training Pairs (top 50 by quality)</h3>
+                    <button onClick={loadDataset} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
+                      <RefreshCw className="w-3 h-3" /> Refresh
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 text-slate-500 font-semibold">
+                          <th className="text-left px-4 py-2.5">Category</th>
+                          <th className="text-right px-4 py-2.5">Health</th>
+                          <th className="text-left px-4 py-2.5">Style</th>
+                          <th className="text-right px-4 py-2.5">Risks</th>
+                          <th className="text-right px-4 py-2.5">Actions</th>
+                          <th className="text-right px-4 py-2.5">Outcomes</th>
+                          <th className="text-right px-4 py-2.5">Success%</th>
+                          <th className="text-right px-4 py-2.5">Quality</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {datasetPairs.map(pair => (
+                          <tr key={pair.id} className="hover:bg-slate-50">
+                            <td className="px-4 py-2.5 font-medium capitalize text-slate-700">{pair.decision_category}</td>
+                            <td className="px-4 py-2.5 text-right">
+                              <span className="font-bold" style={{ color: pair.decision_health_score >= 70 ? '#16a34a' : pair.decision_health_score >= 50 ? '#d97706' : '#dc2626' }}>
+                                {pair.decision_health_score}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 text-slate-500 max-w-[140px] truncate">{pair.decision_style ?? '—'}</td>
+                            <td className="px-4 py-2.5 text-right text-slate-600">{pair.risk_signal_count}</td>
+                            <td className="px-4 py-2.5 text-right text-slate-600">{pair.action_item_count}</td>
+                            <td className="px-4 py-2.5 text-right text-slate-600">{pair.outcomes_recorded}</td>
+                            <td className="px-4 py-2.5 text-right">
+                              {pair.success_rate != null
+                                ? <span style={{ color: pair.success_rate >= 60 ? '#16a34a' : pair.success_rate >= 40 ? '#d97706' : '#dc2626' }}>{pair.success_rate}%</span>
+                                : <span className="text-slate-300">—</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-right">
+                              <span className="px-2 py-0.5 rounded-full font-bold text-[10px]" style={{
+                                background: pair.quality_score >= 70 ? 'rgba(22,163,74,0.1)' : pair.quality_score >= 50 ? 'rgba(245,158,11,0.1)' : 'rgba(15,23,42,0.06)',
+                                color: pair.quality_score >= 70 ? '#15803d' : pair.quality_score >= 50 ? '#b45309' : '#64748b',
+                              }}>{pair.quality_score}</span>
+                            </td>
+                          </tr>
+                        ))}
+                        {datasetPairs.length === 0 && (
+                          <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">No training pairs yet. Run War Room synthesis to populate.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {showPasswordModal && (
