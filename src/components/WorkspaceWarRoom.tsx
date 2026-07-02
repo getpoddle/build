@@ -5,6 +5,7 @@ import {
   Loader2, Lock, Sparkles, Target, GitBranch, ArrowRight, Download,
   Users, Bot, Plus, X, Clipboard, Sword, Flame, DollarSign,
   Settings, BarChart3, Lightbulb, AlertCircle, TrendingDown, Minus,
+  ThumbsUp, ThumbsDown, RotateCcw, XCircle, Clock,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -75,6 +76,9 @@ interface ActionItem {
   assignee_user_id: string | null;
   due_date: string | null;
   status: 'todo' | 'in_progress' | 'done';
+  outcome: 'pending' | 'succeeded' | 'failed' | 'reversed' | 'abandoned' | null;
+  outcome_notes: string | null;
+  outcome_recorded_at: string | null;
   created_at: string;
 }
 
@@ -111,6 +115,23 @@ const URGENCY_COLORS: Record<string, { bg: string; text: string; dot: string }> 
 };
 
 const RISK_CATEGORIES = ['market', 'execution', 'financial', 'team', 'technology'];
+
+type OutcomeValue = 'succeeded' | 'failed' | 'reversed' | 'abandoned' | 'pending';
+
+const OUTCOME_CONFIG: Record<OutcomeValue, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
+  succeeded: { label: 'Succeeded',  color: '#15803d', bg: 'rgba(22,163,74,0.1)',   Icon: ThumbsUp },
+  failed:    { label: 'Failed',     color: '#b91c1c', bg: 'rgba(220,38,38,0.1)',   Icon: ThumbsDown },
+  reversed:  { label: 'Reversed',   color: '#b45309', bg: 'rgba(245,158,11,0.1)',  Icon: RotateCcw },
+  abandoned: { label: 'Abandoned',  color: '#64748b', bg: 'rgba(15,23,42,0.07)',   Icon: XCircle },
+  pending:   { label: 'Pending',    color: '#3b82f6', bg: 'rgba(37,99,235,0.08)',  Icon: Clock },
+};
+
+const OUTCOME_OPTIONS: Array<{ value: OutcomeValue; label: string; color: string; bg: string; Icon: React.ElementType }> = [
+  { value: 'succeeded', label: 'Succeeded',  color: '#15803d', bg: 'rgba(22,163,74,0.1)',   Icon: ThumbsUp },
+  { value: 'failed',    label: 'Failed',     color: '#b91c1c', bg: 'rgba(220,38,38,0.1)',   Icon: ThumbsDown },
+  { value: 'reversed',  label: 'Reversed',   color: '#b45309', bg: 'rgba(245,158,11,0.1)',  Icon: RotateCcw },
+  { value: 'abandoned', label: 'Abandoned',  color: '#64748b', bg: 'rgba(15,23,42,0.07)',   Icon: XCircle },
+];
 
 const STATUS_COLS: Array<{ key: ActionItem['status']; label: string; color: string; bg: string }> = [
   { key: 'todo',        label: 'To Do',       color: '#475569', bg: 'rgba(15,23,42,0.04)' },
@@ -766,6 +787,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const [commitPending, setCommitPending] = useState<{ topic: string; side: 'a' | 'b'; position: string } | null>(null);
   const [showBoardSummary, setShowBoardSummary] = useState(false);
   const [boardCopied, setBoardCopied] = useState(false);
+  const [outcomePromptId, setOutcomePromptId] = useState<string | null>(null);
+  const [outcomeNoteText, setOutcomeNoteText] = useState('');
   const addInputRef = useRef<HTMLInputElement>(null);
 
   const loadAll = useCallback(async () => {
@@ -781,7 +804,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           .select('id,decision_health_score,financial_score,operational_score,alignment_score,consensus_count,open_question_count,message_count,generated_at')
           .eq('workspace_id', workspaceId).order('generated_at', { ascending: true }),
         supabase.from('workspace_action_items')
-          .select('id,text,source,priority,source_area,assignee_user_id,due_date,status,created_at')
+          .select('id,text,source,priority,source_area,assignee_user_id,due_date,status,outcome,outcome_notes,outcome_recorded_at,created_at')
           .eq('workspace_id', workspaceId).order('created_at', { ascending: true }),
         supabase.from('workspace_members')
           .select('user_id, profiles(id, full_name, first_name, username, avatar_url)')
@@ -932,6 +955,28 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     const next = NEXT_STATUS[item.status];
     setActionItems(prev => prev.map(a => a.id === item.id ? { ...a, status: next } : a));
     await supabase.from('workspace_action_items').update({ status: next, updated_at: new Date().toISOString() }).eq('id', item.id);
+    if (next === 'done' && !item.outcome) {
+      setOutcomePromptId(item.id);
+      setOutcomeNoteText('');
+    }
+  }
+
+  async function recordOutcome(itemId: string, outcome: ActionItem['outcome']) {
+    const notes = outcomeNoteText.trim() || null;
+    setActionItems(prev => prev.map(a => a.id === itemId ? { ...a, outcome, outcome_notes: notes, outcome_recorded_at: new Date().toISOString() } : a));
+    setOutcomePromptId(null);
+    setOutcomeNoteText('');
+    await supabase.from('workspace_action_items').update({
+      outcome,
+      outcome_notes: notes,
+      outcome_recorded_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', itemId);
+  }
+
+  function dismissOutcomePrompt() {
+    setOutcomePromptId(null);
+    setOutcomeNoteText('');
   }
 
   async function updateAssignee(item: ActionItem, userId: string | null) {
@@ -950,7 +995,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       source_area: 'manual',
       status: 'todo',
       created_by: user.id,
-    }).select('id,text,source,priority,source_area,assignee_user_id,due_date,status,created_at').maybeSingle();
+    }).select('id,text,source,priority,source_area,assignee_user_id,due_date,status,outcome,outcome_notes,outcome_recorded_at,created_at').maybeSingle();
     if (data) setActionItems(prev => [...prev, data as ActionItem]);
     setNewActionText(''); setAddingAction(false); setSavingAction(false);
   }
@@ -1622,8 +1667,10 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                         {items.map(item => {
                           const pc = URGENCY_COLORS[item.priority?.toLowerCase()] || URGENCY_COLORS.low;
                           const assignee = members.find(m => m.id === item.assignee_user_id);
+                          const isOutcomePromptOpen = outcomePromptId === item.id;
+                          const outcomeConfig = OUTCOME_CONFIG[item.outcome ?? 'pending'];
                           return (
-                            <div key={item.id} className="bg-white rounded-xl p-3 shadow-sm" style={{ border: '1px solid rgba(15,23,42,0.07)' }}>
+                            <div key={item.id} className="bg-white rounded-xl p-3 shadow-sm" style={{ border: `1px solid ${isOutcomePromptOpen ? 'rgba(37,99,235,0.25)' : 'rgba(15,23,42,0.07)'}` }}>
                               <div className="flex items-start justify-between gap-2 mb-2">
                                 <p className="text-xs text-slate-800 leading-relaxed flex-1"
                                   style={{ textDecoration: item.status === 'done' ? 'line-through' : 'none', color: item.status === 'done' ? '#94a3b8' : undefined }}>
@@ -1636,12 +1683,55 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                                 {item.source_area && item.source_area !== 'manual' && (
                                   <span className="text-xs text-slate-400 capitalize">{item.source_area.replace('_', ' ')}</span>
                                 )}
+                                {item.status === 'done' && item.outcome && item.outcome !== 'pending' && (
+                                  <span className="flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full capitalize"
+                                    style={{ background: outcomeConfig.bg, color: outcomeConfig.color }}>
+                                    <outcomeConfig.Icon className="w-2.5 h-2.5" />{outcomeConfig.label}
+                                  </span>
+                                )}
                                 <button onClick={() => cycleStatus(item)}
                                   className="ml-auto text-xs px-2 py-0.5 rounded-full font-bold transition-all hover:opacity-80"
                                   style={{ background: 'rgba(15,23,42,0.06)', color: '#475569' }}>
                                   {col.key === 'todo' ? '▶ Start' : col.key === 'in_progress' ? '✓ Done' : '↩ Reopen'}
                                 </button>
                               </div>
+                              {/* Outcome prompt — shown immediately after marking done */}
+                              {isOutcomePromptOpen && (
+                                <div className="mt-3 rounded-xl p-3" style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.15)' }}>
+                                  <p className="text-xs font-bold text-slate-700 mb-2">Did this action succeed?</p>
+                                  <div className="grid grid-cols-2 gap-1.5 mb-2">
+                                    {OUTCOME_OPTIONS.map(opt => (
+                                      <button key={opt.value} onClick={() => recordOutcome(item.id, opt.value)}
+                                        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                                        style={{ background: opt.bg, color: opt.color }}>
+                                        <opt.Icon className="w-3 h-3 flex-shrink-0" />{opt.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={outcomeNoteText}
+                                    onChange={e => setOutcomeNoteText(e.target.value)}
+                                    placeholder="Optional note (what happened?)"
+                                    className="w-full text-xs px-2.5 py-1.5 rounded-lg border text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-300 mb-1.5"
+                                    style={{ borderColor: 'rgba(37,99,235,0.2)' }}
+                                  />
+                                  <button onClick={dismissOutcomePrompt} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+                                    Skip for now
+                                  </button>
+                                </div>
+                              )}
+                              {/* Show outcome note if recorded */}
+                              {item.status === 'done' && item.outcome_notes && !isOutcomePromptOpen && (
+                                <p className="mt-1.5 text-xs text-slate-400 italic leading-relaxed">{item.outcome_notes}</p>
+                              )}
+                              {/* Re-record outcome button for done items without outcome */}
+                              {item.status === 'done' && !item.outcome && !isOutcomePromptOpen && (
+                                <button onClick={() => { setOutcomePromptId(item.id); setOutcomeNoteText(''); }}
+                                  className="mt-1.5 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 transition-colors">
+                                  <Clock className="w-3 h-3" />Record outcome
+                                </button>
+                              )}
                               <div className="mt-2">
                                 <select value={item.assignee_user_id || ''} onChange={e => updateAssignee(item, e.target.value || null)}
                                   className="text-xs text-slate-500 bg-transparent border-0 outline-none cursor-pointer w-full"

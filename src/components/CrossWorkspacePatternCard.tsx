@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity, Users } from 'lucide-react';
+import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity, Users, CheckSquare, ThumbsUp, ThumbsDown, RotateCcw, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const UNLOCK_THRESHOLD = 2;
@@ -96,6 +96,15 @@ interface PatternIntelligence {
 
 interface CrossWorkspacePatternCardProps {
   userId: string;
+}
+
+interface OutcomeStats {
+  total: number;
+  succeeded: number;
+  failed: number;
+  reversed: number;
+  abandoned: number;
+  successRate: number;
 }
 
 function HealthSparkline({ points }: { points: HealthPoint[] }) {
@@ -229,6 +238,7 @@ function deriveRecommendations(data: PatternIntelligence, count: number): Recomm
 export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatternCardProps) {
   const [data, setData] = useState<PatternIntelligence | null>(null);
   const [healthHistory, setHealthHistory] = useState<HealthPoint[]>([]);
+  const [outcomeStats, setOutcomeStats] = useState<OutcomeStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -264,23 +274,46 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
 
       if (snapshots.length > 0) {
         const workspaceIds = snapshots.map(s => s.workspace_id);
-        const { data: history } = await supabase
-          .from('workspace_synthesis_history')
-          .select('workspace_id, decision_health_score, generated_at')
-          .in('workspace_id', workspaceIds)
-          .order('generated_at', { ascending: true })
-          .limit(30);
 
-        if (history && history.length >= 2) {
+        const [historyRes, outcomesRes] = await Promise.all([
+          supabase
+            .from('workspace_synthesis_history')
+            .select('workspace_id, decision_health_score, generated_at')
+            .in('workspace_id', workspaceIds)
+            .order('generated_at', { ascending: true })
+            .limit(40),
+          supabase
+            .from('workspace_action_items')
+            .select('outcome')
+            .in('workspace_id', workspaceIds)
+            .eq('status', 'done')
+            .not('outcome', 'is', null),
+        ]);
+
+        if (historyRes.data && historyRes.data.length >= 2) {
           const wsName: Record<string, string> = {};
           for (const s of snapshots) wsName[s.workspace_id] = s.workspace_name;
           setHealthHistory(
-            history.map(h => ({
+            historyRes.data.map(h => ({
               workspace_name: wsName[h.workspace_id] ?? 'Workspace',
               score: h.decision_health_score,
               date: h.generated_at,
             }))
           );
+        }
+
+        if (outcomesRes.data && outcomesRes.data.length > 0) {
+          const counts = { succeeded: 0, failed: 0, reversed: 0, abandoned: 0 };
+          for (const item of outcomesRes.data) {
+            const o = item.outcome as keyof typeof counts;
+            if (o in counts) counts[o]++;
+          }
+          const total = counts.succeeded + counts.failed + counts.reversed + counts.abandoned;
+          setOutcomeStats({
+            ...counts,
+            total,
+            successRate: total > 0 ? Math.round((counts.succeeded / total) * 100) : 0,
+          });
         }
       }
     }
@@ -396,6 +429,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                   { icon: Zap,        color: '#2563eb', bg: 'rgba(37,99,235,0.08)',   title: 'Decision Style',      description: 'How you balance risk, speed, and financial conservatism.' },
                   { icon: BarChart2,  color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', title: 'Risk Tolerance Map',  description: 'How your risk appetite shifts across decision domains.' },
                   { icon: GitBranch,  color: '#0891b2', bg: 'rgba(8,145,178,0.08)',   title: 'Agent Alignment',     description: 'Which AI agents you most frequently agree or conflict with.' },
+                  { icon: CheckSquare, color: '#16a34a', bg: 'rgba(22,163,74,0.08)', title: 'Action Track Record', description: 'What percentage of your completed actions actually succeeded.' },
                   { icon: Lightbulb,  color: '#d97706', bg: 'rgba(245,158,11,0.08)', title: 'Recommendations',     description: 'Personalised next actions based on your decision patterns.' },
                 ].map(({ icon: Icon, color, bg, title, description }) => (
                   <div
@@ -718,6 +752,69 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                   </div>
                 );
               })()}
+
+              {/* Action Outcome Track Record */}
+              {outcomeStats && outcomeStats.total >= 3 && (
+                <div
+                  className="rounded-xl p-3.5"
+                  style={{ background: 'rgba(22,163,74,0.03)', border: '1px solid rgba(22,163,74,0.12)' }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(22,163,74,0.10)' }}>
+                      <CheckSquare className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-bold text-slate-800">Action Track Record</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: outcomeStats.successRate >= 60 ? 'rgba(22,163,74,0.1)' : outcomeStats.successRate >= 40 ? 'rgba(245,158,11,0.1)' : 'rgba(220,38,38,0.1)', color: outcomeStats.successRate >= 60 ? '#15803d' : outcomeStats.successRate >= 40 ? '#b45309' : '#b91c1c' }}>
+                          {outcomeStats.successRate}% success rate
+                        </span>
+                      </div>
+                      {/* Stacked bar */}
+                      <div className="flex h-2 rounded-full overflow-hidden mb-2.5 gap-px">
+                        {outcomeStats.succeeded > 0 && (
+                          <div className="rounded-l-full" style={{ flex: outcomeStats.succeeded, background: '#16a34a' }} />
+                        )}
+                        {outcomeStats.failed > 0 && (
+                          <div style={{ flex: outcomeStats.failed, background: '#dc2626' }} />
+                        )}
+                        {outcomeStats.reversed > 0 && (
+                          <div style={{ flex: outcomeStats.reversed, background: '#f59e0b' }} />
+                        )}
+                        {outcomeStats.abandoned > 0 && (
+                          <div className="rounded-r-full" style={{ flex: outcomeStats.abandoned, background: '#94a3b8' }} />
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1">
+                        {outcomeStats.succeeded > 0 && (
+                          <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: '#15803d' }}>
+                            <ThumbsUp className="w-2.5 h-2.5" />{outcomeStats.succeeded} succeeded
+                          </span>
+                        )}
+                        {outcomeStats.failed > 0 && (
+                          <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: '#b91c1c' }}>
+                            <ThumbsDown className="w-2.5 h-2.5" />{outcomeStats.failed} failed
+                          </span>
+                        )}
+                        {outcomeStats.reversed > 0 && (
+                          <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: '#b45309' }}>
+                            <RotateCcw className="w-2.5 h-2.5" />{outcomeStats.reversed} reversed
+                          </span>
+                        )}
+                        {outcomeStats.abandoned > 0 && (
+                          <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: '#64748b' }}>
+                            <XCircle className="w-2.5 h-2.5" />{outcomeStats.abandoned} abandoned
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                        Across {outcomeStats.total} completed action item{outcomeStats.total === 1 ? '' : 's'} in your workspaces.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Recommendations */}
               {recommendations.length > 0 && (
