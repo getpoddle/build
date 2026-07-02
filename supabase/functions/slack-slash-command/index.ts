@@ -437,24 +437,30 @@ async function runWarRoom(
       throw new Error(`Synthesis failed: ${errText}`);
     }
 
-    const synthData = await synthRes.json();
-    const synthesis = synthData.synthesis ?? synthData;
+    await synthRes.json(); // consume response body
 
-    // Record the synthesis_id on the session
-    if (synthesis?.id) {
-      await service
-        .from("slack_sessions")
-        .update({ synthesis_id: synthesis.id, status: "completed" })
-        .eq("id", slackSessionId);
-    } else {
-      await service
-        .from("slack_sessions")
-        .update({ status: "completed" })
-        .eq("id", slackSessionId);
-    }
+    await service
+      .from("slack_sessions")
+      .update({ status: "completed" })
+      .eq("id", slackSessionId);
+
+    // Fetch the full synthesis row — the synthesize function only returns a
+    // trimmed response, but all fields (blind_spots, risk_signals, etc.) are
+    // persisted in workspace_synthesis. Use that as the source of truth.
+    const { data: fullSynthesis } = await service
+      .from("workspace_synthesis")
+      .select(
+        "decision_health_score, financial_score, operational_score, alignment_score, " +
+        "decision_velocity, confidence_trajectory, health_rationale, executive_summary, recommendation, " +
+        "consensus_points, conflict_zones, open_questions, risk_signals, blind_spots, " +
+        "action_items, financial_metrics, operational_metrics, non_financial_metrics, " +
+        "opportunity_signals, key_decisions, cognitive_bias_flags"
+      )
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
 
     // Post the Board Brief summary back to Slack
-    const blocks = buildSlackBlocks(question, synthesis, appUrl, workspaceId);
+    const blocks = buildSlackBlocks(question, (fullSynthesis ?? {}) as Record<string, unknown>, appUrl, workspaceId);
     await fetch(responseUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
