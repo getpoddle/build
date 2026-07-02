@@ -336,7 +336,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
         {/* ── MOBILE: War Room tab ── */}
         {mainTab === 'warroom' && (
-          <div className="lg:hidden flex-1 min-h-0 flex flex-col">
+          <div className="lg:hidden flex-1 overflow-y-auto">
             {workspaceIsPro ? (
               <WorkspaceWarRoom
                 key={warRoomKey}
@@ -426,8 +426,8 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
               </div>
             </div>
 
-            {/* War Room content */}
-            <div className="flex-1 min-h-0 flex flex-col overflow-hidden" style={{ background: '#f8fafc' }}>
+            {/* War Room content — owns the scroll */}
+            <div className="flex-1 min-h-0 overflow-y-auto" style={{ background: '#f8fafc' }}>
               {workspaceIsPro ? (
                 <WorkspaceWarRoom
                   key={warRoomKey}

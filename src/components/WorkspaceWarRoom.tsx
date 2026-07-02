@@ -1068,10 +1068,10 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ElementType; count: number; color: string; bg: string }>;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="space-y-5 p-5">
 
-      {/* ── Fixed top zone: header + health panel + section nav ── */}
-      <div className="flex-shrink-0 px-5 pt-5 pb-0 space-y-4" style={{ background: '#f8fafc' }}>
+      {/* ── Header ── */}
+      <div className="space-y-4">
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1199,10 +1199,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       </div>
 
       {/* ── Section nav pills ── */}
-      <div
-        className="flex flex-wrap gap-1.5 pb-3"
-        style={{ borderBottom: '1px solid rgba(15,23,42,0.07)' }}
-      >
+      <div className="flex flex-wrap gap-1.5">
         <button
           onClick={() => setActiveSection(null)}
           className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
@@ -1228,11 +1225,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         ))}
       </div>
 
-      </div>{/* end fixed top zone */}
-
-      {/* ── Scrollable sections body ── */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
-      <div className="px-5 py-4 space-y-4">
+      </div>{/* end header/health/nav group */}
 
       {/* ── RECOMMENDATION ── */}
       {(activeSection === null || activeSection === 'recommendation') && synthesis.recommendation && (
@@ -1702,9 +1695,6 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           </button>
         </div>
       )}
-
-      </div>{/* end px-5 py-4 */}
-      </div>{/* end scrollable body */}
 
       {/* ── Board Brief Modal ── */}
       {showBoardSummary && (
