@@ -898,7 +898,7 @@ RULES:
 
         const { data: existingXw } = await service
           .from("user_pattern_intelligence")
-          .select("user_id")
+          .select("user_id, benchmark_opt_in")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -906,6 +906,39 @@ RULES:
           await service.from("user_pattern_intelligence").update(payload).eq("user_id", user.id);
         } else {
           await service.from("user_pattern_intelligence").insert(payload);
+        }
+
+        // ── Benchmark contribution ─────────────────────────────────────────────
+        // Only contribute when the user has explicitly opted in.
+        // We upsert one row per (user_hash, dominant_category) so re-synthesis
+        // updates the score rather than accumulating duplicate entries.
+        const optedIn = existingXw?.benchmark_opt_in === true;
+        if (optedIn && workspaceSnapshots.length > 0) {
+          // Determine dominant risk category across all workspaces for this user
+          const categoryFreq: Record<string, number> = {};
+          for (const snap of workspaceSnapshots) {
+            const cat = snap.dominant_risk_category ?? "execution";
+            categoryFreq[cat] = (categoryFreq[cat] ?? 0) + 1;
+          }
+          let dominantCategory = "execution";
+          let maxFreq = 0;
+          for (const [cat, freq] of Object.entries(categoryFreq)) {
+            if (freq > maxFreq) { maxFreq = freq; dominantCategory = cat; }
+          }
+
+          // md5 of the user id — stored only for dedup, never exposed
+          const encoder = new TextEncoder();
+          const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(user.id));
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const contributorHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+
+          await service.from("decision_benchmarks").upsert({
+            contributor_hash: contributorHash,
+            category: dominantCategory,
+            health_score: Math.round(avgHealth),
+            decision_style: styleLabel,
+            contributed_at: new Date().toISOString(),
+          }, { onConflict: "contributor_hash,category" });
         }
       } catch (e) {
         console.error("Cross-workspace pattern rollup error:", e);

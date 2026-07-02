@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity, Users, CheckSquare, ThumbsUp, ThumbsDown, RotateCcw, XCircle } from 'lucide-react';
+import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity, Users, CheckSquare, ThumbsUp, ThumbsDown, RotateCcw, XCircle, Globe, ToggleLeft, ToggleRight, Award } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const UNLOCK_THRESHOLD = 2;
@@ -92,7 +92,24 @@ interface PatternIntelligence {
   decision_style_summary: string | null;
   agent_alignment_map: Record<string, AgentAlignmentEntry>;
   avg_alignment_score: number | null;
+  benchmark_opt_in: boolean;
 }
+
+interface BenchmarkStats {
+  count: number;
+  avg_score: number;
+  p25_score: number;
+  p75_score: number;
+  p90_score: number;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  market:      'Market',
+  execution:   'Execution',
+  financial:   'Financial',
+  team:        'Team',
+  technology:  'Technology',
+};
 
 interface CrossWorkspacePatternCardProps {
   userId: string;
@@ -239,6 +256,10 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
   const [data, setData] = useState<PatternIntelligence | null>(null);
   const [healthHistory, setHealthHistory] = useState<HealthPoint[]>([]);
   const [outcomeStats, setOutcomeStats] = useState<OutcomeStats | null>(null);
+  const [benchmarkStats, setBenchmarkStats] = useState<BenchmarkStats | null>(null);
+  const [benchmarkPercentile, setBenchmarkPercentile] = useState<number | null>(null);
+  const [benchmarkCategory, setBenchmarkCategory] = useState<string | null>(null);
+  const [togglingBenchmark, setTogglingBenchmark] = useState(false);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -255,6 +276,8 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
         ? row.workspace_snapshots
         : [];
 
+      const optedIn = row.benchmark_opt_in === true;
+
       setData({
         workspace_count: row.workspace_count ?? 0,
         workspace_snapshots: snapshots,
@@ -270,6 +293,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
             ? mergeAgentAlignmentMap(row.agent_alignment_map as Record<string, AgentAlignmentEntry>)
             : {},
         avg_alignment_score: typeof row.avg_alignment_score === 'number' ? row.avg_alignment_score : null,
+        benchmark_opt_in: optedIn,
       });
 
       if (snapshots.length > 0) {
@@ -315,6 +339,34 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
             successRate: total > 0 ? Math.round((counts.succeeded / total) * 100) : 0,
           });
         }
+
+        // Benchmark stats — compute dominant category then fetch aggregate stats
+        if (snapshots.length > 0) {
+          const freqMap: Record<string, number> = {};
+          for (const snap of snapshots) {
+            const cat = snap.dominant_risk_category ?? 'execution';
+            freqMap[cat] = (freqMap[cat] ?? 0) + 1;
+          }
+          let domCat = 'execution';
+          let maxF = 0;
+          for (const [cat, f] of Object.entries(freqMap)) {
+            if (f > maxF) { maxF = f; domCat = cat; }
+          }
+          setBenchmarkCategory(domCat);
+
+          // Fetch aggregate stats (always available — anonymous data)
+          const { data: bStats } = await supabase.rpc('get_decision_benchmark_stats', { p_category: domCat });
+          if (bStats && (bStats as BenchmarkStats).count >= 5) {
+            setBenchmarkStats(bStats as BenchmarkStats);
+
+            // Fetch percentile for the user's own avg health score
+            const avgH = snapshots.length > 0
+              ? Math.round(snapshots.reduce((s, snap) => s + snap.decision_health_score, 0) / snapshots.length)
+              : 0;
+            const { data: pctile } = await supabase.rpc('get_benchmark_percentile', { p_category: domCat, p_score: avgH });
+            if (typeof pctile === 'number') setBenchmarkPercentile(pctile);
+          }
+        }
       }
     }
 
@@ -329,6 +381,24 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  };
+
+  const toggleBenchmarkOptIn = async () => {
+    if (!data) return;
+    const newVal = !data.benchmark_opt_in;
+    setTogglingBenchmark(true);
+    const { error } = await supabase
+      .from('user_pattern_intelligence')
+      .update({ benchmark_opt_in: newVal })
+      .eq('user_id', userId);
+    if (!error) {
+      setData(prev => prev ? { ...prev, benchmark_opt_in: newVal } : prev);
+      if (!newVal) {
+        setBenchmarkStats(null);
+        setBenchmarkPercentile(null);
+      }
+    }
+    setTogglingBenchmark(false);
   };
 
   const count = data?.workspace_count ?? 0;
@@ -430,6 +500,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                   { icon: BarChart2,  color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', title: 'Risk Tolerance Map',  description: 'How your risk appetite shifts across decision domains.' },
                   { icon: GitBranch,  color: '#0891b2', bg: 'rgba(8,145,178,0.08)',   title: 'Agent Alignment',     description: 'Which AI agents you most frequently agree or conflict with.' },
                   { icon: CheckSquare, color: '#16a34a', bg: 'rgba(22,163,74,0.08)', title: 'Action Track Record', description: 'What percentage of your completed actions actually succeeded.' },
+                  { icon: Globe,      color: '#0891b2', bg: 'rgba(8,145,178,0.08)',  title: 'Benchmark Mode',      description: 'See how your decision health compares to other teams in the same category.' },
                   { icon: Lightbulb,  color: '#d97706', bg: 'rgba(245,158,11,0.08)', title: 'Recommendations',     description: 'Personalised next actions based on your decision patterns.' },
                 ].map(({ icon: Icon, color, bg, title, description }) => (
                   <div
@@ -810,6 +881,160 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
                         Across {outcomeStats.total} completed action item{outcomeStats.total === 1 ? '' : 's'} in your workspaces.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Benchmark Mode — opt-in toggle */}
+              <div
+                className="rounded-xl p-3.5"
+                style={{ background: 'rgba(8,145,178,0.03)', border: '1px solid rgba(8,145,178,0.12)' }}
+              >
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(8,145,178,0.10)' }}>
+                    <Globe className="w-3.5 h-3.5" style={{ color: '#0891b2' }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold text-slate-800">Benchmark Mode</p>
+                      <button
+                        onClick={toggleBenchmarkOptIn}
+                        disabled={togglingBenchmark}
+                        className="flex items-center gap-1.5 transition-opacity"
+                        style={{ opacity: togglingBenchmark ? 0.5 : 1 }}
+                      >
+                        {data?.benchmark_opt_in
+                          ? <ToggleRight className="w-5 h-5" style={{ color: '#0891b2' }} />
+                          : <ToggleLeft className="w-5 h-5 text-slate-300" />}
+                        <span className="text-[11px] font-semibold" style={{ color: data?.benchmark_opt_in ? '#0891b2' : '#94a3b8' }}>
+                          {data?.benchmark_opt_in ? 'On' : 'Off'}
+                        </span>
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      {data?.benchmark_opt_in
+                        ? 'Your anonymized decision health score contributes to the benchmark pool. No workspace names, contents, or identifiers are shared — only your aggregate health score and dominant decision category.'
+                        : 'Opt in to contribute your anonymized decision health score. In return, see how your team compares to others making similar decisions.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Benchmark Comparison — shown when opted in and enough data exists */}
+              {data?.benchmark_opt_in && benchmarkStats && benchmarkCategory && (() => {
+                const userAvg = data.workspace_snapshots.length > 0
+                  ? Math.round(data.workspace_snapshots.reduce((s, snap) => s + snap.decision_health_score, 0) / data.workspace_snapshots.length)
+                  : 0;
+                const diff = userAvg - benchmarkStats.avg_score;
+                const isAbove = diff >= 0;
+                const catLabel = CATEGORY_LABELS[benchmarkCategory] ?? benchmarkCategory;
+
+                const percentileLabel = (p: number) => {
+                  if (p >= 90) return { text: 'Top 10%', color: '#15803d', bg: 'rgba(22,163,74,0.10)' };
+                  if (p >= 75) return { text: 'Top 25%', color: '#16a34a', bg: 'rgba(22,163,74,0.08)' };
+                  if (p >= 50) return { text: 'Above avg', color: '#d97706', bg: 'rgba(245,158,11,0.10)' };
+                  if (p >= 25) return { text: 'Below avg', color: '#b45309', bg: 'rgba(245,158,11,0.08)' };
+                  return { text: 'Bottom 25%', color: '#b91c1c', bg: 'rgba(220,38,38,0.08)' };
+                };
+
+                const pLabel = benchmarkPercentile !== null ? percentileLabel(benchmarkPercentile) : null;
+
+                return (
+                  <div
+                    className="rounded-xl p-3.5"
+                    style={{ background: isAbove ? 'rgba(22,163,74,0.03)' : 'rgba(245,158,11,0.03)', border: `1px solid ${isAbove ? 'rgba(22,163,74,0.14)' : 'rgba(245,158,11,0.14)'}` }}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: isAbove ? 'rgba(22,163,74,0.10)' : 'rgba(245,158,11,0.10)' }}>
+                        <Award className="w-3.5 h-3.5" style={{ color: isAbove ? '#16a34a' : '#d97706' }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-bold text-slate-800">{catLabel} Benchmark</p>
+                          {pLabel && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: pLabel.bg, color: pLabel.color }}>
+                              {pLabel.text}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Score comparison bar */}
+                        <div className="mb-2.5">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-slate-400">Your avg</span>
+                            <span className="text-[10px] text-slate-400">Benchmark avg</span>
+                          </div>
+                          <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'rgba(15,23,42,0.07)' }}>
+                            {/* benchmark avg marker */}
+                            <div
+                              className="absolute top-0 h-full"
+                              style={{
+                                left: 0,
+                                width: `${benchmarkStats.avg_score}%`,
+                                background: 'rgba(100,116,139,0.35)',
+                                borderRadius: '0.25rem',
+                              }}
+                            />
+                            {/* user score bar */}
+                            <div
+                              className="absolute top-0 h-full rounded-full"
+                              style={{
+                                left: 0,
+                                width: `${userAvg}%`,
+                                background: isAbove ? '#16a34a' : '#f59e0b',
+                                transition: 'width 0.6s ease',
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-[11px] font-bold" style={{ color: isAbove ? '#16a34a' : '#d97706' }}>{userAvg}</span>
+                            <span className="text-[10px] text-slate-400">{benchmarkStats.avg_score} avg</span>
+                          </div>
+                        </div>
+
+                        {/* P25 / P75 range */}
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(15,23,42,0.05)' }}>
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                marginLeft: `${benchmarkStats.p25_score}%`,
+                                width: `${benchmarkStats.p75_score - benchmarkStats.p25_score}%`,
+                                background: 'rgba(8,145,178,0.25)',
+                              }}
+                            />
+                          </div>
+                          <span className="text-[9px] text-slate-400 flex-shrink-0">Middle 50%: {benchmarkStats.p25_score}–{benchmarkStats.p75_score}</span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          {isAbove
+                            ? <>Your decision health is <span className="font-semibold" style={{ color: '#16a34a' }}>+{diff} pts above</span> the {catLabel.toLowerCase()} benchmark average ({benchmarkStats.count} contributors).</>
+                            : <>Your decision health is <span className="font-semibold" style={{ color: '#d97706' }}>{Math.abs(diff)} pts below</span> the {catLabel.toLowerCase()} benchmark average ({benchmarkStats.count} contributors).</>
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Benchmark opted-in but not enough data yet */}
+              {data?.benchmark_opt_in && !benchmarkStats && benchmarkCategory && (
+                <div
+                  className="rounded-xl p-3.5"
+                  style={{ background: 'rgba(8,145,178,0.03)', border: '1px solid rgba(8,145,178,0.10)' }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(8,145,178,0.08)' }}>
+                      <Award className="w-3.5 h-3.5" style={{ color: '#0891b2' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 mb-0.5">Building {CATEGORY_LABELS[benchmarkCategory] ?? benchmarkCategory} Benchmark</p>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Not enough contributors yet to show a meaningful benchmark. Your score has been added to the pool — comparisons will appear once more teams opt in.
                       </p>
                     </div>
                   </div>
