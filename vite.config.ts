@@ -51,5 +51,17 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/tests/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['supabase/functions/_shared/**/*.ts'],
+      exclude: [
+        '**/*.test.ts',
+        '**/node_modules/**',
+        '**/dist/**',
+        'src/vite-env.d.ts',
+        'supabase/functions/_shared/*.d.ts',
+      ],
+    },
   },
 });

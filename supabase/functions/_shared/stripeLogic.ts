@@ -24,6 +24,15 @@ export function planFromProductId(productId: string): { plan: string; seats: num
 }
 
 /**
+ * Returns true when a user's profile should be downgraded to the free tier
+ * after a subscription cancellation. Downgrade only happens when the user has
+ * no other active workspace subscription remaining.
+ */
+export function shouldDowngradeToFree(otherActiveWorkspaceCount: number): boolean {
+  return otherActiveWorkspaceCount === 0;
+}
+
+/**
  * Verifies a Stripe webhook signature.
  * signature is the raw Stripe-Signature header value (e.g. "t=123,v1=abc...").
  * Uses the Web Crypto API — available in both Deno and Node 18+.

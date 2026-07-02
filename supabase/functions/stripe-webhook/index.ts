@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { verifyStripeSignature, planFromProductId } from "../_shared/stripeLogic.ts";
+import { verifyStripeSignature, planFromProductId, shouldDowngradeToFree } from "../_shared/stripeLogic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -211,7 +211,7 @@ Deno.serve(async (req: Request) => {
           .eq("subscription_status", "active")
           .neq("stripe_subscription_id", subscriptionId);
 
-        if (!activeWs || activeWs.length === 0) {
+        if (shouldDowngradeToFree(activeWs?.length ?? 0)) {
           await supabase
             .from("profiles")
             .update({ subscription_tier: "free" })

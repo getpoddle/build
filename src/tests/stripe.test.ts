@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { verifyStripeSignature, planFromProductId } from "../../supabase/functions/_shared/stripeLogic";
+import { verifyStripeSignature, planFromProductId, shouldDowngradeToFree } from "../../supabase/functions/_shared/stripeLogic";
 
 // Helper: compute a valid Stripe-style HMAC-SHA256 signature header.
 async function buildSignatureHeader(body: string, secret: string, timestamp: string): Promise<string> {
@@ -81,5 +81,21 @@ describe("planFromProductId", () => {
 
   it("is case-sensitive — a lowercase variant does not match", () => {
     expect(planFromProductId("prod_uxcbO4NuuJRE5A")).toBeNull();
+  });
+});
+
+// ─── shouldDowngradeToFree ────────────────────────────────────────────────────
+
+describe("shouldDowngradeToFree", () => {
+  it("returns true when the user has zero other active workspaces", () => {
+    expect(shouldDowngradeToFree(0)).toBe(true);
+  });
+
+  it("returns false when the user has one other active workspace", () => {
+    expect(shouldDowngradeToFree(1)).toBe(false);
+  });
+
+  it("returns false when the user has multiple other active workspaces", () => {
+    expect(shouldDowngradeToFree(3)).toBe(false);
   });
 });

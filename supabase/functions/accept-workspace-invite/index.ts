@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { isInviteUsable, emailMatchesInvite, hasSeatAvailable } from "../_shared/inviteLogic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,14 +60,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (invite.accepted_at) {
+    const usable = isInviteUsable({ acceptedAt: invite.accepted_at, expiresAt: invite.expires_at });
+    if (!usable.ok && usable.reason === "already_accepted") {
       return new Response(JSON.stringify({ error: "Invite already accepted", workspace_id: invite.workspace_id }), {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    if (new Date(invite.expires_at) < new Date()) {
+    if (!usable.ok && usable.reason === "expired") {
       return new Response(JSON.stringify({ error: "Invite has expired" }), {
         status: 410,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -76,9 +77,7 @@ Deno.serve(async (req: Request) => {
     // Verify the authenticated user's email matches the invited email.
     // This prevents anyone who obtains the invite URL from joining with a
     // different account.
-    const userEmail = (user.email ?? "").toLowerCase().trim();
-    const invitedEmail = (invite.invited_email ?? "").toLowerCase().trim();
-    if (!invitedEmail || userEmail !== invitedEmail) {
+    if (!emailMatchesInvite(user.email ?? "", invite.invited_email ?? "")) {
       return new Response(
         JSON.stringify({ error: "This invite was sent to a different email address. Please sign in with the account that received the invitation." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -110,7 +109,7 @@ Deno.serve(async (req: Request) => {
     const seats = workspace?.seats ?? 3;
     const currentMembers = memberCountRes.count ?? 0;
 
-    if (currentMembers >= seats) {
+    if (!hasSeatAvailable(currentMembers, seats)) {
       return new Response(JSON.stringify({ error: "This workspace has reached its member limit." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
