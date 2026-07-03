@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, Lightbulb, Activity, Users, CheckSquare, ThumbsUp, ThumbsDown, RotateCcw, XCircle, Globe, ToggleLeft, ToggleRight, Award, Cpu } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-const UNLOCK_THRESHOLD = 2;
+const UNLOCK_THRESHOLD = 1;
 const AGENT_ALIGNMENT_THRESHOLD = 5;
 
 const AGENT_DISPLAY_NAMES: Record<string, string> = {
@@ -667,7 +667,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
               )}
 
               {/* Workspaces Analyzed */}
-              {data.workspace_snapshots.length >= 2 && (
+              {data.workspace_snapshots.length >= 1 && (
                 <div
                   className="rounded-xl p-3.5"
                   style={{ background: 'rgba(22,163,74,0.04)', border: '1px solid rgba(22,163,74,0.12)' }}
@@ -698,7 +698,7 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
               )}
 
               {/* Decision Focus Areas */}
-              {data.workspace_snapshots.length >= 2 && (() => {
+              {data.workspace_snapshots.length >= 1 && (() => {
                 const freq: Record<string, number> = {};
                 for (const snap of data.workspace_snapshots) {
                   if (snap.dominant_risk_category) {
