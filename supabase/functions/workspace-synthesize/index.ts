@@ -308,9 +308,11 @@ Return ONLY valid JSON in this exact shape, no markdown:
 
     // Run main synthesis first, then action items sequentially to avoid TPM rate limits.
     // Both calls together can exceed 30k tokens/min when parallelised.
+    // Each call is hard-capped at 55 s so the total stays well under the 150 s edge-function limit.
     const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+      signal: AbortSignal.timeout(55_000),
       body: JSON.stringify({
         model: "gpt-4o",
         messages: [
@@ -329,6 +331,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     const actionItemsRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+      signal: AbortSignal.timeout(45_000),
       body: JSON.stringify({
         model: "gpt-4o",
         messages: [
