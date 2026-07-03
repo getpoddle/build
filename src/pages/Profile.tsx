@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, X, MapPin, LogOut, Linkedin, User, CreditCard, Loader2, CheckCircle } from 'lucide-react';
+import { Save, X, MapPin, LogOut, Linkedin, User, CreditCard, Loader2, CheckCircle, ExternalLink } from 'lucide-react';
 import { countries, getLocationsForCountry } from '../lib/locations';
 import { Database } from '../lib/database.types';
 import ProfilePictureUpload from '../components/ProfilePictureUpload';
@@ -25,6 +25,8 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const [saved, setSaved] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loadingPortal, setLoadingPortal] = useState(false);
+  const [portalError, setPortalError] = useState('');
 
   const [editedName, setEditedName] = useState('');
   const [editedBio, setEditedBio] = useState('');
@@ -91,6 +93,31 @@ export default function Profile({ onNavigate }: ProfileProps) {
     if (isSigningOut) return;
     setIsSigningOut(true);
     try { await signOut(); } finally { setIsSigningOut(false); setShowLogoutConfirm(false); }
+  };
+
+  const handleBillingPortal = async () => {
+    if (!user) return;
+    setLoadingPortal(true);
+    setPortalError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/create-billing-portal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ return_url: window.location.href }),
+      });
+      const json = await res.json();
+      if (json.url) {
+        window.location.href = json.url;
+      } else {
+        setPortalError('No billing account found. Go to Workspace Settings to manage billing.');
+      }
+    } catch {
+      setPortalError('Something went wrong. Please try again.');
+    } finally {
+      setLoadingPortal(false);
+    }
   };
 
   if (loading) {
@@ -216,14 +243,35 @@ export default function Profile({ onNavigate }: ProfileProps) {
         <div className="rounded-2xl bg-white border border-slate-200/80 overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,23,42,0.06)' }}>
           <div className="px-6 py-5">
             <h2 className="text-sm font-bold text-slate-900 mb-1">Plans &amp; Billing</h2>
-            <p className="text-xs text-slate-500 mb-4">Manage your subscription, upgrade your plan, or view invoices.</p>
-            <button
-              onClick={() => onNavigate('pricing')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all"
-            >
-              <CreditCard className="w-4 h-4" />
-              View Plans
-            </button>
+            <p className="text-xs text-slate-500 mb-3">
+              {profile?.subscription_tier && profile.subscription_tier !== 'free'
+                ? 'Manage your subscription, update payment details, or cancel — all from the Stripe billing portal.'
+                : 'Upgrade your plan or view available options.'}
+            </p>
+            {portalError && (
+              <p className="text-xs text-red-600 mb-3">{portalError}</p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {profile?.subscription_tier && profile.subscription_tier !== 'free' ? (
+                <button
+                  onClick={handleBillingPortal}
+                  disabled={loadingPortal}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all disabled:opacity-60"
+                >
+                  {loadingPortal
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <ExternalLink className="w-4 h-4" />}
+                  {loadingPortal ? 'Opening…' : 'Manage Subscription'}
+                </button>
+              ) : null}
+              <button
+                onClick={() => onNavigate('pricing')}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all"
+              >
+                <CreditCard className="w-4 h-4" />
+                {profile?.subscription_tier && profile.subscription_tier !== 'free' ? 'View Plans' : 'Upgrade Plan'}
+              </button>
+            </div>
           </div>
         </div>
 

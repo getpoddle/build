@@ -48,7 +48,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
       if (json.url) {
         window.location.href = json.url;
       } else {
-        setError('To manage your subscription — upgrade, downgrade, or cancel — please email support@poddleme.com. Our team will assist you within 24 hours.');
+        setError('Could not find your billing account. Try managing your subscription from Workspace Settings instead.');
       }
     } catch {
       setError('Something went wrong. Please try again.');
