@@ -12,8 +12,6 @@ import GuestHome from './pages/GuestHome';
 import Navigation from './components/Navigation';
 import InstallPrompt from './components/InstallPrompt';
 import { ToastContainer, useToast } from './components/Toast';
-import { useBetaAccess } from './hooks/useBetaAccess';
-import BetaAccessBanner from './components/BetaAccessBanner';
 
 const Profile = lazy(() => import('./pages/Profile'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
@@ -51,8 +49,6 @@ function AppContent() {
   const [resendSent, setResendSent] = useState(false);
   const [resending, setResending] = useState(false);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBetaAccess, daysRemaining } = useBetaAccess();
-  const [betaBannerDismissed, setBetaBannerDismissed] = useState(false);
 
   const handleResend = async () => {
     if (!signupEmailPending || resendCooldown > 0) return;
@@ -592,7 +588,6 @@ function AppContent() {
   if (needsOnboarding) return wrap(<Onboarding onComplete={handleOnboardingComplete} />);
 
   const activePage = currentPage === 'auth' ? 'home' : currentPage;
-  const showBetaBanner = hasBetaAccess && daysRemaining !== null && daysRemaining <= 14;
 
   return (
     <div className="flex" style={{ height: '100dvh', overflow: 'hidden' }}>
@@ -601,15 +596,6 @@ function AppContent() {
         className="flex-1 overflow-x-hidden overflow-y-auto min-w-0 xl:ml-60 flex flex-col"
         style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
       >
-        {showBetaBanner && !betaBannerDismissed && (
-          <div className="px-4 pt-3">
-            <BetaAccessBanner
-              daysRemaining={daysRemaining!}
-              onUpgrade={() => handleNavigate('pricing')}
-              onDismiss={() => setBetaBannerDismissed(true)}
-            />
-          </div>
-        )}
         <div className="flex-1">
           <PageErrorBoundary>
             <Suspense fallback={<RouteFallback />}>
