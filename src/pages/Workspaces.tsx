@@ -76,21 +76,25 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      <div className="px-4 sm:px-6 lg:px-6 py-8 lg:py-10">
+      <div
+        className="px-4 sm:px-6 lg:px-6 py-6 lg:py-10"
+        style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
+      >
 
         {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
-          <div className="min-w-0">
-            <h1 className="text-2xl lg:text-3xl font-black text-slate-900 mb-1">Private Workspaces</h1>
-            <p className="text-slate-500 text-sm">Encrypted spaces where your team debates proprietary ideas with AI agents.</p>
+        <div className="flex items-center justify-between gap-3 mb-6 lg:mb-8">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl lg:text-3xl font-black text-slate-900 leading-tight">Private Workspaces</h1>
+            <p className="text-slate-500 text-xs sm:text-sm mt-0.5 hidden sm:block">Encrypted spaces where your team debates proprietary ideas with AI agents.</p>
           </div>
           <button
             onClick={handleCreateClick}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 self-start sm:flex-shrink-0"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all duration-200 active:scale-95 flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
           >
             {!isPro && !hasBetaAccess && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade to Create' : 'New Workspace'}
+            <span className="hidden xs:inline">{!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade' : 'New Workspace'}</span>
+            <span className="xs:hidden">{!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade' : 'New'}</span>
           </button>
         </div>
 
@@ -118,7 +122,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         {/* Empty state */}
         {!isLoading && appWorkspaces.length === 0 && (
           <div
-            className="rounded-2xl p-12 lg:p-16 text-center"
+            className="rounded-2xl p-8 lg:p-16 text-center"
             style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
           >
             <div
@@ -131,7 +135,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             <p className="text-slate-500 text-sm max-w-sm mx-auto mb-8 leading-relaxed">
               1 free workspace every month — no credit card needed. Full Pro features until the end of the month, including encrypted team spaces and AI War Room.
             </p>
-            <div className="grid grid-cols-3 gap-6 max-w-md mx-auto mb-10">
+            <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto mb-8">
               {[
                 { icon: Lock, label: 'End-to-end encrypted' },
                 { icon: Users, label: 'Invite-only access' },

@@ -135,18 +135,18 @@ export default function Profile({ onNavigate }: ProfileProps) {
 
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-4 sm:space-y-6" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-black text-slate-900">Account Settings</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage your profile and account preferences.</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Account Settings</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Manage your profile and account preferences.</p>
         </div>
 
         {/* Profile card */}
         <div className="rounded-2xl bg-white border border-slate-200/80 overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,23,42,0.06)' }}>
           {/* Avatar row */}
-          <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-5">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center gap-4 sm:gap-5">
             {user ? (
               <ProfilePictureUpload userId={user.id} currentAvatarUrl={profile?.avatar_url || null} onUploadComplete={loadProfile} />
             ) : (
@@ -168,7 +168,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
           </div>
 
           {/* Form fields */}
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-3 sm:space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Full Name</label>
@@ -222,7 +222,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
           </div>
 
           {/* Save bar */}
-          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between" style={{ background: 'rgba(248,250,252,0.8)' }}>
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 flex items-center justify-between" style={{ background: 'rgba(248,250,252,0.8)' }}>
             <div className="flex items-center gap-2 text-sm">
               {saved && (
                 <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
@@ -233,7 +233,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
             <button
               onClick={saveProfile}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-70 hover:-translate-y-px"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-70 hover:-translate-y-px active:scale-95"
               style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -244,7 +244,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
 
         {/* Plans & Billing shortcut */}
         <div className="rounded-2xl bg-white border border-slate-200/80 overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,23,42,0.06)' }}>
-          <div className="px-6 py-5">
+          <div className="px-4 sm:px-6 py-4 sm:py-5">
             <h2 className="text-sm font-bold text-slate-900 mb-1">Plans &amp; Billing</h2>
             <p className="text-xs text-slate-500 mb-3">
               {profile?.subscription_tier && profile.subscription_tier !== 'free'
@@ -280,7 +280,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
 
         {/* Beta Access */}
         <div className="rounded-2xl bg-white border border-slate-200/80 overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,23,42,0.06)' }}>
-          <div className="px-6 py-5">
+          <div className="px-4 sm:px-6 py-4 sm:py-5">
             <div className="flex items-center gap-2 mb-1">
               <h2 className="text-sm font-bold text-slate-900">Beta Access</h2>
               {hasBetaAccess && (
@@ -323,7 +323,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
 
         {/* Danger zone */}
         <div className="rounded-2xl bg-white border border-slate-200/80 overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,23,42,0.06)' }}>
-          <div className="px-6 py-5">
+          <div className="px-4 sm:px-6 py-4 sm:py-5">
             <h2 className="text-sm font-bold text-slate-900 mb-1">Sign Out</h2>
             <p className="text-xs text-slate-500 mb-4">You will be returned to the sign-in screen.</p>
             <button

@@ -141,42 +141,42 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-start sm:items-center justify-center px-4 py-8 sm:py-4 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent"></div>
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full blur-3xl floating"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-400/30 to-cyan-500/30 rounded-full blur-3xl floating" style={{ animationDelay: '1.5s' }}></div>
 
       <div className="max-w-md w-full relative z-10 scale-in">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4 floating">
-            <PoddleMark size={52} />
-            <h1 className="text-5xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle AI</h1>
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center gap-2.5 mb-3 sm:mb-4 floating">
+            <PoddleMark size={40} />
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle AI</h1>
           </div>
-          <p className="text-slate-600 text-base font-semibold">
+          <p className="text-slate-600 text-sm sm:text-base font-semibold">
             Judgement infrastructure for high-stakes decisions
           </p>
         </div>
 
-        <div className="glass-card-strong rounded-3xl shadow-2xl p-8 border">
+        <div className="glass-card-strong rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-8 border">
           {view === 'forgot' && (
             <button
               onClick={() => switchView('signin')}
-              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-5 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to sign in
             </button>
           )}
 
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1.5">
             {view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Reset Password' : 'Welcome Back'}
           </h2>
           {view === 'forgot' ? (
-            <p className="text-sm text-slate-600 mb-6 font-medium">
+            <p className="text-sm text-slate-600 mb-5 font-medium">
               Enter your email and we'll send you a link to reset your password.
             </p>
           ) : (
-            <p className="text-sm text-slate-600 mb-6 font-medium">
+            <p className="text-sm text-slate-600 mb-5 font-medium">
               {view === 'signup' ? 'Join the community and start collaborating' : 'Continue your journey'}
             </p>
           )}
@@ -193,40 +193,41 @@ export default function Auth() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5 mt-4">
             {view === 'signup' && (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    First Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="input-modern pl-10"
-                      placeholder="John"
-                      required
-                    />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      First Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="input-modern pl-9"
+                        placeholder="John"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Last Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="input-modern pl-10"
-                      placeholder="Doe"
-                      required
-                    />
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Last Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="input-modern pl-9"
+                        placeholder="Doe"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -334,7 +335,7 @@ export default function Auth() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+              className="w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none active:scale-95 transition-transform"
             >
               {loading
                 ? 'Loading...'
