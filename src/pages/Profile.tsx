@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, X, MapPin, LogOut, Linkedin, User, CreditCard, Loader2, CheckCircle, ExternalLink } from 'lucide-react';
+import { Save, X, MapPin, LogOut, Linkedin, User, CreditCard, Loader2, CheckCircle, ExternalLink, Sparkles } from 'lucide-react';
 import { countries, getLocationsForCountry } from '../lib/locations';
 import { Database } from '../lib/database.types';
 import ProfilePictureUpload from '../components/ProfilePictureUpload';
 import { getAvatarUrl } from '../lib/avatarUtils';
+import { useBetaAccess } from '../hooks/useBetaAccess';
+import InviteCodeEntry from '../components/InviteCodeEntry';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -19,6 +21,7 @@ const inputCls = "w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:
 
 export default function Profile({ onNavigate }: ProfileProps) {
   const { user, signOut } = useAuth();
+  const { hasBetaAccess, daysRemaining, expiresAt, refetch: refetchBeta } = useBetaAccess();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -272,6 +275,49 @@ export default function Profile({ onNavigate }: ProfileProps) {
                 {profile?.subscription_tier && profile.subscription_tier !== 'free' ? 'View Plans' : 'Upgrade Plan'}
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Beta Access */}
+        <div className="rounded-2xl bg-white border border-slate-200/80 overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,23,42,0.06)' }}>
+          <div className="px-6 py-5">
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-sm font-bold text-slate-900">Beta Access</h2>
+              {hasBetaAccess && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: 'rgba(37,99,235,0.1)', color: '#2563eb' }}>
+                  <Sparkles className="w-2.5 h-2.5" /> Active
+                </span>
+              )}
+            </div>
+
+            {hasBetaAccess ? (
+              <div>
+                <p className="text-xs text-slate-500 mb-3">
+                  You have active beta access.{' '}
+                  {expiresAt && (
+                    <>Expires {new Date(expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    {daysRemaining !== null && daysRemaining <= 14 && (
+                      <span className="text-amber-600 font-semibold"> ({daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left)</span>
+                    )}.</>
+                  )}
+                </p>
+                <button
+                  onClick={() => onNavigate('pricing')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  Upgrade to a paid plan
+                </button>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-slate-500 mb-3">
+                  Have a beta invite code? Redeem it here for 60 days of full access.
+                </p>
+                <InviteCodeEntry onSuccess={refetchBeta} />
+              </div>
+            )}
           </div>
         </div>
 

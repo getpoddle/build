@@ -6,7 +6,7 @@ import VerificationBadge from '../components/VerificationBadge';
 import DomainManagement from '../components/admin/DomainManagement';
 import BlogAdmin from '../components/admin/BlogAdmin';
 
-type AdminView = 'users' | 'domains' | 'ai-discussions' | 'workspaces' | 'upgrades' | 'blog' | 'dataset';
+type AdminView = 'users' | 'domains' | 'ai-discussions' | 'workspaces' | 'upgrades' | 'blog' | 'dataset' | 'beta-codes';
 
 interface UpgradeRequest {
   id: string;
@@ -93,6 +93,17 @@ export default function AdminDashboard() {
   const [datasetPairs, setDatasetPairs] = useState<any[]>([]);
   const [loadingDataset, setLoadingDataset] = useState(false);
 
+  // Beta codes state
+  const [betaCodes, setBetaCodes] = useState<any[]>([]);
+  const [betaGrants, setBetaGrants] = useState<any[]>([]);
+  const [loadingBetaCodes, setLoadingBetaCodes] = useState(false);
+  const [bulkCount, setBulkCount] = useState(10);
+  const [bulkMaxUses, setBulkMaxUses] = useState(1);
+  const [bulkNotes, setBulkNotes] = useState('');
+  const [bulkExpiryDays, setBulkExpiryDays] = useState(30);
+  const [generatingCodes, setGeneratingCodes] = useState(false);
+  const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -114,6 +125,58 @@ export default function AdminDashboard() {
       console.error('Error loading dataset:', e);
     } finally {
       setLoadingDataset(false);
+    }
+  };
+
+  const loadBetaCodes = async () => {
+    setLoadingBetaCodes(true);
+    try {
+      const [codesRes, grantsRes] = await Promise.all([
+        supabase
+          .from('invite_codes')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('beta_access_grants')
+          .select('id, user_id, granted_at, expires_at, status, invite_code_id, profiles(full_name, email)')
+          .order('granted_at', { ascending: false }),
+      ]);
+      if (codesRes.data) setBetaCodes(codesRes.data);
+      if (grantsRes.data) setBetaGrants(grantsRes.data);
+    } catch (e) {
+      console.error('Error loading beta codes:', e);
+    } finally {
+      setLoadingBetaCodes(false);
+    }
+  };
+
+  const generateBetaCodes = async () => {
+    setGeneratingCodes(true);
+    setGeneratedCodes([]);
+    try {
+      const expiresAt = new Date(Date.now() + bulkExpiryDays * 24 * 60 * 60 * 1000).toISOString();
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const codes: string[] = [];
+      for (let i = 0; i < bulkCount; i++) {
+        let code = 'BETA-';
+        for (let j = 0; j < 8; j++) code += chars[Math.floor(Math.random() * chars.length)];
+        codes.push(code);
+      }
+      const rows = codes.map(code => ({
+        code,
+        max_uses: bulkMaxUses,
+        use_count: 0,
+        expires_at: expiresAt,
+        notes: bulkNotes || null,
+      }));
+      const { error } = await supabase.from('invite_codes').insert(rows);
+      if (error) { console.error('Failed to generate codes:', error); return; }
+      setGeneratedCodes(codes);
+      await loadBetaCodes();
+    } catch (e) {
+      console.error('generateBetaCodes error:', e);
+    } finally {
+      setGeneratingCodes(false);
     }
   };
 
@@ -541,6 +604,17 @@ export default function AdminDashboard() {
                 >
                   <Database className="w-4 h-4" />
                   Dataset
+                </button>
+                <button
+                  onClick={() => { setAdminView('beta-codes'); loadBetaCodes(); }}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
+                    adminView === 'beta-codes'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Key className="w-4 h-4" />
+                  Beta Codes
                 </button>
               </div>
               {adminView === 'users' && (
@@ -1337,6 +1411,165 @@ export default function AdminDashboard() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {adminView === 'beta-codes' && (
+          <div className="space-y-5">
+            {/* Generate codes */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h3 className="text-sm font-bold text-slate-900 mb-4">Generate Invite Codes</h3>
+              <div className="grid sm:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Number of codes</label>
+                  <input type="number" min={1} max={500} value={bulkCount} onChange={e => setBulkCount(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Max uses per code</label>
+                  <input type="number" min={1} max={1000} value={bulkMaxUses} onChange={e => setBulkMaxUses(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Code expires in (days)</label>
+                  <input type="number" min={1} max={365} value={bulkExpiryDays} onChange={e => setBulkExpiryDays(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">Notes (optional)</label>
+                  <input type="text" value={bulkNotes} onChange={e => setBulkNotes(e.target.value)} placeholder="e.g. ProductHunt launch"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+              </div>
+              <button onClick={generateBetaCodes} disabled={generatingCodes}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60 transition-all"
+                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
+                {generatingCodes ? <><RefreshCw className="w-4 h-4 animate-spin" /> Generating…</> : <><Key className="w-4 h-4" /> Generate {bulkCount} Code{bulkCount !== 1 ? 's' : ''}</>}
+              </button>
+
+              {generatedCodes.length > 0 && (
+                <div className="mt-4 p-4 rounded-lg bg-slate-50 border border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-bold text-slate-700">Generated {generatedCodes.length} codes — copy and distribute:</p>
+                    <button onClick={() => { navigator.clipboard.writeText(generatedCodes.join('\n')); }}
+                      className="text-xs text-blue-600 hover:text-blue-700 font-semibold">Copy all</button>
+                  </div>
+                  <div className="font-mono text-xs text-slate-600 space-y-1 max-h-48 overflow-y-auto">
+                    {generatedCodes.map(c => <div key={c} className="flex items-center gap-2"><span>{c}</span></div>)}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Code usage table */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-800">All Invite Codes ({betaCodes.length})</h3>
+                <button onClick={loadBetaCodes} disabled={loadingBetaCodes} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
+                  <RefreshCw className={`w-3 h-3 ${loadingBetaCodes ? 'animate-spin' : ''}`} /> Refresh
+                </button>
+              </div>
+              {loadingBetaCodes ? (
+                <div className="p-8 text-center text-slate-400 text-sm">Loading…</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        {['Code', 'Uses', 'Max Uses', 'Expires', 'Notes', 'Created'].map(h => (
+                          <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {betaCodes.map(c => {
+                        const expired = c.expires_at && new Date(c.expires_at) < new Date();
+                        const maxed = c.use_count >= c.max_uses;
+                        return (
+                          <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-2.5 font-mono text-xs font-bold text-slate-800">{c.code}</td>
+                            <td className="px-4 py-2.5 text-xs text-slate-600">
+                              <span className={`font-semibold ${maxed ? 'text-red-600' : 'text-slate-700'}`}>{c.use_count}</span>
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-600">{c.max_uses}</td>
+                            <td className="px-4 py-2.5 text-xs">
+                              {c.expires_at
+                                ? <span className={expired ? 'text-red-500 font-semibold' : 'text-slate-600'}>
+                                    {new Date(c.expires_at).toLocaleDateString()}
+                                  </span>
+                                : <span className="text-slate-400">—</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-500 max-w-[160px] truncate">{c.notes || '—'}</td>
+                            <td className="px-4 py-2.5 text-xs text-slate-400">{new Date(c.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        );
+                      })}
+                      {betaCodes.length === 0 && (
+                        <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">No codes yet. Generate some above.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Grant table */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100">
+                <h3 className="text-sm font-bold text-slate-800">Beta Access Grants ({betaGrants.length})</h3>
+              </div>
+              {loadingBetaCodes ? (
+                <div className="p-8 text-center text-slate-400 text-sm">Loading…</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        {['User', 'Status', 'Granted', 'Expires', 'Days Left'].map(h => (
+                          <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {betaGrants.map((g: any) => {
+                        const expiresAt = new Date(g.expires_at);
+                        const now = new Date();
+                        const msLeft = expiresAt.getTime() - now.getTime();
+                        const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+                        const isExpired = msLeft <= 0;
+                        const profile = Array.isArray(g.profiles) ? g.profiles[0] : g.profiles;
+                        return (
+                          <tr key={g.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-2.5">
+                              <p className="text-xs font-semibold text-slate-800">{profile?.full_name || '—'}</p>
+                              <p className="text-[11px] text-slate-400">{profile?.email || g.user_id.slice(0, 8) + '…'}</p>
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full capitalize" style={{
+                                background: g.status === 'active' && !isExpired ? 'rgba(22,163,74,0.1)' : 'rgba(15,23,42,0.06)',
+                                color: g.status === 'active' && !isExpired ? '#15803d' : '#64748b',
+                              }}>
+                                {isExpired ? 'expired' : g.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-slate-500">{new Date(g.granted_at).toLocaleDateString()}</td>
+                            <td className="px-4 py-2.5 text-xs text-slate-500">{expiresAt.toLocaleDateString()}</td>
+                            <td className="px-4 py-2.5 text-xs">
+                              {isExpired
+                                ? <span className="text-red-500 font-semibold">Expired</span>
+                                : <span className={`font-semibold ${daysLeft <= 7 ? 'text-amber-600' : 'text-slate-700'}`}>{daysLeft}d</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {betaGrants.length === 0 && (
+                        <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">No beta grants yet.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

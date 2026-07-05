@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
+import { useBetaAccess } from '../hooks/useBetaAccess';
 import WorkspaceChat from '../components/WorkspaceChat';
 import WorkspaceWarRoom, { WarRoomLockedState } from '../components/WorkspaceWarRoom';
 import UpgradePrompt from '../components/UpgradePrompt';
@@ -33,8 +34,11 @@ interface WorkspaceHubProps {
 export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNavigate }: WorkspaceHubProps) {
   const { user } = useAuth();
   const { canAccess, isAdmin, isReadOnly, plan, subscriptionStatus, trialExpiresAt, loading: accessLoading } = useWorkspaceAccess(workspaceId);
-  const workspaceIsPro = (plan === 'pro' || plan === 'enterprise') &&
-    (subscriptionStatus === 'active' || subscriptionStatus === 'trialing');
+  const { hasBetaAccess } = useBetaAccess();
+  const workspaceIsPro = hasBetaAccess || (
+    (plan === 'pro' || plan === 'enterprise') &&
+    (subscriptionStatus === 'active' || subscriptionStatus === 'trialing')
+  );
 
   const daysLeft = trialExpiresAt
     ? Math.max(0, Math.ceil((new Date(trialExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
