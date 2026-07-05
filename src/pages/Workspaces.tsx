@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, MessageSquare, ExternalLink } from 'lucide-react';
 import { useUserWorkspaces, useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
+import { useBetaAccess } from '../hooks/useBetaAccess';
 import CreateWorkspace from '../components/CreateWorkspace';
 import UpgradePrompt from '../components/UpgradePrompt';
 import CrossWorkspacePatternCard from '../components/CrossWorkspacePatternCard';
@@ -45,11 +46,12 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const { workspaces, loading, refetch } = useUserWorkspaces();
   const { isPro } = useSubscriptionTier();
   const { trialExhausted, monthlyLimitReached, resetsOn, expiresOn, loading: trialLoading } = useTrialInfo();
+  const { hasBetaAccess } = useBetaAccess();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   function handleCreateClick() {
-    if (!isPro && trialExhausted) {
+    if (!isPro && !hasBetaAccess && trialExhausted) {
       setShowUpgrade(true);
     } else {
       setShowCreate(true);
@@ -87,13 +89,13 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all duration-200 hover:-translate-y-0.5 self-start sm:flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
           >
-            {!isPro && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {!isPro && trialExhausted ? 'Upgrade to Create' : 'New Workspace'}
+            {!isPro && !hasBetaAccess && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade to Create' : 'New Workspace'}
           </button>
         </div>
 
         {/* Monthly workspace status banner */}
-        {!isLoading && !isPro && monthlyLimitReached && (
+        {!isLoading && !isPro && !hasBetaAccess && monthlyLimitReached && (
           <div
             className="mb-6 flex items-center gap-3 px-5 py-3.5 rounded-2xl"
             style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)' }}

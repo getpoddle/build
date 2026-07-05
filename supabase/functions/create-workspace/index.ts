@@ -61,8 +61,8 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch profile and any Stripe-backed paid workspace in parallel.
-    const [profileRes, paidWsRes] = await Promise.all([
+    // Fetch profile, any Stripe-backed paid workspace, and beta access in parallel.
+    const [profileRes, paidWsRes, betaRes] = await Promise.all([
       service
         .from("profiles")
         .select("subscription_tier, free_workspace_month")
@@ -76,6 +76,12 @@ Deno.serve(async (req: Request) => {
         .not("stripe_subscription_id", "is", null)
         .eq("subscription_status", "active")
         .limit(1),
+      service
+        .from("beta_access_grants")
+        .select("expires_at, status")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle(),
     ]);
 
     const profileTier = profileRes.data?.subscription_tier;
@@ -83,7 +89,12 @@ Deno.serve(async (req: Request) => {
 
     const hasPaidProfile = profileTier === "pro" || profileTier === "enterprise";
     const hasPaidWorkspace = (paidWsRes.data?.length ?? 0) > 0;
-    const isPaid = hasPaidProfile || hasPaidWorkspace;
+
+    // Beta access grants unlimited workspace creation for the grant duration
+    const betaGrant = betaRes.data;
+    const hasBetaAccess = !!betaGrant && new Date(betaGrant.expires_at) > new Date();
+
+    const isPaid = hasPaidProfile || hasPaidWorkspace || hasBetaAccess;
 
     // Monthly free workspace gate: 1 free workspace per calendar month.
     if (!isPaid) {
@@ -102,8 +113,12 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Free workspaces expire at the end of the current calendar month.
-    const trialExpiresAt = !isPaid ? endOfCurrentMonthISO() : null;
+    // Free workspaces expire at end of month; beta users get their grant expiry.
+    const trialExpiresAt = hasBetaAccess
+      ? betaGrant!.expires_at
+      : !isPaid
+        ? endOfCurrentMonthISO()
+        : null;
 
     // Seats are determined by plan — never trust client-provided value
     const resolvedPlan = plan === "team" ? "team" : "pro";
