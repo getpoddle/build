@@ -51,6 +51,8 @@ function AppContent() {
   const [resendSent, setResendSent] = useState(false);
   const [resending, setResending] = useState(false);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { hasBetaAccess, daysRemaining } = useBetaAccess();
+  const [betaBannerDismissed, setBetaBannerDismissed] = useState(false);
 
   const handleResend = async () => {
     if (!signupEmailPending || resendCooldown > 0) return;
@@ -590,9 +592,7 @@ function AppContent() {
   if (needsOnboarding) return wrap(<Onboarding onComplete={handleOnboardingComplete} />);
 
   const activePage = currentPage === 'auth' ? 'home' : currentPage;
-  const { hasBetaAccess, daysRemaining } = useBetaAccess();
   const showBetaBanner = hasBetaAccess && daysRemaining !== null && daysRemaining <= 14;
-  const [betaBannerDismissed, setBetaBannerDismissed] = useState(false);
 
   return (
     <div className="flex" style={{ height: '100dvh', overflow: 'hidden' }}>
