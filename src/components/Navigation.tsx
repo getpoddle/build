@@ -344,6 +344,14 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
+                  <a
+                    href="https://chromewebstore.google.com/detail/poddle-lens/pdcllidghoikeoamjebjgdlgjaccfmmn"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-600 text-sm font-semibold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"
+                  >
+                    Poddle Lens
+                  </a>
                   <button
                     onClick={() => onNavigate('auth')}
                     className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-600 text-sm font-semibold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"

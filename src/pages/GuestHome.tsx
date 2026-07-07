@@ -45,12 +45,49 @@ function RevealSection({ children, className = '', delay = 0 }: { children: Reac
   );
 }
 
+const LENS_URL = 'https://chromewebstore.google.com/detail/poddle-lens/pdcllidghoikeoamjebjgdlgjaccfmmn';
+
 export default function GuestHome({ onNavigate }: GuestHomeProps) {
   const [joinModal, setJoinModal] = useState<{ open: boolean; trigger: string }>({ open: false, trigger: 'default' });
   const openJoin = (trigger: string) => setJoinModal({ open: true, trigger });
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    try { return localStorage.getItem('lens-banner-dismissed') === '1'; } catch { return false; }
+  });
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    try { localStorage.setItem('lens-banner-dismissed', '1'); } catch { /* ignore */ }
+  };
 
   return (
     <div className="min-h-screen" style={{ background: '#fafafa' }}>
+      {!bannerDismissed && (
+        <div
+          className="fixed top-14 left-0 right-0 z-40 flex items-center justify-center gap-3 px-4 py-2"
+          style={{ background: 'rgba(15,23,42,0.96)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          <a
+            href={LENS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold transition-opacity hover:opacity-80 flex items-center gap-1.5"
+            style={{ color: 'rgba(203,213,225,0.9)' }}
+          >
+            <span style={{ color: '#60a5fa', fontWeight: 700 }}>New:</span>
+            {' '}Poddle Lens is now live on the Chrome Web Store
+            <ArrowRight className="w-3 h-3 flex-shrink-0" style={{ color: '#60a5fa' }} />
+          </a>
+          <button
+            onClick={dismissBanner}
+            aria-label="Dismiss"
+            className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-md transition-opacity hover:opacity-70"
+            style={{ color: 'rgba(100,116,139,0.7)' }}
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
       {joinModal.open && (
         <JoinPromptModal
           onClose={() => setJoinModal({ open: false, trigger: 'default' })}
@@ -74,6 +111,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
               <button onClick={() => onNavigate('blog')} className="hover:text-white transition-colors">Blog</button>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+              <a href={LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Poddle Lens</a>
               <a href="#privacy" className="hover:text-white transition-colors">Privacy</a>
               <a href="#terms" className="hover:text-white transition-colors">Terms</a>
               <a href="#contact-us" className="hover:text-white transition-colors">Contact</a>
