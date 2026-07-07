@@ -9,6 +9,7 @@ interface BlogPostRow {
   excerpt: string;
   content: string;
   cover_image_url: string | null;
+  external_url: string | null;
   category: string;
   author_name: string;
   author_avatar_url: string | null;
@@ -34,6 +35,7 @@ const EMPTY_FORM = {
   excerpt: '',
   content: '',
   cover_image_url: '',
+  external_url: '',
   category: 'company',
   author_name: 'Poddle Team',
   author_avatar_url: '',
@@ -113,6 +115,7 @@ export default function BlogAdmin() {
       excerpt: post.excerpt,
       content: post.content,
       cover_image_url: post.cover_image_url || '',
+      external_url: post.external_url || '',
       category: post.category,
       author_name: post.author_name,
       author_avatar_url: post.author_avatar_url || '',
@@ -149,6 +152,7 @@ export default function BlogAdmin() {
       excerpt: form.excerpt.trim(),
       content: form.content,
       cover_image_url: form.cover_image_url.trim() || null,
+      external_url: form.external_url.trim() || null,
       category: form.category,
       author_name: form.author_name.trim() || 'Poddle Team',
       author_avatar_url: form.author_avatar_url.trim() || null,
@@ -320,6 +324,19 @@ export default function BlogAdmin() {
             )}
           </div>
 
+          {/* External link */}
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              External link URL <span className="font-normal text-slate-400">(optional — clicking the post will open this URL instead of the post page)</span>
+            </label>
+            <input
+              value={form.external_url}
+              onChange={e => setForm(f => ({ ...f, external_url: e.target.value }))}
+              placeholder="https://..."
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+            />
+          </div>
+
           {/* Content */}
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1.5">
@@ -444,6 +461,11 @@ export default function BlogAdmin() {
                   )}
                   {!post.is_published && (
                     <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Draft</span>
+                  )}
+                  {post.external_url && (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 flex items-center gap-1">
+                      <ExternalLink className="w-2.5 h-2.5" />External link
+                    </span>
                   )}
                 </div>
                 <h3 className="text-sm font-bold text-slate-900 truncate">{post.title}</h3>

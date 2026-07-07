@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, Clock, Calendar, Tag, Sparkles, ChevronRight, Search } from 'lucide-react';
+import { ArrowRight, Clock, Calendar, Tag, Sparkles, ChevronRight, Search, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface BlogPost {
@@ -8,6 +8,7 @@ interface BlogPost {
   title: string;
   excerpt: string;
   cover_image_url: string | null;
+  external_url: string | null;
   category: string;
   author_name: string;
   author_avatar_url: string | null;
@@ -51,11 +52,18 @@ function CategoryBadge({ category }: { category: string }) {
 
 function PostCard({ post, onNavigate, featured = false }: { post: BlogPost; onNavigate: (slug: string) => void; featured?: boolean }) {
   const hasImage = !!post.cover_image_url;
+  const handleClick = () => {
+    if (post.external_url) {
+      window.open(post.external_url, '_blank', 'noopener,noreferrer');
+    } else {
+      onNavigate(post.slug);
+    }
+  };
 
   if (featured) {
     return (
       <div
-        onClick={() => onNavigate(post.slug)}
+        onClick={handleClick}
         className="group relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
         style={{ background: '#0f172a', minHeight: '440px' }}
       >
@@ -98,7 +106,11 @@ function PostCard({ post, onNavigate, featured = false }: { post: BlogPost; onNa
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-sm font-bold text-blue-300 group-hover:text-blue-200 transition-colors">
-              Read more <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              {post.external_url ? (
+                <><ExternalLink className="w-4 h-4" /> Visit link</>
+              ) : (
+                <>Read more <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></>
+              )}
             </div>
           </div>
         </div>
@@ -108,7 +120,7 @@ function PostCard({ post, onNavigate, featured = false }: { post: BlogPost; onNa
 
   return (
     <div
-      onClick={() => onNavigate(post.slug)}
+      onClick={handleClick}
       className="group bg-white rounded-2xl border border-slate-100 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-slate-200"
     >
       {hasImage ? (
@@ -177,7 +189,7 @@ export default function Blog({ onNavigate, initialSlug }: BlogProps) {
     setLoading(true);
     const { data } = await supabase
       .from('blog_posts')
-      .select('id,slug,title,excerpt,cover_image_url,category,author_name,author_avatar_url,reading_time_minutes,is_featured,published_at,view_count')
+      .select('id,slug,title,excerpt,cover_image_url,external_url,category,author_name,author_avatar_url,reading_time_minutes,is_featured,published_at,view_count')
       .eq('is_published', true)
       .order('published_at', { ascending: false });
     setPosts(data || []);
