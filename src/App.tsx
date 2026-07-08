@@ -85,7 +85,14 @@ function AppContent() {
       addToast('success', 'Slack connected successfully!');
     } else if (error) {
       sessionStorage.removeItem('slackErrorToast');
-      const readable = error === 'not_configured' ? 'Slack is not configured yet.' : `Slack connection failed: ${error}`;
+      const readable =
+        error === 'not_configured' ? 'Slack is not configured yet.' :
+        error === 'access_denied' ? 'Slack connection was cancelled.' :
+        error === 'oauth_failed' ? 'Slack authorization failed. Please try again.' :
+        error === 'db_error' ? 'Something went wrong saving your Slack connection. Please try again.' :
+        error === 'invalid_state' ? 'Slack connection session expired. Please try again.' :
+        error === 'missing_token' ? 'Slack authorization failed. Please try again.' :
+        'Slack connection failed. Please try again.';
       addToast('error', readable);
     }
   }, [addToast]);
@@ -152,9 +159,11 @@ function AppContent() {
       sessionStorage.setItem('slackConnectedToast', '1');
       return;
     }
-    if (slackError) {
+    if (slackError && slackError !== 'missing_code') {
       history.replaceState(null, '', '/');
       sessionStorage.setItem('slackErrorToast', slackError);
+    } else if (slackError === 'missing_code') {
+      history.replaceState(null, '', '/');
     }
 
     // Slack "View Full War Room" deep-link: /?workspace=<id>
