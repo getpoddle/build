@@ -123,6 +123,7 @@ export default function SlackSuccess({ onNavigate }: SlackSuccessProps) {
           <div className="flex gap-5">
             <button onClick={() => onNavigate('privacy')} className="hover:text-slate-600 transition-colors">Privacy Policy</button>
             <button onClick={() => onNavigate('terms')} className="hover:text-slate-600 transition-colors">Terms</button>
+            <button onClick={() => onNavigate('subprocessors')} className="hover:text-slate-600 transition-colors">Sub-processors</button>
             <button onClick={() => onNavigate('contact-us')} className="hover:text-slate-600 transition-colors">Contact</button>
           </div>
         </div>

@@ -36,6 +36,7 @@ const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
 const SlackLanding = lazy(() => import('./pages/SlackLanding'));
 const SlackSuccess = lazy(() => import('./pages/SlackSuccess'));
+const Subprocessors = lazy(() => import('./pages/Subprocessors'));
 
 function RouteFallback() {
   return (
@@ -96,6 +97,7 @@ function AppContent() {
     }
     if (hash === 'slack') return 'slack';
     if (hash === 'slack-success') return 'slack-success';
+    if (hash === 'subprocessors') return 'subprocessors';
     if (hash === 'blog') return 'blog';
     if (hash.startsWith('blog/')) return 'blog-post';
     const saved = sessionStorage.getItem('currentPage');
@@ -179,6 +181,7 @@ function AppContent() {
       if (hash === 'system-health') { setCurrentPage('system-health'); return; }
       if (hash === 'slack') { setCurrentPage('slack'); return; }
       if (hash === 'slack-success') { setCurrentPage('slack-success'); return; }
+      if (hash === 'subprocessors') { setCurrentPage('subprocessors'); return; }
       if (hash === 'blog') { setCurrentPage('blog'); return; }
       if (hash.startsWith('blog/')) {
         const slug = hash.slice('blog/'.length);
@@ -528,6 +531,15 @@ function AppContent() {
       </div>
     </div>
   );
+  if (currentPage === 'subprocessors') return (
+    <div className="flex bg-slate-50 min-h-screen">
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
+      <div className="flex-1 xl:ml-60" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+        <Suspense fallback={<RouteFallback />}><Subprocessors /></Suspense>
+        <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
+      </div>
+    </div>
+  );
   if (currentPage === 'contact-us') return (
     <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
@@ -648,6 +660,7 @@ function AppContent() {
               )}
               {activePage === 'privacy' && <PrivacyPolicy />}
               {activePage === 'terms' && <TermsOfService />}
+              {activePage === 'subprocessors' && <Subprocessors />}
               {activePage === 'pricing' && <Pricing onNavigate={handleNavigate} />}
             </Suspense>
             <div className="xl:hidden" style={{ height: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -661,6 +674,7 @@ function AppContent() {
                 <a href="#pricing" className="hover:text-slate-600 transition-colors">Pricing</a>
                 <a href="#privacy" className="hover:text-slate-600 transition-colors">Privacy</a>
                 <a href="#terms" className="hover:text-slate-600 transition-colors">Terms</a>
+                <a href="#subprocessors" className="hover:text-slate-600 transition-colors">Sub-processors</a>
                 <a href="#contact-us" className="hover:text-slate-600 transition-colors">Contact</a>
               </div>
             </div>

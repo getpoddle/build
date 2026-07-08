@@ -115,6 +115,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
               <a href={LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Poddle Lens</a>
               <a href="#privacy" className="hover:text-white transition-colors">Privacy</a>
               <a href="#terms" className="hover:text-white transition-colors">Terms</a>
+              <a href="#subprocessors" className="hover:text-white transition-colors">Sub-processors</a>
               <a href="#contact-us" className="hover:text-white transition-colors">Contact</a>
             </div>
           </div>
