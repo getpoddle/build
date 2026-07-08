@@ -1,4 +1,4 @@
-import { Sparkles, User, LogOut, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard, CreditCard, Sun, Moon } from 'lucide-react';
+import { Sparkles, User, LogOut, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import PoddleMark from './PoddleMark';
@@ -344,6 +344,13 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => onNavigate('slack')}
+                    className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-600 text-sm font-semibold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Slack
+                  </button>
                   <a
                     href="https://chromewebstore.google.com/detail/poddle-lens/pdcllidghoikeoamjebjgdlgjaccfmmn"
                     target="_blank"
