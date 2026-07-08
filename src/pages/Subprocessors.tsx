@@ -3,7 +3,7 @@ export default function Subprocessors() {
     {
       name: 'Supabase',
       purpose: 'Database hosting, backend infrastructure, and authentication',
-      location: 'EU (AWS eu-central-1, Frankfurt)',
+      location: 'United States (AWS us-east-1, North Virginia)',
     },
     {
       name: 'Stripe',
@@ -13,7 +13,7 @@ export default function Subprocessors() {
     {
       name: 'PostHog',
       purpose: 'Product analytics',
-      location: 'United States (US Cloud)',
+      location: 'European Union (EU Cloud)',
     },
     {
       name: 'OpenAI',
@@ -23,12 +23,12 @@ export default function Subprocessors() {
     {
       name: 'Sentry',
       purpose: 'Error monitoring and session replay',
-      location: 'United States',
+      location: 'United States (default)',
     },
     {
       name: 'Resend',
       purpose: 'Transactional email delivery',
-      location: 'United States',
+      location: 'United States (default)',
     },
   ];
 
