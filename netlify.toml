@@ -8,6 +8,31 @@ force = true
 X-From = "netlify"
 
 [[redirects]]
+from = "/terms"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/privacy"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/subprocessors"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/pricing"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/slack"
+to = "/index.html"
+status = 200
+
+[[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200

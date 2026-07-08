@@ -97,7 +97,13 @@ function AppContent() {
     }
   }, [addToast]);
   const [currentPage, setCurrentPage] = useState(() => {
-    if (window.location.pathname === '/extension-view') return 'extension-view';
+    const pathname = window.location.pathname;
+    if (pathname === '/extension-view') return 'extension-view';
+    if (pathname === '/terms') return 'terms';
+    if (pathname === '/privacy') return 'privacy';
+    if (pathname === '/subprocessors') return 'subprocessors';
+    if (pathname === '/pricing') return 'pricing';
+    if (pathname === '/slack') return 'slack';
     const hash = window.location.hash.substring(1);
     if (hash === 'admin' || hash === 'admin-panel' || hash === 'app-icons') {
       return hash;
@@ -137,10 +143,13 @@ function AppContent() {
       localStorage.setItem('poddle_referral', refCode);
     }
 
-    if (window.location.pathname === '/extension-view') {
-      setCurrentPage('extension-view');
-      return;
-    }
+    const pathname = window.location.pathname;
+    if (pathname === '/extension-view') { setCurrentPage('extension-view'); return; }
+    if (pathname === '/terms') { setCurrentPage('terms'); return; }
+    if (pathname === '/privacy') { setCurrentPage('privacy'); return; }
+    if (pathname === '/subprocessors') { setCurrentPage('subprocessors'); return; }
+    if (pathname === '/pricing') { setCurrentPage('pricing'); return; }
+    if (pathname === '/slack') { setCurrentPage('slack'); return; }
 
     if (urlParams.get('payment_success') === '1') {
       setCurrentPage('payment-success');
