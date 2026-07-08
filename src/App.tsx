@@ -34,6 +34,8 @@ const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const ExtensionView = lazy(() => import('./pages/ExtensionView'));
 const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
+const SlackLanding = lazy(() => import('./pages/SlackLanding'));
+const SlackSuccess = lazy(() => import('./pages/SlackSuccess'));
 
 function RouteFallback() {
   return (
@@ -92,6 +94,8 @@ function AppContent() {
     if (hash === 'admin' || hash === 'admin-panel' || hash === 'app-icons') {
       return hash;
     }
+    if (hash === 'slack') return 'slack';
+    if (hash === 'slack-success') return 'slack-success';
     if (hash === 'blog') return 'blog';
     if (hash.startsWith('blog/')) return 'blog-post';
     const saved = sessionStorage.getItem('currentPage');
@@ -173,6 +177,8 @@ function AppContent() {
       if (hash === 'pricing') { setCurrentPage('pricing'); return; }
       if (hash.startsWith('payment-success')) { setCurrentPage('payment-success'); return; }
       if (hash === 'system-health') { setCurrentPage('system-health'); return; }
+      if (hash === 'slack') { setCurrentPage('slack'); return; }
+      if (hash === 'slack-success') { setCurrentPage('slack-success'); return; }
       if (hash === 'blog') { setCurrentPage('blog'); return; }
       if (hash.startsWith('blog/')) {
         const slug = hash.slice('blog/'.length);
@@ -358,6 +364,18 @@ function AppContent() {
       setCurrentPage('workspace-settings');
       sessionStorage.setItem('currentPage', 'workspace-settings');
       history.pushState(null, '', `#workspace-settings/${idParam}`);
+      return;
+    }
+
+    if (page === 'slack') {
+      setCurrentPage('slack');
+      history.pushState(null, '', '#slack');
+      return;
+    }
+
+    if (page === 'slack-success') {
+      setCurrentPage('slack-success');
+      history.pushState(null, '', '#slack-success');
       return;
     }
 
@@ -558,6 +576,14 @@ function AppContent() {
 
   if (currentPage === 'blog-post' && blogSlug) {
     return wrap(<BlogPost slug={blogSlug} onNavigate={handleNavigate} />);
+  }
+
+  if (currentPage === 'slack') {
+    return wrap(<SlackLanding onNavigate={handleNavigate} />);
+  }
+
+  if (currentPage === 'slack-success') {
+    return wrap(<SlackSuccess onNavigate={handleNavigate} />);
   }
 
   if (!user) {
