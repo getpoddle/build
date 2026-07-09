@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Sparkles, ArrowRight, CheckCircle, Lock, Brain,
-  Crown, Swords, X, CreditCard, Zap,
+  Swords, Zap,
   Download, AlertTriangle, Target, BarChart3, TrendingUp,
   ChevronRight,
 } from 'lucide-react';
@@ -98,7 +98,6 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
 
       <HeroSection onNavigate={onNavigate} />
       <LiveDemoSection onNavigate={onNavigate} />
-      <PricingSection onNavigate={onNavigate} />
       <FinalCTA onNavigate={onNavigate} />
 
       <footer style={{ background: '#0f172a', borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-12">
@@ -110,7 +109,6 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
               <button onClick={() => onNavigate('blog')} className="hover:text-white transition-colors">Blog</button>
-              <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
               <button onClick={() => onNavigate('slack')} className="hover:text-white transition-colors">Slack</button>
               <a href={LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Poddle Lens</a>
               <a href="#privacy" className="hover:text-white transition-colors">Privacy</a>
@@ -560,14 +558,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             Start for free
           </button>
           <button
-            onClick={() => onNavigate('pricing')}
-            className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-            style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }}
-          >
-            View pricing
-            <ArrowRight className="w-4 h-4" />
-          </button>
-          <button
             onClick={() => onNavigate('blog')}
             className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-white"
             style={{ color: 'rgba(148,163,184,0.75)' }}
@@ -584,7 +574,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
           <div className="flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Private workspaces from $19/mo</span>
+            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Private & encrypted workspaces</span>
           </div>
         </div>
 
@@ -602,133 +592,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   );
 }
 
-function PricingSection({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const tiers = [
-    {
-      name: 'Pro Individual',
-      price: '$19',
-      per: '/ month',
-      desc: 'For founders and decision-makers',
-      cta: 'Subscribe',
-      ctaAction: () => onNavigate('pricing'),
-      highlight: true,
-      badge: 'Most popular',
-      features: ['Private encrypted workspace', 'War Room access', 'AI agents debate your ideas', 'Up to 3 workspace members', 'AI synthesis & recommendations', 'Export decisions & reports'],
-      missing: [],
-    },
-    {
-      name: 'Poddle Team',
-      price: '$79',
-      per: '/ month',
-      desc: 'For startups, agencies & product teams',
-      cta: 'Subscribe',
-      ctaAction: () => onNavigate('pricing'),
-      highlight: false,
-      badge: 'Teams',
-      features: ['Everything in Pro Individual', 'Up to 10 workspace members', 'Collaborative War Room sessions', 'Team-wide AI synthesis', 'Priority support'],
-      missing: [],
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      per: '',
-      desc: 'For large teams & organizations',
-      cta: 'Contact sales',
-      ctaAction: () => onNavigate('contact-us'),
-      highlight: false,
-      badge: null,
-      features: ['Everything in Poddle Team', 'Unlimited workspace members', 'Custom AI agent personas', 'Dedicated account manager', 'SLA guarantee'],
-      missing: [],
-    },
-  ];
-
-  return (
-    <section id="pricing-preview" style={{ background: '#fafafa', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <RevealSection className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(37,99,235,0.07)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.12)' }}>
-            <CreditCard className="w-3.5 h-3.5" />
-            Simple, transparent pricing
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">Simple, transparent pricing.</h2>
-          <p className="text-base text-slate-500 max-w-md mx-auto leading-relaxed">
-            Every plan includes private workspaces, War Room, and AI-powered decision intelligence. Cancel anytime.
-          </p>
-        </RevealSection>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tiers.map((tier, i) => (
-            <RevealSection key={tier.name} delay={i * 60}>
-              <div
-                className="h-full rounded-2xl p-6 flex flex-col relative overflow-hidden"
-                style={
-                  tier.highlight
-                    ? { background: 'linear-gradient(160deg,#1e3a5f,#0f2040)', boxShadow: '0 12px 40px rgba(37,99,235,0.3)' }
-                    : { background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }
-                }
-              >
-                {tier.badge && (
-                  <div
-                    className="absolute top-4 right-4 text-[10px] font-black px-2.5 py-1 rounded-full"
-                    style={tier.highlight ? { background: 'rgba(255,255,255,0.15)', color: '#fff' } : { background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}
-                  >
-                    {tier.badge}
-                  </div>
-                )}
-
-                <p className={`text-[10px] font-black uppercase tracking-widest mb-3 ${tier.highlight ? 'text-blue-300' : 'text-slate-400'}`}>
-                  {tier.name}
-                </p>
-                <div className="flex items-end gap-1 mb-1.5">
-                  <span className={`text-3xl font-black ${tier.highlight ? 'text-white' : 'text-slate-900'}`}>{tier.price}</span>
-                  {tier.per && <span className={`text-xs mb-1.5 ${tier.highlight ? 'text-blue-300' : 'text-slate-400'}`}>{tier.per}</span>}
-                </div>
-                <p className={`text-xs mb-5 ${tier.highlight ? 'text-slate-400' : 'text-slate-500'}`}>{tier.desc}</p>
-
-                <ul className="space-y-2 flex-1 mb-4">
-                  {tier.features.map(f => (
-                    <li key={f} className={`flex items-start gap-2 text-xs ${tier.highlight ? 'text-slate-200' : 'text-slate-700'}`}>
-                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: tier.highlight ? '#34d399' : '#16a34a' }} />
-                      {f}
-                    </li>
-                  ))}
-                  {tier.missing.map(m => (
-                    <li key={m} className="flex items-start gap-2 text-xs text-slate-400">
-                      <X className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-slate-300" />
-                      {m}
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={tier.ctaAction}
-                  className="w-full py-2.5 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 mt-auto"
-                  style={
-                    tier.highlight
-                      ? { background: 'rgba(255,255,255,1)', color: '#1e2d4a', boxShadow: '0 4px 14px rgba(0,0,0,0.15)' }
-                      : { background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', boxShadow: '0 4px 14px rgba(37,99,235,0.25)' }
-                  }
-                >
-                  {tier.cta}
-                </button>
-              </div>
-            </RevealSection>
-          ))}
-        </div>
-
-        <RevealSection className="text-center mt-6" delay={300}>
-          <p className="text-xs text-slate-400">
-            Cancel anytime. No lock-in.{' '}
-            <button onClick={() => onNavigate('pricing')} className="text-blue-500 hover:text-blue-600 underline underline-offset-2 transition-colors ml-1">
-              View full feature comparison
-            </button>
-          </p>
-        </RevealSection>
-      </div>
-    </section>
-  );
-}
-
 function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
     <section style={{ background: 'linear-gradient(170deg,#0f172a 0%,#1e3a5f 100%)' }} className="py-24">
@@ -741,7 +604,7 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             Make better decisions.<br />Starting today.
           </h2>
           <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: 'rgba(203,213,225,0.8)' }}>
-            Start free. Upgrade for private workspaces, War Room access, and full team collaboration — from $19/mo.
+            Private workspaces, War Room access, and full team collaboration — built for high-stakes decisions.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
@@ -752,14 +615,6 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             >
               <Sparkles className="w-4 h-4 text-blue-600" />
               Create free account
-            </button>
-            <button
-              onClick={() => onNavigate('pricing')}
-              className="flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-semibold text-sm transition-all duration-200 hover:bg-white/10"
-              style={{ border: '1px solid rgba(255,255,255,0.18)', color: '#fff' }}
-            >
-              <Crown className="w-4 h-4" />
-              View Pro plans
             </button>
           </div>
 
@@ -774,7 +629,7 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-              Cancel paid plans anytime
+              Invite your team
             </div>
           </div>
 
