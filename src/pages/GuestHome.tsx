@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Sparkles, ArrowRight, CheckCircle, Lock, Brain,
-  Swords, Zap,
+  Swords, Zap, X,
   Download, AlertTriangle, Target, BarChart3, TrendingUp,
   ChevronRight,
 } from 'lucide-react';
