@@ -642,6 +642,14 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             >
               <img alt="Poddle on BetaList" width={156} height={54} style={{ width: '156px', height: '54px' }} src="https://betalist.com/badges/featured?id=152531&theme=color" />
             </a>
+            <a
+              href="https://www.producthunt.com/products/poddle-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-poddle-2"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block transition-transform hover:-translate-y-0.5"
+            >
+              <img alt="Poddle - Seven agents. Zero yes-men | Product Hunt" width={250} height={54} style={{ width: '250px', height: '54px' }} src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1169789&theme=light&t=1783592423529" />
+            </a>
           </div>
         </RevealSection>
       </div>
