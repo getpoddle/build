@@ -7,12 +7,12 @@ import { supabase } from './lib/supabase';
 import { updatePageSEO, injectNoIndex } from './lib/seo';
 import { pageview } from './lib/analytics';
 import Auth from './pages/Auth';
-import Home from './pages/Home';
 import GuestHome from './pages/GuestHome';
 import Navigation from './components/Navigation';
 import InstallPrompt from './components/InstallPrompt';
 import { ToastContainer, useToast } from './components/Toast';
 
+const Home = lazy(() => import('./pages/Home'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
