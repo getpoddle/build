@@ -239,28 +239,42 @@ async function decompress(data: Uint8Array, format: "deflate" | "deflate-raw"): 
   return out;
 }
 
-// Extract text from PDF content stream using Tj / TJ operators
+// Extract text from PDF content stream using Tj / TJ operators.
+// Handles both literal strings (text) and hex strings <HHHH>, which modern
+// PDFs from Word, Google Docs, and Adobe use for CIDFont/Type0 fonts.
 function extractTextOps(content: string): string {
   const parts: string[] = [];
-
-  // (text) Tj — single string
-  const tjRe = /\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*Tj/g;
   let m: RegExpExecArray | null;
-  while ((m = tjRe.exec(content)) !== null) {
+
+  // (text) Tj — literal string
+  const tjLitRe = /\(([^)\\]*(?:\\.[^)\\]*)*)\)\s*Tj/g;
+  while ((m = tjLitRe.exec(content)) !== null) {
     const s = decodePdfStr(m[1]);
     if (s.trim()) parts.push(s);
   }
 
-  // [(text) num (text) ...] TJ — array form
+  // <hex> Tj — hex-encoded string (CIDFont / Type0 PDFs)
+  const tjHexRe = /<([0-9a-fA-F\s]+)>\s*Tj/g;
+  while ((m = tjHexRe.exec(content)) !== null) {
+    const s = decodeHexPdfStr(m[1]);
+    if (s.trim()) parts.push(s);
+  }
+
+  // [...] TJ — array form; elements can be either (literal) or <hex> strings
   const tjArrRe = /\[([^\]]*)\]\s*TJ/g;
   while ((m = tjArrRe.exec(content)) !== null) {
     const inner = m[1];
-    const strRe = /\(([^)\\]*(?:\\.[^)\\]*)*)\)/g;
-    let s2: RegExpExecArray | null;
     const seg: string[] = [];
-    while ((s2 = strRe.exec(inner)) !== null) {
-      const t = decodePdfStr(s2[1]);
-      if (t.trim()) seg.push(t);
+    const tokenRe = /\(([^)\\]*(?:\\.[^)\\]*)*)\)|<([0-9a-fA-F\s]+)>/g;
+    let tok: RegExpExecArray | null;
+    while ((tok = tokenRe.exec(inner)) !== null) {
+      if (tok[1] !== undefined) {
+        const t = decodePdfStr(tok[1]);
+        if (t.trim()) seg.push(t);
+      } else if (tok[2] !== undefined) {
+        const t = decodeHexPdfStr(tok[2]);
+        if (t.trim()) seg.push(t);
+      }
     }
     if (seg.length > 0) parts.push(seg.join(""));
   }
@@ -276,6 +290,39 @@ function decodePdfStr(raw: string): string {
       return c >= 32 && c < 127 ? String.fromCharCode(c) : " ";
     })
     .replace(/\\\\/g, "\\").replace(/\\\)/g, ")").replace(/\\\(/g, "(");
+}
+
+// Decode a PDF hex string. Modern PDFs (Word, Google Docs, Adobe) encode
+// text as UTF-16 BE pairs — e.g. <00480065> → "He". Falls back to latin-1.
+function decodeHexPdfStr(hex: string): string {
+  hex = hex.replace(/\s/g, "");
+  if (!hex) return "";
+  if (hex.length % 2 !== 0) hex += "0";
+
+  const bytes: number[] = [];
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes.push(parseInt(hex.slice(i, i + 2), 16));
+  }
+
+  // Detect UTF-16 BE: if more than half the "high" bytes (even indices) are
+  // 0x00, the content is almost certainly UTF-16 encoded ASCII/Latin text.
+  if (bytes.length >= 2 && bytes.length % 2 === 0) {
+    const highZero = bytes.filter((_, i) => i % 2 === 0 && bytes[i] === 0).length;
+    if (highZero > bytes.length / 4) {
+      try {
+        const text = new TextDecoder("utf-16be").decode(new Uint8Array(bytes));
+        const clean = text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, " ").trim();
+        if (clean.length > 0) return clean;
+      } catch {
+        // fall through to latin-1
+      }
+    }
+  }
+
+  // Latin-1 fallback
+  return bytes
+    .map(b => (b >= 32 && b !== 127) ? String.fromCharCode(b) : " ")
+    .join("");
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
