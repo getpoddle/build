@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, Clock, Calendar, Tag, Sparkles, ChevronRight, Search, ExternalLink } from 'lucide-react';
+import { ArrowRight, Clock, Calendar, Tag, Sparkles, ChevronRight, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface BlogPost {
@@ -52,13 +52,9 @@ function CategoryBadge({ category }: { category: string }) {
 
 function PostCard({ post, onNavigate, featured = false }: { post: BlogPost; onNavigate: (slug: string) => void; featured?: boolean }) {
   const hasImage = !!post.cover_image_url;
-  const handleClick = () => {
-    if (post.external_url) {
-      window.open(post.external_url, '_blank', 'noopener,noreferrer');
-    } else {
-      onNavigate(post.slug);
-    }
-  };
+  // Always navigate to the article page — external_url is surfaced as a link
+  // within the article body, not used as the card's click destination.
+  const handleClick = () => onNavigate(post.slug);
 
   if (featured) {
     return (
@@ -106,11 +102,7 @@ function PostCard({ post, onNavigate, featured = false }: { post: BlogPost; onNa
               </div>
             </div>
             <div className="flex items-center gap-1.5 text-sm font-bold text-blue-300 group-hover:text-blue-200 transition-colors">
-              {post.external_url ? (
-                <><ExternalLink className="w-4 h-4" /> Visit link</>
-              ) : (
-                <>Read more <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></>
-              )}
+              Read more <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
         </div>
