@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Lock, MessageSquare, Users, ChevronRight, AlertTriangle, Pencil, Check, X } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Lock, MessageSquare, Users, AlertTriangle, Pencil, Check, X, GripVertical } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,11 +29,11 @@ interface DecisionMapProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUSES = [
-  { key: 'exploring',   label: 'Exploring',   color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.18)' },
-  { key: 'in_debate',   label: 'In Debate',   color: '#2563eb', bg: 'rgba(37,99,235,0.06)',   border: 'rgba(37,99,235,0.15)'  },
-  { key: 'committed',   label: 'Committed',   color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.15)' },
-  { key: 'implemented', label: 'Implemented', color: '#059669', bg: 'rgba(5,150,105,0.06)',   border: 'rgba(5,150,105,0.15)'  },
-  { key: 'reviewed',    label: 'Reviewed',    color: '#b45309', bg: 'rgba(180,83,9,0.06)',    border: 'rgba(180,83,9,0.15)'   },
+  { key: 'exploring',   label: 'Exploring',   color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.18)', activeBg: 'rgba(100,116,139,0.16)' },
+  { key: 'in_debate',   label: 'In Debate',   color: '#2563eb', bg: 'rgba(37,99,235,0.06)',   border: 'rgba(37,99,235,0.15)',  activeBg: 'rgba(37,99,235,0.14)'  },
+  { key: 'committed',   label: 'Committed',   color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.15)', activeBg: 'rgba(124,58,237,0.14)' },
+  { key: 'implemented', label: 'Implemented', color: '#059669', bg: 'rgba(5,150,105,0.06)',   border: 'rgba(5,150,105,0.15)',  activeBg: 'rgba(5,150,105,0.14)'  },
+  { key: 'reviewed',    label: 'Reviewed',    color: '#b45309', bg: 'rgba(180,83,9,0.06)',    border: 'rgba(180,83,9,0.15)',   activeBg: 'rgba(180,83,9,0.14)'   },
 ] as const;
 
 const CATEGORIES = [
@@ -44,9 +44,6 @@ const CATEGORIES = [
   { key: 'product',     label: 'Product',     color: '#7c3aed', bg: 'rgba(124,58,237,0.07)' },
   { key: 'other',       label: 'Other',       color: '#64748b', bg: 'rgba(100,116,139,0.07)'},
 ] as const;
-
-type StatusKey = (typeof STATUSES)[number]['key'];
-type CategoryKey = (typeof CATEGORIES)[number]['key'];
 
 function statusMeta(key: string) {
   return STATUSES.find(s => s.key === key) ?? STATUSES[0];
@@ -77,18 +74,15 @@ interface EditPopoverProps {
   workspaceId: string;
   category: string;
   status: string;
-  isOwnerOrAdmin: boolean;
   onSaved: (category: string, status: string) => void;
   onClose: () => void;
 }
 
-function EditPopover({ workspaceId, category, status, isOwnerOrAdmin, onSaved, onClose }: EditPopoverProps) {
+function EditPopover({ workspaceId, category, status, onSaved, onClose }: EditPopoverProps) {
   const [cat, setCat] = useState(category);
   const [sta, setSta] = useState(status);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
-  if (!isOwnerOrAdmin) return null;
 
   async function save() {
     setSaving(true);
@@ -107,9 +101,10 @@ function EditPopover({ workspaceId, category, status, isOwnerOrAdmin, onSaved, o
 
   return (
     <div
-      className="absolute top-9 right-0 z-20 rounded-2xl shadow-xl p-4 w-64"
+      className="absolute top-9 right-0 z-30 rounded-2xl shadow-xl p-4 w-64"
       style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)' }}
       onClick={e => e.stopPropagation()}
+      onPointerDown={e => e.stopPropagation()}
     >
       <p className="text-xs font-bold text-slate-700 mb-3">Edit decision metadata</p>
 
@@ -147,10 +142,7 @@ function EditPopover({ workspaceId, category, status, isOwnerOrAdmin, onSaved, o
                 border: sta === s.key ? `1.5px solid ${s.color}40` : '1.5px solid transparent',
               }}
             >
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: s.color }}
-              />
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
               {s.label}
             </button>
           ))}
@@ -186,11 +178,13 @@ interface CardProps {
   ws: MapWorkspace;
   healthScore: number | null;
   memberCount: number;
+  isDragging: boolean;
   onNavigate: (page: string, id?: string) => void;
   onMetaUpdated: (id: string, category: string, status: string) => void;
+  onDragStart: (e: React.PointerEvent, ws: MapWorkspace) => void;
 }
 
-function DecisionCard({ ws, healthScore, memberCount, onNavigate, onMetaUpdated }: CardProps) {
+function DecisionCard({ ws, healthScore, memberCount, isDragging, onNavigate, onMetaUpdated, onDragStart }: CardProps) {
   const [editing, setEditing] = useState(false);
   const cat = categoryMeta(ws.decision_category);
   const isOwnerOrAdmin = ws.role === 'owner' || ws.role === 'admin';
@@ -199,43 +193,61 @@ function DecisionCard({ ws, healthScore, memberCount, onNavigate, onMetaUpdated 
 
   return (
     <div
-      className="relative group rounded-2xl transition-all duration-150 cursor-pointer hover:-translate-y-0.5"
+      className="relative group rounded-2xl transition-all duration-150"
       style={{
         background: '#fff',
         border: '1px solid rgba(15,23,42,0.08)',
-        boxShadow: '0 1px 4px rgba(15,23,42,0.05)',
-        opacity: isExpired ? 0.65 : 1,
+        boxShadow: isDragging ? 'none' : '0 1px 4px rgba(15,23,42,0.05)',
+        opacity: isDragging ? 0.35 : isExpired ? 0.65 : 1,
+        cursor: isDragging ? 'grabbing' : 'grab',
+        touchAction: 'none',
+        userSelect: 'none',
       }}
-      onClick={() => !editing && onNavigate('workspace-hub', ws.id)}
     >
       {/* Health bar across top */}
       <div
-        className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl transition-all"
+        className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl"
         style={{ background: healthScore !== null ? healthColor(healthScore) : 'transparent' }}
       />
 
-      <div className="p-4">
-        {/* Top row: icon + name + edit */}
-        <div className="flex items-start gap-3 mb-3">
+      {/* Drag handle + click-to-navigate zone */}
+      <div
+        className="p-4"
+        onPointerDown={e => {
+          // Don't start drag if clicking a button or the edit popover
+          if ((e.target as HTMLElement).closest('button')) return;
+          onDragStart(e, ws);
+        }}
+        onClick={() => { if (!editing) onNavigate('workspace-hub', ws.id); }}
+      >
+        {/* Top row: grip + icon + name + edit */}
+        <div className="flex items-start gap-2 mb-3">
+          {/* Grip handle */}
+          <GripVertical
+            className="w-3.5 h-3.5 flex-shrink-0 mt-1 opacity-0 group-hover:opacity-40 transition-opacity"
+            style={{ color: '#64748b' }}
+          />
+
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: isSlack ? 'rgba(74,21,75,0.09)' : isExpired ? 'rgba(100,116,139,0.1)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
           >
             {isSlack
-              ? <MessageSquare className="w-4 h-4" style={{ color: '#4a154b' }} />
-              : <Lock className={`w-4 h-4 ${isExpired ? 'text-slate-400' : 'text-white'}`} />
+              ? <MessageSquare className="w-3.5 h-3.5" style={{ color: '#4a154b' }} />
+              : <Lock className={`w-3.5 h-3.5 ${isExpired ? 'text-slate-400' : 'text-white'}`} />
             }
           </div>
+
           <div className="flex-1 min-w-0">
-            <p className={`text-sm font-bold leading-tight ${isExpired ? 'text-slate-400' : 'text-slate-800'} truncate`}>
+            <p className={`text-xs font-bold leading-tight ${isExpired ? 'text-slate-400' : 'text-slate-800'} truncate`}>
               {ws.name}
             </p>
             {ws.description && (
-              <p className="text-xs text-slate-400 truncate mt-0.5">{ws.description}</p>
+              <p className="text-[10px] text-slate-400 truncate mt-0.5">{ws.description}</p>
             )}
           </div>
 
-          {/* Edit button — only for owners/admins, non-Slack */}
+          {/* Edit button — owners/admins, non-Slack */}
           {isOwnerOrAdmin && !isSlack && (
             <div className="relative flex-shrink-0">
               <button
@@ -249,11 +261,7 @@ function DecisionCard({ ws, healthScore, memberCount, onNavigate, onMetaUpdated 
                   workspaceId={ws.id}
                   category={ws.decision_category}
                   status={ws.decision_status}
-                  isOwnerOrAdmin={isOwnerOrAdmin}
-                  onSaved={(cat, sta) => {
-                    setEditing(false);
-                    onMetaUpdated(ws.id, cat, sta);
-                  }}
+                  onSaved={(cat, sta) => { setEditing(false); onMetaUpdated(ws.id, cat, sta); }}
                   onClose={() => setEditing(false)}
                 />
               )}
@@ -277,30 +285,29 @@ function DecisionCard({ ws, healthScore, memberCount, onNavigate, onMetaUpdated 
           )}
         </div>
 
-        {/* Bottom row: health + members + arrow */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Health indicator */}
-            <div className="flex items-center gap-1.5" title={healthLabel(healthScore)}>
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: healthColor(healthScore) }}
-              />
-              <span className="text-[10px] text-slate-400">
-                {healthScore !== null ? `${healthScore}` : '—'}
-              </span>
-            </div>
-            {/* Members */}
-            <div className="flex items-center gap-1 text-slate-400">
-              <Users className="w-3 h-3" />
-              <span className="text-[10px]">{memberCount}</span>
-            </div>
+        {/* Bottom row: health + members */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5" title={healthLabel(healthScore)}>
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: healthColor(healthScore) }} />
+            <span className="text-[10px] text-slate-400">{healthScore !== null ? `${healthScore}` : '—'}</span>
           </div>
-          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
+          <div className="flex items-center gap-1 text-slate-400">
+            <Users className="w-3 h-3" />
+            <span className="text-[10px]">{memberCount}</span>
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+// ─── Drag ghost ───────────────────────────────────────────────────────────────
+
+interface GhostStyle {
+  x: number;
+  y: number;
+  width: number;
+  label: string;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -311,9 +318,24 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   const [localWorkspaces, setLocalWorkspaces] = useState(workspaces);
 
+  // Drag state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
+  const [ghost, setGhost] = useState<GhostStyle | null>(null);
+  const dragRef = useRef<{
+    wsId: string;
+    fromStatus: string;
+    overStatus: string | null;
+    startX: number;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
+  const columnRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const boardRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => { setLocalWorkspaces(workspaces); }, [workspaces]);
 
-  // Fetch health scores from workspace_synthesis
+  // Health scores
   useEffect(() => {
     if (!user || workspaces.length === 0) return;
     const ids = workspaces.map(w => w.id);
@@ -329,7 +351,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
       });
   }, [user, workspaces]);
 
-  // Fetch member counts
+  // Member counts
   useEffect(() => {
     if (!user || workspaces.length === 0) return;
     const ids = workspaces.map(w => w.id);
@@ -340,9 +362,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
       .then(({ data }) => {
         if (!data) return;
         const map: Record<string, number> = {};
-        for (const row of data) {
-          map[row.workspace_id] = (map[row.workspace_id] ?? 0) + 1;
-        }
+        for (const row of data) map[row.workspace_id] = (map[row.workspace_id] ?? 0) + 1;
         setMemberCounts(map);
       });
   }, [user, workspaces]);
@@ -353,6 +373,89 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
     );
   }
 
+  async function saveStatusChange(wsId: string, newStatus: string) {
+    const { error } = await supabase
+      .from('workspaces')
+      .update({ decision_status: newStatus })
+      .eq('id', wsId);
+    if (!error) {
+      setLocalWorkspaces(prev =>
+        prev.map(w => w.id === wsId ? { ...w, decision_status: newStatus } : w)
+      );
+    }
+  }
+
+  // ── Drag helpers ───────────────────────────────────────────────────────────
+
+  function getStatusFromPoint(x: number, y: number): string | null {
+    for (const [status, el] of columnRefs.current) {
+      const rect = el.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        return status;
+      }
+    }
+    return null;
+  }
+
+  const startDrag = useCallback((e: React.PointerEvent, ws: MapWorkspace) => {
+    if (ws.source === 'slack') return; // Slack sessions can't be moved
+    e.preventDefault();
+
+    const cardEl = (e.currentTarget as HTMLElement).closest<HTMLElement>('[data-card-id]');
+    const width = cardEl ? cardEl.getBoundingClientRect().width : 220;
+
+    dragRef.current = {
+      wsId: ws.id,
+      fromStatus: ws.decision_status,
+      overStatus: ws.decision_status,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+    };
+
+    setDraggingId(ws.id);
+    setDragOverStatus(ws.decision_status);
+    setGhost({ x: e.clientX, y: e.clientY, width, label: ws.name });
+  }, []);
+
+  useEffect(() => {
+    if (!draggingId) return;
+
+    function onMove(e: PointerEvent) {
+      if (!dragRef.current) return;
+      dragRef.current.moved = true;
+      setGhost(g => g ? { ...g, x: e.clientX, y: e.clientY } : g);
+      const over = getStatusFromPoint(e.clientX, e.clientY);
+      dragRef.current.overStatus = over;
+      setDragOverStatus(over);
+    }
+
+    function onUp(e: PointerEvent) {
+      if (!dragRef.current) return;
+      const { wsId, fromStatus, overStatus, moved } = dragRef.current;
+      dragRef.current = null;
+
+      setDraggingId(null);
+      setDragOverStatus(null);
+      setGhost(null);
+
+      if (moved && overStatus && overStatus !== fromStatus) {
+        saveStatusChange(wsId, overStatus);
+      }
+    }
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+
+    return () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggingId]);
+
   const appWorkspaces = localWorkspaces.filter(w => w.source !== 'slack');
 
   if (appWorkspaces.length === 0) {
@@ -361,7 +464,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         className="rounded-2xl p-12 text-center"
         style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
       >
-        <p className="text-slate-400 text-sm">No workspaces to map yet. Create your first workspace to get started.</p>
+        <p className="text-slate-400 text-sm">No workspaces to map yet.</p>
       </div>
     );
   }
@@ -379,14 +482,41 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
   }, {} as Record<string, number>);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ cursor: draggingId ? 'grabbing' : undefined }}>
+
+      {/* Ghost element — follows pointer */}
+      {ghost && draggingId && (
+        <div
+          style={{
+            position: 'fixed',
+            left: ghost.x,
+            top: ghost.y,
+            transform: 'translate(-50%, -50%) rotate(2deg)',
+            width: ghost.width,
+            pointerEvents: 'none',
+            zIndex: 9999,
+            background: '#fff',
+            borderRadius: '1rem',
+            boxShadow: '0 24px 48px rgba(15,23,42,0.22)',
+            border: '1.5px solid rgba(37,99,235,0.3)',
+            padding: '0.75rem 1rem',
+            transition: 'box-shadow 0.1s',
+          }}
+        >
+          <p className="text-xs font-bold text-slate-800 truncate">{ghost.label}</p>
+          {dragOverStatus && (
+            <p className="text-[10px] mt-0.5 font-semibold" style={{ color: statusMeta(dragOverStatus).color }}>
+              → {statusMeta(dragOverStatus).label}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Portfolio summary bar */}
       <div
         className="rounded-2xl px-5 py-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4"
         style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
       >
-        {/* Overall health */}
         <div className="col-span-2 sm:col-span-1 flex items-center gap-3 sm:border-r sm:border-slate-100 sm:pr-4">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm"
@@ -405,7 +535,6 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
           </div>
         </div>
 
-        {/* Per-status counts */}
         {STATUSES.map(s => (
           <div key={s.key} className="flex flex-col gap-1">
             <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: s.color }}>{s.label}</p>
@@ -414,7 +543,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         ))}
       </div>
 
-      {/* Legend */}
+      {/* Health legend */}
       <div className="flex items-center gap-1 flex-wrap">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">Health:</span>
         {[
@@ -431,20 +560,31 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         ))}
       </div>
 
-      {/* Status columns — horizontal scroll on mobile */}
-      <div className="overflow-x-auto -mx-4 sm:mx-0">
+      {/* Kanban columns — horizontal scroll on mobile */}
+      <div ref={boardRef} className="overflow-x-auto -mx-4 sm:mx-0">
         <div className="flex gap-4 px-4 sm:px-0 pb-2" style={{ minWidth: 'max-content', width: '100%' }}>
           {STATUSES.map(s => {
             const col = appWorkspaces.filter(w => w.decision_status === s.key);
+            const isDropTarget = draggingId !== null && dragOverStatus === s.key;
+            const isSourceCol = draggingId !== null && col.some(w => w.id === draggingId) && dragOverStatus !== s.key;
+
             return (
               <div
                 key={s.key}
-                className="flex-1 rounded-2xl p-3 space-y-3"
+                ref={el => {
+                  if (el) columnRefs.current.set(s.key, el);
+                  else columnRefs.current.delete(s.key);
+                }}
+                className="flex-1 rounded-2xl p-3 space-y-3 transition-all duration-150"
                 style={{
-                  background: s.bg,
-                  border: `1px solid ${s.border}`,
+                  background: isDropTarget ? s.activeBg : s.bg,
+                  border: isDropTarget
+                    ? `2px solid ${s.color}60`
+                    : `1px solid ${s.border}`,
                   minWidth: '220px',
                   maxWidth: '320px',
+                  transform: isDropTarget ? 'scale(1.01)' : 'scale(1)',
+                  boxShadow: isDropTarget ? `0 0 0 4px ${s.color}14` : 'none',
                 }}
               >
                 {/* Column header */}
@@ -461,8 +601,18 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
                   </span>
                 </div>
 
+                {/* Drop zone hint when dragging over an empty column */}
+                {isDropTarget && col.filter(w => w.id !== draggingId).length === 0 && col.length === 0 && (
+                  <div
+                    className="rounded-xl py-5 text-center transition-all"
+                    style={{ border: `2px dashed ${s.color}50`, background: `${s.color}08` }}
+                  >
+                    <p className="text-[10px] font-semibold" style={{ color: s.color }}>Drop here</p>
+                  </div>
+                )}
+
                 {/* Cards */}
-                {col.length === 0 ? (
+                {col.length === 0 && !isDropTarget ? (
                   <div
                     className="rounded-xl py-6 text-center"
                     style={{ border: `1.5px dashed ${s.border}`, background: 'rgba(255,255,255,0.5)' }}
@@ -471,15 +621,28 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
                   </div>
                 ) : (
                   col.map(ws => (
-                    <DecisionCard
-                      key={ws.id}
-                      ws={ws}
-                      healthScore={healthScores[ws.id] ?? null}
-                      memberCount={memberCounts[ws.id] ?? 0}
-                      onNavigate={onNavigate}
-                      onMetaUpdated={handleMetaUpdated}
-                    />
+                    <div key={ws.id} data-card-id={ws.id}>
+                      <DecisionCard
+                        ws={ws}
+                        healthScore={healthScores[ws.id] ?? null}
+                        memberCount={memberCounts[ws.id] ?? 0}
+                        isDragging={draggingId === ws.id}
+                        onNavigate={onNavigate}
+                        onMetaUpdated={handleMetaUpdated}
+                        onDragStart={startDrag}
+                      />
+                    </div>
                   ))
+                )}
+
+                {/* Drop target hint when column already has cards */}
+                {isDropTarget && col.length > 0 && (
+                  <div
+                    className="rounded-xl py-3 text-center transition-all"
+                    style={{ border: `2px dashed ${s.color}50`, background: `${s.color}08` }}
+                  >
+                    <p className="text-[10px] font-semibold" style={{ color: s.color }}>Drop here</p>
+                  </div>
                 )}
               </div>
             );
@@ -510,9 +673,8 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         </div>
       </div>
 
-      {/* Tip */}
       <p className="text-[10px] text-slate-400 text-center">
-        Hover a card and click the pencil icon to set its category and status. Only owners and admins can edit.
+        Drag a card to move it between stages. Tap the pencil icon to edit category or status manually.
       </p>
     </div>
   );
