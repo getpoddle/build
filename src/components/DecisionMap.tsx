@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Lock, MessageSquare, Users, AlertTriangle, Pencil, Check, X, GripVertical, Link2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -88,7 +89,37 @@ function healthLabel(score: number | null): string {
 
 // ─── Edit metadata popover ────────────────────────────────────────────────────
 
+function usePopoverPos(anchorEl: HTMLElement | null, popoverWidth: number) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!anchorEl) return;
+    const update = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      let left = rect.right - popoverWidth;
+      if (left < 8) left = 8;
+      if (left + popoverWidth > vw - 8) left = vw - popoverWidth - 8;
+      // Flip above if too close to bottom
+      const spaceBelow = vh - rect.bottom;
+      const top = spaceBelow < 240 ? Math.max(8, rect.top - 8) : rect.bottom + 4;
+      setPos({ top, left });
+    };
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [anchorEl, popoverWidth]);
+
+  return pos;
+}
+
 interface EditPopoverProps {
+  anchorEl: HTMLElement | null;
   workspaceId: string;
   category: string;
   status: string;
@@ -96,11 +127,12 @@ interface EditPopoverProps {
   onClose: () => void;
 }
 
-function EditPopover({ workspaceId, category, status, onSaved, onClose }: EditPopoverProps) {
+function EditPopover({ anchorEl, workspaceId, category, status, onSaved, onClose }: EditPopoverProps) {
   const [cat, setCat] = useState(category);
   const [sta, setSta] = useState(status);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const pos = usePopoverPos(anchorEl, 256);
 
   async function save() {
     setSaving(true);
@@ -117,10 +149,11 @@ function EditPopover({ workspaceId, category, status, onSaved, onClose }: EditPo
     }
   }
 
-  return (
+  if (!pos) return null;
+
+  return createPortal(
     <div
-      className="absolute top-9 right-0 z-30 rounded-2xl shadow-xl p-4"
-      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)', width: 'min(256px, calc(100vw - 32px))', maxHeight: '80vh', overflowY: 'auto' }}
+      style={{ position: 'fixed', top: pos.top, left: pos.left, width: Math.min(256, window.innerWidth - 16), zIndex: 9999, background: '#fff', border: '1px solid rgba(15,23,42,0.1)', borderRadius: '1rem', boxShadow: '0 20px 48px rgba(15,23,42,0.18)', padding: '1rem', maxHeight: '80vh', overflowY: 'auto' }}
       onClick={e => e.stopPropagation()}
       onPointerDown={e => e.stopPropagation()}
     >
@@ -186,13 +219,15 @@ function EditPopover({ workspaceId, category, status, onSaved, onClose }: EditPo
           <X className="w-3 h-3" />
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 // ─── Link popover ─────────────────────────────────────────────────────────────
 
 interface LinkPopoverProps {
+  anchorEl: HTMLElement | null;
   workspaceId: string;
   workspaceName: string;
   allWorkspaces: MapWorkspace[];
@@ -202,13 +237,14 @@ interface LinkPopoverProps {
   onClose: () => void;
 }
 
-function LinkPopover({ workspaceId, workspaceName, allWorkspaces, existingLinks, onLinked, onUnlinked, onClose }: LinkPopoverProps) {
+function LinkPopover({ anchorEl, workspaceId, workspaceName, allWorkspaces, existingLinks, onLinked, onUnlinked, onClose }: LinkPopoverProps) {
   const { user } = useAuth();
   const [targetId, setTargetId] = useState('');
   const [relType, setRelType] = useState<'influences' | 'depends_on' | 'conflicts_with' | 'related_to'>('related_to');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const pos = usePopoverPos(anchorEl, 288);
 
   const myLinks = existingLinks.filter(
     l => l.workspace_id === workspaceId || l.linked_workspace_id === workspaceId
@@ -251,10 +287,11 @@ function LinkPopover({ workspaceId, workspaceName, allWorkspaces, existingLinks,
     onUnlinked(linkId);
   }
 
-  return (
+  if (!pos) return null;
+
+  return createPortal(
     <div
-      className="absolute top-9 right-0 z-30 rounded-2xl shadow-xl p-4"
-      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)', width: 'min(288px, calc(100vw - 32px))', maxHeight: '80vh', overflowY: 'auto' }}
+      style={{ position: 'fixed', top: pos.top, left: pos.left, width: Math.min(288, window.innerWidth - 16), zIndex: 9999, background: '#fff', border: '1px solid rgba(15,23,42,0.1)', borderRadius: '1rem', boxShadow: '0 20px 48px rgba(15,23,42,0.18)', padding: '1rem', maxHeight: '80vh', overflowY: 'auto' }}
       onClick={e => e.stopPropagation()}
       onPointerDown={e => e.stopPropagation()}
     >
@@ -355,7 +392,8 @@ function LinkPopover({ workspaceId, workspaceName, allWorkspaces, existingLinks,
           <p className="text-[10px] text-slate-400 text-center py-2">No other workspaces available to connect.</p>
         )
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -929,6 +967,8 @@ interface CardProps {
 function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, allWorkspaces, existingLinks, onNavigate, onMetaUpdated, onDragStart, onLinked, onUnlinked, isMobile = false }: CardProps) {
   const [editing, setEditing] = useState(false);
   const [linking, setLinking] = useState(false);
+  const linkBtnRef = useRef<HTMLButtonElement>(null);
+  const editBtnRef = useRef<HTMLButtonElement>(null);
   const cat = categoryMeta(ws.decision_category);
   const isOwnerOrAdmin = ws.role === 'owner' || ws.role === 'admin';
   const isSlack = ws.source === 'slack';
@@ -970,45 +1010,45 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
           </div>
 
           {isOwnerOrAdmin && !isSlack && (
-            <div className="relative flex-shrink-0 flex items-center gap-0.5">
-              <div className="relative">
-                <button
-                  onClick={e => { e.stopPropagation(); setLinking(v => !v); setEditing(false); }}
-                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'}`}
-                  style={{ color: linking ? '#2563eb' : '#94a3b8' }}
-                  title="Connect to another decision"
-                >
-                  <Link2 className="w-3.5 h-3.5" />
-                </button>
-                {linking && (
-                  <LinkPopover
-                    workspaceId={ws.id}
-                    workspaceName={ws.name}
-                    allWorkspaces={allWorkspaces}
-                    existingLinks={existingLinks}
-                    onLinked={link => { onLinked(link); }}
-                    onUnlinked={onUnlinked}
-                    onClose={() => setLinking(false)}
-                  />
-                )}
-              </div>
-              <div className="relative">
-                <button
-                  onClick={e => { e.stopPropagation(); setEditing(v => !v); setLinking(false); }}
-                  className={`w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'}`}
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                {editing && (
-                  <EditPopover
-                    workspaceId={ws.id}
-                    category={ws.decision_category}
-                    status={ws.decision_status}
-                    onSaved={(cat, sta) => { setEditing(false); onMetaUpdated(ws.id, cat, sta); }}
-                    onClose={() => setEditing(false)}
-                  />
-                )}
-              </div>
+            <div className="flex-shrink-0 flex items-center gap-0.5">
+              <button
+                ref={linkBtnRef}
+                onClick={e => { e.stopPropagation(); setLinking(v => !v); setEditing(false); }}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'}`}
+                style={{ color: linking ? '#2563eb' : '#94a3b8' }}
+                title="Connect to another decision"
+              >
+                <Link2 className="w-3.5 h-3.5" />
+              </button>
+              {linking && (
+                <LinkPopover
+                  anchorEl={linkBtnRef.current}
+                  workspaceId={ws.id}
+                  workspaceName={ws.name}
+                  allWorkspaces={allWorkspaces}
+                  existingLinks={existingLinks}
+                  onLinked={link => { onLinked(link); }}
+                  onUnlinked={onUnlinked}
+                  onClose={() => setLinking(false)}
+                />
+              )}
+              <button
+                ref={editBtnRef}
+                onClick={e => { e.stopPropagation(); setEditing(v => !v); setLinking(false); }}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'}`}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              {editing && (
+                <EditPopover
+                  anchorEl={editBtnRef.current}
+                  workspaceId={ws.id}
+                  category={ws.decision_category}
+                  status={ws.decision_status}
+                  onSaved={(cat, sta) => { setEditing(false); onMetaUpdated(ws.id, cat, sta); }}
+                  onClose={() => setEditing(false)}
+                />
+              )}
             </div>
           )}
         </div>
