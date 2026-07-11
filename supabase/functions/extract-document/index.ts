@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import mammoth from "npm:mammoth";
+import * as XLSX from "npm:xlsx";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,8 @@ const MAX_EXTRACT_CHARS = 40_000;
 const ACCEPTED_TYPES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
 
 Deno.serve(async (req: Request) => {
@@ -75,19 +78,26 @@ Deno.serve(async (req: Request) => {
       const lower = file.name.toLowerCase();
       if (lower.endsWith(".pdf")) mimeType = "application/pdf";
       else if (lower.endsWith(".docx")) mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      else if (lower.endsWith(".xlsx")) mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      else if (lower.endsWith(".xls")) mimeType = "application/vnd.ms-excel";
     }
 
     if (!ACCEPTED_TYPES.has(mimeType)) {
       return new Response(JSON.stringify({
-        error: "Unsupported file type. Please upload a PDF (.pdf) or Word document (.docx).",
+        error: "Unsupported file type. Please upload a PDF (.pdf), Word document (.docx), or Excel spreadsheet (.xls, .xlsx).",
       }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const arrayBuffer = await file.arrayBuffer();
     let extractedText = "";
 
+    const isExcel = mimeType === "application/vnd.ms-excel" ||
+      mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
     if (mimeType === "application/pdf") {
       extractedText = await extractPdf(new Uint8Array(arrayBuffer));
+    } else if (isExcel) {
+      extractedText = extractXlsx(arrayBuffer);
     } else {
       extractedText = await extractDocx(arrayBuffer);
     }
@@ -126,6 +136,23 @@ Deno.serve(async (req: Request) => {
 async function extractDocx(arrayBuffer: ArrayBuffer): Promise<string> {
   const result = await mammoth.extractRawText({ arrayBuffer });
   return result.value || "";
+}
+
+// ─── Excel extraction ────────────────────────────────────────────────────────
+// Converts each sheet to a tab-separated text block so agents can reason about
+// tabular data without needing to parse a binary format.
+
+function extractXlsx(arrayBuffer: ArrayBuffer): string {
+  const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: "array" });
+  const parts: string[] = [];
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const csv = XLSX.utils.sheet_to_csv(sheet, { blankrows: false });
+    if (csv.trim().length > 0) {
+      parts.push(`[Sheet: ${sheetName}]\n${csv}`);
+    }
+  }
+  return parts.join("\n\n");
 }
 
 // ─── PDF extraction ───────────────────────────────────────────────────────────

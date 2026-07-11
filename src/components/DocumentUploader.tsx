@@ -19,10 +19,12 @@ interface DocumentUploaderProps {
 
 const MAX_FILES = 3;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ACCEPTED_EXTENSIONS = ['.pdf', '.docx'];
+const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.xls', '.xlsx'];
 const ACCEPTED_MIME = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 
 function formatBytes(bytes: number): string {
@@ -51,7 +53,7 @@ export default function DocumentUploader({ documents, onChange, isPro, onUpgrade
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-slate-800">Document context is a Pro feature</p>
-          <p className="text-xs text-slate-500 mt-0.5">Upload PDFs or DOCX files to ground agent analysis in your actual data.</p>
+          <p className="text-xs text-slate-500 mt-0.5">Upload PDFs, DOCX, or Excel files to ground agent analysis in your actual data.</p>
         </div>
         <button
           onClick={onUpgrade}
@@ -69,7 +71,7 @@ export default function DocumentUploader({ documents, onChange, isPro, onUpgrade
     const ext = '.' + file.name.split('.').pop()?.toLowerCase();
     const validType = ACCEPTED_MIME.includes(file.type) || ACCEPTED_EXTENSIONS.includes(ext);
     if (!validType) {
-      setErrors(prev => ({ ...prev, [file.name]: 'Only PDF and DOCX files are supported.' }));
+      setErrors(prev => ({ ...prev, [file.name]: 'Only PDF, DOCX, XLS, and XLSX files are supported.' }));
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
@@ -219,13 +221,13 @@ export default function DocumentUploader({ documents, onChange, isPro, onUpgrade
               {documents.length === 0 ? 'Upload document context' : 'Add another document'}
             </p>
             <p className="text-xs text-slate-400 mt-0.5">
-              PDF or DOCX · max 10 MB · {MAX_FILES - documents.length} slot{MAX_FILES - documents.length !== 1 ? 's' : ''} remaining
+              PDF, DOCX, XLS, XLSX · max 10 MB · {MAX_FILES - documents.length} slot{MAX_FILES - documents.length !== 1 ? 's' : ''} remaining
             </p>
           </div>
           <input
             ref={inputRef}
             type="file"
-            accept=".pdf,.docx"
+            accept=".pdf,.docx,.xls,.xlsx"
             multiple
             className="hidden"
             onChange={e => e.target.files && handleFiles(e.target.files)}
