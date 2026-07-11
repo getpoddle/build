@@ -3,7 +3,8 @@ import {
   Sparkles, ArrowRight, CheckCircle, Lock, Brain,
   Swords, Zap, X,
   Download, AlertTriangle, Target, BarChart3, TrendingUp,
-  ChevronRight,
+  ChevronRight, Users, MessageSquare, FileText, Shield,
+  ArrowDown, ChevronDown,
 } from 'lucide-react';
 import JoinPromptModal from '../components/JoinPromptModal';
 import PoddleMark from '../components/PoddleMark';
@@ -20,7 +21,7 @@ function useScrollReveal() {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
-      { threshold: 0.1 }
+      { threshold: 0.08 }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -36,8 +37,8 @@ function RevealSection({ children, className = '', delay = 0 }: { children: Reac
       className={className}
       style={{
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(24px)',
-        transition: `opacity 0.6s ease ${delay}ms, transform 0.6s ease ${delay}ms`,
+        transform: visible ? 'translateY(0)' : 'translateY(28px)',
+        transition: `opacity 0.65s ease ${delay}ms, transform 0.65s ease ${delay}ms`,
       }}
     >
       {children}
@@ -60,11 +61,11 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#fafafa' }}>
+    <div className="min-h-screen" style={{ background: '#f8fafc' }}>
       {!bannerDismissed && (
         <div
           className="fixed top-14 left-0 right-0 z-40 flex items-center justify-center gap-3 px-4 py-2"
-          style={{ background: 'rgba(15,23,42,0.96)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'rgba(15,23,42,0.97)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}
         >
           <a
             href={LENS_URL}
@@ -97,7 +98,9 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       )}
 
       <HeroSection onNavigate={onNavigate} />
+      <HowItWorksSection onNavigate={onNavigate} />
       <LiveDemoSection onNavigate={onNavigate} />
+      <SocialProofSection />
       <FinalCTA onNavigate={onNavigate} />
 
       <footer style={{ background: '#0f172a', borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-12">
@@ -125,6 +128,362 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
     </div>
   );
 }
+
+// ─── Hero ─────────────────────────────────────────────────────────────────────
+
+function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
+  return (
+    <section
+      className="relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(170deg, #0d1526 0%, #1a2a45 55%, #1e3a5f 100%)',
+        minHeight: '88vh',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      {/* Background mesh */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(37,99,235,0.16) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(6,182,212,0.10) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)', backgroundSize: '52px 52px' }} />
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full relative z-10 text-center">
+        {/* Badge */}
+        <div
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-8"
+          style={{ background: 'rgba(37,99,235,0.15)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.22)' }}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          Decision Intelligence for Teams
+        </div>
+
+        <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-black leading-[1.06] mb-5 text-white mx-auto max-w-3xl tracking-tight">
+          Stop making high-stakes decisions{' '}
+          <span style={{ background: 'linear-gradient(135deg,#60a5fa,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            in an echo chamber.
+          </span>
+        </h1>
+
+        <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-2xl mx-auto" style={{ color: 'rgba(203,213,225,0.78)' }}>
+          Poddle gives teams a private workspace where seven specialized AI agents challenge your thinking from every angle — and the War Room synthesizes everything into a clear, defensible recommendation.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
+          <button
+            onClick={() => onNavigate('auth')}
+            className="flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+            style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 8px 28px rgba(37,99,235,0.4)' }}
+          >
+            <Sparkles className="w-4 h-4" />
+            Start for free
+          </button>
+          <button
+            onClick={() => onNavigate('pricing')}
+            className="flex items-center gap-2 text-sm font-semibold transition-colors hover:text-white"
+            style={{ color: 'rgba(148,163,184,0.75)' }}
+          >
+            View pricing
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center gap-6 flex-wrap mb-14">
+          <div className="flex items-center gap-1.5">
+            <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Free. No card required.</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Private & encrypted workspaces</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Built for teams</span>
+          </div>
+        </div>
+
+        {/* Agent avatars */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-1">
+            {[
+              { abbr: 'RA', bg: '#7c2d12', color: '#fdba74', label: 'Risk Analyst' },
+              { abbr: 'DA', bg: '#14532d', color: '#86efac', label: "Devil's Advocate" },
+              { abbr: 'FS', bg: '#0c4a6e', color: '#7dd3fc', label: 'Financial Strategist' },
+              { abbr: 'MA', bg: '#4c1d95', color: '#c4b5fd', label: 'Market Analyst' },
+              { abbr: 'EL', bg: '#1e1b4b', color: '#a5b4fc', label: 'Execution Lead' },
+              { abbr: 'IS', bg: '#064e3b', color: '#6ee7b7', label: 'Innovation Scout' },
+              { abbr: 'PA', bg: '#831843', color: '#f9a8d4', label: 'People Advisor' },
+            ].map((a, i) => (
+              <div
+                key={a.abbr}
+                title={a.label}
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-black ring-2 transition-transform hover:-translate-y-1 cursor-default"
+                style={{ background: a.bg, color: a.color, ringColor: 'rgba(15,23,42,0.6)', zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0 }}
+              >
+                {a.abbr}
+              </div>
+            ))}
+          </div>
+          <p className="text-xs font-medium" style={{ color: 'rgba(100,116,139,0.7)' }}>7 specialized agents · each with a different mandate</p>
+        </div>
+
+        {/* Scroll hint */}
+        <div className="flex justify-center mt-14">
+          <a href="#how-it-works" className="flex flex-col items-center gap-2 group" style={{ color: 'rgba(100,116,139,0.55)' }}>
+            <span className="text-xs font-medium group-hover:text-slate-400 transition-colors">See how it works</span>
+            <ChevronDown className="w-4 h-4 animate-bounce" />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── How It Works ─────────────────────────────────────────────────────────────
+
+const HOW_STEPS = [
+  {
+    number: '01',
+    icon: MessageSquare,
+    color: '#2563eb',
+    bg: 'rgba(37,99,235,0.08)',
+    border: 'rgba(37,99,235,0.18)',
+    label: 'AI Collaboration',
+    title: 'Submit your decision to a private workspace',
+    body: "Describe the decision you're facing. Seven specialized agents \u2014 Risk Analyst, Devil\u2019s Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor \u2014 respond simultaneously, each from a completely different angle. Your team can join, challenge agents, and upload supporting documents (PDF, DOCX, Excel) to ground the analysis in real data.",
+    callout: 'This is the AI Collaboration \u2014 a live, multi-agent debate inside your secure workspace.',
+    visual: [
+      { abbr: 'RA', bg: '#7c2d12', color: '#fdba74', text: 'Distribution shift risk in EU markets could cause 40–60% prediction errors in year one.' },
+      { abbr: 'FS', bg: '#0c4a6e', color: '#7dd3fc', text: 'EU AI Act requires per-decision explainability — adds 6–9 months to your launch.' },
+      { abbr: 'DA', bg: '#14532d', color: '#86efac', text: 'Klarna scaled across 6+ EU markets in under 3 years. Compliance is process, not blocker.' },
+    ],
+  },
+  {
+    number: '02',
+    icon: Swords,
+    color: '#dc2626',
+    bg: 'rgba(220,38,38,0.07)',
+    border: 'rgba(220,38,38,0.15)',
+    label: 'War Room',
+    title: 'The War Room synthesizes the debate into a recommendation',
+    body: 'Once the agents have debated, the War Room reads every message, identifies consensus points, conflict zones, blind spots, and cognitive biases. It produces a single strategic recommendation with a Decision Health Score, risk signals, and prioritized action items — all grounded in the actual agent discussion from your workspace.',
+    callout: 'The War Room is not a separate conversation. It is the intelligence layer built on top of your AI Collaboration.',
+    visual: [
+      { label: 'Decision Health Score', value: '68', sub: 'Developing', color: '#f59e0b' },
+      { label: 'Risk Signals', value: '3', sub: '2 critical', color: '#dc2626' },
+      { label: 'Action Items', value: '4', sub: 'Prioritized', color: '#2563eb' },
+    ],
+  },
+  {
+    number: '03',
+    icon: FileText,
+    color: '#059669',
+    bg: 'rgba(5,150,105,0.07)',
+    border: 'rgba(5,150,105,0.15)',
+    label: 'PDF Export',
+    title: 'Export a polished executive report',
+    body: 'Package the full War Room synthesis into a structured PDF — strategic recommendation, risk signals with severity ratings, prioritized action items by owner, and all decision health metrics. Share it with your board, investors, or leadership team without disclosing your full workspace.',
+    callout: 'The PDF report is generated from the War Room synthesis. Run the AI Collaboration first — the War Room does the rest.',
+    visual: null,
+  },
+];
+
+function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) {
+  return (
+    <section id="how-it-works" style={{ background: '#fff', borderTop: '1px solid rgba(15,23,42,0.06)' }} className="py-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <RevealSection className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(15,23,42,0.05)', color: '#475569', border: '1px solid rgba(15,23,42,0.09)' }}>
+            How Poddle works
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4 tracking-tight">
+            AI Collaboration feeds the War Room.<br className="hidden sm:block" /> The War Room produces the report.
+          </h2>
+          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
+            The two features are connected — not separate tools. Here is exactly how they work together.
+          </p>
+        </RevealSection>
+
+        {/* Steps */}
+        <div className="space-y-6">
+          {HOW_STEPS.map((step, idx) => {
+            const Icon = step.icon;
+            return (
+              <RevealSection key={step.number} delay={idx * 100}>
+                <div
+                  className="rounded-3xl overflow-hidden"
+                  style={{ border: `1px solid ${step.border}`, background: '#fff', boxShadow: '0 2px 16px rgba(15,23,42,0.06)' }}
+                >
+                  <div className="p-8 sm:p-10">
+                    <div className="flex flex-col lg:flex-row gap-10">
+                      {/* Left */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: step.bg }}>
+                            <Icon className="w-4.5 h-4.5" style={{ color: step.color }} />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: step.color }}>{step.label}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold" style={{ color: 'rgba(100,116,139,0.5)' }}>STEP {step.number}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-4 leading-tight tracking-tight">{step.title}</h3>
+                        <p className="text-sm sm:text-base text-slate-500 leading-relaxed mb-5">{step.body}</p>
+                        <div
+                          className="flex items-start gap-2.5 rounded-xl px-4 py-3"
+                          style={{ background: step.bg, border: `1px solid ${step.border}` }}
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: step.color }} />
+                          <p className="text-xs font-semibold leading-relaxed" style={{ color: step.color }}>{step.callout}</p>
+                        </div>
+                      </div>
+
+                      {/* Right — visual */}
+                      <div className="lg:w-80 flex-shrink-0">
+                        {idx === 0 && step.visual && (
+                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(170deg,#0f172a,#1a2744)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                            <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                <span className="text-[10px] font-semibold" style={{ color: 'rgba(148,163,184,0.6)' }}>AI Collaboration · Private Workspace</span>
+                                <Lock className="w-2.5 h-2.5 ml-auto" style={{ color: 'rgba(100,116,139,0.4)' }} />
+                              </div>
+                            </div>
+                            <div className="p-4 space-y-3">
+                              {/* User message */}
+                              <div className="flex gap-2.5">
+                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', color: '#fff' }}>YO</div>
+                                <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.18)' }}>
+                                  <p className="text-[10px] font-bold mb-1" style={{ color: '#93c5fd' }}>You</p>
+                                  <p className="text-[11px] leading-relaxed text-white">Should we launch our AI lending product across Europe now, or stage the rollout?</p>
+                                </div>
+                              </div>
+                              {/* Agent responses */}
+                              {(step.visual as { abbr: string; bg: string; color: string; text: string }[]).map((v) => (
+                                <div key={v.abbr} className="flex gap-2.5">
+                                  <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: v.bg, color: v.color }}>{v.abbr}</div>
+                                  <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                    <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.82)' }}>{v.text}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {idx === 1 && step.visual && (
+                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg,#0f172a,#1e2d4a)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+                              <Swords className="w-3 h-3" style={{ color: '#f87171' }} />
+                              <span className="text-[10px] font-bold" style={{ color: 'rgba(148,163,184,0.7)' }}>War Room Synthesis</span>
+                            </div>
+                            <div className="p-5">
+                              <div className="flex justify-around mb-5">
+                                {(step.visual as { label: string; value: string; sub: string; color: string }[]).map((v) => (
+                                  <div key={v.label} className="flex flex-col items-center gap-1">
+                                    <div className="text-2xl font-black" style={{ color: v.color }}>{v.value}</div>
+                                    <div className="text-[9px] font-bold uppercase tracking-wide" style={{ color: v.color }}>{v.sub}</div>
+                                    <div className="text-[9px]" style={{ color: 'rgba(100,116,139,0.6)' }}>{v.label}</div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="rounded-xl p-3.5" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.22)' }}>
+                                <p className="text-[10px] font-black uppercase tracking-wide mb-1.5" style={{ color: '#93c5fd' }}>Strategic Recommendation</p>
+                                <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.85)' }}>
+                                  <strong style={{ color: '#e2e8f0' }}>Stage the rollout. Start Germany.</strong> BaFin approval is the hardest, most valuable first stamp. Target Q3 Germany, Q1 next year France & Netherlands.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {idx === 2 && (
+                          <div className="rounded-2xl overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.09)', boxShadow: '0 4px 20px rgba(15,23,42,0.08)' }}>
+                            {/* PDF mini header */}
+                            <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)', borderBottom: '1px solid rgba(15,23,42,0.1)' }}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Brain className="w-3.5 h-3.5 text-white opacity-70" />
+                                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.6)' }}>Poddle · War Room Report</span>
+                              </div>
+                              <div className="flex items-end justify-between">
+                                <div>
+                                  <p className="text-sm font-black text-white">European AI Lending</p>
+                                  <p className="text-[10px]" style={{ color: 'rgba(148,163,184,0.5)' }}>Private Workspace · 12 messages</p>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-2xl font-black text-white">68</div>
+                                  <div className="text-[9px] font-bold" style={{ color: '#f59e0b' }}>Decision Health</div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="p-5 space-y-3">
+                              {[
+                                { icon: TrendingUp, label: 'Strategic Recommendation', color: '#1e3a5f', bg: 'rgba(30,58,95,0.05)' },
+                                { icon: AlertTriangle, label: '3 Risk Signals identified', color: '#b91c1c', bg: 'rgba(220,38,38,0.05)' },
+                                { icon: Target, label: '4 Action Items · by owner', color: '#1d4ed8', bg: 'rgba(37,99,235,0.05)' },
+                              ].map(({ icon: I, label, color, bg }) => (
+                                <div key={label} className="flex items-center gap-2.5 rounded-xl px-3 py-2.5" style={{ background: bg }}>
+                                  <I className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
+                                  <span className="text-xs font-semibold" style={{ color }}>{label}</span>
+                                </div>
+                              ))}
+                              <div className="flex items-center gap-2 pt-1">
+                                <Download className="w-3 h-3" style={{ color: '#64748b' }} />
+                                <span className="text-[10px] font-semibold" style={{ color: '#64748b' }}>Export as PDF</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Connector arrow between steps */}
+                {idx < HOW_STEPS.length - 1 && (
+                  <div className="flex flex-col items-center py-3">
+                    <div className="w-px h-6" style={{ background: 'rgba(15,23,42,0.1)' }} />
+                    <ArrowDown className="w-4 h-4" style={{ color: 'rgba(15,23,42,0.2)' }} />
+                  </div>
+                )}
+              </RevealSection>
+            );
+          })}
+        </div>
+
+        {/* Summary banner */}
+        <RevealSection delay={300} className="mt-12">
+          <div
+            className="rounded-3xl p-8 sm:p-10 text-center"
+            style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.07),rgba(6,182,212,0.05))', border: '1px solid rgba(37,99,235,0.14)' }}
+          >
+            <p className="text-base sm:text-lg font-bold text-slate-800 mb-2">
+              The sequence matters.
+            </p>
+            <p className="text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
+              Start an AI Collaboration → let the agents debate → open the War Room → get your recommendation → export the report. Every feature builds on the last.
+            </p>
+            <button
+              onClick={() => onNavigate('auth')}
+              className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
+              style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 6px 20px rgba(37,99,235,0.3)' }}
+            >
+              <Sparkles className="w-4 h-4" />
+              Try the full workflow
+            </button>
+          </div>
+        </RevealSection>
+      </div>
+    </section>
+  );
+}
+
+// ─── Live Demo ────────────────────────────────────────────────────────────────
 
 const DEMO_MESSAGES = [
   {
@@ -214,24 +573,41 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   }, [revealed]);
 
   return (
-    <section ref={ref} style={{ background: '#fff', borderTop: '1px solid rgba(15,23,42,0.05)', borderBottom: '1px solid rgba(15,23,42,0.05)' }} className="py-20">
+    <section ref={ref} style={{ background: '#f8fafc', borderTop: '1px solid rgba(15,23,42,0.06)', borderBottom: '1px solid rgba(15,23,42,0.06)' }} className="py-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-4" style={{ background: 'rgba(37,99,235,0.07)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.12)' }}>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(37,99,235,0.07)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.12)' }}>
             Live example
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3">
-            Watch the agents work.
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3 tracking-tight">
+            Watch the full workflow.
           </h2>
-          <p className="text-base text-slate-500 max-w-lg mx-auto leading-relaxed">
-            A fintech team asks: <strong className="text-slate-700">"Should we launch our AI lending product across Europe now?"</strong> Four specialized agents respond — simultaneously, from entirely different angles.
+          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
+            A fintech team asks: <strong className="text-slate-700">"Should we launch our AI lending product across Europe now?"</strong> Agents debate it — the War Room synthesizes it — the report is ready.
           </p>
+        </div>
+
+        {/* Phase labels */}
+        <div className="flex items-center justify-center gap-4 mb-6 flex-wrap">
+          {[
+            { step: '1', label: 'AI Collaboration', color: '#2563eb', bg: 'rgba(37,99,235,0.08)' },
+            { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
+            { step: '2', label: 'War Room Synthesis', color: '#dc2626', bg: 'rgba(220,38,38,0.07)' },
+            { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
+            { step: '3', label: 'PDF Export', color: '#059669', bg: 'rgba(5,150,105,0.07)' },
+          ].map((item, i) => item.label ? (
+            <span key={i} className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: item.bg, color: item.color }}>
+              {item.step} · {item.label}
+            </span>
+          ) : (
+            <span key={i} className="text-sm font-bold" style={{ color: '#cbd5e1' }}>→</span>
+          ))}
         </div>
 
         {/* Browser-style demo */}
         <div
           className="rounded-3xl overflow-hidden mx-auto"
-          style={{ maxWidth: 780, background: 'linear-gradient(170deg,#0f172a,#1a2744)', boxShadow: '0 32px 80px rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ maxWidth: 800, background: 'linear-gradient(170deg,#0f172a,#1a2744)', boxShadow: '0 32px 80px rgba(0,0,0,0.32)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
           {/* Title bar */}
           <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
@@ -307,14 +683,14 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               ))}
             </div>
 
-            {/* Synthesis */}
+            {/* War Room Synthesis */}
             {revealed >= DEMO_MESSAGES.length && (
               <div
                 className="mt-4 rounded-2xl p-4 transition-all duration-700"
                 style={{
                   background: 'linear-gradient(135deg,rgba(37,99,235,0.18),rgba(6,182,212,0.12))',
                   border: '1px solid rgba(37,99,235,0.3)',
-                  opacity: revealed >= DEMO_MESSAGES.length ? 1 : 0,
+                  opacity: 1,
                 }}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -322,9 +698,10 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                     <Brain className="w-3 h-3" style={{ color: '#93c5fd' }} />
                   </div>
                   <span className="text-[11px] font-bold" style={{ color: '#93c5fd' }}>War Room Synthesis</span>
+                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(37,99,235,0.2)', color: '#93c5fd' }}>Built from your AI Collaboration</span>
                 </div>
                 <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.9)' }}>
-                  <strong style={{ color: '#e2e8f0' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp — it de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year. Parallel multi-market filing will slow you down more than it speeds you up.
+                  <strong style={{ color: '#e2e8f0' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp — it de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year.
                 </p>
               </div>
             )}
@@ -361,28 +738,26 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
         </div>
 
-        {/* ── PDF Export Preview ── */}
+        {/* PDF Export Preview */}
         <div
           className="mx-auto mt-6 overflow-hidden transition-all duration-700"
           style={{
-            maxWidth: 780,
+            maxWidth: 800,
             maxHeight: showPDF ? '2000px' : 0,
             opacity: showPDF ? 1 : 0,
           }}
         >
-          {/* Arrow connector */}
           <div className="flex flex-col items-center mb-4">
             <div className="w-0.5 h-6" style={{ background: 'rgba(15,23,42,0.12)' }} />
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold" style={{ background: 'rgba(15,23,42,0.06)', color: '#64748b' }}>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold" style={{ background: 'rgba(15,23,42,0.06)', color: '#64748b', border: '1px solid rgba(15,23,42,0.08)' }}>
               <Download className="w-3 h-3" />
-              Exported report preview
+              Exported War Room report · Step 3 of 3
             </div>
             <div className="w-0.5 h-4" style={{ background: 'rgba(15,23,42,0.12)' }} />
             <div className="w-2 h-2 rotate-45" style={{ background: 'rgba(15,23,42,0.12)', marginTop: -4 }} />
           </div>
 
           <div className="rounded-3xl overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)', boxShadow: '0 8px 32px rgba(15,23,42,0.1)' }}>
-            {/* PDF Header */}
             <div className="px-8 pt-8 pb-6" style={{ borderBottom: '1px solid rgba(15,23,42,0.07)', background: 'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -403,27 +778,23 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                   <div className="text-[10px]" style={{ color: 'rgba(148,163,184,0.5)' }}>Decision Health</div>
                 </div>
               </div>
-
-              {/* Score pills */}
               <div className="flex gap-4 mt-5">
                 <ScoreArc score={74} label="Strategic Alignment" color="#16a34a" />
                 <ScoreArc score={61} label="Operational Readiness" color="#f59e0b" />
               </div>
             </div>
 
-            {/* Recommendation */}
             <div className="px-8 py-6" style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', background: 'rgba(30,58,95,0.03)' }}>
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-4 h-4" style={{ color: '#1e3a5f' }} />
                 <span className="text-xs font-black uppercase tracking-wider" style={{ color: '#1e3a5f' }}>Strategic Recommendation</span>
               </div>
               <p className="text-sm leading-relaxed text-slate-700">
-                <strong className="text-slate-900">Stage the rollout. Start with Germany.</strong> BaFin approval is the hardest and most valuable first stamp — it de-risks France, Netherlands, and the Nordics. Target Germany in Q3 with a compliant audit trail in place. Parallel multi-market filing will cost more time than it saves. The EU AI Act compliance burden is real but sequenceable — treat it as process, not blocker.
+                <strong className="text-slate-900">Stage the rollout. Start with Germany.</strong> BaFin approval is the hardest and most valuable first stamp — it de-risks France, Netherlands, and the Nordics. Target Germany in Q3 with a compliant audit trail in place. Parallel multi-market filing will cost more time than it saves.
               </p>
             </div>
 
             <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x" style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', borderColor: 'rgba(15,23,42,0.06)' }}>
-              {/* Risk Signals */}
               <div className="px-8 py-6">
                 <div className="flex items-center gap-2 mb-4">
                   <AlertTriangle className="w-4 h-4 text-red-600" />
@@ -442,8 +813,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                   ))}
                 </div>
               </div>
-
-              {/* Next Steps */}
               <div className="px-8 py-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Target className="w-4 h-4 text-blue-600" />
@@ -466,7 +835,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="px-8 py-4 flex items-center justify-between" style={{ background: '#fafafa' }}>
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-3.5 h-3.5" style={{ color: '#94a3b8' }} />
@@ -483,13 +851,70 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
 
-        {/* Three proof points beneath the demo */}
-        <div className="grid sm:grid-cols-3 gap-5 mt-12">
+// ─── Social Proof ─────────────────────────────────────────────────────────────
+
+const TESTIMONIALS = [
+  {
+    quote: "We used the War Room before a board presentation. The Devil's Advocate agent surfaced a risk our CFO hadn't considered. We caught it in time.",
+    role: "Head of Strategy · Series B SaaS",
+    initial: "S",
+    color: '#2563eb',
+  },
+  {
+    quote: "I didn't realize the PDF came from the War Room until I read the walkthrough. Once I understood the flow, the reports became 10x more useful.",
+    role: "Founder · FinTech",
+    initial: "F",
+    color: '#059669',
+  },
+  {
+    quote: "The AI Collaboration is where the debate happens. The War Room is where decisions get made. That distinction took me a day to learn but now I wouldn't skip it.",
+    role: "VP Operations · Scale-up",
+    initial: "V",
+    color: '#dc2626',
+  },
+];
+
+function SocialProofSection() {
+  return (
+    <section style={{ background: '#fff', borderTop: '1px solid rgba(15,23,42,0.06)' }} className="py-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection className="text-center mb-12">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">What teams say</p>
+        </RevealSection>
+
+        <div className="grid sm:grid-cols-3 gap-5">
+          {TESTIMONIALS.map((t, i) => (
+            <RevealSection key={i} delay={i * 100}>
+              <div
+                className="h-full p-6 rounded-2xl flex flex-col gap-4"
+                style={{ background: '#fafafa', border: '1px solid rgba(15,23,42,0.07)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
+              >
+                <p className="text-sm text-slate-600 leading-relaxed flex-1">"{t.quote}"</p>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black text-white flex-shrink-0"
+                    style={{ background: t.color }}
+                  >
+                    {t.initial}
+                  </div>
+                  <p className="text-xs font-semibold text-slate-500">{t.role}</p>
+                </div>
+              </div>
+            </RevealSection>
+          ))}
+        </div>
+
+        {/* Feature grid */}
+        <div className="grid sm:grid-cols-3 gap-5 mt-10">
           {[
-            { icon: Brain, color: '#2563eb', bg: '#eff6ff', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Scout, People Advisor. Each tuned for a different lens." },
-            { icon: Lock, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Your workspace is encrypted and invisible to the public. Invite your team. Nothing leaves your org.' },
-            { icon: Swords, color: '#dc2626', bg: '#fef2f2', title: 'War Room synthesis', desc: "When agents disagree, AI synthesizes dissenting views into a clear recommendation with explicit reasoning and next steps." },
+            { icon: Brain, color: '#2563eb', bg: '#eff6ff', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Scout, People Advisor — each with a different mandate." },
+            { icon: Shield, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Your workspace is encrypted and invisible to the public. Invite your team. Nothing leaves your org. SOC 2-aligned infrastructure.' },
+            { icon: FileText, color: '#059669', bg: '#ecfdf5', title: 'Board-ready exports', desc: 'The War Room PDF includes your recommendation, risk signals, action items by owner, and decision health scores — ready to share.' },
           ].map(({ icon: Icon, color, bg, title, desc }, i) => (
             <RevealSection key={title} delay={i * 80}>
               <div
@@ -510,101 +935,21 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   );
 }
 
-function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
-  return (
-    <section
-      className="relative overflow-hidden"
-      style={{
-        background: 'linear-gradient(170deg, #0f172a 0%, #1e2d4a 55%, #1e3a5f 100%)',
-        minHeight: '82vh',
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
-      {/* Background mesh */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(37,99,235,0.18) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(6,182,212,0.12) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
-      </div>
-
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10 text-center">
-        <div
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-7"
-          style={{ background: 'rgba(37,99,235,0.15)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.25)' }}
-        >
-          <Zap className="w-3.5 h-3.5" />
-          Decision Intelligence Platform
-        </div>
-
-        <h1 className="text-4xl sm:text-5xl lg:text-[3.6rem] font-black leading-[1.07] mb-6 text-white mx-auto max-w-3xl">
-          Judgment infrastructure for{' '}
-          <span style={{ background: 'linear-gradient(135deg,#60a5fa,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            high-stakes decisions.
-          </span>
-        </h1>
-
-        <p className="text-base leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'rgba(203,213,225,0.82)' }}>
-          Turn every critical decision into a structured, multi-perspective challenge before you commit.
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
-          <button
-            onClick={() => onNavigate('auth')}
-            className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-            style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 8px 28px rgba(37,99,235,0.4)' }}
-          >
-            <Sparkles className="w-4 h-4" />
-            Start for free
-          </button>
-          <button
-            onClick={() => onNavigate('blog')}
-            className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-white"
-            style={{ color: 'rgba(148,163,184,0.75)' }}
-          >
-            Read the blog
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="flex items-center justify-center gap-5 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Free. No card required.</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.8)' }}>Private & encrypted workspaces</span>
-          </div>
-        </div>
-
-        {/* Scroll hint */}
-        <div className="flex justify-center mt-16">
-          <a href="#demo" className="flex flex-col items-center gap-2 group" style={{ color: 'rgba(100,116,139,0.6)' }}>
-            <span className="text-xs font-medium group-hover:text-slate-400 transition-colors">See it in action</span>
-            <div className="w-5 h-5 flex items-center justify-center animate-bounce">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 9l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
+// ─── Final CTA ────────────────────────────────────────────────────────────────
 
 function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section style={{ background: 'linear-gradient(170deg,#0f172a 0%,#1e3a5f 100%)' }} className="py-24">
+    <section style={{ background: 'linear-gradient(170deg,#0d1526 0%,#1e3a5f 100%)' }} className="py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <RevealSection>
-          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.09)' }}>
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
-            Make better decisions.<br />Starting today.
+          <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 tracking-tight">
+            Your next big decision<br />deserves a proper challenge.
           </h2>
-          <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: 'rgba(203,213,225,0.8)' }}>
-            Private workspaces, War Room access, and full team collaboration — built for high-stakes decisions.
+          <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: 'rgba(203,213,225,0.75)' }}>
+            Start an AI Collaboration. Run the War Room. Export the report. Free to start, no card required.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
@@ -615,6 +960,14 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             >
               <Sparkles className="w-4 h-4 text-blue-600" />
               Create free account
+            </button>
+            <button
+              onClick={() => onNavigate('pricing')}
+              className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm transition-all hover:-translate-y-0.5"
+              style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(203,213,225,0.9)', border: '1px solid rgba(255,255,255,0.12)' }}
+            >
+              View pricing
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
 
