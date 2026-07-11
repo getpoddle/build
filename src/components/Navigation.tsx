@@ -1,4 +1,4 @@
-import { Sparkles, User, LogOut, Lock, Home, Bot, ChevronRight, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare } from 'lucide-react';
+import { Sparkles, User, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import PoddleMark from './PoddleMark';
@@ -17,6 +17,8 @@ interface NavigationProps {
     initialAssumptionId?: string,
     postId?: string,
   ) => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 const NAV_ITEMS_AUTH = [
@@ -29,7 +31,7 @@ const NAV_ITEMS_GUEST = [
   { id: 'ai-feed', label: 'AI Feed', icon: Bot },
 ];
 
-export default function Navigation({ currentPage, onNavigate }: NavigationProps) {
+export default function Navigation({ currentPage, onNavigate, collapsed = false, onToggleCollapsed }: NavigationProps) {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -98,27 +100,66 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
   const displayEmail = userProfile?.email || '';
   const initials = displayName.slice(0, 2).toUpperCase();
 
+  const sidebarWidth = collapsed ? '4rem' : '15rem';
+
   return (
     <>
-      {/* ── Desktop left sidebar (lg+, authenticated only) ── */}
+      {user && (
+        <style>{`
+          @media (min-width: 1280px) {
+            .xl-sidebar-offset { left: ${sidebarWidth} !important; transition: left 220ms cubic-bezier(0.4,0,0.2,1); }
+            .xl-sidebar-margin { margin-left: ${sidebarWidth} !important; transition: margin-left 220ms cubic-bezier(0.4,0,0.2,1); }
+          }
+        `}</style>
+      )}
+      {/* ── Desktop left sidebar (xl+, authenticated only) ── */}
       {user && (
         <aside
           aria-label="Sidebar navigation"
-          className="hidden xl:flex flex-col fixed top-0 left-0 bottom-0 z-50 w-60"
+          className="hidden xl:flex flex-col fixed top-0 left-0 bottom-0 z-50 overflow-hidden"
           style={{
+            width: collapsed ? '4rem' : '15rem',
+            transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
             background: '#0f172a',
             borderRight: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 px-5 h-16 flex-shrink-0 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <PoddleMark size={28} />
-            <span className="text-base font-black text-white tracking-tight">Poddle AI</span>
+          {/* Logo row */}
+          <div
+            className="flex items-center h-16 flex-shrink-0 border-b"
+            style={{ borderColor: 'rgba(255,255,255,0.06)', padding: collapsed ? '0 1rem' : '0 1.25rem', justifyContent: collapsed ? 'center' : 'flex-start', gap: '0.625rem' }}
+          >
+            <PoddleMark size={28} className="flex-shrink-0" />
+            {!collapsed && (
+              <span className="text-base font-black text-white tracking-tight whitespace-nowrap overflow-hidden">Poddle AI</span>
+            )}
+            {/* Collapse toggle */}
+            {onToggleCollapsed && (
+              <button
+                onClick={onToggleCollapsed}
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                className="flex items-center justify-center w-6 h-6 rounded-lg transition-all flex-shrink-0"
+                style={{
+                  marginLeft: collapsed ? 0 : 'auto',
+                  color: 'rgba(148,163,184,0.4)',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.4)'; }}
+              >
+                <ChevronLeft
+                  className="w-3.5 h-3.5 transition-transform duration-200"
+                  style={{ transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                />
+              </button>
+            )}
           </div>
 
           {/* Nav items */}
-          <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto" role="list">
-            <p className="text-[10px] font-bold uppercase tracking-widest px-3 py-2" style={{ color: 'rgba(100,116,139,0.8)' }}>Navigation</p>
+          <nav className="flex-1 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden" style={{ padding: collapsed ? '0.5rem 0.5rem' : '0.5rem 0.75rem' }} role="list">
+            {!collapsed && (
+              <p className="text-[10px] font-bold uppercase tracking-widest px-3 py-2 whitespace-nowrap" style={{ color: 'rgba(100,116,139,0.8)' }}>Navigation</p>
+            )}
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeId === item.id;
@@ -128,99 +169,147 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                   role="listitem"
                   onClick={() => handleNavigate(item.id)}
                   aria-current={isActive ? 'page' : undefined}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group"
-                  style={isActive ? {
-                    background: 'rgba(37,99,235,0.18)',
-                    color: '#93c5fd',
-                  } : {
-                    color: 'rgba(148,163,184,0.85)',
+                  title={collapsed ? item.label : undefined}
+                  className="relative w-full flex items-center rounded-xl text-sm font-medium transition-all duration-150"
+                  style={{
+                    gap: collapsed ? 0 : '0.75rem',
+                    padding: collapsed ? '0.625rem' : '0.625rem 0.75rem',
+                    justifyContent: collapsed ? 'center' : 'flex-start',
+                    ...(isActive ? { background: 'rgba(37,99,235,0.18)', color: '#93c5fd' } : { color: 'rgba(148,163,184,0.85)' }),
                   }}
                   onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
                   onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
                 >
-                  {isActive && <span className="absolute left-0 w-0.5 h-5 rounded-r-full bg-blue-400" aria-hidden="true" />}
+                  {isActive && !collapsed && <span className="absolute left-0 w-0.5 h-5 rounded-r-full bg-blue-400" aria-hidden="true" />}
                   <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
-                  <span>{item.label}</span>
-                  {isActive && <ChevronRight className="ml-auto w-3.5 h-3.5 opacity-60" />}
+                  {!collapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
+                  {!collapsed && isActive && <ChevronRight className="ml-auto w-3.5 h-3.5 opacity-60 flex-shrink-0" />}
                 </button>
               );
             })}
 
             {isAdmin && (
               <>
-                <p className="text-[10px] font-bold uppercase tracking-widest px-3 pt-4 pb-2" style={{ color: 'rgba(100,116,139,0.8)' }}>Admin</p>
+                {!collapsed && (
+                  <p className="text-[10px] font-bold uppercase tracking-widest px-3 pt-4 pb-2 whitespace-nowrap" style={{ color: 'rgba(100,116,139,0.8)' }}>Admin</p>
+                )}
                 <button
                   onClick={() => handleNavigate('admin')}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
-                  style={{ color: 'rgba(251,191,36,0.9)' }}
+                  title={collapsed ? 'Admin Panel' : undefined}
+                  className="w-full flex items-center rounded-xl text-sm font-medium transition-all duration-150"
+                  style={{
+                    gap: collapsed ? 0 : '0.75rem',
+                    padding: collapsed ? '0.625rem' : '0.625rem 0.75rem',
+                    justifyContent: collapsed ? 'center' : 'flex-start',
+                    color: 'rgba(251,191,36,0.9)',
+                    marginTop: collapsed ? '0.5rem' : 0,
+                  }}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(251,191,36,0.08)'}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}
                 >
                   <Settings className="w-4 h-4 flex-shrink-0" />
-                  <span>Admin Panel</span>
+                  {!collapsed && <span className="whitespace-nowrap">Admin Panel</span>}
                 </button>
               </>
             )}
           </nav>
 
           {/* User footer */}
-          <div className="flex-shrink-0 px-3 pb-4 pt-2 border-t space-y-0.5" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <button
-              onClick={() => handleNavigate('profile')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
-              style={{ color: activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.85)', background: activeId === 'profile' ? 'rgba(37,99,235,0.18)' : '' }}
-              onMouseEnter={e => { if (activeId !== 'profile') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-              onMouseLeave={e => { if (activeId !== 'profile') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
-            >
-              <User className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-              <span>Account Settings</span>
-            </button>
-            <button
-              onClick={() => handleNavigate('pricing')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
-              style={{ color: activeId === 'pricing' ? '#93c5fd' : 'rgba(148,163,184,0.85)', background: activeId === 'pricing' ? 'rgba(37,99,235,0.18)' : '' }}
-              onMouseEnter={e => { if (activeId !== 'pricing') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-              onMouseLeave={e => { if (activeId !== 'pricing') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
-            >
-              <CreditCard className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-              <span>Plans &amp; Billing</span>
-            </button>
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
-              style={{ color: 'rgba(148,163,184,0.85)' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; }}
-            >
-              {theme === 'dark'
-                ? <Sun className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-                : <Moon className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-              }
-              <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-            </button>
-            <div className="flex items-center gap-3 p-3 rounded-xl mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-              >
-                {initials}
+          <div
+            className="flex-shrink-0 pt-2 border-t"
+            style={{ borderColor: 'rgba(255,255,255,0.06)', padding: collapsed ? '0.5rem' : '0.5rem 0.75rem 1rem' }}
+          >
+            {!collapsed ? (
+              <div className="space-y-0.5">
+                <button
+                  onClick={() => handleNavigate('profile')}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+                  style={{ color: activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.85)', background: activeId === 'profile' ? 'rgba(37,99,235,0.18)' : '' }}
+                  onMouseEnter={e => { if (activeId !== 'profile') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+                  onMouseLeave={e => { if (activeId !== 'profile') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
+                >
+                  <User className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                  <span>Account Settings</span>
+                </button>
+                <button
+                  onClick={() => handleNavigate('pricing')}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+                  style={{ color: activeId === 'pricing' ? '#93c5fd' : 'rgba(148,163,184,0.85)', background: activeId === 'pricing' ? 'rgba(37,99,235,0.18)' : '' }}
+                  onMouseEnter={e => { if (activeId !== 'pricing') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+                  onMouseLeave={e => { if (activeId !== 'pricing') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
+                >
+                  <CreditCard className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                  <span>Plans &amp; Billing</span>
+                </button>
+                <button
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+                  style={{ color: 'rgba(148,163,184,0.85)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; }}
+                >
+                  {theme === 'dark' ? <Sun className="w-4 h-4 flex-shrink-0" strokeWidth={2} /> : <Moon className="w-4 h-4 flex-shrink-0" strokeWidth={2} />}
+                  <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                </button>
+                <div className="flex items-center gap-3 p-3 rounded-xl mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{displayName}</p>
+                    <p className="text-[10px] truncate" style={{ color: 'rgba(148,163,184,0.6)' }}>{displayEmail}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowLogoutConfirm(true)}
+                    disabled={isSigningOut}
+                    aria-label="Sign out"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors disabled:opacity-50"
+                    style={{ color: 'rgba(148,163,184,0.5)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.12)'; (e.currentTarget as HTMLElement).style.color = '#f87171'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.5)'; }}
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-white truncate">{displayName}</p>
-                <p className="text-[10px] truncate" style={{ color: 'rgba(148,163,184,0.6)' }}>{displayEmail}</p>
+            ) : (
+              /* Collapsed footer: icon-only buttons stacked */
+              <div className="flex flex-col items-center gap-1">
+                <button
+                  onClick={() => handleNavigate('profile')}
+                  title="Account Settings"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl transition-all"
+                  style={{ color: activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.6)', background: activeId === 'profile' ? 'rgba(37,99,235,0.18)' : '' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = activeId === 'profile' ? 'rgba(37,99,235,0.18)' : ''; (e.currentTarget as HTMLElement).style.color = activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.6)'; }}
+                >
+                  <User className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl transition-all"
+                  style={{ color: 'rgba(148,163,184,0.6)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.6)'; }}
+                >
+                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <button
+                    onClick={() => setShowLogoutConfirm(true)}
+                    disabled={isSigningOut}
+                    title="Sign out"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-50"
+                    style={{ color: 'rgba(148,163,184,0.5)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.12)'; (e.currentTarget as HTMLElement).style.color = '#f87171'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.5)'; }}
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => setShowLogoutConfirm(true)}
-                disabled={isSigningOut}
-                aria-label="Sign out"
-                className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors disabled:opacity-50"
-                style={{ color: 'rgba(148,163,184,0.5)' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.12)'; (e.currentTarget as HTMLElement).style.color = '#f87171'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.5)'; }}
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            )}
           </div>
         </aside>
       )}
@@ -231,8 +320,9 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
       <nav
         role="navigation"
         aria-label="Main navigation"
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${user ? 'xl:left-60' : ''}`}
+        className={`fixed top-0 right-0 z-50 transition-all duration-300${user ? ' xl-sidebar-offset' : ''}`}
         style={{
+          left: 0,
           paddingTop: 'env(safe-area-inset-top)',
           background: theme === 'dark'
             ? (scrolled ? 'rgba(18,18,20,0.98)' : 'rgba(18,18,20,0.92)')
