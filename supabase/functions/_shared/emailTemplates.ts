@@ -121,6 +121,41 @@ export function buildPaymentFailedEmail(
   return emailShell(`Action required — payment failed`, header, body);
 }
 
+// ─── Upcoming Renewal Reminder ──────────────────────────────────────────────
+
+export function buildRenewalReminderEmail(
+  firstName: string,
+  planLabel: string,
+  amountFormatted: string,
+  renewalDate: string,
+  billingPortalUrl: string,
+): string {
+  const header = `<div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:32px 32px 28px;">
+    <p style="color:rgba(255,255,255,0.65);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px 0;">Upcoming Renewal</p>
+    <h1 style="color:#ffffff;font-size:26px;font-weight:800;margin:0;line-height:1.2;">Your ${planLabel} subscription renews soon, ${firstName}</h1>
+  </div>`;
+
+  const body = `
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 16px 0;">
+      Just a heads-up — your <strong style="color:#e2e8f0;">${planLabel} subscription</strong> will automatically renew on
+      <strong style="color:#e2e8f0;">${renewalDate}</strong> for <strong style="color:#e2e8f0;">${amountFormatted}</strong>.
+    </p>
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 28px 0;">
+      No action is needed if everything looks good. If you'd like to update your payment method, change your plan, or cancel before the renewal date, you can do so in the billing portal.
+    </p>
+    <p style="margin:0 0 28px 0;">${ctaButton("Manage Billing", billingPortalUrl)}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f172a;border-radius:12px;border:1px solid #1e293b;margin-bottom:28px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="color:#64748b;font-size:13px;line-height:1.6;margin:0;">
+          If you don't want to renew, cancel before <strong style="color:#94a3b8;">${renewalDate}</strong> to avoid being charged.
+        </p>
+      </td></tr>
+    </table>
+    ${supportNote()}`;
+
+  return emailShell(`Your Poddle ${planLabel} subscription renews on ${renewalDate}`, header, body);
+}
+
 // ─── Subscription Cancelled ─────────────────────────────────────────────────
 
 export function buildCancellationEmail(

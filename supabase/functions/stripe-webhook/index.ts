@@ -341,6 +341,67 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    if (event.type === "invoice.upcoming") {
+      const invoice = event.data.object;
+      const subscriptionId = invoice.subscription;
+      if (subscriptionId) {
+        const { data: wsForUpcoming } = await supabase
+          .from("workspaces")
+          .select("owner_id, plan")
+          .eq("stripe_subscription_id", subscriptionId)
+          .maybeSingle();
+
+        if (wsForUpcoming?.owner_id) {
+          const amountCents = invoice.amount_due ?? 0;
+          const currency = (invoice.currency ?? "usd").toUpperCase();
+          const amountFormatted = `${currency} ${(amountCents / 100).toFixed(2)}`;
+          const planLabel = wsForUpcoming.plan
+            ? wsForUpcoming.plan.charAt(0).toUpperCase() + wsForUpcoming.plan.slice(1)
+            : "Pro";
+          const periodEnd = invoice.lines?.data?.[0]?.period?.end;
+          const renewalDate = periodEnd
+            ? new Date(periodEnd * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+            : null;
+
+          // Create a billing portal link so they can easily manage their plan
+          let billingPortalUrl = "https://poddleme.com/#pricing";
+          try {
+            const portalRes = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${stripeSecretKey}`,
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                customer: invoice.customer,
+                return_url: "https://poddleme.com/#workspaces",
+              }).toString(),
+            });
+            if (portalRes.ok) {
+              const portalSession = await portalRes.json();
+              billingPortalUrl = portalSession.url ?? billingPortalUrl;
+            }
+          } catch {
+            // fall through — use default URL
+          }
+
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+          fetch(`${supabaseUrl}/functions/v1/send-renewal-reminder`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${anonKey}` },
+            body: JSON.stringify({
+              userId: wsForUpcoming.owner_id,
+              planLabel,
+              amountFormatted,
+              renewalDate,
+              billingPortalUrl,
+            }),
+          }).catch((e) => console.error("Failed to send renewal reminder email:", e));
+        }
+      }
+    }
+
     if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object;
       const subscriptionId = subscription.id;
