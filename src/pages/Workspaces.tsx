@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, MessageSquare, ExternalLink } from 'lucide-react';
+import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, MessageSquare, ExternalLink, LayoutList, Map } from 'lucide-react';
 import { useUserWorkspaces, useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { useBetaAccess } from '../hooks/useBetaAccess';
 import CreateWorkspace from '../components/CreateWorkspace';
 import UpgradePrompt from '../components/UpgradePrompt';
 import CrossWorkspacePatternCard from '../components/CrossWorkspacePatternCard';
+import DecisionMap from '../components/DecisionMap';
 
 interface WorkspacesProps {
   onNavigate: (page: string, workspaceId?: string) => void;
@@ -49,6 +50,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const { hasBetaAccess } = useBetaAccess();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [view, setView] = useState<'list' | 'map'>('list');
 
   function handleCreateClick() {
     if (!isPro && !hasBetaAccess && trialExhausted) {
@@ -87,15 +89,45 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             <h1 className="text-xl lg:text-3xl font-black text-slate-900 leading-tight">Private Workspaces</h1>
             <p className="text-slate-500 text-xs sm:text-sm mt-0.5 hidden sm:block">Encrypted spaces where your team debates proprietary ideas with AI agents.</p>
           </div>
-          <button
-            onClick={handleCreateClick}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all duration-200 active:scale-95 flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
-          >
-            {!isPro && !hasBetaAccess && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            <span className="hidden xs:inline">{!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade' : 'New Workspace'}</span>
-            <span className="xs:hidden">{!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade' : 'New'}</span>
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* View toggle — only shown when there are workspaces */}
+            {!isLoading && appWorkspaces.length > 0 && (
+              <div
+                className="flex items-center rounded-xl p-1"
+                style={{ background: 'rgba(15,23,42,0.06)', border: '1px solid rgba(15,23,42,0.08)' }}
+              >
+                <button
+                  onClick={() => setView('list')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150"
+                  style={view === 'list'
+                    ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }
+                    : { color: '#64748b' }}
+                >
+                  <LayoutList className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">List</span>
+                </button>
+                <button
+                  onClick={() => setView('map')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150"
+                  style={view === 'map'
+                    ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }
+                    : { color: '#64748b' }}
+                >
+                  <Map className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Map</span>
+                </button>
+              </div>
+            )}
+            <button
+              onClick={handleCreateClick}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-bold transition-all duration-200 active:scale-95"
+              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+            >
+              {!isPro && !hasBetaAccess && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              <span className="hidden xs:inline">{!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade' : 'New Workspace'}</span>
+              <span className="xs:hidden">{!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade' : 'New'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Monthly workspace status banner */}
@@ -175,8 +207,13 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
           </div>
         )}
 
+        {/* Decision Map view */}
+        {!isLoading && appWorkspaces.length > 0 && view === 'map' && (
+          <DecisionMap workspaces={appWorkspaces} onNavigate={onNavigate} />
+        )}
+
         {/* Workspace list — desktop table-style */}
-        {!isLoading && appWorkspaces.length > 0 && (
+        {!isLoading && appWorkspaces.length > 0 && view === 'list' && (
           <div
             className="rounded-2xl overflow-hidden"
             style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
@@ -337,7 +374,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         )}
 
         {/* Upgrade banner when monthly limit reached */}
-        {!isLoading && !isPro && monthlyLimitReached && appWorkspaces.length > 0 && (
+        {!isLoading && !isPro && monthlyLimitReached && appWorkspaces.length > 0 && view === 'list' && (
           <div
             className="mt-6 rounded-2xl p-5 flex items-center gap-4"
             style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdfa)', border: '1px solid rgba(37,99,235,0.15)' }}
@@ -363,7 +400,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         )}
 
         {/* Slack Sessions */}
-        {!isLoading && (
+        {!isLoading && view === 'list' && (
           <div className="mt-8">
             <div className="flex items-center gap-3 mb-4">
               <div
@@ -449,14 +486,14 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         )}
 
         {/* Cross-workspace Decision Intelligence */}
-        {!isLoading && user && (
+        {!isLoading && user && view === 'list' && (
           <div className="mt-6">
             <CrossWorkspacePatternCard userId={user.id} />
           </div>
         )}
 
         {/* Feature callout strip */}
-        {!isLoading && (
+        {!isLoading && view === 'list' && (
           <div className="mt-8 grid sm:grid-cols-3 gap-4">
             {[
               { icon: Lock, title: 'End-to-end encrypted', desc: 'All workspace data encrypted at rest and in transit', color: '#2563eb', bg: 'rgba(37,99,235,0.07)' },

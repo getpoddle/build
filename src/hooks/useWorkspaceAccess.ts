@@ -129,6 +129,8 @@ export function useUserWorkspaces() {
     stripe_customer_id: string | null;
     source: string;
     created_at: string;
+    decision_category: string;
+    decision_status: string;
   }>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -141,7 +143,7 @@ export function useUserWorkspaces() {
         workspaces (
           id, name, description, domain, plan, subscription_status,
           trial_workspace_expires_at, seats, is_encrypted, owner_id, stripe_customer_id,
-          source, created_at
+          source, created_at, decision_category, decision_status
         )
       `)
       .eq('user_id', user.id);
