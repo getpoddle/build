@@ -1760,7 +1760,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" style={{ cursor: draggingItemId ? 'grabbing' : undefined }}>
+                <div className="flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0" style={{ cursor: draggingItemId ? 'grabbing' : undefined }}>
                   {STATUS_COLS.map(col => {
                     const items = actionItems.filter(a => a.status === col.key);
                     const isDropTarget = !!draggingItemId && dragOverCol === col.key;
@@ -1769,7 +1769,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                       <div
                         key={col.key}
                         ref={el => { if (el) actionColRefs.current.set(col.key, el); else actionColRefs.current.delete(col.key); }}
-                        className="rounded-xl p-3 min-h-[100px] transition-all duration-150"
+                        className="rounded-xl p-3 min-h-[100px] transition-all duration-150 flex-shrink-0 w-[75vw] sm:w-auto"
                         style={{
                           background: isDropTarget ? col.bg.replace('0.04', '0.10').replace('0.06', '0.14') : col.bg,
                           border: `2px solid ${borderColor}`,
