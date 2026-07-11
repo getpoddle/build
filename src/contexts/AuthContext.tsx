@@ -5,8 +5,9 @@ import { getDisplayName } from '../lib/displayName';
 import { setUserProperties, trackUserLogin, trackUserSignup } from '../lib/analytics';
 import { phIdentify, phSetPersonProperties, phReset, phCapture, phSyncProfileProperties } from '../lib/posthog';
 
-const IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-const IDLE_EVENTS = ['mousemove', 'keydown', 'click', 'touchstart'] as const;
+const IDLE_TIMEOUT_ADMIN = 10 * 60 * 1000;      // 10 min for admins
+const IDLE_TIMEOUT_USER  = 6 * 60 * 60 * 1000;  // 6 hours for regular users
+const IDLE_EVENTS = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'] as const;
 
 interface AuthContextType {
   user: User | null;
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [signupEmailPending, setSignupEmailPending] = useState<string | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAdminRef = useRef(false);
+  const isLoggedInRef = useRef(false);
 
   const clearIdleTimer = () => {
     if (idleTimerRef.current) {
@@ -42,20 +44,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const resetIdleTimer = () => {
-    if (!isAdminRef.current) return;
+    if (!isLoggedInRef.current) return;
     clearIdleTimer();
+    const timeout = isAdminRef.current ? IDLE_TIMEOUT_ADMIN : IDLE_TIMEOUT_USER;
+    const scope = isAdminRef.current ? 'global' : 'local';
     idleTimerRef.current = setTimeout(() => {
-      supabase.auth.signOut({ scope: 'global' });
-    }, IDLE_TIMEOUT_MS);
+      supabase.auth.signOut({ scope });
+    }, timeout);
   };
 
-  // Start/stop idle detection based on admin status
   useEffect(() => {
     IDLE_EVENTS.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }));
     return () => {
       IDLE_EVENTS.forEach(e => window.removeEventListener(e, resetIdleTimer));
       clearIdleTimer();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -65,9 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(loadingTimeout);
+      isLoggedInRef.current = !!session?.user;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) resetIdleTimer();
     }).catch(() => {
       clearTimeout(loadingTimeout);
       setLoading(false);
@@ -87,9 +93,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
+          isLoggedInRef.current = !!session?.user;
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+
+          if (!session?.user) {
+            isAdminRef.current = false;
+            clearIdleTimer();
+          }
 
           if (event === 'USER_UPDATED' && session?.user?.email_confirmed_at) {
             setSignupEmailPending(null);
@@ -115,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 ),
               ]);
               isAdminRef.current = !!adminRes.data;
-              if (isAdminRef.current) resetIdleTimer();
+              resetIdleTimer();
               profile = profileRes.data;
             } catch {
               console.error('Profile fetch timed out');

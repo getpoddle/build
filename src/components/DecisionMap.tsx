@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Lock, MessageSquare, Users, AlertTriangle, Pencil, Check, X, GripVertical, Link2, Trash2 } from 'lucide-react';
+import { Lock, MessageSquare, Users, AlertTriangle, Pencil, Check, X, GripVertical, Link2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -119,8 +119,8 @@ function EditPopover({ workspaceId, category, status, onSaved, onClose }: EditPo
 
   return (
     <div
-      className="absolute top-9 right-0 z-30 rounded-2xl shadow-xl p-4 w-64"
-      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)' }}
+      className="absolute top-9 right-0 z-30 rounded-2xl shadow-xl p-4"
+      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)', width: 'min(256px, calc(100vw - 32px))', maxHeight: '80vh', overflowY: 'auto' }}
       onClick={e => e.stopPropagation()}
       onPointerDown={e => e.stopPropagation()}
     >
@@ -253,8 +253,8 @@ function LinkPopover({ workspaceId, workspaceName, allWorkspaces, existingLinks,
 
   return (
     <div
-      className="absolute top-9 right-0 z-30 rounded-2xl shadow-xl p-4 w-72"
-      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)' }}
+      className="absolute top-9 right-0 z-30 rounded-2xl shadow-xl p-4"
+      style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)', width: 'min(288px, calc(100vw - 32px))', maxHeight: '80vh', overflowY: 'auto' }}
       onClick={e => e.stopPropagation()}
       onPointerDown={e => e.stopPropagation()}
     >
@@ -644,7 +644,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
       )}
 
       {/* Portfolio summary bar */}
-      <div className="rounded-2xl px-5 py-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}>
+      <div className="rounded-2xl px-4 sm:px-5 py-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}>
         <div className="col-span-2 sm:col-span-1 flex items-center gap-3 sm:border-r sm:border-slate-100 sm:pr-4">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm" style={{ background: avgHealth !== null ? `${healthColor(avgHealth)}18` : 'rgba(15,23,42,0.05)', color: avgHealth !== null ? healthColor(avgHealth) : '#94a3b8' }}>
             {avgHealth ?? '—'}
@@ -698,11 +698,12 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         ))}
       </div>
 
-      {/* Kanban board with SVG overlay */}
-      <div ref={boardRef} className="relative overflow-x-auto -mx-4 sm:mx-0">
+      {/* Kanban board — horizontal on md+, vertical accordion on mobile */}
+      <div ref={boardRef} className="relative">
         <ConnectionLines lines={connectionLines} />
 
-        <div className="flex gap-4 px-4 sm:px-0 pb-2" style={{ minWidth: 'max-content', width: '100%' }}>
+        {/* Desktop: horizontal kanban */}
+        <div className="hidden md:flex gap-4 pb-2 overflow-x-auto">
           {STATUSES.map(s => {
             const col = appWorkspaces.filter(w => w.decision_status === s.key);
             const isDropTarget = draggingId !== null && dragOverStatus === s.key;
@@ -715,7 +716,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
                 style={{
                   background: isDropTarget ? s.activeBg : s.bg,
                   border: isDropTarget ? `2px solid ${s.color}60` : `1px solid ${s.border}`,
-                  minWidth: '220px',
+                  minWidth: '200px',
                   maxWidth: '320px',
                   transform: isDropTarget ? 'scale(1.01)' : 'scale(1)',
                   boxShadow: isDropTarget ? `0 0 0 4px ${s.color}14` : 'none',
@@ -775,6 +776,29 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
             );
           })}
         </div>
+
+        {/* Mobile: vertical accordion per status */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {STATUSES.map(s => {
+            const col = appWorkspaces.filter(w => w.decision_status === s.key);
+            return (
+              <MobileStatusSection
+                key={s.key}
+                status={s}
+                workspaces={col}
+                healthScores={healthScores}
+                memberCounts={memberCounts}
+                links={links}
+                allWorkspaces={appWorkspaces}
+                onNavigate={onNavigate}
+                onMetaUpdated={handleMetaUpdated}
+                onLinked={handleLinked}
+                onUnlinked={handleUnlinked}
+                cardRefs={cardRefs}
+              />
+            );
+          })}
+        </div>
       </div>
 
       {/* Category legend */}
@@ -793,9 +817,93 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         </div>
       </div>
 
-      <p className="text-[10px] text-slate-400 text-center">
+      <p className="hidden md:block text-[10px] text-slate-400 text-center">
         Drag cards between stages · Hover a card to use the <Link2 className="w-2.5 h-2.5 inline" /> icon to connect decisions · Use <Pencil className="w-2.5 h-2.5 inline" /> to edit category or status
       </p>
+      <p className="md:hidden text-[10px] text-slate-400 text-center">
+        Tap <Link2 className="w-2.5 h-2.5 inline" /> to connect decisions · Tap <Pencil className="w-2.5 h-2.5 inline" /> to edit category or status
+      </p>
+    </div>
+  );
+}
+
+// ─── Mobile status accordion section ─────────────────────────────────────────
+
+interface MobileStatusSectionProps {
+  status: typeof STATUSES[number];
+  workspaces: MapWorkspace[];
+  healthScores: Record<string, number>;
+  memberCounts: Record<string, number>;
+  links: DecisionLink[];
+  allWorkspaces: MapWorkspace[];
+  onNavigate: (page: string, id?: string) => void;
+  onMetaUpdated: (id: string, category: string, status: string) => void;
+  onLinked: (link: DecisionLink) => void;
+  onUnlinked: (linkId: string) => void;
+  cardRefs: React.MutableRefObject<Map<string, HTMLElement>>;
+}
+
+function MobileStatusSection({ status: s, workspaces: col, healthScores, memberCounts, links, allWorkspaces, onNavigate, onMetaUpdated, onLinked, onUnlinked, cardRefs }: MobileStatusSectionProps) {
+  const [open, setOpen] = useState(col.length > 0);
+
+  useEffect(() => {
+    if (col.length > 0) setOpen(true);
+  }, [col.length]);
+
+  function getLinkCount(wsId: string) {
+    return links.filter(l => l.workspace_id === wsId || l.linked_workspace_id === wsId).length;
+  }
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden transition-all"
+      style={{ border: `1px solid ${open ? s.border : 'rgba(15,23,42,0.06)'}`, background: s.bg }}
+    >
+      <button
+        className="w-full flex items-center justify-between px-4 py-3"
+        onClick={() => setOpen(v => !v)}
+      >
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
+          <span className="text-sm font-bold" style={{ color: s.color }}>{s.label}</span>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${s.color}20`, color: s.color }}>{col.length}</span>
+        </div>
+        {open ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 space-y-3">
+          {col.length === 0 ? (
+            <div className="rounded-xl py-5 text-center" style={{ border: `1.5px dashed ${s.border}`, background: 'rgba(255,255,255,0.5)' }}>
+              <p className="text-[10px] text-slate-400">No decisions here</p>
+            </div>
+          ) : (
+            col.map(ws => (
+              <div
+                key={ws.id}
+                data-card-id={ws.id}
+                ref={el => { if (el) cardRefs.current.set(ws.id, el); else cardRefs.current.delete(ws.id); }}
+              >
+                <DecisionCard
+                  ws={ws}
+                  healthScore={healthScores[ws.id] ?? null}
+                  memberCount={memberCounts[ws.id] ?? 0}
+                  linkCount={getLinkCount(ws.id)}
+                  isDragging={false}
+                  allWorkspaces={allWorkspaces}
+                  existingLinks={links}
+                  onNavigate={onNavigate}
+                  onMetaUpdated={onMetaUpdated}
+                  onDragStart={() => {}}
+                  onLinked={onLinked}
+                  onUnlinked={onUnlinked}
+                  isMobile
+                />
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -815,9 +923,10 @@ interface CardProps {
   onDragStart: (e: React.PointerEvent, ws: MapWorkspace) => void;
   onLinked: (link: DecisionLink) => void;
   onUnlinked: (linkId: string) => void;
+  isMobile?: boolean;
 }
 
-function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, allWorkspaces, existingLinks, onNavigate, onMetaUpdated, onDragStart, onLinked, onUnlinked }: CardProps) {
+function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, allWorkspaces, existingLinks, onNavigate, onMetaUpdated, onDragStart, onLinked, onUnlinked, isMobile = false }: CardProps) {
   const [editing, setEditing] = useState(false);
   const [linking, setLinking] = useState(false);
   const cat = categoryMeta(ws.decision_category);
@@ -833,8 +942,8 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
         border: '1px solid rgba(15,23,42,0.08)',
         boxShadow: isDragging ? 'none' : '0 1px 4px rgba(15,23,42,0.05)',
         opacity: isDragging ? 0.35 : isExpired ? 0.65 : 1,
-        cursor: isDragging ? 'grabbing' : 'grab',
-        touchAction: 'none',
+        cursor: isMobile ? 'default' : isDragging ? 'grabbing' : 'grab',
+        touchAction: isMobile ? 'auto' : 'none',
         userSelect: 'none',
       }}
     >
@@ -865,11 +974,11 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
               <div className="relative">
                 <button
                   onClick={e => { e.stopPropagation(); setLinking(v => !v); setEditing(false); }}
-                  className="w-6 h-6 flex items-center justify-center rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'}`}
                   style={{ color: linking ? '#2563eb' : '#94a3b8' }}
                   title="Connect to another decision"
                 >
-                  <Link2 className="w-3 h-3" />
+                  <Link2 className="w-3.5 h-3.5" />
                 </button>
                 {linking && (
                   <LinkPopover
@@ -886,9 +995,9 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
               <div className="relative">
                 <button
                   onClick={e => { e.stopPropagation(); setEditing(v => !v); setLinking(false); }}
-                  className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors opacity-0 group-hover:opacity-100"
+                  className={`w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'}`}
                 >
-                  <Pencil className="w-3 h-3" />
+                  <Pencil className="w-3.5 h-3.5" />
                 </button>
                 {editing && (
                   <EditPopover
