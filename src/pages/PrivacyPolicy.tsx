@@ -1,7 +1,7 @@
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
         <button
           onClick={() => window.history.back()}
           className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-8 transition-colors"
@@ -11,10 +11,10 @@ export default function PrivacyPolicy() {
         </button>
 
         {/* Header */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-10 mb-6">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-10 mb-6">
           <div className="mb-6">
             <span className="inline-block bg-blue-50 text-blue-700 text-xs font-semibold tracking-wide uppercase px-3 py-1 rounded-full mb-4">Legal</span>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2 tracking-tight">Privacy Policy</h1>
+            <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-2 tracking-tight">Privacy Policy</h1>
             <p className="text-slate-500 text-sm">Last Updated: <strong>4 June 2026</strong> &nbsp;·&nbsp; Effective Date: <strong>1 January 2026</strong></p>
           </div>
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 text-sm text-blue-800 leading-relaxed">
@@ -292,9 +292,9 @@ export default function PrivacyPolicy() {
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <div id={id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
-      <h2 className="text-xl font-bold text-slate-900 mb-5 pb-3 border-b border-slate-100">{title}</h2>
-      <div className="text-slate-700 leading-relaxed text-[15px]">{children}</div>
+    <div id={id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8">
+      <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-4 sm:mb-5 pb-3 border-b border-slate-100">{title}</h2>
+      <div className="text-slate-700 leading-relaxed text-[14px] sm:text-[15px]">{children}</div>
     </div>
   );
 }
@@ -319,30 +319,53 @@ function Table({
   headers?: [string, string, string?, string?];
 }) {
   const cols = headers ? headers.filter(Boolean).length : rows[0].filter(Boolean).length;
+  const headerLabels = headers ? headers.filter(Boolean) as string[] : null;
+
   return (
-    <div className="overflow-x-auto mt-4 rounded-xl border border-slate-200">
-      <table className="w-full text-sm">
-        {headers && (
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              {headers.filter(Boolean).map((h) => (
-                <th key={h} className="text-left px-4 py-3 font-semibold text-slate-700">{h}</th>
-              ))}
-            </tr>
-          </thead>
-        )}
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
-              {row.slice(0, cols).filter((_, ci) => ci < cols).map((cell, ci) => (
-                <td key={ci} className="px-4 py-3 text-slate-700 align-top border-b border-slate-100 last:border-0">
-                  {ci === 0 ? <strong className="text-slate-900">{cell}</strong> : cell}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      {/* Desktop table */}
+      <div className="hidden sm:block overflow-x-auto mt-4 rounded-xl border border-slate-200">
+        <table className="w-full text-sm">
+          {headerLabels && (
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                {headerLabels.map((h) => (
+                  <th key={h} className="text-left px-4 py-3 font-semibold text-slate-700">{h}</th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                {row.slice(0, cols).map((cell, ci) => (
+                  <td key={ci} className="px-4 py-3 text-slate-700 align-top border-b border-slate-100 last:border-b-0">
+                    {ci === 0 ? <strong className="text-slate-900">{cell}</strong> : cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile stacked cards */}
+      <div className="sm:hidden mt-4 space-y-3">
+        {rows.map((row, i) => (
+          <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+            {row.slice(0, cols).map((cell, ci) => (
+              <div key={ci}>
+                {headerLabels && ci > 0 && (
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">{headerLabels[ci]}</p>
+                )}
+                <p className={ci === 0 ? 'font-semibold text-slate-900 text-sm' : 'text-slate-700 text-sm'}>
+                  {cell}
+                </p>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
