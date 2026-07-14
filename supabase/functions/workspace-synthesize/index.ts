@@ -95,6 +95,74 @@ Deno.serve(async (req: Request) => {
       return `${label}: ${content}`;
     }
 
+    // ── Bias flag validation ────────────────────────────────────────────────
+    // Ensure each cognitive bias flag is grounded in the actual session
+    // transcript. Flags whose explanation shares no meaningful word overlap
+    // with the transcript are dropped entirely. If none survive, the section
+    // is omitted (stored as []).
+    function validateBiasFlags(
+      flags: unknown,
+      transcriptText: string,
+      workspaceName: string,
+    ): Array<{ bias_name: string; explanation: string; counter_question: string }> {
+      if (!Array.isArray(flags)) return [];
+      const transcriptLower = transcriptText.toLowerCase();
+      const topicLower = (workspaceName || "").toLowerCase();
+      const topicWords = topicLower
+        .split(/[\s,.-]+/)
+        .filter((w) => w.length > 3)
+        .map((w) => w.replace(/[^a-z0-9]/g, ""));
+
+      const result: Array<{ bias_name: string; explanation: string; counter_question: string }> = [];
+      for (const f of flags) {
+        if (!f || typeof f !== "object") continue;
+        const r = f as Record<string, unknown>;
+        const biasName = typeof r.bias_name === "string" ? r.bias_name.trim() : "";
+        const explanation = typeof r.explanation === "string" ? r.explanation.trim() : "";
+        const counterQuestion = typeof r.counter_question === "string" ? r.counter_question.trim() : "";
+        if (!biasName || !explanation || !counterQuestion) continue;
+
+        const explLower = explanation.toLowerCase();
+
+        // Extract significant words from the explanation (length > 4, alphabetic)
+        const explWords = explLower
+          .split(/[^a-z0-9]+/)
+          .filter((w) => w.length > 4);
+
+        if (explWords.length === 0) continue;
+
+        // Check overlap with transcript content
+        let matched = 0;
+        for (const w of explWords) {
+          if (transcriptLower.includes(w)) matched++;
+        }
+        const overlapRatio = matched / explWords.length;
+
+        // Require at least 30% of significant explanation words to appear in
+        // the transcript. This filters out fabricated/hallucinated bias
+        // examples while allowing paraphrased quotes.
+        if (overlapRatio < 0.3) continue;
+
+        // If topic words are available, check that the explanation shares at
+        // least some topical relevance. This catches cases where the bias is
+        // about a completely unrelated subject (e.g., employee resignation in
+        // an AI predictions session).
+        if (topicWords.length > 0) {
+          let topicMatch = 0;
+          for (const w of topicWords) {
+            if (explLower.includes(w)) topicMatch++;
+          }
+          // If zero topic words appear in the explanation AND the overlap
+          // ratio is moderate (not a near-exact quote), skip the flag — it's
+          // likely off-topic.
+          if (topicMatch === 0 && overlapRatio < 0.6) continue;
+        }
+
+        result.push({ bias_name: biasName, explanation, counter_question: counterQuestion });
+      }
+      return result;
+    }
+
     let transcript: string;
     if (messages.length <= 50) {
       // Short session: include everything
@@ -202,6 +270,10 @@ OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
 ■ OPPORTUNITY SIGNALS: ⚠ EVIDENCE-ONLY. Include ONLY concrete opportunities explicitly surfaced by agents in the debate. If no opportunities were identified, return [].
 
 ■ COGNITIVE BIAS FLAGS: ⚠ EVIDENCE-ONLY. Include ONLY biases that visibly manifested in this specific discussion. If reasoning was balanced and no clear pattern of bias appeared, return [].
+  - Each bias must cite a SPECIFIC agent statement from the transcript (quote or paraphrase the exact words) in the explanation field.
+  - The bias must relate to the CENTRAL DECISION ("${workspace?.name || "the workspace decision"}"), not to a tangential or unrelated topic.
+  - Do NOT pull from a generic bias taxonomy. If you cannot point to concrete words in the transcript that demonstrate the bias, do NOT include it.
+  - When in doubt, return []. A missing bias flag is always correct; a fabricated one is never acceptable.
 
 ■ KEY DECISIONS: Include the pivotal decisions that were explicitly named or debated. If no clear decisions were surfaced, return [].
 
@@ -265,7 +337,7 @@ CRITICAL: Generate "action_items" FIRST — it is the most important field and m
     { "title": "string", "description": "string", "confidence": "high|medium|low", "source": "string" }
   ],
   "cognitive_bias_flags": [
-    { "bias_name": "string", "explanation": "string", "counter_question": "string" }
+    { "bias_name": "string (the cognitive bias name)", "explanation": "string (MUST quote or paraphrase the specific agent statement(s) from the transcript that demonstrate this bias, and explain how it relates to the central decision)", "counter_question": "string (a question that challenges the biased reasoning, grounded in the same transcript evidence)" }
   ],
   "key_decisions": [
     { "decision": "string", "status": "open|in-progress|resolved", "rationale": "string", "owner": "string" }
@@ -647,6 +719,15 @@ RULES:
       ? synthesis.recommendation.trim()
       : null;
 
+    // Validate cognitive bias flags against the actual session transcript.
+    // Flags that cannot be tied to transcript content are dropped; if none
+    // survive, the section is omitted (stored as []).
+    const validatedBiasFlags = validateBiasFlags(
+      synthesis.cognitive_bias_flags,
+      transcript,
+      workspace?.name || "",
+    );
+
     // Upsert into workspace_synthesis
     const { error: upsertError } = await service
       .from("workspace_synthesis")
@@ -662,7 +743,7 @@ RULES:
         operational_metrics: synthesis.operational_metrics ?? [],
         non_financial_metrics: synthesis.non_financial_metrics ?? [],
         opportunity_signals: synthesis.opportunity_signals ?? [],
-        cognitive_bias_flags: synthesis.cognitive_bias_flags ?? [],
+        cognitive_bias_flags: validatedBiasFlags,
         key_decisions: synthesis.key_decisions ?? [],
         decision_velocity: synthesis.decision_velocity ?? "moderate",
         confidence_trajectory: synthesis.confidence_trajectory ?? "flat",
@@ -922,7 +1003,7 @@ RULES:
           const conflictZones = Array.isArray(synthesis.conflict_zones) ? synthesis.conflict_zones : [];
           const openQuestions = Array.isArray(synthesis.open_questions) ? synthesis.open_questions : [];
           const actionItems = Array.isArray(synthesis.action_items) ? synthesis.action_items : [];
-          const biasFlagsArr = Array.isArray(synthesis.cognitive_bias_flags) ? synthesis.cognitive_bias_flags : [];
+          const biasFlagsArr = validatedBiasFlags;
 
           // Dominant category for this specific workspace (not cross-workspace avg)
           const wsRiskBreakdown: Record<string, number> = {};
