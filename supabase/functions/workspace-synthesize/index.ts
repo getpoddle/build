@@ -163,6 +163,110 @@ Deno.serve(async (req: Request) => {
       return result;
     }
 
+    // ── Conflict zone validation ─────────────────────────────────────────────
+    // Ensure each conflict zone references specific positions from the actual
+    // transcript. Zones whose positions share no meaningful word overlap with
+    // the transcript are dropped.
+    function validateConflictZones(
+      zones: unknown,
+      transcriptText: string,
+    ): Array<Record<string, unknown>> {
+      if (!Array.isArray(zones)) return [];
+      const transcriptLower = transcriptText.toLowerCase();
+      const result: Array<Record<string, unknown>> = [];
+
+      for (const z of zones) {
+        if (!z || typeof z !== "object") continue;
+        const r = z as Record<string, unknown>;
+        const topic = typeof r.topic === "string" ? r.topic.trim() : "";
+        const positionA = typeof r.position_a === "string" ? r.position_a.trim() : "";
+        const positionB = typeof r.position_b === "string" ? r.position_b.trim() : "";
+        if (!topic || !positionA || !positionB) continue;
+
+        // Combine all text fields for overlap checking
+        const combined = `${topic} ${positionA} ${positionB}`.toLowerCase();
+        const words = combined.split(/[^a-z0-9]+/).filter((w) => w.length > 4);
+        if (words.length === 0) continue;
+
+        let matched = 0;
+        for (const w of words) {
+          if (transcriptLower.includes(w)) matched++;
+        }
+        const overlapRatio = matched / words.length;
+
+        // Require at least 30% of significant words to appear in transcript
+        if (overlapRatio < 0.3) continue;
+
+        result.push({
+          topic,
+          agent_a: typeof r.agent_a === "string" ? r.agent_a : "",
+          position_a: positionA,
+          agent_b: typeof r.agent_b === "string" ? r.agent_b : "",
+          position_b: positionB,
+          tension_level: typeof r.tension_level === "number" ? r.tension_level : 50,
+        });
+      }
+      return result;
+    }
+
+    // ── Risk signal validation ───────────────────────────────────────────────
+    // Ensure each risk signal references a specific entity, term, or claim from
+    // the transcript. Generic business platitudes are filtered out.
+    function validateRiskSignals(
+      signals: unknown,
+      transcriptText: string,
+    ): Array<Record<string, unknown>> {
+      if (!Array.isArray(signals)) return [];
+      const transcriptLower = transcriptText.toLowerCase();
+      const result: Array<Record<string, unknown>> = [];
+
+      // Common generic risk phrases that should not pass without transcript
+      // grounding — if the signal is mostly these words, it's a platitude.
+      const genericPhrases = [
+        "lean development", "cost-cutting", "cost cutting", "market volatility",
+        "competitive pressure", "resource constraint", "cash flow", "burn rate",
+        "necessary but risky", "can be beneficial", "poses a threat",
+        "operational efficiency", "market dynamics", "strategic alignment",
+      ];
+
+      for (const s of signals) {
+        if (!s || typeof s !== "object") continue;
+        const r = s as Record<string, unknown>;
+        const signal = typeof r.signal === "string" ? r.signal.trim() : "";
+        if (!signal) continue;
+
+        const signalLower = signal.toLowerCase();
+        const words = signalLower.split(/[^a-z0-9]+/).filter((w) => w.length > 4);
+        if (words.length === 0) continue;
+
+        // Check overlap with transcript
+        let matched = 0;
+        for (const w of words) {
+          if (transcriptLower.includes(w)) matched++;
+        }
+        const overlapRatio = matched / words.length;
+
+        // Require at least 30% of significant words to appear in transcript
+        if (overlapRatio < 0.3) continue;
+
+        // Penalize generic platitudes: if the signal contains multiple generic
+        // phrases and has low overlap, it's likely a platitude
+        let genericCount = 0;
+        for (const phrase of genericPhrases) {
+          if (signalLower.includes(phrase)) genericCount++;
+        }
+        if (genericCount > 0 && overlapRatio < 0.5) continue;
+
+        result.push({
+          signal,
+          severity: typeof r.severity === "string" ? r.severity : "medium",
+          category: typeof r.category === "string" ? r.category : "strategic",
+          ...(Array.isArray(r.source_agents) ? { source_agents: r.source_agents } : {}),
+        });
+      }
+      return result;
+    }
+
     let transcript: string;
     if (messages.length <= 50) {
       // Short session: include everything
@@ -252,10 +356,16 @@ OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
 ■ CONSENSUS POINTS: Every point must reflect something agents genuinely agreed on in the transcript. Report what was found — do not pad with generic agreements.
 
 ■ CONFLICT ZONES: Only identify real fault lines where agents took opposing positions. If no genuine disagreement occurred, return [].
+  - The topic, position_a, and position_b fields MUST each quote or paraphrase specific statements agents made in the transcript. Include the agent's role and the substance of what they said.
+  - Do NOT describe generic strategic tensions (e.g., "speed vs. quality", "cost vs. quality"). Only conflicts that arose in THIS debate, about THIS decision, belong here.
+  - If you cannot point to two agents who actually disagreed on a specific point in the transcript, return [].
 
 ■ OPEN QUESTIONS: Only list questions the debate genuinely left unresolved. Do not fabricate questions that were not raised or implied.
 
 ■ RISK SIGNALS: Only include risks explicitly raised or directly implied by what was discussed. Span relevant categories; do not invent risks not grounded in the transcript.
+  - The signal field MUST reference a concrete entity, term, or claim from the transcript — a specific competitor named, a metric quoted, a timeline mentioned, a technology discussed, or a claim an agent made.
+  - Do NOT output generic business-risk platitudes (e.g., "lean development is necessary but risky", "cost-cutting can be beneficial", "market volatility poses a threat"). Every risk must be tied to something specific that was said in THIS session.
+  - If the transcript does not contain a specific, identifiable basis for a risk, do NOT include it. Return [] rather than padding with generic risks.
 
 ■ BLIND SPOTS: Only identify dimensions genuinely underweighted in THIS discussion. Do not list generic strategic gaps that apply to any decision.
 
@@ -286,6 +396,7 @@ FIELD RULES:
 CONFLICT ZONES:
 - topic = the exact strategic fault line (e.g., "Full mandate vs permanent hybrid model")
 - agent_a, agent_b = role names from transcript (e.g., "people_advisor", "risk_analyst", "devils_advocate", "financial_strategist", "execution_lead", "market_analyst", "innovation_scout")
+- position_a, position_b = MUST quote or paraphrase the specific words the agent said in the transcript about this exact point of disagreement
 - tension_level = 0-100 (80+ = critical, 50-79 = high, <50 = moderate)
 
 ACTION ITEMS:
@@ -307,11 +418,11 @@ CRITICAL: Generate "action_items" FIRST — it is the most important field and m
   ],
   "conflict_zones": [
     {
-      "topic": "string",
-      "agent_a": "string",
-      "position_a": "string",
-      "agent_b": "string",
-      "position_b": "string",
+      "topic": "string (the specific point of disagreement from this debate)",
+      "agent_a": "string (role name)",
+      "position_a": "string (quote or paraphrase of what this agent said in the transcript about this disagreement)",
+      "agent_b": "string (role name)",
+      "position_b": "string (quote or paraphrase of what this agent said in the transcript about this disagreement)",
       "tension_level": 80
     }
   ],
@@ -319,7 +430,7 @@ CRITICAL: Generate "action_items" FIRST — it is the most important field and m
     { "question": "string", "urgency": "critical|high|medium" }
   ],
   "risk_signals": [
-    { "signal": "string", "severity": "critical|high|medium|low", "category": "market|execution|financial|team|technology" }
+    { "signal": "string (MUST reference a specific entity, term, metric, or claim from the transcript — not a generic business platitude)", "severity": "critical|high|medium|low", "category": "market|execution|financial|team|technology" }
   ],
   "blind_spots": [
     { "area": "string", "description": "string" }
@@ -462,9 +573,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     // tied to a real structured value — no dead code from mismatched field names.
     function computeScores(): { decisionHealth: number; financial: number | null; operational: number | null; alignment: number } {
       // Use the actual field names the AI produces
-      const riskSignals = Array.isArray(synthesis.risk_signals)
-        ? synthesis.risk_signals as Array<{ severity?: string; category?: string }>
-        : [];
+      const riskSignals = validatedRiskSignals as Array<{ severity?: string; category?: string }>;
       const blindSpots = Array.isArray(synthesis.blind_spots) ? synthesis.blind_spots : [];
       const openQuestions = Array.isArray(synthesis.open_questions)
         ? synthesis.open_questions as Array<{ urgency?: string }>
@@ -472,9 +581,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       const consensusPoints = Array.isArray(synthesis.consensus_points)
         ? synthesis.consensus_points as Array<{ confidence?: number; source_count?: number }>
         : [];
-      const conflictZones = Array.isArray(synthesis.conflict_zones)
-        ? synthesis.conflict_zones as Array<{ tension_level?: number }>
-        : [];
+      const conflictZones = validatedConflictZones as Array<{ tension_level?: number }>;
       const actionItems = Array.isArray(synthesis.action_items)
         ? synthesis.action_items as Array<{ priority?: string }>
         : [];
@@ -624,6 +731,24 @@ Return ONLY valid JSON in this exact shape, no markdown:
       return { decisionHealth, financial, operational, alignment };
     }
 
+    // Validate conflict zones, risk signals, and bias flags against the
+    // actual session transcript. Items that cannot be tied to specific
+    // transcript content are dropped; if none survive, the section is stored
+    // as [].
+    const validatedConflictZones = validateConflictZones(
+      synthesis.conflict_zones,
+      transcript,
+    );
+    const validatedRiskSignals = validateRiskSignals(
+      synthesis.risk_signals,
+      transcript,
+    );
+    const validatedBiasFlags = validateBiasFlags(
+      synthesis.cognitive_bias_flags,
+      transcript,
+      workspace?.name || "",
+    );
+
     const scores = computeScores();
 
     // ─── SCORE-ANCHORED HEALTH RATIONALE ────────────────────────────────────────
@@ -640,9 +765,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     const label = scoreLabel(scores.decisionHealth);
 
     // Build evidence summary to anchor the rationale
-    const riskSignals = Array.isArray(synthesis.risk_signals)
-      ? synthesis.risk_signals as Array<{ severity?: string; signal?: string }>
-      : [];
+    const riskSignals = validatedRiskSignals as Array<{ severity?: string; signal?: string }>;
     const criticalRisks = riskSignals.filter(r => r.severity === "critical").map(r => r.signal).filter(Boolean);
     const openQs = Array.isArray(synthesis.open_questions)
       ? (synthesis.open_questions as Array<{ urgency?: string; question?: string }>).filter(q => q.urgency === "critical" || q.urgency === "high")
@@ -650,10 +773,8 @@ Return ONLY valid JSON in this exact shape, no markdown:
     const blindSpotList = Array.isArray(synthesis.blind_spots)
       ? (synthesis.blind_spots as Array<{ area?: string }>).map(b => b.area).filter(Boolean)
       : [];
-    const highTensionConflicts = Array.isArray(synthesis.conflict_zones)
-      ? (synthesis.conflict_zones as Array<{ tension_level?: number; topic?: string }>)
-          .filter(z => (z.tension_level ?? 0) >= 70).map(z => z.topic).filter(Boolean)
-      : [];
+    const highTensionConflicts = (validatedConflictZones as Array<{ tension_level?: number; topic?: string }>)
+        .filter(z => (z.tension_level ?? 0) >= 70).map(z => z.topic).filter(Boolean);
     const resolvedDecisionCount = Array.isArray(synthesis.key_decisions)
       ? (synthesis.key_decisions as Array<{ status?: string }>).filter(d => d.status === "resolved").length
       : 0;
@@ -719,24 +840,15 @@ RULES:
       ? synthesis.recommendation.trim()
       : null;
 
-    // Validate cognitive bias flags against the actual session transcript.
-    // Flags that cannot be tied to transcript content are dropped; if none
-    // survive, the section is omitted (stored as []).
-    const validatedBiasFlags = validateBiasFlags(
-      synthesis.cognitive_bias_flags,
-      transcript,
-      workspace?.name || "",
-    );
-
     // Upsert into workspace_synthesis
     const { error: upsertError } = await service
       .from("workspace_synthesis")
       .upsert({
         workspace_id,
         consensus_points: synthesis.consensus_points ?? [],
-        conflict_zones: synthesis.conflict_zones ?? [],
+        conflict_zones: validatedConflictZones,
         open_questions: synthesis.open_questions ?? [],
-        risk_signals: synthesis.risk_signals ?? [],
+        risk_signals: validatedRiskSignals,
         blind_spots: synthesis.blind_spots ?? [],
         action_items: synthesis.action_items ?? [],
         financial_metrics: synthesis.financial_metrics ?? [],
@@ -997,10 +1109,10 @@ RULES:
         // synthesis depth signals (counts only, no content) so we can score
         // the quality of each workspace's decision data for future fine-tuning.
         {
-          const riskSignals = Array.isArray(synthesis.risk_signals) ? synthesis.risk_signals : [];
+          const riskSignals = validatedRiskSignals;
           const blindSpots = Array.isArray(synthesis.blind_spots) ? synthesis.blind_spots : [];
           const consensusPoints = Array.isArray(synthesis.consensus_points) ? synthesis.consensus_points : [];
-          const conflictZones = Array.isArray(synthesis.conflict_zones) ? synthesis.conflict_zones : [];
+          const conflictZones = validatedConflictZones;
           const openQuestions = Array.isArray(synthesis.open_questions) ? synthesis.open_questions : [];
           const actionItems = Array.isArray(synthesis.action_items) ? synthesis.action_items : [];
           const biasFlagsArr = validatedBiasFlags;
@@ -1119,7 +1231,7 @@ RULES:
       operationalScore: scores.operational,
       alignmentScore: scores.alignment,
       recommendation,
-      conflict_zones: synthesis.conflict_zones,
+      conflict_zones: validatedConflictZones,
       consensus_points: synthesis.consensus_points,
       action_items: synthesis.action_items,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
