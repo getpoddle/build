@@ -267,6 +267,175 @@ Deno.serve(async (req: Request) => {
       return result;
     }
 
+    // ── Generic section item validation ──────────────────────────────────────
+    // Validates array-of-object sections (consensus_points, open_questions,
+    // blind_spots, action_items) by checking that the combined text of each
+    // item has sufficient overlap with the session transcript AND, when topic
+    // words are available, at least some topical relevance.
+    function validateSectionItems(
+      items: unknown,
+      transcriptText: string,
+      workspaceName: string,
+      textFields: string[],
+    ): Array<Record<string, unknown>> {
+      if (!Array.isArray(items)) return [];
+      const transcriptLower = transcriptText.toLowerCase();
+      const topicWords = (workspaceName || "")
+        .toLowerCase()
+        .split(/[\s,.-]+/)
+        .filter((w) => w.length > 3)
+        .map((w) => w.replace(/[^a-z0-9]/g, ""));
+
+      const result: Array<Record<string, unknown>> = [];
+      for (const item of items) {
+        if (!item || typeof item !== "object") continue;
+        const r = item as Record<string, unknown>;
+        const combined = textFields
+          .map((f) => (typeof r[f] === "string" ? (r[f] as string) : ""))
+          .join(" ")
+          .toLowerCase();
+        const words = combined.split(/[^a-z0-9]+/).filter((w) => w.length > 4);
+        if (words.length === 0) continue;
+
+        let matched = 0;
+        for (const w of words) {
+          if (transcriptLower.includes(w)) matched++;
+        }
+        const overlapRatio = matched / words.length;
+        if (overlapRatio < 0.3) continue;
+
+        if (topicWords.length > 0) {
+          let topicMatch = 0;
+          for (const w of topicWords) {
+            if (combined.includes(w)) topicMatch++;
+          }
+          if (topicMatch === 0 && overlapRatio < 0.6) continue;
+        }
+
+        result.push(r);
+      }
+      return result;
+    }
+
+    // ── Recommendation validation ────────────────────────────────────────────
+    // Checks that the recommendation text has sufficient overlap with the
+    // transcript and at least some topical relevance. Returns null if it fails.
+    function validateRecommendation(
+      rec: unknown,
+      transcriptText: string,
+      workspaceName: string,
+    ): string | null {
+      if (typeof rec !== "string") return null;
+      const text = rec.trim();
+      if (text.length < 20) return null;
+
+      const textLower = text.toLowerCase();
+      const transcriptLower = transcriptText.toLowerCase();
+      const words = textLower.split(/[^a-z0-9]+/).filter((w) => w.length > 4);
+      if (words.length === 0) return null;
+
+      let matched = 0;
+      for (const w of words) {
+        if (transcriptLower.includes(w)) matched++;
+      }
+      const overlapRatio = matched / words.length;
+      if (overlapRatio < 0.2) return null;
+
+      const topicWords = (workspaceName || "")
+        .toLowerCase()
+        .split(/[\s,.-]+/)
+        .filter((w) => w.length > 3)
+        .map((w) => w.replace(/[^a-z0-9]/g, ""));
+      if (topicWords.length > 0) {
+        let topicMatch = 0;
+        for (const w of topicWords) {
+          if (textLower.includes(w)) topicMatch++;
+        }
+        if (topicMatch === 0 && overlapRatio < 0.5) return null;
+      }
+
+      return text;
+    }
+
+    // ── Post-generation regeneration ──────────────────────────────────────────
+    // If any sections failed validation (returned fewer items than the AI
+    // produced, or the recommendation was rejected), make a targeted
+    // regeneration call asking the AI to re-produce ONLY the failed sections
+    // with stricter grounding. The result is merged back into the synthesis
+    // object and re-validated.
+    async function regenerateFailedSections(
+      synthesisObj: Record<string, unknown>,
+      failedSections: string[],
+      transcriptText: string,
+      workspaceName: string,
+      openAiApiKey: string,
+    ): Promise<void> {
+      if (failedSections.length === 0) return;
+
+      const sectionInstructions: Record<string, string> = {
+        consensus_points: `Produce "consensus_points": [{ "text": "string", "confidence": number, "source_count": number }]. Each text MUST quote or paraphrase specific agent statements from the transcript that show genuine agreement.`,
+        conflict_zones: `Produce "conflict_zones": [{ "topic": "string", "agent_a": "string (role name)", "position_a": "string (quote/paraphrase from transcript)", "agent_b": "string (role name)", "position_b": "string (quote/paraphrase from transcript)", "tension_level": number }]. Each position MUST quote or paraphrase what the agent actually said.`,
+        open_questions: `Produce "open_questions": [{ "question": "string", "urgency": "critical|high|medium" }]. Each question MUST reference a specific unresolved point from the transcript.`,
+        risk_signals: `Produce "risk_signals": [{ "signal": "string (MUST reference a specific entity, term, or claim from the transcript)", "severity": "critical|high|medium|low", "category": "market|execution|financial|team|technology" }]. No generic platitudes.`,
+        blind_spots: `Produce "blind_spots": [{ "area": "string", "description": "string" }]. Each area MUST identify a dimension genuinely underweighted in THIS discussion, not a generic gap.`,
+        cognitive_bias_flags: `Produce "cognitive_bias_flags": [{ "bias_name": "string", "explanation": "string (MUST quote the specific agent statement showing this bias)", "counter_question": "string" }]. Only include biases that visibly manifested in the transcript.`,
+        action_items: `Produce "action_items": [{ "text": "string", "source_area": "string", "priority": "critical|high|medium" }]. Each text MUST be directly derivable from a specific agent recommendation or team statement in the transcript.`,
+        recommendation: `Produce "recommendation": "string (5-8 sentences)". MUST reference specific points from the transcript and the central decision. Start with the recommended path, state the tradeoff, identify the 7-day critical action.`,
+      };
+
+      const instructionBlocks = failedSections
+        .map((s) => sectionInstructions[s] || "")
+        .filter(Boolean);
+      if (instructionBlocks.length === 0) return;
+
+      const regenPrompt = `You are a Chief Strategy Officer re-doing sections of a War Room synthesis that FAILED quality checks because they were not grounded in the actual debate transcript.
+
+THE CENTRAL DECISION: "${workspaceName}"
+
+FULL DEBATE TRANSCRIPT:
+${transcriptText}
+
+The following sections were rejected because they contained generic content not tied to the specific transcript above. Re-generate ONLY these sections. Every item MUST quote or paraphrase specific content from the transcript. If the transcript does not support any items for a section, return an empty array [].
+
+${instructionBlocks.join("\n\n")}
+
+Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
+
+      try {
+        const regenRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiApiKey}` },
+          signal: AbortSignal.timeout(45_000),
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: "You are a strategic synthesis engine. You produce JSON only, grounded entirely in the transcript. If the transcript lacks evidence for a section, return an empty array. Never fabricate.",
+              },
+              { role: "user", content: regenPrompt },
+            ],
+            max_tokens: 3000,
+            temperature: 0.3,
+            response_format: { type: "json_object" },
+          }),
+        });
+
+        if (!regenRes.ok) return;
+        const regenJson = await regenRes.json();
+        const regenRaw = regenJson.choices?.[0]?.message?.content || "{}";
+        const regenParsed = JSON.parse(regenRaw);
+
+        for (const section of failedSections) {
+          if (section in regenParsed) {
+            synthesisObj[section] = regenParsed[section];
+          }
+        }
+      } catch (e) {
+        console.error("Regeneration call failed:", e);
+      }
+    }
+
     let transcript: string;
     if (messages.length <= 50) {
       // Short session: include everything
@@ -354,6 +523,9 @@ Only include items in each section when the TRANSCRIPT PROVIDES DIRECT EVIDENCE.
 OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
 
 ■ CONSENSUS POINTS: Every point must reflect something agents genuinely agreed on in the transcript. Report what was found — do not pad with generic agreements.
+  - The text field MUST quote or paraphrase specific agent statements from the transcript. Include which agents agreed and on what specific point.
+  - Do NOT include generic agreements that could apply to any decision (e.g., "team agrees on the importance of execution"). Every consensus must reference a specific point of agreement from THIS debate.
+  - If no genuine consensus emerged on any specific point, return [].
 
 ■ CONFLICT ZONES: Only identify real fault lines where agents took opposing positions. If no genuine disagreement occurred, return [].
   - The topic, position_a, and position_b fields MUST each quote or paraphrase specific statements agents made in the transcript. Include the agent's role and the substance of what they said.
@@ -361,6 +533,8 @@ OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
   - If you cannot point to two agents who actually disagreed on a specific point in the transcript, return [].
 
 ■ OPEN QUESTIONS: Only list questions the debate genuinely left unresolved. Do not fabricate questions that were not raised or implied.
+  - Each question MUST reference a specific topic, entity, or claim from the transcript that was discussed but left unresolved.
+  - Do NOT include generic strategic questions (e.g., "How will we measure success?") unless that specific question was raised or directly implied in the transcript.
 
 ■ RISK SIGNALS: Only include risks explicitly raised or directly implied by what was discussed. Span relevant categories; do not invent risks not grounded in the transcript.
   - The signal field MUST reference a concrete entity, term, or claim from the transcript — a specific competitor named, a metric quoted, a timeline mentioned, a technology discussed, or a claim an agent made.
@@ -368,8 +542,12 @@ OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
   - If the transcript does not contain a specific, identifiable basis for a risk, do NOT include it. Return [] rather than padding with generic risks.
 
 ■ BLIND SPOTS: Only identify dimensions genuinely underweighted in THIS discussion. Do not list generic strategic gaps that apply to any decision.
+  - Each blind spot MUST reference a specific aspect of the central decision that was underweighted or ignored by agents in the transcript.
+  - Do NOT list generic blind spots (e.g., "regulatory risks were not discussed") unless that specific gap is evident from what was and was not said in THIS debate.
 
 ■ ACTION ITEMS: Only generate tasks directly derivable from agent recommendations or team statements in the transcript.
+  - Each action item text MUST reference a specific recommendation or statement from the transcript — the agent who proposed it and what they specifically recommended.
+  - Do NOT generate generic actions (e.g., "conduct market research", "develop a plan") unless a specific version of that action was explicitly recommended in the transcript.
 
 ■ FINANCIAL METRICS: ⚠ EVIDENCE-ONLY. Include ONLY if the transcript contains specific numbers, percentages, costs, revenues, or financial figures that were explicitly stated. Do NOT derive or estimate. If financial data was not discussed, return [].
 
@@ -388,6 +566,8 @@ OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
 ■ KEY DECISIONS: Include the pivotal decisions that were explicitly named or debated. If no clear decisions were surfaced, return [].
 
 ■ RECOMMENDATION: 5-8 sentences. Start with the unambiguous recommended path. State what must be accepted (the tradeoff). Identify the one thing that, if not done in 7 days, will cause meaningful delay or damage. Be direct — no hedging.
+  - The recommendation MUST reference specific points, arguments, or data from the transcript. It should be impossible to mistake this recommendation for one written about a different decision.
+  - Do NOT produce a generic recommendation that could apply to any startup decision. Every sentence should be grounded in what was actually debated.
 
 ---
 
@@ -411,10 +591,10 @@ CRITICAL: Generate "action_items" FIRST — it is the most important field and m
 
 {
   "action_items": [
-    { "text": "string", "source_area": "string", "priority": "critical|high|medium" }
+    { "text": "string (MUST reference a specific recommendation or statement from the transcript)", "source_area": "string", "priority": "critical|high|medium" }
   ],
   "consensus_points": [
-    { "text": "string", "confidence": 85, "source_count": 5 }
+    { "text": "string (MUST quote or paraphrase specific agent statements showing genuine agreement on a specific point)", "confidence": 85, "source_count": 5 }
   ],
   "conflict_zones": [
     {
@@ -427,13 +607,13 @@ CRITICAL: Generate "action_items" FIRST — it is the most important field and m
     }
   ],
   "open_questions": [
-    { "question": "string", "urgency": "critical|high|medium" }
+    { "question": "string (MUST reference a specific topic, entity, or claim from the transcript that was discussed but left unresolved)", "urgency": "critical|high|medium" }
   ],
   "risk_signals": [
     { "signal": "string (MUST reference a specific entity, term, metric, or claim from the transcript — not a generic business platitude)", "severity": "critical|high|medium|low", "category": "market|execution|financial|team|technology" }
   ],
   "blind_spots": [
-    { "area": "string", "description": "string" }
+    { "area": "string (MUST reference a specific aspect of the central decision that was underweighted or ignored in the transcript)", "description": "string" }
   ],
   "financial_metrics": [
     { "metric": "string", "value": "string", "confidence": "high|medium|low", "note": "string" }
@@ -485,7 +665,7 @@ TOPIC: Every action item must directly address the central decision above — no
 Return ONLY valid JSON in this exact shape, no markdown:
 {
   "action_items": [
-    { "text": "string — specific, owner-assigned, decision-connected task", "source_area": "string", "priority": "critical|high|medium" }
+    { "text": "string — MUST reference a specific recommendation or statement from the transcript, not a generic task", "source_area": "string", "priority": "critical|high|medium" }
   ]
 }`;
 
@@ -574,17 +754,11 @@ Return ONLY valid JSON in this exact shape, no markdown:
     function computeScores(): { decisionHealth: number; financial: number | null; operational: number | null; alignment: number } {
       // Use the actual field names the AI produces
       const riskSignals = validatedRiskSignals as Array<{ severity?: string; category?: string }>;
-      const blindSpots = Array.isArray(synthesis.blind_spots) ? synthesis.blind_spots : [];
-      const openQuestions = Array.isArray(synthesis.open_questions)
-        ? synthesis.open_questions as Array<{ urgency?: string }>
-        : [];
-      const consensusPoints = Array.isArray(synthesis.consensus_points)
-        ? synthesis.consensus_points as Array<{ confidence?: number; source_count?: number }>
-        : [];
+      const blindSpots = validatedBlindSpots;
+      const openQuestions = validatedOpenQuestions as Array<{ urgency?: string }>;
+      const consensusPoints = validatedConsensus as Array<{ confidence?: number; source_count?: number }>;
       const conflictZones = validatedConflictZones as Array<{ tension_level?: number }>;
-      const actionItems = Array.isArray(synthesis.action_items)
-        ? synthesis.action_items as Array<{ priority?: string }>
-        : [];
+      const actionItems = validatedActionItems as Array<{ priority?: string }>;
       const financialMetrics = Array.isArray(synthesis.financial_metrics)
         ? synthesis.financial_metrics as Array<{ confidence?: string }>
         : [];
@@ -731,23 +905,119 @@ Return ONLY valid JSON in this exact shape, no markdown:
       return { decisionHealth, financial, operational, alignment };
     }
 
-    // Validate conflict zones, risk signals, and bias flags against the
-    // actual session transcript. Items that cannot be tied to specific
-    // transcript content are dropped; if none survive, the section is stored
-    // as [].
-    const validatedConflictZones = validateConflictZones(
-      synthesis.conflict_zones,
-      transcript,
+    // ── POST-GENERATION VALIDATION (all 8 sections) ──────────────────────────
+    // Every report section is validated against the session transcript and
+    // the workspace's stated topic. Items that can't be tied to specific
+    // transcript content are dropped. If any section loses items (or the
+    // recommendation is rejected), a targeted regeneration call is made and
+    // the re-generated items are re-validated. This prevents topic-mismatched
+    // content (e.g., an employee-resignation bias flag in an AI-predictions
+    // report) from reaching the exported report.
+
+    // Pass 1: validate all sections
+    const wsName = workspace?.name || "";
+
+    let validatedConsensus = validateSectionItems(
+      synthesis.consensus_points, transcript, wsName, ["text", "context"],
     );
-    const validatedRiskSignals = validateRiskSignals(
-      synthesis.risk_signals,
-      transcript,
+    let validatedConflictZones = validateConflictZones(
+      synthesis.conflict_zones, transcript,
     );
-    const validatedBiasFlags = validateBiasFlags(
-      synthesis.cognitive_bias_flags,
-      transcript,
-      workspace?.name || "",
+    let validatedOpenQuestions = validateSectionItems(
+      synthesis.open_questions, transcript, wsName, ["question", "context"],
     );
+    let validatedRiskSignals = validateRiskSignals(
+      synthesis.risk_signals, transcript,
+    );
+    let validatedBlindSpots = validateSectionItems(
+      synthesis.blind_spots, transcript, wsName, ["area", "description"],
+    );
+    let validatedBiasFlags = validateBiasFlags(
+      synthesis.cognitive_bias_flags, transcript, wsName,
+    );
+    let validatedActionItems = validateSectionItems(
+      synthesis.action_items, transcript, wsName, ["text", "source_area"],
+    );
+    let validatedRecommendation = validateRecommendation(
+      synthesis.recommendation, transcript, wsName,
+    );
+
+    // Track which sections lost items and need regeneration
+    const failedSections: string[] = [];
+    if (Array.isArray(synthesis.consensus_points) && validatedConsensus.length < synthesis.consensus_points.length) {
+      failedSections.push("consensus_points");
+    }
+    if (Array.isArray(synthesis.conflict_zones) && validatedConflictZones.length < synthesis.conflict_zones.length) {
+      failedSections.push("conflict_zones");
+    }
+    if (Array.isArray(synthesis.open_questions) && validatedOpenQuestions.length < synthesis.open_questions.length) {
+      failedSections.push("open_questions");
+    }
+    if (Array.isArray(synthesis.risk_signals) && validatedRiskSignals.length < synthesis.risk_signals.length) {
+      failedSections.push("risk_signals");
+    }
+    if (Array.isArray(synthesis.blind_spots) && validatedBlindSpots.length < synthesis.blind_spots.length) {
+      failedSections.push("blind_spots");
+    }
+    if (Array.isArray(synthesis.cognitive_bias_flags) && validatedBiasFlags.length < synthesis.cognitive_bias_flags.length) {
+      failedSections.push("cognitive_bias_flags");
+    }
+    if (Array.isArray(synthesis.action_items) && validatedActionItems.length < synthesis.action_items.length) {
+      failedSections.push("action_items");
+    }
+    if (synthesis.recommendation && !validatedRecommendation) {
+      failedSections.push("recommendation");
+    }
+
+    // Regenerate failed sections if any
+    if (failedSections.length > 0 && openAiKey) {
+      const synthesisMutable = synthesis as Record<string, unknown>;
+      await regenerateFailedSections(
+        synthesisMutable, failedSections, transcript, wsName, openAiKey,
+      );
+
+      // Pass 2: re-validate the regenerated sections
+      if (failedSections.includes("consensus_points")) {
+        validatedConsensus = validateSectionItems(
+          synthesisMutable.consensus_points, transcript, wsName, ["text", "context"],
+        );
+      }
+      if (failedSections.includes("conflict_zones")) {
+        validatedConflictZones = validateConflictZones(
+          synthesisMutable.conflict_zones, transcript,
+        );
+      }
+      if (failedSections.includes("open_questions")) {
+        validatedOpenQuestions = validateSectionItems(
+          synthesisMutable.open_questions, transcript, wsName, ["question", "context"],
+        );
+      }
+      if (failedSections.includes("risk_signals")) {
+        validatedRiskSignals = validateRiskSignals(
+          synthesisMutable.risk_signals, transcript,
+        );
+      }
+      if (failedSections.includes("blind_spots")) {
+        validatedBlindSpots = validateSectionItems(
+          synthesisMutable.blind_spots, transcript, wsName, ["area", "description"],
+        );
+      }
+      if (failedSections.includes("cognitive_bias_flags")) {
+        validatedBiasFlags = validateBiasFlags(
+          synthesisMutable.cognitive_bias_flags, transcript, wsName,
+        );
+      }
+      if (failedSections.includes("action_items")) {
+        validatedActionItems = validateSectionItems(
+          synthesisMutable.action_items, transcript, wsName, ["text", "source_area"],
+        );
+      }
+      if (failedSections.includes("recommendation")) {
+        validatedRecommendation = validateRecommendation(
+          synthesisMutable.recommendation, transcript, wsName,
+        );
+      }
+    }
 
     const scores = computeScores();
 
@@ -767,18 +1037,15 @@ Return ONLY valid JSON in this exact shape, no markdown:
     // Build evidence summary to anchor the rationale
     const riskSignals = validatedRiskSignals as Array<{ severity?: string; signal?: string }>;
     const criticalRisks = riskSignals.filter(r => r.severity === "critical").map(r => r.signal).filter(Boolean);
-    const openQs = Array.isArray(synthesis.open_questions)
-      ? (synthesis.open_questions as Array<{ urgency?: string; question?: string }>).filter(q => q.urgency === "critical" || q.urgency === "high")
-      : [];
-    const blindSpotList = Array.isArray(synthesis.blind_spots)
-      ? (synthesis.blind_spots as Array<{ area?: string }>).map(b => b.area).filter(Boolean)
-      : [];
+    const openQs = (validatedOpenQuestions as Array<{ urgency?: string; question?: string }>)
+      .filter(q => q.urgency === "critical" || q.urgency === "high");
+    const blindSpotList = (validatedBlindSpots as Array<{ area?: string }>).map(b => b.area).filter(Boolean);
     const highTensionConflicts = (validatedConflictZones as Array<{ tension_level?: number; topic?: string }>)
         .filter(z => (z.tension_level ?? 0) >= 70).map(z => z.topic).filter(Boolean);
     const resolvedDecisionCount = Array.isArray(synthesis.key_decisions)
       ? (synthesis.key_decisions as Array<{ status?: string }>).filter(d => d.status === "resolved").length
       : 0;
-    const consensusCount = Array.isArray(synthesis.consensus_points) ? synthesis.consensus_points.length : 0;
+    const consensusCount = validatedConsensus.length;
 
     const evidenceLines = [
       criticalRisks.length > 0 ? `Critical risks: ${criticalRisks.slice(0, 2).join("; ")}` : null,
@@ -835,22 +1102,20 @@ RULES:
       }
     }
 
-    // Extract recommendation
-    const recommendation = typeof synthesis.recommendation === "string" && synthesis.recommendation.trim().length > 20
-      ? synthesis.recommendation.trim()
-      : null;
+    // Use validated recommendation (already checked against transcript + topic)
+    const recommendation = validatedRecommendation;
 
     // Upsert into workspace_synthesis
     const { error: upsertError } = await service
       .from("workspace_synthesis")
       .upsert({
         workspace_id,
-        consensus_points: synthesis.consensus_points ?? [],
+        consensus_points: validatedConsensus,
         conflict_zones: validatedConflictZones,
-        open_questions: synthesis.open_questions ?? [],
+        open_questions: validatedOpenQuestions,
         risk_signals: validatedRiskSignals,
-        blind_spots: synthesis.blind_spots ?? [],
-        action_items: synthesis.action_items ?? [],
+        blind_spots: validatedBlindSpots,
+        action_items: validatedActionItems,
         financial_metrics: synthesis.financial_metrics ?? [],
         operational_metrics: synthesis.operational_metrics ?? [],
         non_financial_metrics: synthesis.non_financial_metrics ?? [],
@@ -860,7 +1125,7 @@ RULES:
         decision_velocity: synthesis.decision_velocity ?? "moderate",
         confidence_trajectory: synthesis.confidence_trajectory ?? "flat",
         health_rationale: healthRationale,
-        recommendation,
+        recommendation: validatedRecommendation,
         decision_health_score: scores.decisionHealth,
         financial_score: scores.financial,
         operational_score: scores.operational,
@@ -878,10 +1143,8 @@ RULES:
     // The action items tab reads from workspace_action_items, not the synthesis
     // JSON column. We replace 'todo' AI items (not yet acted on) with the new
     // set, preserving any items the team has already cycled to in-progress/done.
-    const newActionItems = Array.isArray(synthesis.action_items)
-      ? (synthesis.action_items as Array<{ text?: string; source_area?: string; priority?: string }>)
-          .filter(a => typeof a.text === "string" && a.text.trim().length > 5)
-      : [];
+    const newActionItems = (validatedActionItems as Array<{ text?: string; source_area?: string; priority?: string }>)
+        .filter(a => typeof a.text === "string" && a.text.trim().length > 5);
 
     if (newActionItems.length > 0) {
       // Delete untouched AI-generated items so we don't accumulate stale ones
@@ -1110,11 +1373,11 @@ RULES:
         // the quality of each workspace's decision data for future fine-tuning.
         {
           const riskSignals = validatedRiskSignals;
-          const blindSpots = Array.isArray(synthesis.blind_spots) ? synthesis.blind_spots : [];
-          const consensusPoints = Array.isArray(synthesis.consensus_points) ? synthesis.consensus_points : [];
+          const blindSpots = validatedBlindSpots;
+          const consensusPoints = validatedConsensus;
           const conflictZones = validatedConflictZones;
-          const openQuestions = Array.isArray(synthesis.open_questions) ? synthesis.open_questions : [];
-          const actionItems = Array.isArray(synthesis.action_items) ? synthesis.action_items : [];
+          const openQuestions = validatedOpenQuestions;
+          const actionItems = validatedActionItems;
           const biasFlagsArr = validatedBiasFlags;
 
           // Dominant category for this specific workspace (not cross-workspace avg)
@@ -1230,10 +1493,10 @@ RULES:
       financialScore: scores.financial,
       operationalScore: scores.operational,
       alignmentScore: scores.alignment,
-      recommendation,
+      recommendation: validatedRecommendation,
       conflict_zones: validatedConflictZones,
-      consensus_points: synthesis.consensus_points,
-      action_items: synthesis.action_items,
+      consensus_points: validatedConsensus,
+      action_items: validatedActionItems,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {
