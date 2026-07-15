@@ -1139,13 +1139,13 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
   if (!synthesis) {
     return (
-      <div className="space-y-5">
-        <div className="text-center py-12">
+      <div className="space-y-5 p-4 lg:p-5">
+        <div className="text-center py-10 lg:py-12">
           <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5"
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
             <Brain className="w-8 h-8 text-white" />
           </div>
-          <h3 className="text-lg font-black text-slate-900 mb-2">War Room is ready</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-2">War Room is ready</h3>
           <p className="text-sm text-slate-500 max-w-sm mx-auto leading-relaxed mb-6">
             After your team has had some conversations, run a synthesis to surface consensus, conflicts, blind spots, risk signals, financial metrics, and AI-suggested action items.
           </p>
@@ -1193,7 +1193,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ElementType; count: number; color: string; bg: string }>;
 
   return (
-    <div className="space-y-5 p-5">
+    <div className="space-y-5 p-4 lg:p-5" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
 
       {/* ── Header ── */}
       <div className="space-y-4">

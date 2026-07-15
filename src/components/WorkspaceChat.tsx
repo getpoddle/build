@@ -844,7 +844,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   return (
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 mb-4">
+      <div className="flex items-center justify-end gap-2 mb-3">
         {messages.length > 0 && (
           <button
             onClick={() => exportChatToPDF(messages, workspaceName, workspaceTopic)}
@@ -868,7 +868,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1"
+        className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-0.5 lg:pr-1"
       >
         {messages.length === 0 && !loading ? (
           intakeDone || initialPrompt ? (
@@ -1119,7 +1119,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       {showScrollBtn && (
         <button
           onClick={() => scrollToBottom()}
-          className="absolute bottom-24 right-6 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110"
+          className="absolute bottom-20 right-4 lg:bottom-24 lg:right-6 w-9 h-9 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 z-10"
           style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff' }}
         >
           <ChevronDown className="w-4 h-4" />
@@ -1205,7 +1205,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
       {/* Input area */}
       <div
-        className="mt-2 rounded-2xl p-3 flex items-end gap-3"
+        className="mt-2 rounded-2xl p-2.5 sm:p-3 flex items-end gap-2 sm:gap-3"
         style={{ background: '#fff', border: `1.5px solid ${isRecording ? 'rgba(220,38,38,0.35)' : 'rgba(37,99,235,0.2)'}`, boxShadow: isRecording ? '0 4px 16px rgba(220,38,38,0.1)' : '0 4px 16px rgba(37,99,235,0.08)', transition: 'border-color 0.2s, box-shadow 0.2s' }}
       >
         {isTranscribing ? (

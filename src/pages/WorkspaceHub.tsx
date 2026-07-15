@@ -169,9 +169,9 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
   return (
     <div
-      className="flex flex-col overflow-hidden"
+      className="flex flex-col overflow-hidden lg:!h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))]"
       style={{
-        height: 'calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px))',
+        height: 'calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px) - 3.75rem - env(safe-area-inset-bottom, 0px))',
         background: '#f1f5f9',
       }}
     >
@@ -282,29 +282,29 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         )}
 
         {/* ── Mobile tab bar ── */}
-        <div className="lg:hidden flex" style={{ borderTop: '1px solid rgba(15,23,42,0.07)' }}>
+        <div className="lg:hidden flex flex-shrink-0" style={{ borderTop: '1px solid rgba(15,23,42,0.07)', background: 'rgba(255,255,255,0.6)' }}>
           <button
             onClick={() => setMainTab('chat')}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors relative"
             style={mainTab === 'chat'
-              ? { color: '#2563eb', borderBottom: '2px solid #2563eb' }
-              : { color: '#94a3b8', borderBottom: '2px solid transparent' }}
+              ? { color: '#2563eb', borderBottom: '2.5px solid #2563eb', background: 'rgba(37,99,235,0.04)' }
+              : { color: '#94a3b8', borderBottom: '2.5px solid transparent' }}
           >
-            <MessageSquare className="w-3.5 h-3.5" />
+            <MessageSquare className="w-4 h-4" />
             AI Collaboration
           </button>
           <button
             onClick={() => setMainTab('warroom')}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-colors relative"
+            className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors relative"
             style={mainTab === 'warroom'
-              ? { color: '#d97706', borderBottom: '2px solid #d97706' }
-              : { color: '#94a3b8', borderBottom: '2px solid transparent' }}
+              ? { color: '#d97706', borderBottom: '2.5px solid #d97706', background: 'rgba(245,158,11,0.04)' }
+              : { color: '#94a3b8', borderBottom: '2.5px solid transparent' }}
           >
-            <Zap className="w-3.5 h-3.5" />
+            <Zap className="w-4 h-4" />
             War Room
             {!workspaceIsPro && (
               <span
-                className="absolute top-1.5 right-4 text-white font-black rounded-full"
+                className="absolute top-2 right-3 text-white font-bold rounded-full"
                 style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', fontSize: '8px', padding: '1px 4px' }}
               >
                 PRO
@@ -319,10 +319,10 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
         {/* ── MOBILE: Chat tab ── */}
         {mainTab === 'chat' && (
-          <div className="lg:hidden flex-1 overflow-hidden p-3 sm:p-4">
+          <div className="lg:hidden flex-1 overflow-hidden px-3 pt-2 pb-1">
             <div className="h-full rounded-2xl overflow-hidden relative bg-white" style={{ boxShadow: '0 1px 4px rgba(15,23,42,0.06)', border: '1px solid rgba(15,23,42,0.08)' }}>
               {isReadOnly && <ReadOnlyOverlay />}
-              <div className="h-full p-4">
+              <div className="h-full p-3">
                 <WorkspaceChat
                   workspaceId={workspaceId}
                   workspaceName={workspace?.name || 'Workspace'}
@@ -340,7 +340,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
         {/* ── MOBILE: War Room tab ── */}
         {mainTab === 'warroom' && (
-          <div className="lg:hidden flex-1 overflow-y-auto">
+          <div className="lg:hidden flex-1 overflow-y-auto" style={{ paddingBottom: '1rem' }}>
             {workspaceIsPro ? (
               <WorkspaceWarRoom
                 key={warRoomKey}
