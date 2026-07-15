@@ -1,70 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildWelcomeEmail } from "../_shared/emailTemplates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
-
-const APP_URL = Deno.env.get("APP_URL") || "https://poddleme.com";
-
-function buildWelcomeEmail(firstName: string): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Welcome to Poddle</title>
-</head>
-<body style="margin:0;padding:0;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f172a;">
-  <tr>
-    <td align="center" style="padding:40px 16px;">
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
-        <tr>
-          <td style="padding-bottom:32px;">
-            <table cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td style="background:#1e293b;border-radius:10px;padding:10px 16px;">
-                  <span style="color:#f8fafc;font-size:16px;font-weight:700;letter-spacing:-0.3px;">Poddle</span>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td style="background:#1e293b;border-radius:16px;border:1px solid #334155;overflow:hidden;">
-            <div style="padding:40px 32px;">
-              <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 20px 0;">Welcome to Poddle</p>
-              <h1 style="color:#f8fafc;font-size:24px;font-weight:700;margin:0 0 12px 0;line-height:1.3;">You're in, ${firstName}!</h1>
-              <p style="color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 28px 0;">
-                Poddle helps you think through what matters, weigh what's at stake, and make decisions you can stand behind. Let's get started.
-              </p>
-              <a href="${APP_URL}"
-                style="display:inline-block;background:#2563eb;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:-0.1px;">
-                Go to Poddle
-              </a>
-              <p style="color:#475569;font-size:12px;margin:28px 0 0 0;line-height:1.6;">
-                If you didn't create a Poddle account, you can safely ignore this email.
-              </p>
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding-top:24px;text-align:center;">
-            <p style="color:#475569;font-size:12px;margin:0;">
-              &copy; 2026 Poddle &mdash; <a href="${APP_URL}" style="color:#64748b;text-decoration:underline;">poddleme.com</a>
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
-</body>
-</html>`;
-}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -143,7 +85,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from: "Poddle <notifications@poddleme.com>",
         to: user.email,
-        subject: `Welcome to Poddle, ${firstName}!`,
+        subject: `Welcome to Poddle, ${firstName} — here's how to get started`,
         html,
       }),
     });

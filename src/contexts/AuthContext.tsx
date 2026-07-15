@@ -209,6 +209,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   console.error('Error tracking referral:', error);
                 }
               }
+
+              // Send welcome email now that the user has confirmed and signed in
+              const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+              const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+              fetch(`${supabaseUrl}/functions/v1/send-signup-confirmation`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${anonKey}`,
+                },
+                body: JSON.stringify({ userId: session.user.id }),
+              }).catch(() => {});
             } else {
               trackUserLogin('email');
               setUserProperties({
@@ -255,19 +267,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!error && data.user) {
       trackUserSignup('email');
       setSignupEmailPending(email);
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      fetch(`${supabaseUrl}/functions/v1/send-signup-confirmation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${anonKey}`,
-        },
-        body: JSON.stringify({
-          userId: data.user.id,
-          redirectTo: window.location.origin,
-        }),
-      }).catch(() => {});
     }
     return { error };
   };

@@ -60,6 +60,78 @@ function supportNote(): string {
   return `<p style="color:#475569;font-size:12px;margin:28px 0 0 0;line-height:1.6;">Questions? Reply to this email or visit <a href="${APP_URL}/#contact-us" style="color:#64748b;">our support page</a>.</p>`;
 }
 
+// ─── Welcome / Onboarding ─────────────────────────────────────────────────────
+
+export function buildWelcomeEmail(firstName: string): string {
+  const header = `<div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:32px 32px 28px;">
+    <p style="color:rgba(255,255,255,0.65);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px 0;">Welcome to Poddle</p>
+    <h1 style="color:#ffffff;font-size:26px;font-weight:800;margin:0;line-height:1.2;">You're in, ${firstName}. Let's make better decisions.</h1>
+  </div>`;
+
+  const body = `
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 24px 0;">
+      Hi ${firstName},
+    </p>
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 24px 0;">
+      Welcome to Poddle &mdash; the decision intelligence platform where seven specialized AI agents challenge your thinking from every angle, and the War Room synthesizes the debate into a clear, defensible recommendation.
+    </p>
+
+    <p style="color:#e2e8f0;font-size:15px;font-weight:700;margin:0 0 14px 0;">Here's what Poddle does:</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+      <tr><td style="padding:0 0 18px 0;">
+        <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">1. AI Collaboration</p>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          Submit any decision you're facing. Seven agents &mdash; Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor &mdash; respond simultaneously, each from a completely different perspective. Your team can join the conversation, challenge the agents, and upload supporting documents to ground the analysis in real data.
+        </p>
+      </td></tr>
+      <tr><td style="padding:0 0 18px 0;">
+        <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">2. War Room</p>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          Once the agents have debated, the War Room reads every message and produces a strategic synthesis: consensus points, conflict zones, blind spots, cognitive bias flags, risk signals, a Decision Health Score, and prioritized action items.
+        </p>
+      </td></tr>
+      <tr><td style="padding:0 0 0 0;">
+        <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">3. Board-Ready PDF</p>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          Export the full War Room synthesis into a structured PDF to share with your board, investors, or leadership team without disclosing your full workspace.
+        </p>
+      </td></tr>
+    </table>
+
+    <p style="color:#e2e8f0;font-size:15px;font-weight:700;margin:0 0 14px 0;">Your first 3 steps:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+      <tr><td style="padding:0 0 12px 0;">
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          <strong style="color:#e2e8f0;">Complete your profile</strong> &mdash; add your name and domain expertise so agents can tailor their analysis.
+        </p>
+      </td></tr>
+      <tr><td style="padding:0 0 12px 0;">
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          <strong style="color:#e2e8f0;">Create a workspace</strong> &mdash; name the decision you want to stress-test. This becomes the central topic for your AI Collaboration.
+        </p>
+      </td></tr>
+      <tr><td style="padding:0 0 0 0;">
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          <strong style="color:#e2e8f0;">Brief your advisors</strong> &mdash; ask your first question. The agents will respond in three debate rounds, then run a War Room synthesis when you're ready.
+        </p>
+      </td></tr>
+    </table>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f172a;border-radius:12px;border:1px solid #1e293b;margin-bottom:28px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="color:#64748b;font-size:13px;line-height:1.6;margin:0;">
+          You get <strong style="color:#94a3b8;">one free workspace</strong> to try the full experience &mdash; no credit card required.
+        </p>
+      </td></tr>
+    </table>
+
+    ${ctaButton("Go to Poddle", APP_URL)}
+    ${supportNote()}`;
+
+  return emailShell(`Welcome to Poddle — here's how to get started`, header, body);
+}
+
 // ─── Invoice / Payment Confirmation ────────────────────────────────────────────
 
 export function buildInvoiceEmail(
