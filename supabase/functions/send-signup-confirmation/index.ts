@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { buildWelcomeEmail } from "../_shared/emailTemplates.ts";
+import { buildConfirmationEmail, APP_URL } from "../_shared/emailTemplates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +25,22 @@ async function getUserWithRetry(
   return null;
 }
 
+async function sha256(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function generateToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -38,10 +54,10 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { userId } = await req.json();
+    const { userId, email } = await req.json();
 
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "userId is required" }), {
+    if (!userId && !email) {
+      return new Response(JSON.stringify({ error: "userId or email is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -62,19 +78,61 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const user = await getUserWithRetry(supabaseAdmin, userId);
+    let user: Awaited<ReturnType<typeof getUserWithRetry>> = null;
+    if (userId) {
+      user = await getUserWithRetry(supabaseAdmin, userId);
+    } else if (email) {
+      const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1,
+      });
+      if (!listError && listData?.users) {
+        user = listData.users.find((u: any) => u.email === email) || null;
+      }
+    }
     if (!user) {
-      return new Response(JSON.stringify({ error: "User not found after retries" }), {
+      return new Response(JSON.stringify({ error: "User not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const firstName =
-      user.user_metadata?.first_name ||
-      user.email!.split("@")[0];
+    const targetUserId = user.id;
 
-    const html = buildWelcomeEmail(firstName);
+    // If autoconfirm is on, Supabase already confirmed the user. Unconfirm them
+    // so they must click our branded confirmation link before they can sign in.
+    if (user.email_confirmed_at) {
+      const { error: unconfirmError } = await supabaseAdmin.auth.admin.updateUserById(
+        targetUserId,
+        { email_confirm: false }
+      );
+      if (unconfirmError) {
+        console.error("Failed to unconfirm user:", unconfirmError.message);
+      }
+    }
+
+    // Generate a confirmation token and store its hash
+    const rawToken = generateToken();
+    const tokenHash = await sha256(rawToken);
+
+    const { error: insertError } = await supabaseAdmin
+      .from("email_confirmation_tokens")
+      .insert({
+        user_id: targetUserId,
+        token_hash: tokenHash,
+      });
+
+    if (insertError) {
+      console.error("Failed to store confirmation token:", insertError.message);
+      return new Response(JSON.stringify({ error: "Failed to create confirmation token" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const firstName = user.user_metadata?.first_name || user.email!.split("@")[0];
+    const confirmUrl = `${APP_URL}/?confirm=${rawToken}`;
+    const html = buildConfirmationEmail(firstName, confirmUrl);
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -85,14 +143,14 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         from: "Poddle <notifications@poddleme.com>",
         to: user.email,
-        subject: `Welcome to Poddle, ${firstName} — here's how to get started`,
+        subject: `Confirm your email to join Poddle`,
         html,
       }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      console.error("Resend error:", err);
+      console.error("Resend error (confirmation):", err);
       return new Response(JSON.stringify({ error: "Failed to send email", detail: err }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -100,7 +158,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const result = await res.json();
-    console.log(`Welcome email sent: ${result.id} → ${user.email}`);
+    console.log(`Confirmation email sent: ${result.id} → ${user.email}`);
 
     return new Response(
       JSON.stringify({ success: true, recipient: user.email }),

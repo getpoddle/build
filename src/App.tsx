@@ -137,6 +137,8 @@ function AppContent() {
   const [highlightDiscussionId, setHighlightDiscussionId] = useState<string | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const onboardingCheckedRef = useRef(false);
+  const [confirmingEmail, setConfirmingEmail] = useState(false);
+  const [confirmResult, setConfirmResult] = useState<'success' | 'error' | 'already' | null>(null);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [joinToken, setJoinToken] = useState<string | null>(null);
   const [blogSlug, setBlogSlug] = useState<string | null>(() => {
@@ -162,6 +164,37 @@ function AppContent() {
 
     if (urlParams.get('payment_success') === '1') {
       setCurrentPage('payment-success');
+      return;
+    }
+
+    const confirmToken = urlParams.get('confirm');
+    if (confirmToken) {
+      history.replaceState(null, '', '/');
+      setConfirmingEmail(true);
+      (async () => {
+        try {
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+          const res = await fetch(`${supabaseUrl}/functions/v1/confirm-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${anonKey}`,
+            },
+            body: JSON.stringify({ token: confirmToken }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setConfirmResult(data.alreadyConfirmed ? 'already' : 'success');
+          } else {
+            setConfirmResult('error');
+          }
+        } catch {
+          setConfirmResult('error');
+        } finally {
+          setConfirmingEmail(false);
+        }
+      })();
       return;
     }
 
@@ -527,6 +560,83 @@ function AppContent() {
             >
               Use a different email address
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (confirmingEmail || confirmResult) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-400/30 to-cyan-500/30 rounded-full blur-3xl" />
+        <div className="max-w-md w-full relative z-10">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-3 mb-2">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
+                {confirmingEmail ? (
+                  <div className="w-7 h-7 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                ) : confirmResult === 'success' ? (
+                  <CheckCircle className="w-8 h-8 text-white" />
+                ) : confirmResult === 'already' ? (
+                  <CheckCircle className="w-8 h-8 text-white" />
+                ) : (
+                  <Mail className="w-8 h-8 text-white" />
+                )}
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                Poddle AI
+              </h1>
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-200 text-center">
+            {confirmingEmail ? (
+              <>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Confirming your email...</h2>
+                <p className="text-slate-500 text-sm">Please wait while we verify your email address.</p>
+              </>
+            ) : confirmResult === 'success' ? (
+              <>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Email confirmed!</h2>
+                <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                  Your email has been verified. You can now sign in to your Poddle account.
+                </p>
+                <button
+                  onClick={() => { setConfirmResult(null); window.location.href = '/'; }}
+                  className="w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base"
+                >
+                  Continue to Sign In
+                </button>
+              </>
+            ) : confirmResult === 'already' ? (
+              <>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Already confirmed</h2>
+                <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                  Your email was already confirmed. You can sign in to your account.
+                </p>
+                <button
+                  onClick={() => { setConfirmResult(null); window.location.href = '/'; }}
+                  className="w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base"
+                >
+                  Continue to Sign In
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Confirmation failed</h2>
+                <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                  This confirmation link is invalid or has expired. Please request a new one.
+                </p>
+                <button
+                  onClick={() => { setConfirmResult(null); window.location.href = '/'; }}
+                  className="w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base"
+                >
+                  Back to Sign Up
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

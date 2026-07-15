@@ -297,12 +297,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const resendConfirmation = async (email: string) => {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    return { error };
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-signup-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { error: { message: data.error || 'Failed to resend confirmation email' } as any };
+      }
+      return { error: null };
+    } catch {
+      return { error: { message: 'Failed to resend confirmation email' } as any };
+    }
   };
 
   const signOut = async () => {

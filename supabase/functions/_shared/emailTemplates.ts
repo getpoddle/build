@@ -132,6 +132,33 @@ export function buildWelcomeEmail(firstName: string): string {
   return emailShell(`Welcome to Poddle — here's how to get started`, header, body);
 }
 
+// ─── Email Confirmation (signup) ─────────────────────────────────────────────
+
+export function buildConfirmationEmail(firstName: string, confirmUrl: string): string {
+  const header = `<div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:32px 32px 28px;">
+    <p style="color:rgba(255,255,255,0.65);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px 0;">Confirm your email</p>
+    <h1 style="color:#ffffff;font-size:26px;font-weight:800;margin:0;line-height:1.2;">Welcome to Poddle, ${firstName}. One click to go.</h1>
+  </div>`;
+
+  const body = `
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 24px 0;">
+      Hi ${firstName},
+    </p>
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 28px 0;">
+      You're almost in. Click the button below to confirm your email address and activate your Poddle account.
+    </p>
+    ${ctaButton("Confirm my email", confirmUrl)}
+    <p style="color:#475569;font-size:13px;line-height:1.6;margin:28px 0 0 0;">
+      Or copy this link into your browser:<br/>
+      <a href="${confirmUrl}" style="color:#64748b;word-break:break-all;">${confirmUrl}</a>
+    </p>
+    <p style="color:#475569;font-size:12px;line-height:1.6;margin:20px 0 0 0;">
+      This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.
+    </p>`;
+
+  return emailShell(`Confirm your email — Poddle`, header, body);
+}
+
 // ─── Invoice / Payment Confirmation ────────────────────────────────────────────
 
 export function buildInvoiceEmail(
