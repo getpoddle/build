@@ -210,17 +210,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               }
 
-              // Send welcome email now that the user has confirmed and signed in
-              const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-              const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-              fetch(`${supabaseUrl}/functions/v1/send-signup-confirmation`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${anonKey}`,
-                },
-                body: JSON.stringify({ userId: session.user.id }),
-              }).catch(() => {});
+              // Welcome email is sent from signUp() — the handle_new_user()
+              // DB trigger creates the profile at signup time, so this block
+              // only runs when the profile insert fails or the user was deleted.
             } else {
               trackUserLogin('email');
               setUserProperties({
@@ -267,6 +259,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!error && data.user) {
       trackUserSignup('email');
       setSignupEmailPending(email);
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      fetch(`${supabaseUrl}/functions/v1/send-signup-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({ userId: data.user.id }),
+      }).catch(() => {});
+
+      // If autoconfirm is enabled, Supabase returns a session immediately.
+      // Sign it out so the user sees the "confirm your email" screen and
+      // must click the confirmation link before accessing the app.
+      if (data.session) {
+        await supabase.auth.signOut();
+      }
     }
     return { error };
   };
