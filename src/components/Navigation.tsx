@@ -158,7 +158,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           {/* Nav items */}
           <nav className="flex-1 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden" style={{ padding: collapsed ? '0.5rem 0.5rem' : '0.5rem 0.75rem' }} role="list">
             {!collapsed && (
-              <p className="text-[10px] font-bold uppercase tracking-widest px-3 py-2 whitespace-nowrap" style={{ color: 'rgba(100,116,139,0.8)' }}>Navigation</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest px-3 py-2 whitespace-nowrap" style={{ color: 'rgba(100,116,139,0.9)' }}>Navigation</p>
             )}
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -191,7 +191,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
             {isAdmin && (
               <>
                 {!collapsed && (
-                  <p className="text-[10px] font-bold uppercase tracking-widest px-3 pt-4 pb-2 whitespace-nowrap" style={{ color: 'rgba(100,116,139,0.8)' }}>Admin</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest px-3 pt-4 pb-2 whitespace-nowrap" style={{ color: 'rgba(100,116,139,0.9)' }}>Admin</p>
                 )}
                 <button
                   onClick={() => handleNavigate('admin')}
@@ -257,7 +257,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-white truncate">{displayName}</p>
-                    <p className="text-[10px] truncate" style={{ color: 'rgba(148,163,184,0.6)' }}>{displayEmail}</p>
+                    <p className="text-[11px] truncate" style={{ color: 'rgba(148,163,184,0.7)' }}>{displayEmail}</p>
                   </div>
                   <button
                     onClick={() => setShowLogoutConfirm(true)}

@@ -197,7 +197,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-sm font-black text-slate-900 truncate">{workspace?.name || 'Private Workspace'}</h1>
+              <h1 className="text-sm lg:text-base font-bold text-slate-900 truncate tracking-tight">{workspace?.name || 'Private Workspace'}</h1>
               {workspaceIsPro && (
                 <span
                   className="flex-shrink-0 text-xs font-black px-1.5 py-0.5 rounded-full"
@@ -217,7 +217,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
               )}
             </div>
             {workspace?.description && (
-              <p className="text-xs text-slate-400 truncate hidden sm:block mt-0.5">{workspace.description}</p>
+              <p className="text-xs lg:text-sm text-slate-500 truncate hidden sm:block mt-0.5">{workspace.description}</p>
             )}
           </div>
 
@@ -227,7 +227,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
               <button
                 onClick={handleResynthesis}
                 disabled={resyncing}
-                className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
+                className="hidden lg:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
                 style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', boxShadow: '0 2px 8px rgba(37,99,235,0.2)' }}
               >
                 {resyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
@@ -363,7 +363,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         <div className="hidden lg:flex flex-1 overflow-hidden">
 
           {/* Left: AI Collaboration */}
-          <div className="flex-1 min-w-0 flex flex-col overflow-hidden" style={{ borderRight: '1px solid rgba(15,23,42,0.08)' }}>
+          <div className="flex-1 min-w-0 max-w-[900px] mx-auto w-full flex flex-col overflow-hidden" style={{ borderRight: '1px solid rgba(15,23,42,0.08)' }}>
             {/* Panel sub-header */}
             <div
               className="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5"
@@ -372,8 +372,8 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
               <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.10)' }}>
                 <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
               </div>
-              <span className="text-xs font-bold text-slate-700">AI Collaboration</span>
-              <span className="text-xs text-slate-400 ml-1">— 7 specialist advisors</span>
+              <span className="text-xs lg:text-sm font-bold text-slate-700">AI Collaboration</span>
+              <span className="text-xs lg:text-sm text-slate-500 ml-1">— 7 specialist advisors</span>
               <div className="ml-auto flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
                 <span className="text-xs text-slate-400">Live</span>
@@ -405,13 +405,13 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           >
             {/* Panel sub-header */}
             <div
-              className="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5"
+              className="flex-shrink-0 flex items-center gap-2.5 px-5 py-3"
               style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', background: 'rgba(245,158,11,0.02)' }}
             >
               <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)' }}>
                 <Zap className="w-3.5 h-3.5 text-amber-500" />
               </div>
-              <span className="text-xs font-bold text-slate-700">War Room</span>
+              <span className="text-xs lg:text-sm font-bold text-slate-700">War Room</span>
               {!workspaceIsPro && (
                 <span className="text-xs font-black px-1.5 py-0.5 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', fontSize: '9px' }}>PRO</span>
               )}

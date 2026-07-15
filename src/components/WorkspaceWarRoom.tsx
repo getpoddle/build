@@ -737,8 +737,8 @@ function CognitiveBiasFlagsPanel({ flags, onDiscuss, discussedKeys = new Set(), 
                 <AlertCircle className="w-4 h-4 text-amber-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-amber-800 mb-1">{f.bias_name}</p>
-                <p className="text-sm text-slate-600 leading-relaxed mb-3">{f.explanation}</p>
+                <p className="text-sm font-bold text-amber-800 mb-1">{f.bias_name}</p>
+                <p className="text-sm text-slate-600 leading-relaxed mb-3" style={{ lineHeight: '1.65' }}>{f.explanation}</p>
                 <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <HelpCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
@@ -1201,16 +1201,16 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">War Room</span>
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">War Room</span>
             {stale && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.12)', color: '#b45309' }}>
                 {messageCount - synthesis.message_count} new messages — re-synthesize for fresh intel
               </span>
             )}
           </div>
-          <h2 className="text-xl font-black text-slate-900">Strategic Intelligence</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h2 className="text-xl lg:text-2xl font-bold text-slate-900 tracking-tight">Strategic Intelligence</h2>
+          <p className="text-xs text-slate-500 mt-1">
             Based on full War Room session · {new Date(synthesis.generated_at).toLocaleString()}
             {history.length > 0 && ` · Run #${history.length}`}
           </p>
@@ -1272,7 +1272,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           <ScoreRing score={score} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-lg font-black text-white">{scoreLabel} Team</span>
+              <span className="text-lg font-bold text-white">{scoreLabel} Team</span>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${scoreColor}22`, color: scoreColor }}>Decision Health</span>
               {scoreDelta !== null && (
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full"
@@ -1283,7 +1283,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               <VelocityBadge velocity={synthesis.decision_velocity} />
               <TrajectoryBadge trajectory={synthesis.confidence_trajectory} />
             </div>
-            <p className="text-sm text-slate-300 leading-relaxed mb-3">
+            <p className="text-sm text-slate-300 leading-relaxed mb-3" style={{ lineHeight: '1.7' }}>
               {synthesis.health_rationale || 'AI-assessed clarity, risk coverage, and strategic alignment.'}
             </p>
 
@@ -1305,16 +1305,16 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               )}
               {history.length > 0 && (
                 <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                  <p className="text-sm font-black text-white">#{history.length}</p>
+                  <p className="text-sm font-bold text-white">#{history.length}</p>
                   <p className="text-xs text-slate-400">synthesis run</p>
                 </div>
               )}
               <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                <p className="text-sm font-black text-white">{synthesis.conflict_zones.length} zones</p>
+                <p className="text-sm font-bold text-white">{synthesis.conflict_zones.length} zones</p>
                 <p className="text-xs text-slate-400">active tensions</p>
               </div>
               <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                <p className="text-sm font-black text-white">{doneItems.length}/{actionItems.length}</p>
+                <p className="text-sm font-bold text-white">{doneItems.length}/{actionItems.length}</p>
                 <p className="text-xs text-slate-400">actions done</p>
               </div>
             </div>
@@ -1341,7 +1341,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               ? { background: s.bg, color: s.color, border: `1px solid ${s.color}33` }
               : { background: 'rgba(15,23,42,0.04)', color: '#64748b', border: '1px solid transparent' }}>
             <s.icon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{s.label}</span>
+            <span className="hidden sm:inline lg:inline">{s.label}</span>
             <span className="ml-0.5 text-xs font-black w-4 h-4 rounded-full flex items-center justify-center"
               style={{ background: activeSection === s.key ? `${s.color}22` : 'rgba(15,23,42,0.08)', color: activeSection === s.key ? s.color : '#64748b' }}>
               {s.count}
@@ -1361,7 +1361,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             <span className="text-xs ml-auto hidden sm:inline" style={{ color: '#64748b' }}>From your War Room advisors</span>
           </div>
           <div className="p-5 bg-white">
-            <p className="text-sm leading-relaxed text-slate-700" style={{ lineHeight: '1.75' }}>
+            <p className="text-sm lg:text-base leading-relaxed text-slate-700" style={{ lineHeight: '1.75' }}>
               {synthesis.recommendation}
             </p>
           </div>
@@ -1374,7 +1374,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(22,163,74,0.06)' }}>
             <CheckCircle2 className="w-4 h-4 text-green-600" />
             <span className="text-sm font-bold text-green-800">What your team agrees on</span>
-            <span className="text-xs text-green-600 ml-auto hidden sm:inline">Bar width = confidence</span>
+            <span className="text-xs text-green-600 ml-auto hidden lg:inline">Bar width = confidence</span>
           </div>
           <ConsensusBarChart points={synthesis.consensus_points} />
         </div>
@@ -1386,7 +1386,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           <div className="px-5 py-3 flex flex-wrap items-center gap-2" style={{ background: 'rgba(245,158,11,0.07)' }}>
             <GitBranch className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <span className="text-sm font-bold text-amber-800">Strategic conflict zones</span>
-            <span className="text-xs text-amber-600 hidden sm:inline ml-auto">Breakthroughs hide in disagreement</span>
+            <span className="text-xs text-amber-600 hidden lg:inline ml-auto">Breakthroughs hide in disagreement</span>
           </div>
           <div className="px-5 pt-4 pb-2 bg-white space-y-2">
             {synthesis.conflict_zones.map((z, i) => {
@@ -1932,7 +1932,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">War Room</p>
-                <h3 className="text-base font-black text-white">Board-Ready Brief</h3>
+                <h3 className="text-base font-bold text-white">Board-Ready Brief</h3>
               </div>
               <button onClick={() => setShowBoardSummary(false)} className="text-slate-400 hover:text-white transition-colors">
                 <X className="w-5 h-5" />

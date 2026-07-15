@@ -45,14 +45,14 @@ export default function Home({ onNavigate }: HomeProps) {
   return (
     <div className="min-h-screen" style={{ background: '#f8fafc' }}>
       <div
-        className="px-4 sm:px-6 lg:px-6 py-6 lg:py-10"
+        className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 max-w-[1400px] mx-auto"
         style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
 
         {/* Page header */}
         <div className="mb-6 lg:mb-10">
-          <h1 className="text-xl lg:text-3xl font-black text-slate-900 mb-0.5">Dashboard</h1>
-          <p className="text-slate-500 text-sm">Your AI-powered decision intelligence platform.</p>
+          <h1 className="text-xl lg:text-2xl xl:text-3xl font-bold text-slate-900 mb-1 tracking-tight">Dashboard</h1>
+          <p className="text-slate-500 text-sm lg:text-base">Your AI-powered decision intelligence platform.</p>
         </div>
 
         {/* Stats row */}
@@ -68,9 +68,9 @@ export default function Home({ onNavigate }: HomeProps) {
                   <Icon style={{ width: '1rem', height: '1rem', color }} />
                 </div>
               </div>
-              <p className="text-xl lg:text-3xl font-black text-slate-900 mb-0.5">{value}</p>
-              <p className="text-xs font-semibold text-slate-600 leading-tight">{label}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5 hidden sm:block">{sub}</p>
+              <p className="text-xl lg:text-2xl xl:text-3xl font-bold text-slate-900 mb-0.5">{value}</p>
+              <p className="text-xs lg:text-sm font-semibold text-slate-600 leading-tight">{label}</p>
+              <p className="text-[11px] lg:text-xs text-slate-500 mt-0.5 hidden sm:block">{sub}</p>
             </div>
           ))}
         </div>
@@ -94,16 +94,16 @@ export default function Home({ onNavigate }: HomeProps) {
               <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
                 <div className="flex-1">
                   <div
-                    className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold mb-3"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-4"
                     style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)', color: '#93c5fd' }}
                   >
-                    <Sparkles className="w-3 h-3" />
+                    <Sparkles className="w-3.5 h-3.5" />
                     Decision Intelligence Platform
                   </div>
-                  <h2 className="text-lg lg:text-2xl font-black text-white mb-2.5 leading-snug">
+                  <h2 className="text-lg lg:text-2xl xl:text-3xl font-bold text-white mb-3 leading-snug">
                     AI agents that challenge your best thinking.
                   </h2>
-                  <p className="text-sm leading-relaxed max-w-md" style={{ color: 'rgba(203,213,225,0.8)' }}>
+                  <p className="text-sm lg:text-base leading-relaxed max-w-lg" style={{ color: 'rgba(203,213,225,0.85)' }}>
                     Debate ideas, stress-test assumptions, and surface blind spots — in a private encrypted workspace only your team can see.
                   </p>
                 </div>
@@ -144,8 +144,8 @@ export default function Home({ onNavigate }: HomeProps) {
                     >
                       <Icon className="w-4 h-4 lg:w-5 lg:h-5" style={{ color: accent }} />
                     </div>
-                    <p className="text-sm font-bold text-slate-800 mb-1">{title}</p>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-3">{desc}</p>
+                    <p className="text-sm lg:text-base font-bold text-slate-800 mb-1">{title}</p>
+                    <p className="text-xs lg:text-sm text-slate-500 leading-relaxed mb-3">{desc}</p>
                     <span className="text-xs font-bold flex items-center gap-1" style={{ color: accent }}>
                       {cta}
                       <ChevronRight className="w-3.5 h-3.5 sm:group-hover:translate-x-0.5 transition-transform" />
@@ -160,7 +160,7 @@ export default function Home({ onNavigate }: HomeProps) {
               className="rounded-2xl p-4 lg:p-6"
               style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
             >
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Built for enterprise</p>
+              <p className="text-[10px] lg:text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Built for enterprise</p>
               <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-5">
                 {[
                   { icon: Lock, text: 'End-to-end encrypted', sub: 'All workspace data encrypted at rest and in transit' },
@@ -173,7 +173,7 @@ export default function Home({ onNavigate }: HomeProps) {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-800">{text}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{sub}</p>
+                      <p className="text-[11px] lg:text-xs text-slate-500 mt-0.5 leading-relaxed">{sub}</p>
                     </div>
                   </div>
                 ))}
