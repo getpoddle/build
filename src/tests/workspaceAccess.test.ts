@@ -123,6 +123,10 @@ describe("resolveSubscriptionTier", () => {
     expect(resolveSubscriptionTier("enterprise")).toBe("enterprise");
   });
 
+  it("passes 'team' through unchanged (real Stripe plan, not collapsed to free)", () => {
+    expect(resolveSubscriptionTier("team")).toBe("team");
+  });
+
   it("defaults to 'free' for null", () => {
     expect(resolveSubscriptionTier(null)).toBe("free");
   });
@@ -131,10 +135,10 @@ describe("resolveSubscriptionTier", () => {
     expect(resolveSubscriptionTier(undefined)).toBe("free");
   });
 
-  it("defaults to 'free' for unknown tier values", () => {
-    expect(resolveSubscriptionTier("team")).toBe("free");
+  it("defaults to 'free' for unknown/garbage tier values", () => {
     expect(resolveSubscriptionTier("premium")).toBe("free");
     expect(resolveSubscriptionTier("")).toBe("free");
+    expect(resolveSubscriptionTier("invalid-tier")).toBe("free");
   });
 });
 

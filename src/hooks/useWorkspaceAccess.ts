@@ -173,7 +173,7 @@ export function useUserWorkspaces() {
 
 export function useSubscriptionTier() {
   const { user } = useAuth();
-  const [tier, setTier] = useState<'free' | 'pro' | 'enterprise'>('free');
+  const [tier, setTier] = useState<'free' | 'pro' | 'team' | 'enterprise'>('free');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
