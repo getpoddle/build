@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  deriveAccessState,
+  resolveSubscriptionTier,
+  isMonthlyTrialLimitReached,
+} from '../../supabase/functions/_shared/workspaceAccessLogic';
 
 export interface WorkspaceAccess {
   canAccess: boolean;
@@ -64,12 +69,10 @@ export function useWorkspaceAccess(workspaceId: string | null): WorkspaceAccess 
 
         const role = memberRes.data?.role as 'owner' | 'admin' | 'member' | null ?? null;
         const workspace = workspaceRes.data;
+        const access = deriveAccessState(role, workspace);
 
         setState({
-          canAccess: !!role,
-          isOwner: role === 'owner',
-          isAdmin: role === 'owner' || role === 'admin',
-          isReadOnly: workspace?.subscription_status === 'inactive',
+          ...access,
           role,
           plan: workspace?.plan as 'pro' | 'enterprise' | null ?? null,
           subscriptionStatus: workspace?.subscription_status ?? null,
@@ -186,7 +189,7 @@ export function useSubscriptionTier() {
         .eq('id', user!.id)
         .maybeSingle();
 
-      const resolvedTier = (profileRes.data?.subscription_tier as 'free' | 'pro' | 'enterprise') || 'free';
+      const resolvedTier = resolveSubscriptionTier(profileRes.data?.subscription_tier);
       setTier(resolvedTier);
       setLoading(false);
     }
@@ -218,8 +221,7 @@ export function useTrialInfo() {
   }, [user]);
 
   const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthlyLimitReached = freeWorkspaceMonth === currentMonth;
+  const monthlyLimitReached = isMonthlyTrialLimitReached(freeWorkspaceMonth, now);
 
   const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const resetsOn = nextMonthDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
