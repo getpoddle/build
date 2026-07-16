@@ -293,7 +293,7 @@ Example output: ["financial_strategist", "devils_advocate", "risk_analyst", "mar
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [{ role: "user", content: classificationPrompt }],
         max_tokens: 80,
         temperature: 0,
@@ -606,7 +606,7 @@ This is ROUND 1 of a structured debate — state your position with full analyti
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "gpt-4o",
             messages: [
               { role: "system", content: systemPrompt },
               ...conversationHistory,
@@ -650,12 +650,12 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "gpt-4o",
             messages: [
               { role: "system", content: challengePrompt },
               { role: "user", content: safeMessage },
             ],
-            max_tokens: 380,
+            max_tokens: 450,
             temperature: agent.temperature,
           }),
         });
@@ -719,9 +719,9 @@ Return ONLY valid JSON, no markdown fences:
         method: "POST",
         headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4o",
           messages: [{ role: "user", content: consensusPrompt }],
-          max_tokens: 500,
+          max_tokens: 600,
           temperature: 0.5,
         }),
       }),
@@ -729,7 +729,7 @@ Return ONLY valid JSON, no markdown fences:
         method: "POST",
         headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4o",
           messages: [
             { role: "system", content: "You extract specific, owner-assigned, immediately executable action items from strategic debates. Every item must name a responsible role, a concrete deliverable, and connect to the central decision. Generic tasks are unacceptable. Return JSON only." },
             { role: "user", content: actionExtractionPrompt },

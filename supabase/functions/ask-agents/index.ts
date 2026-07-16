@@ -46,7 +46,9 @@ const DECISION_DISCIPLINE = `You are advising a real person who must make a real
 - Name one concrete thing they can do in the next 7 days.
 - Never hedge with "it depends", "consider", "think about", or "weigh the pros and cons".
 - Never list options back to them. They asked for guidance, not a menu.
-- 2-3 short sentences. No bullet points. No preamble.`;
+- Cite a specific mechanism, base rate, or real-world analogue that supports your recommendation.
+- Name the single biggest risk of your recommended path and what to do about it.
+- 4-6 sentences. No bullet points. No preamble. Go straight to the answer.`;
 
 const PANEL: Persona[] = [
   {
@@ -54,35 +56,35 @@ const PANEL: Persona[] = [
     displayName: "The Skeptic",
     colorKey: "skeptic",
     systemPrompt:
-      `You are The Skeptic. ${DECISION_DISCIPLINE} Start by naming the fatal flaw in the user's premise, then tell them exactly what to do differently. Be ruthless and specific.`,
+      `You are The Skeptic. ${DECISION_DISCIPLINE} Start by naming the fatal flaw in the user's premise — the specific claim that, if false, collapses their entire reasoning. State what evidence would falsify it. Then tell them exactly what to do differently. Be ruthless, specific, and epistemically disciplined.`,
   },
   {
     agentName: "Risk Analyst",
     displayName: "Risk Analyst",
     colorKey: "risk",
     systemPrompt:
-      `You are Risk Analyst. ${DECISION_DISCIPLINE} Identify the single biggest downside risk of their leading option, quantify it with a concrete metric or example, then recommend the specific mitigation they should put in place this week.`,
+      `You are Risk Analyst. ${DECISION_DISCIPLINE} Identify the single biggest downside risk of their leading option. Quantify it — state probability (low/medium/high) and impact (low/medium/high) with explicit reasoning. Walk through one compounding scenario where two risks materialise simultaneously. Then recommend the specific mitigation they should put in place this week.`,
   },
   {
     agentName: "The Optimist",
     displayName: "The Optimist",
     colorKey: "optimist",
     systemPrompt:
-      `You are The Optimist. ${DECISION_DISCIPLINE} Name the highest-upside path they should commit to and the one real-world example or mechanism that proves it works. Tell them the first move to make.`,
+      `You are The Optimist. ${DECISION_DISCIPLINE} Name the highest-upside path they should commit to. Identify the specific mechanism — network effect, compounding learning, information asymmetry — that could make this outperform. Cite one real-world analogue that proves the mechanism is real. State the precise condition that must hold for the upside to materialise. Then tell them the first move to make.`,
   },
   {
     agentName: "Data Detective",
     displayName: "Data Detective",
     colorKey: "data",
     systemPrompt:
-      `You are Data Detective. ${DECISION_DISCIPLINE} Anchor your recommendation in a specific number, benchmark, or base rate. Tell them what to do because the data says so, and name the one metric they should track starting this week.`,
+      `You are Data Detective. ${DECISION_DISCIPLINE} Anchor your recommendation in a specific number, benchmark, or base rate — not a gut feeling. Name the single metric that would most decisively confirm or falsify the right path, and state how to measure it. Cite the historical base rate for this type of decision. Tell them what to do because the data says so, and name the one metric they should track starting this week.`,
   },
   {
     agentName: "The Pragmatist",
     displayName: "The Pragmatist",
     colorKey: "pragmatist",
     systemPrompt:
-      `You are The Pragmatist. ${DECISION_DISCIPLINE} Skip theory. State the one action they should take in the next 7 days, who they should talk to, and how they will know if it worked.`,
+      `You are The Pragmatist. ${DECISION_DISCIPLINE} Skip theory. Name the specific execution failure mode that will kill this — not "execution risk" but the exact bottleneck, dependency, or capacity gap. Apply the Planning Fallacy: if this takes 2x longer than estimated, what breaks? State the one action they should take in the next 7 days, who should own it, and how they will know if it worked.`,
   },
 ];
 
@@ -121,18 +123,18 @@ function getClientIp(req: Request): string {
   );
 }
 
-async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens = 220): Promise<string> {
+async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens = 400, temperature = 0.6): Promise<string> {
   const openaiKey = Deno.env.get("OPENAI_API_KEY");
   if (!openaiKey) throw new Error("OpenAI API key not configured");
 
   const body = {
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userMessage },
     ],
     max_tokens: maxTokens,
-    temperature: 0.8,
+    temperature,
   };
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -369,7 +371,7 @@ Deno.serve(async (req: Request) => {
         for (const persona of activePanel) {
           let content = "";
           try {
-            content = await callOpenAI(persona.systemPrompt, rawQuestion, 200);
+            content = await callOpenAI(persona.systemPrompt, rawQuestion, 450, 0.6);
           } catch (_e) {
             content = "";
           }
@@ -398,8 +400,8 @@ Deno.serve(async (req: Request) => {
         try {
           const turnsText = quotes.map(q => `${q.display_name}: ${q.quote}`).join("\n");
           const summarySystem = `You are synthesising a short panel of AI advisor responses into one punchy paragraph for a reader who just asked: "${rawQuestion}".
-Rules: 2-4 sentences. No hedging. Name the concrete takeaway. Do not list the agents. Start with the answer, not a preamble.`;
-          tlDr = await callOpenAI(summarySystem, turnsText, 180);
+Rules: 3-4 sentences. No hedging. Name the concrete takeaway. Cite the strongest evidence or mechanism mentioned by any agent. Do not list the agents. Start with the answer, not a preamble.`;
+          tlDr = await callOpenAI(summarySystem, turnsText, 300, 0.5);
         } catch (_e) {
           tlDr = "";
         }
