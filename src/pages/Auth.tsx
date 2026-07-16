@@ -141,7 +141,10 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-start sm:items-center justify-center px-4 py-8 sm:py-4 relative overflow-hidden">
+    <div
+      className="min-h-screen flex items-start sm:items-center justify-center px-4 py-8 sm:py-4 relative overflow-hidden"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}
+    >
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent"></div>
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full blur-3xl floating"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-400/30 to-cyan-500/30 rounded-full blur-3xl floating" style={{ animationDelay: '1.5s' }}></div>

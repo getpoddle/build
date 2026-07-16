@@ -171,7 +171,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
     <div
       className="flex flex-col overflow-hidden lg:!h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))]"
       style={{
-        height: 'calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px) - 3.75rem - env(safe-area-inset-bottom, 0px))',
+        height: 'calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px) - 5.5rem - env(safe-area-inset-bottom, 0px))',
         background: '#f1f5f9',
       }}
     >
