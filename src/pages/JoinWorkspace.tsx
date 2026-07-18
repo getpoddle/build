@@ -15,7 +15,7 @@ interface InviteInfo {
   invited_email: string;
   expires_at: string;
   workspace: { name: string; description: string; plan: string };
-  inviter: { full_name: string | null; email: string };
+  inviter: { full_name: string | null } | null;
 }
 
 async function callAcceptInvite(accessToken: string, token: string) {
@@ -52,7 +52,7 @@ export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps)
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       const res = await fetch(
-        `${supabaseUrl}/rest/v1/workspace_invites?token=eq.${token}&select=workspace_id,invited_email,expires_at,accepted_at,workspaces(name,description,plan),profiles!workspace_invites_invited_by_fkey(full_name,email)`,
+        `${supabaseUrl}/rest/v1/workspace_invites?token=eq.${token}&select=workspace_id,invited_email,expires_at,accepted_at,workspaces(name,description,plan),profiles!workspace_invites_invited_by_fkey(full_name)`,
         {
           headers: {
             'apikey': anonKey,
@@ -309,7 +309,7 @@ export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps)
           </div>
           <h2 className="text-xl font-black text-white mb-1">You're invited</h2>
           <p className="text-slate-300 text-sm">
-            {invite?.inviter?.full_name || invite?.inviter?.email} invited you to join a private workspace.
+            {invite?.inviter?.full_name || 'A team member'} invited you to join a private workspace.
           </p>
         </div>
 
