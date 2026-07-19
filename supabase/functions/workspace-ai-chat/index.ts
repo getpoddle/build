@@ -404,9 +404,23 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // ── Beta access: beta users get unrestricted AI collaboration — no
+    // War Room session cap, no daily message limit. The check mirrors
+    // check-beta-access: an active, unexpired row in beta_access_grants.
+    const { data: betaGrant } = await service
+      .from("beta_access_grants")
+      .select("expires_at, status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const isBetaUser = !!betaGrant
+      && betaGrant.status === "active"
+      && (!betaGrant.expires_at || new Date(betaGrant.expires_at) > new Date());
+
     // ── War Room per-period quota — enforced BEFORE any OpenAI token is spent.
     // One chat turn = one session unit. The synthesis pass that follows is part
     // of the same unit and must NOT call consume_war_room_session again.
+    // Beta users bypass the cap entirely; we still call the RPC to track usage
+    // but ignore the `allowed` flag.
     const { data: wsRow } = await service
       .from("workspaces")
       .select("plan, stripe_subscription_id")
@@ -414,82 +428,110 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     const wsPlan = (wsRow?.plan as string) || "free";
 
-    const { data: consumeResult, error: consumeErr } = await service.rpc(
-      "consume_war_room_session",
-      { p_workspace_id: workspace_id, p_plan: wsPlan }
-    ) as { data: ConsumeResult | null; error: { message: string } | null };
+    let warRoomUsage: {
+      used: number;
+      limit: number | null;
+      included: number;
+      in_overage: boolean;
+      overage_count: number;
+      overage_unit_price: number;
+      period_end: string | null;
+    };
 
-    if (consumeErr || !consumeResult) {
-      return new Response(JSON.stringify({ error: "Failed to verify usage quota. Please try again." }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (isBetaUser) {
+      // Beta users: read current usage for display, but do not enforce.
+      const { data: usageRow } = await service.rpc("get_workspace_war_room_usage", {
+        p_workspace_id: workspace_id,
+      }) as { data: ConsumeResult | null; error: { message: string } | null };
+      const wrLimit = resolveWarRoomLimit(wsPlan);
+      warRoomUsage = {
+        used: usageRow?.session_count ?? 0,
+        limit: usageRow?.session_limit ?? wrLimit.cap,
+        included: usageRow?.included ?? wrLimit.included,
+        in_overage: false,
+        overage_count: 0,
+        overage_unit_price: wrLimit.overageUnitPrice,
+        period_end: usageRow?.period_end ?? null,
+      };
+    } else {
+      const { data: consumeResult, error: consumeErr } = await service.rpc(
+        "consume_war_room_session",
+        { p_workspace_id: workspace_id, p_plan: wsPlan }
+      ) as { data: ConsumeResult | null; error: { message: string } | null };
 
-    const wrLimit = resolveWarRoomLimit(wsPlan);
-    if (!consumeResult.allowed) {
-      return new Response(JSON.stringify({
-        error: "War Room session limit reached for this billing period.",
-        quota_exceeded: true,
-        plan: wsPlan,
+      if (consumeErr || !consumeResult) {
+        return new Response(JSON.stringify({ error: "Failed to verify usage quota. Please try again." }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const wrLimit = resolveWarRoomLimit(wsPlan);
+      if (!consumeResult.allowed) {
+        return new Response(JSON.stringify({
+          error: "War Room session limit reached for this billing period.",
+          quota_exceeded: true,
+          plan: wsPlan,
+          used: consumeResult.session_count,
+          limit: consumeResult.session_limit,
+          included: consumeResult.included,
+        }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Pro overage: record a Stripe metered usage event (fire-and-forget).
+      if (consumeResult.in_overage && wsPlan === "pro" && wsRow?.stripe_subscription_id) {
+        const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+        if (stripeKey) {
+          recordProOverageUsage({
+            stripeSecretKey: stripeKey,
+            stripeSubscriptionId: wsRow.stripe_subscription_id,
+          }).catch((e: unknown) => console.error("Pro overage meter event failed:", e));
+        }
+      }
+
+      warRoomUsage = {
         used: consumeResult.session_count,
         limit: consumeResult.session_limit,
         included: consumeResult.included,
-      }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        in_overage: consumeResult.in_overage,
+        overage_count: consumeResult.overage_count,
+        overage_unit_price: wrLimit.overageUnitPrice,
+        period_end: consumeResult.period_end,
+      };
+    }
+
+    // Daily quota — beta users bypass this entirely.
+    if (!isBetaUser) {
+      const today = new Date().toISOString().slice(0, 10);
+      const { error: upsertErr } = await service.rpc("increment_daily_ai_usage", {
+        p_user_id: user.id,
+        p_date: today,
       });
-    }
 
-    // Pro overage: record a Stripe metered usage event (fire-and-forget).
-    // Requires a metered meter configured in Stripe; falls back silently.
-    if (consumeResult.in_overage && wsPlan === "pro" && wsRow?.stripe_subscription_id) {
-      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-      if (stripeKey) {
-        recordProOverageUsage({
-          stripeSecretKey: stripeKey,
-          stripeSubscriptionId: wsRow.stripe_subscription_id,
-        }).catch((e: unknown) => console.error("Pro overage meter event failed:", e));
-      }
-    }
-
-    const warRoomUsage = {
-      used: consumeResult.session_count,
-      limit: consumeResult.session_limit,
-      included: consumeResult.included,
-      in_overage: consumeResult.in_overage,
-      overage_count: consumeResult.overage_count,
-      overage_unit_price: wrLimit.overageUnitPrice,
-      period_end: consumeResult.period_end,
-    };
-
-    // Daily quota
-    const today = new Date().toISOString().slice(0, 10);
-    const { error: upsertErr } = await service.rpc("increment_daily_ai_usage", {
-      p_user_id: user.id,
-      p_date: today,
-    });
-
-    if (upsertErr) {
-      const { data: usageRow } = await service
-        .from("daily_ai_usage").select("message_count")
-        .eq("user_id", user.id).eq("date", today).maybeSingle();
-      const currentCount = usageRow?.message_count ?? 0;
-      if (currentCount >= DAILY_MESSAGE_LIMIT) {
-        return new Response(JSON.stringify({ error: "Daily message limit reached. Please try again tomorrow.", quota_exceeded: true }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      await service.from("daily_ai_usage").upsert(
-        { user_id: user.id, date: today, message_count: currentCount + 1 },
-        { onConflict: "user_id,date" }
-      );
-    } else {
-      const { data: usageRow } = await service
-        .from("daily_ai_usage").select("message_count")
-        .eq("user_id", user.id).eq("date", today).maybeSingle();
-      if ((usageRow?.message_count ?? 0) > DAILY_MESSAGE_LIMIT) {
-        return new Response(JSON.stringify({ error: "Daily message limit reached. Please try again tomorrow.", quota_exceeded: true }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (upsertErr) {
+        const { data: usageRow } = await service
+          .from("daily_ai_usage").select("message_count")
+          .eq("user_id", user.id).eq("date", today).maybeSingle();
+        const currentCount = usageRow?.message_count ?? 0;
+        if (currentCount >= DAILY_MESSAGE_LIMIT) {
+          return new Response(JSON.stringify({ error: "Daily message limit reached. Please try again tomorrow.", quota_exceeded: true }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        await service.from("daily_ai_usage").upsert(
+          { user_id: user.id, date: today, message_count: currentCount + 1 },
+          { onConflict: "user_id,date" }
+        );
+      } else {
+        const { data: usageRow } = await service
+          .from("daily_ai_usage").select("message_count")
+          .eq("user_id", user.id).eq("date", today).maybeSingle();
+        if ((usageRow?.message_count ?? 0) > DAILY_MESSAGE_LIMIT) {
+          return new Response(JSON.stringify({ error: "Daily message limit reached. Please try again tomorrow.", quota_exceeded: true }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     }
 
