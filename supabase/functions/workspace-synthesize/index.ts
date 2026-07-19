@@ -405,7 +405,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
         const regenRes = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiApiKey}` },
-          signal: AbortSignal.timeout(45_000),
+          signal: AbortSignal.timeout(90_000),
           body: JSON.stringify({
             model: "gpt-5.5",
             messages: [
@@ -670,13 +670,13 @@ Return ONLY valid JSON in this exact shape, no markdown:
 
     // Run main synthesis first, then action items sequentially to avoid TPM rate limits.
     // Both calls together can exceed 30k tokens/min when parallelised.
-    // Each call is hard-capped at 55 s so the total stays well under the 150 s edge-function limit.
+    // Main call allows up to 120 s for large transcripts; action items capped at 40 s.
     let openAiRes: Response;
     try {
       openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-        signal: AbortSignal.timeout(55_000),
+        signal: AbortSignal.timeout(120_000),
         body: JSON.stringify({
           model: "gpt-5.5",
           messages: [
@@ -686,7 +686,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
             },
             { role: "user", content: synthesisPrompt },
           ],
-          max_completion_tokens: 6000,
+          max_completion_tokens: 4000,
           response_format: { type: "json_object" },
         }),
       });
@@ -701,7 +701,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       actionItemsRes = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-        signal: AbortSignal.timeout(45_000),
+        signal: AbortSignal.timeout(40_000),
         body: JSON.stringify({
           model: "gpt-5.5",
           messages: [
