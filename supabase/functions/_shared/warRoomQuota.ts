@@ -78,6 +78,12 @@ export interface ConsumeResult {
  * meter exists, callers should fall back to the invoice-item path in the
  * `invoice.upcoming` webhook branch (see stripe-webhook).
  *
+ * The Stripe Meter Events API requires a subscription *item* ID (`si_...`),
+ * not the subscription ID (`sub_...`). This helper resolves the correct item
+ * by fetching the subscription and finding the line whose price is metered
+ * (price.recurring.usage_type === "metered"). If no metered item is attached,
+ * the event is skipped (the invoice-item fallback covers billing).
+ *
  * Fail-safe: any error is swallowed and logged; it never blocks the chat turn.
  */
 export async function recordProOverageUsage(args: {
@@ -87,8 +93,26 @@ export async function recordProOverageUsage(args: {
 }): Promise<void> {
   const { stripeSecretKey, stripeSubscriptionId, quantity = 1 } = args;
   try {
-    // Stripe meter events API (preferred). Falls back gracefully if the meter
-    // is not configured — the invoice-item path in stripe-webhook covers it.
+    // Resolve the metered subscription item ID (si_...) for this subscription.
+    const subRes = await fetch(
+      `https://api.stripe.com/v1/subscriptions/${stripeSubscriptionId}?expand[]=items.data.price.recurring`,
+      { headers: { Authorization: `Bearer ${stripeSecretKey}` } },
+    );
+    if (!subRes.ok) {
+      console.error(`Stripe subscription fetch failed (${subRes.status}) for ${stripeSubscriptionId}`);
+      return;
+    }
+    const sub = await subRes.json();
+    const meteredItem = (sub.items?.data ?? []).find(
+      (it: { price?: { recurring?: { usage_type?: string } } }) =>
+        it.price?.recurring?.usage_type === "metered",
+    );
+    if (!meteredItem?.id) {
+      // No metered price attached to this subscription — skip silently.
+      // The invoice-item fallback in stripe-webhook handles billing.
+      return;
+    }
+
     const res = await fetch("https://api.stripe.com/v1/billing/meter_events", {
       method: "POST",
       headers: {
@@ -97,12 +121,12 @@ export async function recordProOverageUsage(args: {
       },
       body: new URLSearchParams({
         "event_name": "war_room_session",
-        "payload[subscription_item]": stripeSubscriptionId,
+        "payload[subscription_item]": meteredItem.id,
         "payload[quantity]": String(quantity),
       }).toString(),
     });
     if (!res.ok) {
-      console.error(`Stripe meter event failed (${res.status}) for sub ${stripeSubscriptionId}`);
+      console.error(`Stripe meter event failed (${res.status}) for sub item ${meteredItem.id}`);
     }
   } catch (e) {
     console.error("recordProOverageUsage error:", e);
