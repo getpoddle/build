@@ -407,7 +407,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiApiKey}` },
           signal: AbortSignal.timeout(45_000),
           body: JSON.stringify({
-            model: "gpt-5.6",
+            model: "gpt-5.5",
             messages: [
               {
                 role: "system",
@@ -676,7 +676,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
       signal: AbortSignal.timeout(55_000),
       body: JSON.stringify({
-        model: "gpt-5.6",
+        model: "gpt-5.5",
         messages: [
           {
             role: "system",
@@ -694,7 +694,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
       signal: AbortSignal.timeout(45_000),
       body: JSON.stringify({
-        model: "gpt-5.6",
+        model: "gpt-5.5",
         messages: [
           {
             role: "system",
@@ -1073,7 +1073,7 @@ RULES:
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
       body: JSON.stringify({
-        model: "gpt-5.6",
+        model: "gpt-5.5",
         messages: [{ role: "user", content: rationalePrompt }],
         max_completion_tokens: 80,
       }),
@@ -1496,7 +1496,8 @@ RULES:
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {
+    const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     console.error("Synthesize error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Internal server error", detail: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
