@@ -200,6 +200,51 @@ export function useSubscriptionTier() {
   return { tier, loading, isPro: tier === 'pro' || tier === 'team' || tier === 'enterprise' };
 }
 
+export interface WarRoomUsage {
+  sessions_used: number;
+  sessions_limit: number | null;
+  included: number;
+  in_overage: boolean;
+  overage_count: number;
+  overage_unit_price: number;
+  hard_block: boolean;
+  plan: string;
+  period_end: string | null;
+  warning_threshold_reached: boolean;
+  limit_reached: boolean;
+  loading: boolean;
+}
+
+export function useWarRoomUsage(workspaceId: string | null): WarRoomUsage & { refetch: () => Promise<void> } {
+  const { user } = useAuth();
+  const [state, setState] = useState<WarRoomUsage>({
+    sessions_used: 0, sessions_limit: null, included: 0, in_overage: false,
+    overage_count: 0, overage_unit_price: 0, hard_block: false, plan: 'free',
+    period_end: null, warning_threshold_reached: false, limit_reached: false, loading: true,
+  });
+
+  async function load() {
+    if (!workspaceId || !user) { setState(s => ({ ...s, loading: false })); return; }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-usage?workspace_id=${workspaceId}`,
+        { headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } }
+      );
+      if (!res.ok) { setState(s => ({ ...s, loading: false })); return; }
+      const data = await res.json();
+      setState({ ...data, loading: false });
+    } catch {
+      setState(s => ({ ...s, loading: false }));
+    }
+  }
+
+  useEffect(() => { load(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId, user]);
+
+  return { ...state, refetch: load };
+}
+
 export function useTrialInfo() {
   const { user } = useAuth();
   const [freeWorkspaceMonth, setFreeWorkspaceMonth] = useState<string | null>(null);

@@ -178,14 +178,39 @@ Deno.serve(async (req: Request) => {
       const invoice = event.data.object;
       const subscriptionId = invoice.subscription;
       if (subscriptionId) {
+        const periodStart = invoice.lines?.data?.[0]?.period?.start;
         const periodEnd = invoice.lines?.data?.[0]?.period?.end;
         await supabase
           .from("workspaces")
           .update({
             subscription_status: "active",
+            current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : undefined,
             current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : undefined,
           })
           .eq("stripe_subscription_id", subscriptionId);
+
+        // Billing-cycle reset: seed a fresh usage row for the new period.
+        if (periodStart) {
+          const { data: wsForReset } = await supabase
+            .from("workspaces")
+            .select("id")
+            .eq("stripe_subscription_id", subscriptionId)
+            .maybeSingle();
+          if (wsForReset?.id) {
+            await supabase
+              .from("workspace_war_room_usage")
+              .upsert(
+                {
+                  workspace_id: wsForReset.id,
+                  period_start: new Date(periodStart * 1000).toISOString(),
+                  period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+                  session_count: 0,
+                  overage_count: 0,
+                },
+                { onConflict: "workspace_id,period_start" }
+              );
+          }
+        }
 
         // Send invoice email — look up workspace owner
         const { data: wsForInvoice } = await supabase
@@ -352,6 +377,54 @@ Deno.serve(async (req: Request) => {
           .maybeSingle();
 
         if (wsForUpcoming?.owner_id) {
+          // Pro metered overage fallback: add pending invoice items for any
+          // overage sessions accumulated this period. This is the fallback
+          // path when a Stripe metered meter is not configured; the
+          // recordProOverageUsage helper in warRoomQuota.ts is the preferred
+          // path. Both can coexist without double-charging because the meter
+          // event API and invoice items are independent channels — if you
+          // enable the meter, disable this block.
+          if (wsForUpcoming.plan === "pro") {
+            const { data: wsUsage } = await supabase
+              .from("workspaces")
+              .select("id, current_period_start")
+              .eq("stripe_subscription_id", subscriptionId)
+              .maybeSingle();
+            if (wsUsage?.id) {
+              const periodStart = wsUsage.current_period_start
+                ? new Date(wsUsage.current_period_start)
+                : null;
+              let overageQuery = supabase
+                .from("workspace_war_room_usage")
+                .select("overage_count")
+                .eq("workspace_id", wsUsage.id);
+              if (periodStart) overageQuery = overageQuery.eq("period_start", periodStart.toISOString());
+              const { data: usageRow } = await overageQuery.maybeSingle();
+              const overage = usageRow?.overage_count ?? 0;
+              if (overage > 0) {
+                const unitPriceCents = 75; // $0.75/session — matches warRoomQuota.ts
+                try {
+                  await fetch("https://api.stripe.com/v1/invoiceitems", {
+                    method: "POST",
+                    headers: {
+                      "Authorization": `Bearer ${stripeSecretKey}`,
+                      "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: new URLSearchParams({
+                      customer: invoice.customer,
+                      amount: String(overage * unitPriceCents),
+                      currency: "usd",
+                      description: `War Room overage — ${overage} session${overage === 1 ? "" : "s"} beyond Pro plan`,
+                      subscription: subscriptionId,
+                    }).toString(),
+                  });
+                } catch (e) {
+                  console.error("Failed to create overage invoice item:", e);
+                }
+              }
+            }
+          }
+
           const amountCents = invoice.amount_due ?? 0;
           const currency = (invoice.currency ?? "usd").toUpperCase();
           const amountFormatted = `${currency} ${(amountCents / 100).toFixed(2)}`;
@@ -421,6 +494,9 @@ Deno.serve(async (req: Request) => {
         .from("workspaces")
         .update({
           subscription_status: mappedStatus,
+          current_period_start: subscription.current_period_start
+            ? new Date(subscription.current_period_start * 1000).toISOString()
+            : undefined,
           current_period_end: subscription.current_period_end
             ? new Date(subscription.current_period_end * 1000).toISOString()
             : undefined,

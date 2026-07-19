@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { logAiOpenAICall } from "../_shared/posthogLogging.ts";
+import { resolveWarRoomLimit, recordProOverageUsage, type ConsumeResult } from "../_shared/warRoomQuota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -402,6 +403,63 @@ Deno.serve(async (req: Request) => {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // ── War Room per-period quota — enforced BEFORE any OpenAI token is spent.
+    // One chat turn = one session unit. The synthesis pass that follows is part
+    // of the same unit and must NOT call consume_war_room_session again.
+    const { data: wsRow } = await service
+      .from("workspaces")
+      .select("plan, stripe_subscription_id")
+      .eq("id", workspace_id)
+      .maybeSingle();
+    const wsPlan = (wsRow?.plan as string) || "free";
+
+    const { data: consumeResult, error: consumeErr } = await service.rpc(
+      "consume_war_room_session",
+      { p_workspace_id: workspace_id, p_plan: wsPlan }
+    ) as { data: ConsumeResult | null; error: { message: string } | null };
+
+    if (consumeErr || !consumeResult) {
+      return new Response(JSON.stringify({ error: "Failed to verify usage quota. Please try again." }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const wrLimit = resolveWarRoomLimit(wsPlan);
+    if (!consumeResult.allowed) {
+      return new Response(JSON.stringify({
+        error: "War Room session limit reached for this billing period.",
+        quota_exceeded: true,
+        plan: wsPlan,
+        used: consumeResult.session_count,
+        limit: consumeResult.session_limit,
+        included: consumeResult.included,
+      }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Pro overage: record a Stripe metered usage event (fire-and-forget).
+    // Requires a metered meter configured in Stripe; falls back silently.
+    if (consumeResult.in_overage && wsPlan === "pro" && wsRow?.stripe_subscription_id) {
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (stripeKey) {
+        recordProOverageUsage({
+          stripeSecretKey: stripeKey,
+          stripeSubscriptionId: wsRow.stripe_subscription_id,
+        }).catch((e: unknown) => console.error("Pro overage meter event failed:", e));
+      }
+    }
+
+    const warRoomUsage = {
+      used: consumeResult.session_count,
+      limit: consumeResult.session_limit,
+      included: consumeResult.included,
+      in_overage: consumeResult.in_overage,
+      overage_count: consumeResult.overage_count,
+      overage_unit_price: wrLimit.overageUnitPrice,
+      period_end: consumeResult.period_end,
+    };
 
     // Daily quota
     const today = new Date().toISOString().slice(0, 10);
@@ -884,7 +942,7 @@ Return ONLY valid JSON, no markdown fences:
     }
 
     return new Response(
-      JSON.stringify({ responses: allResponses }),
+      JSON.stringify({ responses: allResponses, war_room_usage: warRoomUsage }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

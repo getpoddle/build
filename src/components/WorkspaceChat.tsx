@@ -44,6 +44,15 @@ interface WorkspaceChatProps {
   onAgentsReplied?: () => void;
   isPro?: boolean;
   onUpgrade?: () => void;
+  onUsageUpdate?: (usage: {
+    used: number;
+    limit: number | null;
+    included: number;
+    in_overage: boolean;
+    overage_count: number;
+    overage_unit_price: number;
+    period_end: string | null;
+  }) => void;
 }
 
 const MAX_DOC_FILES = 3;
@@ -147,7 +156,7 @@ function getIntakeStorageKey(workspaceId: string) {
   return `poddle_intake_done_${workspaceId}`;
 }
 
-export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTopic, initialPrompt, onPromptConsumed, onAgentsReplied, isPro, onUpgrade }: WorkspaceChatProps) {
+export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTopic, initialPrompt, onPromptConsumed, onAgentsReplied, isPro, onUpgrade, onUsageUpdate }: WorkspaceChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberProfile>>({});
@@ -418,13 +427,21 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
       if (!res.ok) {
         if (res.status === 429 || json.quota_exceeded) {
-          setSendError("You've reached today's message limit. Agents will be available again tomorrow.");
+          if (json.plan === 'free' || json.included === 0) {
+            setSendError("You've reached the free War Room session limit for this billing period. Upgrade to Pro for unlimited sessions.");
+          } else {
+            setSendError("You've reached the War Room session limit for this billing period.");
+          }
         } else if (res.status === 401) {
           setSendError("Your session has expired. Please refresh the page and try again.");
         } else {
           setSendError(json.error || "The agents couldn't respond. Please try again in a moment.");
         }
         return;
+      }
+
+      if (json.war_room_usage) {
+        onUsageUpdate?.(json.war_room_usage);
       }
 
       if (json.responses) {

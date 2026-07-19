@@ -31,6 +31,11 @@ Deno.serve(async (req: Request) => {
 
     // Internal cron calls carry the service role key as their Bearer token.
     // This cannot be spoofed by a regular user JWT.
+    //
+    // NOTE: synthesis does NOT call consume_war_room_session. The chat turn
+    // that triggered this synthesis already counted as one War Room session
+    // unit, and the cron path is server-side regeneration (not a user
+    // session). Counting here would double-charge the same unit.
     const isInternalCall = authHeader === `Bearer ${serviceKey}`;
 
     let user: { id: string } | null = null;
