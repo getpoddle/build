@@ -854,6 +854,24 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     return () => { supabase.removeChannel(channel); };
   }, [workspaceId]);
 
+  // Realtime: reload synthesis the moment it is written/updated, so the page
+  // reflects a completed synthesis without requiring a navigation away and back.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`war-room-synth-${workspaceId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'workspace_synthesis',
+        filter: `workspace_id=eq.${workspaceId}`,
+      }, () => {
+        setSynthQueued(false);
+        loadAll();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [workspaceId, loadAll]);
+
   // Poll the synthesis queue so we can show "synthesis pending" state even
   // after the user navigates back to the page. When the queue clears (server
   // finished) we reload the synthesis data.
