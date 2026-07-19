@@ -407,7 +407,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiApiKey}` },
           signal: AbortSignal.timeout(45_000),
           body: JSON.stringify({
-            model: "gpt-4o",
+            model: "gpt-5.6",
             messages: [
               {
                 role: "system",
@@ -677,7 +677,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
       signal: AbortSignal.timeout(55_000),
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-5.6",
         messages: [
           {
             role: "system",
@@ -696,7 +696,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
       signal: AbortSignal.timeout(45_000),
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-5.6",
         messages: [
           {
             role: "system",
@@ -1076,7 +1076,7 @@ RULES:
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "gpt-5.6",
         messages: [{ role: "user", content: rationalePrompt }],
         max_tokens: 80,
         temperature: 0.2,
