@@ -128,7 +128,7 @@ async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens =
   if (!openaiKey) throw new Error("OpenAI API key not configured");
 
   const body = {
-    model: "gpt-5.6",
+    model: "gpt-5.6-sol",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userMessage },

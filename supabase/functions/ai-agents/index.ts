@@ -812,7 +812,7 @@ async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens =
   if (!openaiKey) throw new Error("OpenAI API key not configured");
 
   const body: Record<string, unknown> = {
-    model: "gpt-5.6",
+    model: "gpt-5.6-sol",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userMessage },
@@ -837,7 +837,7 @@ async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens =
   if (!response.ok) {
     const err = await response.text();
     phCaptureServer("ai_openai_call_failed", distinctId, {
-      model: "gpt-5.6",
+      model: "gpt-5.6-sol",
       status: response.status,
       latency_ms: Date.now() - startedAt,
       json_mode: jsonMode,
@@ -847,7 +847,7 @@ async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens =
 
   const data = await response.json();
   phCaptureServer("ai_openai_call", distinctId, {
-    model: "gpt-5.6",
+    model: "gpt-5.6-sol",
     prompt_tokens: data.usage?.prompt_tokens ?? null,
     completion_tokens: data.usage?.completion_tokens ?? null,
     total_tokens: data.usage?.total_tokens ?? null,
