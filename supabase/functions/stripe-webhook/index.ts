@@ -377,53 +377,11 @@ Deno.serve(async (req: Request) => {
           .maybeSingle();
 
         if (wsForUpcoming?.owner_id) {
-          // Pro metered overage fallback: add pending invoice items for any
-          // overage sessions accumulated this period. This is the fallback
-          // path when a Stripe metered meter is not configured; the
-          // recordProOverageUsage helper in warRoomQuota.ts is the preferred
-          // path. Both can coexist without double-charging because the meter
-          // event API and invoice items are independent channels — if you
-          // enable the meter, disable this block.
-          if (wsForUpcoming.plan === "pro") {
-            const { data: wsUsage } = await supabase
-              .from("workspaces")
-              .select("id, current_period_start")
-              .eq("stripe_subscription_id", subscriptionId)
-              .maybeSingle();
-            if (wsUsage?.id) {
-              const periodStart = wsUsage.current_period_start
-                ? new Date(wsUsage.current_period_start)
-                : null;
-              let overageQuery = supabase
-                .from("workspace_war_room_usage")
-                .select("overage_count")
-                .eq("workspace_id", wsUsage.id);
-              if (periodStart) overageQuery = overageQuery.eq("period_start", periodStart.toISOString());
-              const { data: usageRow } = await overageQuery.maybeSingle();
-              const overage = usageRow?.overage_count ?? 0;
-              if (overage > 0) {
-                const unitPriceCents = 75; // $0.75/session — matches warRoomQuota.ts
-                try {
-                  await fetch("https://api.stripe.com/v1/invoiceitems", {
-                    method: "POST",
-                    headers: {
-                      "Authorization": `Bearer ${stripeSecretKey}`,
-                      "Content-Type": "application/x-www-form-urlencoded",
-                    },
-                    body: new URLSearchParams({
-                      customer: invoice.customer,
-                      amount: String(overage * unitPriceCents),
-                      currency: "usd",
-                      description: `War Room overage — ${overage} session${overage === 1 ? "" : "s"} beyond Pro plan`,
-                      subscription: subscriptionId,
-                    }).toString(),
-                  });
-                } catch (e) {
-                  console.error("Failed to create overage invoice item:", e);
-                }
-              }
-            }
-          }
+          // Pro metered overage is now billed via the Stripe metered meter
+          // (event_name "war_room_session") driven by recordProOverageUsage
+          // in warRoomQuota.ts. The invoice-item fallback that previously
+          // ran here has been removed to avoid double-billing now that the
+          // meter is live.
 
           const amountCents = invoice.amount_due ?? 0;
           const currency = (invoice.currency ?? "usd").toUpperCase();
