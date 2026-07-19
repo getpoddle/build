@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { logAiOpenAICall } from "../_shared/posthogLogging.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -285,6 +286,7 @@ Rules:
 
 Example output: ["financial_strategist", "devils_advocate", "risk_analyst", "market_analyst"]`;
 
+  const selectStartedAt = Date.now();
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -300,6 +302,7 @@ Example output: ["financial_strategist", "devils_advocate", "risk_analyst", "mar
     });
 
     const data = await res.json();
+    logAiOpenAICall({ distinctId: "workspace_agent_select", workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "agent_select", model: "gpt-5.5", usage: data.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - selectStartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
     const raw = data.choices?.[0]?.message?.content?.trim() || "";
 
     const match = raw.match(/\[[\s\S]*\]/);
@@ -601,6 +604,7 @@ Respond in 350-450 words. Go deep. Be specific — cite mechanisms, name concret
 CRITICAL: Ground every section of your response in the DECISION ANCHOR above. If the user asked about a sub-topic, connect it explicitly back to the central decision.
 This is ROUND 1 of a structured debate — state your position with full analytical depth so other agents can challenge it.`;
 
+        const r1StartedAt = Date.now();
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
@@ -616,6 +620,7 @@ This is ROUND 1 of a structured debate — state your position with full analyti
         });
 
         const data = await res.json();
+        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.5", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
         const content = data.choices?.[0]?.message?.content || "I couldn't generate a response right now.";
         return { agent, content };
       })
@@ -644,6 +649,7 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
 
 150-200 words. Punchy. No preamble. No restating your prior position. Start with the challenge.`;
 
+        const r2StartedAt = Date.now();
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
@@ -658,6 +664,7 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
         });
 
         const data = await res.json();
+        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `challenge_${agent.role}`, model: "gpt-5.5", usage: data.usage, maxCompletionTokens: 450, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
         const content = data.choices?.[0]?.message?.content || "";
         return { agent, content };
       })
@@ -711,6 +718,8 @@ GOOD: "CFO to build three financial scenarios (base/bull/bear) with explicit hea
 Return ONLY valid JSON, no markdown fences:
 {"action_items":[{"text":"string","source_area":"CEO|CFO|HR|Legal|Product|Engineering|Finance|Risk|Strategy|Marketing|Operations|People","priority":"critical|high|medium"}]}`;
 
+    const consensusStartedAt = Date.now();
+    const actionStartedAt = Date.now();
     const [consensusRes, actionExtrRes] = await Promise.all([
       fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -737,11 +746,13 @@ Return ONLY valid JSON, no markdown fences:
     ]);
 
     const consensusData = await consensusRes.json();
+    logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "consensus", model: "gpt-5.5", usage: consensusData.usage, maxCompletionTokens: 600, jsonMode: false, latencyMs: Date.now() - consensusStartedAt, status: consensusRes.ok ? "succeeded" : "errored", httpStatus: consensusRes.status });
     const consensusContent = consensusData.choices?.[0]?.message?.content || "";
 
     // Write action items to DB — don't await so it doesn't block the response
     const VALID_SOURCE_AREAS = new Set(["CEO","CFO","HR","Legal","Product","Engineering","Finance","Risk","Strategy","Marketing","Operations","People"]);
     actionExtrRes.json().then(async (aj) => {
+      logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "action_extraction", model: "gpt-5.5", usage: aj.usage, maxCompletionTokens: 1200, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: actionExtrRes.ok ? "succeeded" : "errored", httpStatus: actionExtrRes.status });
       try {
         const raw = aj.choices?.[0]?.message?.content || "{}";
         const parsed = JSON.parse(raw);

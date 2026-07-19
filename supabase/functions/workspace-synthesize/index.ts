@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { logAiOpenAICall } from "../_shared/posthogLogging.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -401,6 +402,7 @@ ${instructionBlocks.join("\n\n")}
 
 Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
 
+      const regenStartedAt = Date.now();
       try {
         const regenRes = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -420,8 +422,12 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
           }),
         });
 
-        if (!regenRes.ok) return;
+        if (!regenRes.ok) {
+          logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.5", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "errored", httpStatus: regenRes.status });
+          return;
+        }
         const regenJson = await regenRes.json();
+        logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.5", usage: regenJson.usage, maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "succeeded", httpStatus: regenRes.status });
         const regenRaw = regenJson.choices?.[0]?.message?.content || "{}";
         const regenParsed = JSON.parse(regenRaw);
 
@@ -431,6 +437,8 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
           }
         }
       } catch (e) {
+        const isTimeout = e instanceof DOMException && e.name === "TimeoutError";
+        logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.5", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: isTimeout ? "timeout" : "errored" });
         console.error("Regeneration call failed:", e);
       }
     }
@@ -672,6 +680,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     // Both calls together can exceed 30k tokens/min when parallelised.
     // Main call allows up to 120 s for large transcripts; action items capped at 40 s.
     let openAiRes: Response;
+    const synthStartedAt = Date.now();
     try {
       openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -691,12 +700,15 @@ Return ONLY valid JSON in this exact shape, no markdown:
         }),
       });
     } catch (fetchErr) {
+      const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
+      logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.5", maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
       const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
       console.error("Synthesis fetch failed:", fetchErr);
       return new Response(JSON.stringify({ error: `Synthesis AI request failed: ${msg}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     let actionItemsRes: Response;
+    const actionStartedAt = Date.now();
     try {
       actionItemsRes = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -716,12 +728,15 @@ Return ONLY valid JSON in this exact shape, no markdown:
         }),
       });
     } catch (fetchErr) {
+      const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
+      logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.5", maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: isTimeout ? "timeout" : "errored" });
       console.error("Action items fetch failed:", fetchErr);
       actionItemsRes = new Response(JSON.stringify({ error: { message: "Action items call failed" } }), { status: 500 });
     }
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
+      logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.5", maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
       console.error("OpenAI error:", openAiRes.status, err);
       let detail = "AI synthesis failed";
       try { const parsed = JSON.parse(err); detail = parsed?.error?.message || detail; } catch { /* use default */ }
@@ -729,6 +744,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     }
 
     const openAiJson = await openAiRes.json();
+    logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.5", usage: openAiJson.usage, maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "succeeded", httpStatus: openAiRes.status });
     const rawContent = openAiJson.choices?.[0]?.message?.content || "{}";
 
     let synthesis: Record<string, unknown>;
@@ -743,6 +759,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     if (actionItemsRes.ok) {
       try {
         const aiJson = await actionItemsRes.json();
+        logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.5", usage: aiJson.usage, maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "succeeded", httpStatus: actionItemsRes.status });
         const aiRaw = aiJson.choices?.[0]?.message?.content || "{}";
         const aiParsed = JSON.parse(aiRaw);
         if (Array.isArray(aiParsed.action_items) && aiParsed.action_items.length > 0) {
@@ -755,6 +772,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       }
     } else {
       const aiErr = await actionItemsRes.text();
+      logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.5", maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "errored", httpStatus: actionItemsRes.status });
       console.error("Action items call failed:", actionItemsRes.status, aiErr);
     }
 
@@ -1082,6 +1100,7 @@ RULES:
 - Maximum 60 words total.
 - Return ONLY the two sentences, no preamble.`;
 
+    const rationaleStartedAt = Date.now();
     const rationaleRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
@@ -1095,8 +1114,11 @@ RULES:
     let healthRationale: string | null = null;
     if (rationaleRes.ok) {
       const rationaleJson = await rationaleRes.json();
+      logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.5", usage: rationaleJson.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "succeeded", httpStatus: rationaleRes.status });
       const rationaleText = rationaleJson.choices?.[0]?.message?.content?.trim() ?? "";
       if (rationaleText.length > 10) healthRationale = rationaleText;
+    } else {
+      logAiOpenAICall({ distinctId: authUser!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.5", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored", httpStatus: rationaleRes.status });
     }
     // Fallback: deterministic rationale if the second call fails
     if (!healthRationale) {
