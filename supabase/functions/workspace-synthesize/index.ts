@@ -415,8 +415,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
               },
               { role: "user", content: regenPrompt },
             ],
-            max_tokens: 3000,
-            temperature: 0.3,
+            max_completion_tokens: 3000,
             response_format: { type: "json_object" },
           }),
         });
@@ -685,8 +684,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
           },
           { role: "user", content: synthesisPrompt },
         ],
-        max_tokens: 6000,
-        temperature: 0.4,
+        max_completion_tokens: 6000,
         response_format: { type: "json_object" },
       }),
     });
@@ -704,8 +702,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
           },
           { role: "user", content: actionItemsPrompt },
         ],
-        max_tokens: 2000,
-        temperature: 0.3,
+        max_completion_tokens: 2000,
         response_format: { type: "json_object" },
       }),
     });
@@ -1078,8 +1075,7 @@ RULES:
       body: JSON.stringify({
         model: "gpt-5.6",
         messages: [{ role: "user", content: rationalePrompt }],
-        max_tokens: 80,
-        temperature: 0.2,
+        max_completion_tokens: 80,
       }),
     });
 

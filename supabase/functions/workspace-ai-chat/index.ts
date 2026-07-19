@@ -295,8 +295,7 @@ Example output: ["financial_strategist", "devils_advocate", "risk_analyst", "mar
       body: JSON.stringify({
         model: "gpt-5.6",
         messages: [{ role: "user", content: classificationPrompt }],
-        max_tokens: 80,
-        temperature: 0,
+        max_completion_tokens: 80,
       }),
     });
 
@@ -612,8 +611,7 @@ This is ROUND 1 of a structured debate — state your position with full analyti
               ...conversationHistory,
               { role: "user", content: safeMessage },
             ],
-            max_tokens: agent.maxTokens,
-            temperature: agent.temperature,
+            max_completion_tokens: agent.maxTokens,
           }),
         });
 
@@ -655,8 +653,7 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
               { role: "system", content: challengePrompt },
               { role: "user", content: safeMessage },
             ],
-            max_tokens: 450,
-            temperature: agent.temperature,
+            max_completion_tokens: 450,
           }),
         });
 
@@ -721,8 +718,7 @@ Return ONLY valid JSON, no markdown fences:
         body: JSON.stringify({
           model: "gpt-5.6",
           messages: [{ role: "user", content: consensusPrompt }],
-          max_tokens: 600,
-          temperature: 0.5,
+          max_completion_tokens: 600,
         }),
       }),
       fetch("https://api.openai.com/v1/chat/completions", {
@@ -734,8 +730,7 @@ Return ONLY valid JSON, no markdown fences:
             { role: "system", content: "You extract specific, owner-assigned, immediately executable action items from strategic debates. Every item must name a responsible role, a concrete deliverable, and connect to the central decision. Generic tasks are unacceptable. Return JSON only." },
             { role: "user", content: actionExtractionPrompt },
           ],
-          max_tokens: 1200,
-          temperature: 0.2,
+          max_completion_tokens: 1200,
           response_format: { type: "json_object" },
         }),
       }),

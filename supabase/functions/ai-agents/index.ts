@@ -817,8 +817,7 @@ async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens =
       { role: "system", content: systemPrompt },
       { role: "user", content: userMessage },
     ],
-    max_tokens: maxTokens,
-    temperature,
+    max_completion_tokens: maxTokens,
   };
 
   if (jsonMode) {
@@ -852,7 +851,7 @@ async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens =
     prompt_tokens: data.usage?.prompt_tokens ?? null,
     completion_tokens: data.usage?.completion_tokens ?? null,
     total_tokens: data.usage?.total_tokens ?? null,
-    max_tokens: maxTokens,
+    max_completion_tokens: maxTokens,
     json_mode: jsonMode,
     latency_ms: Date.now() - startedAt,
   });
