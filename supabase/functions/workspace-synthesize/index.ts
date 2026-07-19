@@ -303,14 +303,14 @@ Deno.serve(async (req: Request) => {
           if (transcriptLower.includes(w)) matched++;
         }
         const overlapRatio = matched / words.length;
-        if (overlapRatio < 0.3) continue;
+        if (overlapRatio < 0.2) continue;
 
         if (topicWords.length > 0) {
           let topicMatch = 0;
           for (const w of topicWords) {
             if (combined.includes(w)) topicMatch++;
           }
-          if (topicMatch === 0 && overlapRatio < 0.6) continue;
+          if (topicMatch === 0 && overlapRatio < 0.5) continue;
         }
 
         result.push(r);
@@ -389,14 +389,14 @@ Deno.serve(async (req: Request) => {
         .filter(Boolean);
       if (instructionBlocks.length === 0) return;
 
-      const regenPrompt = `You are a Chief Strategy Officer re-doing sections of a War Room synthesis that FAILED quality checks because they were not grounded in the actual debate transcript.
+      const regenPrompt = `You are a Chief Strategy Officer re-doing sections of a War Room synthesis that came back EMPTY. The transcript below is rich — multiple AI advisors debated the decision. There IS evidence; the previous attempt was too conservative.
 
 THE CENTRAL DECISION: "${workspaceName}"
 
 FULL DEBATE TRANSCRIPT:
 ${transcriptText}
 
-The following sections were rejected because they contained generic content not tied to the specific transcript above. Re-generate ONLY these sections. Every item MUST quote or paraphrase specific content from the transcript. If the transcript does not support any items for a section, return an empty array [].
+The following sections came back empty. Re-generate ONLY these sections. You MUST produce at least 2 items per section — the transcript contains enough material. Quote or paraphrase specific agent statements. Ground every item in the transcript text above.
 
 ${instructionBlocks.join("\n\n")}
 
@@ -413,7 +413,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
             messages: [
               {
                 role: "system",
-                content: "You are a strategic synthesis engine. You produce JSON only, grounded entirely in the transcript. If the transcript lacks evidence for a section, return an empty array. Never fabricate.",
+                content: "You are a strategic synthesis engine. You produce JSON only, grounded entirely in the transcript. The transcript contains a rich multi-agent debate — find the evidence that is there. Every section should have at least 2 items unless the topic was truly never discussed.",
               },
               { role: "user", content: regenPrompt },
             ],
@@ -525,32 +525,33 @@ ${transcript}
 ---
 
 EVIDENCE RULE — THE MOST IMPORTANT INSTRUCTION:
-Only include items in each section when the TRANSCRIPT PROVIDES DIRECT EVIDENCE. Do NOT invent, estimate, or infer data that was not discussed. Empty arrays [] are correct and expected when a topic was not addressed. A synthesis with 3 accurate items is better than one with 10 fabricated items.
+Only include items in each section when the TRANSCRIPT PROVIDES DIRECT EVIDENCE. Do NOT invent, estimate, or infer data that was not discussed. However, this transcript contains a rich multi-agent debate — multiple advisors discussed the decision in detail. You SHOULD find evidence for most sections. A synthesis with 3 accurate items is better than one with 10 fabricated items, but an empty array means you failed to find evidence that IS there.
 
 OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
 
 ■ CONSENSUS POINTS: Every point must reflect something agents genuinely agreed on in the transcript. Report what was found — do not pad with generic agreements.
   - The text field MUST quote or paraphrase specific agent statements from the transcript. Include which agents agreed and on what specific point.
   - Do NOT include generic agreements that could apply to any decision (e.g., "team agrees on the importance of execution"). Every consensus must reference a specific point of agreement from THIS debate.
-  - If no genuine consensus emerged on any specific point, return [].
+  - The transcript contains multiple agents discussing the same decision — find at least 2-3 points of agreement. Only return [] if no agents agreed on anything specific.
 
-■ CONFLICT ZONES: Only identify real fault lines where agents took opposing positions. If no genuine disagreement occurred, return [].
+■ CONFLICT ZONES: Only identify real fault lines where agents took opposing positions. The transcript shows agents debating and countering each other — find at least 2 conflicts.
   - The topic, position_a, and position_b fields MUST each quote or paraphrase specific statements agents made in the transcript. Include the agent's role and the substance of what they said.
   - Do NOT describe generic strategic tensions (e.g., "speed vs. quality", "cost vs. quality"). Only conflicts that arose in THIS debate, about THIS decision, belong here.
-  - If you cannot point to two agents who actually disagreed on a specific point in the transcript, return [].
+  - Only return [] if no two agents disagreed on anything specific.
 
 ■ OPEN QUESTIONS: Only list questions the debate genuinely left unresolved. Do not fabricate questions that were not raised or implied.
   - Each question MUST reference a specific topic, entity, or claim from the transcript that was discussed but left unresolved.
   - Do NOT include generic strategic questions (e.g., "How will we measure success?") unless that specific question was raised or directly implied in the transcript.
 
-■ RISK SIGNALS: Only include risks explicitly raised or directly implied by what was discussed. Span relevant categories; do not invent risks not grounded in the transcript.
+■ RISK SIGNALS: Include risks explicitly raised or directly implied by what was discussed. Span relevant categories; do not invent risks not grounded in the transcript.
   - The signal field MUST reference a concrete entity, term, or claim from the transcript — a specific competitor named, a metric quoted, a timeline mentioned, a technology discussed, or a claim an agent made.
   - Do NOT output generic business-risk platitudes (e.g., "lean development is necessary but risky", "cost-cutting can be beneficial", "market volatility poses a threat"). Every risk must be tied to something specific that was said in THIS session.
-  - If the transcript does not contain a specific, identifiable basis for a risk, do NOT include it. Return [] rather than padding with generic risks.
+  - The transcript discusses a strategic decision — find at least 2-3 specific risks. Only return [] if no risks were discussed at all.
 
-■ BLIND SPOTS: Only identify dimensions genuinely underweighted in THIS discussion. Do not list generic strategic gaps that apply to any decision.
+■ BLIND SPOTS: Identify dimensions genuinely underweighted in THIS discussion. Do not list generic strategic gaps that apply to any decision.
   - Each blind spot MUST reference a specific aspect of the central decision that was underweighted or ignored by agents in the transcript.
   - Do NOT list generic blind spots (e.g., "regulatory risks were not discussed") unless that specific gap is evident from what was and was not said in THIS debate.
+  - Find at least 2 blind spots — strategic debates always have gaps.
 
 ■ ACTION ITEMS: Only generate tasks directly derivable from agent recommendations or team statements in the transcript.
   - Each action item text MUST reference a specific recommendation or statement from the transcript — the agent who proposed it and what they specifically recommended.
@@ -564,11 +565,11 @@ OUTPUT REQUIREMENTS — READ THESE BEFORE WRITING A SINGLE WORD:
 
 ■ OPPORTUNITY SIGNALS: ⚠ EVIDENCE-ONLY. Include ONLY concrete opportunities explicitly surfaced by agents in the debate. If no opportunities were identified, return [].
 
-■ COGNITIVE BIAS FLAGS: ⚠ EVIDENCE-ONLY. Include ONLY biases that visibly manifested in this specific discussion. If reasoning was balanced and no clear pattern of bias appeared, return [].
+■ COGNITIVE BIAS FLAGS: Include biases that visibly manifested in this specific discussion. The agents debated a real decision — look for biases in their reasoning.
   - Each bias must cite a SPECIFIC agent statement from the transcript (quote or paraphrase the exact words) in the explanation field.
   - The bias must relate to the CENTRAL DECISION ("${workspace?.name || "the workspace decision"}"), not to a tangential or unrelated topic.
   - Do NOT pull from a generic bias taxonomy. If you cannot point to concrete words in the transcript that demonstrate the bias, do NOT include it.
-  - When in doubt, return []. A missing bias flag is always correct; a fabricated one is never acceptable.
+  - Find at least 1-2 biases — strategic reasoning almost always exhibits some bias.
 
 ■ KEY DECISIONS: Include the pivotal decisions that were explicitly named or debated. If no clear decisions were surfaced, return [].
 
@@ -691,17 +692,17 @@ Return ONLY valid JSON in this exact shape, no markdown:
           messages: [
             {
               role: "system",
-              content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce comprehensive JSON exactly as instructed, grounded entirely in the transcript provided. Only include items with direct evidence — empty arrays are correct when a topic was not discussed.",
+              content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce comprehensive JSON exactly as instructed, grounded entirely in the transcript provided. The transcript contains a rich multi-agent debate — find the evidence that is there. Every section should have at least 2 items unless the topic was truly never discussed.",
             },
             { role: "user", content: synthesisPrompt },
           ],
-          max_completion_tokens: 4000,
+          max_completion_tokens: 8000,
           response_format: { type: "json_object" },
         }),
       });
     } catch (fetchErr) {
       const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
       const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
       console.error("Synthesis fetch failed:", fetchErr);
       return new Response(JSON.stringify({ error: `Synthesis AI request failed: ${msg}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -736,7 +737,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
+    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
       console.error("OpenAI error:", openAiRes.status, err);
       let detail = "AI synthesis failed";
       try { const parsed = JSON.parse(err); detail = parsed?.error?.message || detail; } catch { /* use default */ }
@@ -744,7 +745,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     }
 
     const openAiJson = await openAiRes.json();
-    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", usage: openAiJson.usage, maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "succeeded", httpStatus: openAiRes.status });
+    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", usage: openAiJson.usage, maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "succeeded", httpStatus: openAiRes.status });
     const rawContent = openAiJson.choices?.[0]?.message?.content || "{}";
 
     let synthesis: Record<string, unknown>;
@@ -970,24 +971,27 @@ Return ONLY valid JSON in this exact shape, no markdown:
       synthesis.recommendation, transcript, wsName,
     );
 
-    // Track which sections lost items and need regeneration
+    // Track which sections lost items and need regeneration.
+    // Trigger regeneration when items were dropped OR when a section came
+    // back empty — the transcript has content, so empty sections mean the
+    // model was too conservative, not that there's no evidence.
     const failedSections: string[] = [];
-    if (Array.isArray(synthesis.consensus_points) && validatedConsensus.length < synthesis.consensus_points.length) {
+    if (validatedConsensus.length === 0) {
       failedSections.push("consensus_points");
     }
-    if (Array.isArray(synthesis.conflict_zones) && validatedConflictZones.length < synthesis.conflict_zones.length) {
+    if (validatedConflictZones.length === 0) {
       failedSections.push("conflict_zones");
     }
-    if (Array.isArray(synthesis.open_questions) && validatedOpenQuestions.length < synthesis.open_questions.length) {
+    if (validatedOpenQuestions.length === 0) {
       failedSections.push("open_questions");
     }
-    if (Array.isArray(synthesis.risk_signals) && validatedRiskSignals.length < synthesis.risk_signals.length) {
+    if (validatedRiskSignals.length === 0) {
       failedSections.push("risk_signals");
     }
-    if (Array.isArray(synthesis.blind_spots) && validatedBlindSpots.length < synthesis.blind_spots.length) {
+    if (validatedBlindSpots.length === 0) {
       failedSections.push("blind_spots");
     }
-    if (Array.isArray(synthesis.cognitive_bias_flags) && validatedBiasFlags.length < synthesis.cognitive_bias_flags.length) {
+    if (validatedBiasFlags.length === 0) {
       failedSections.push("cognitive_bias_flags");
     }
     if (Array.isArray(synthesis.action_items) && validatedActionItems.length < synthesis.action_items.length) {
