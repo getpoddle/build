@@ -600,7 +600,14 @@ Every section of your response must answer: how does this analysis change what t
 
 ${workspaceHeader}${topicAnchor}${documentBlock}${memoryContext}${synthesisContext}${intakeInstruction}
 
-Respond in 350-450 words. Go deep. Be specific — cite mechanisms, name concrete risks, quote numbers, identify real companies or analogues. Take a definitive position. Apply your full analytical framework to this question, not just the surface layer. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging.
+Respond in 400-500 words. Go deep. Be specific — cite mechanisms, name concrete risks, quote numbers, identify real companies or analogues. Take a definitive position. Apply your full analytical framework to this question, not just the surface layer. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging.
+
+PRESSURE-TEST MANDATE — NON-NEGOTIABLE:
+- Do NOT accept the user's framing at face value. First steelman their idea (state the strongest version of it), then attack it. If you cannot articulate why a smart adversary would bet against this plan, you have not done your job.
+- Name the 2-3 weakest assumptions buried in the user's message or the workspace context. For each: what is the evidence FOR it, what is the evidence AGAINST it, and what happens to the plan if it is wrong?
+- If you find yourself agreeing with the user, stop and ask: what would make me change my mind? If you cannot answer that, you are not analyzing — you are cheerleading. State the conditions under which you would oppose this direction.
+- Never end a section with agreement. End with the sharpest unresolved question your analysis surfaces. Comfort is not your job; clarity is.
+
 CRITICAL: Ground every section of your response in the DECISION ANCHOR above. If the user asked about a sub-topic, connect it explicitly back to the central decision.
 This is ROUND 1 of a structured debate — state your position with full analytical depth so other agents can challenge it.`;
 
@@ -642,12 +649,13 @@ You have given your initial analysis. The other agents have now responded:
 
 ${othersBlock}
 
-CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning. You must:
+CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning AND the user's underlying premise. You must:
 1. Pick the single most problematic or unsupported claim made by one of the other agents. Address them directly by name (e.g. "@Risk Analyst — your claim that X is flawed because..."). Name the specific claim and exactly why it fails, relies on a hidden assumption, or ignores a critical variable.
-2. If another agent surfaced something that actually strengthens or complicates your own analysis, acknowledge it honestly in one sentence — intellectual honesty builds better decisions.
-3. End with a sharp direct question addressed to a specific agent that forces them to defend or revise their weakest point.
+2. Identify the single weakest assumption in the USER's original message or plan that the other agents let slide. Name it. Explain why it is load-bearing (the plan fails if it is wrong) and why no one has pressure-tested it yet.
+3. If another agent surfaced something that actually strengthens or complicates your own analysis, acknowledge it honestly in one sentence — intellectual honesty builds better decisions.
+4. End with a sharp direct question addressed to a specific agent that forces them to defend or revise their weakest point — OR a question addressed to the user that exposes the flaw in their premise.
 
-150-200 words. Punchy. No preamble. No restating your prior position. Start with the challenge.`;
+180-220 words. Punchy. No preamble. No restating your prior position. Start with the challenge. Do not agree with the user unless you have first articulated the strongest case against their position.`;
 
         const r2StartedAt = Date.now();
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -684,19 +692,23 @@ ${selectedAgents.length} elite strategic AI agents have just debated the team's 
 
 ${debateSummary}
 
-Synthesise the debate into a decisive, actionable consensus brief. Structure your response with these exact sections:
+Synthesise the debate into a decisive, pressure-tested consensus brief. Your job is NOT to make the team feel good about their plan — it is to give them the clearest possible signal, including when that signal is "this plan has unresolved fatal flaws." Do NOT manufacture agreement where none exists. If the agents exposed a genuine weakness in the user's premise, say so directly.
 
-**Where agents converge** — Identify 2-4 specific conclusions the agents agree on, with high confidence. These are near-certain signals. State them as declarative facts, not hedged observations.
+Structure your response with these exact sections:
+
+**Where agents converge** — Identify 2-4 specific conclusions the agents genuinely agree on, with high confidence. These are near-certain signals. State them as declarative facts, not hedged observations. If the agents did NOT genuinely converge on much, say so — false consensus is worse than honest disagreement.
 
 **The unresolved tension** — Name the single most consequential disagreement that survived cross-challenge. Name which agents hold which position. Explain why this tension matters — what is the cost of getting it wrong in each direction?
 
-**Strategic signal** — Give the team a decisive directional recommendation that integrates the strongest arguments from all rounds. Be explicit about what to do, what to deprioritise, and what must be resolved before the next major commitment. No hedging.
+**The weakest link** — Name the single weakest assumption in the USER's original plan that the debate exposed. State plainly: if this assumption is wrong, the plan fails because [specific mechanism]. Do not soften this. The team needs to know where they are most exposed.
+
+**Strategic signal** — Give the team a decisive directional recommendation that integrates the strongest arguments from all rounds. Be explicit about what to do, what to deprioritise, and what must be resolved before the next major commitment. If the evidence does NOT support proceeding, say so directly — "Do not commit to this direction until X is resolved." No hedging. No false reassurance.
 
 **Concrete next actions** — List 3-5 specific actions the team should take in the next 2 weeks to advance the decision and resolve the remaining tension. Each action: who owns it, what it produces, what decision it unlocks.
 
 **The deadlock-breaker** — Name the single factual question, test, or data point that, if answered, would resolve the remaining disagreement. Frame it as an experiment or research task the team can actually do.
 
-280-350 words. The team must leave this conversation knowing what to do next.`;
+320-400 words. The team must leave this conversation knowing what to do next — and knowing exactly where their plan is most likely to break.`;
 
     // Action items extraction runs in parallel with consensus — zero added latency.
     // Fires on every chat turn so the Actions tab fills without waiting for synthesis.
