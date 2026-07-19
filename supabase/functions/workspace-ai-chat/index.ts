@@ -295,14 +295,14 @@ Example output: ["financial_strategist", "devils_advocate", "risk_analyst", "mar
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-5.5",
+        model: "gpt-5.6",
         messages: [{ role: "user", content: classificationPrompt }],
         max_completion_tokens: 80,
       }),
     });
 
     const data = await res.json();
-    logAiOpenAICall({ distinctId: "workspace_agent_select", workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "agent_select", model: "gpt-5.5", usage: data.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - selectStartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+    logAiOpenAICall({ distinctId: "workspace_agent_select", workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "agent_select", model: "gpt-5.6", usage: data.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - selectStartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
     const raw = data.choices?.[0]?.message?.content?.trim() || "";
 
     const match = raw.match(/\[[\s\S]*\]/);
@@ -609,7 +609,7 @@ This is ROUND 1 of a structured debate — state your position with full analyti
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gpt-5.5",
+            model: "gpt-5.6",
             messages: [
               { role: "system", content: systemPrompt },
               ...conversationHistory,
@@ -620,7 +620,7 @@ This is ROUND 1 of a structured debate — state your position with full analyti
         });
 
         const data = await res.json();
-        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.5", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
         const content = data.choices?.[0]?.message?.content || "I couldn't generate a response right now.";
         return { agent, content };
       })
@@ -654,7 +654,7 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gpt-5.5",
+            model: "gpt-5.6",
             messages: [
               { role: "system", content: challengePrompt },
               { role: "user", content: safeMessage },
@@ -664,7 +664,7 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
         });
 
         const data = await res.json();
-        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `challenge_${agent.role}`, model: "gpt-5.5", usage: data.usage, maxCompletionTokens: 450, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `challenge_${agent.role}`, model: "gpt-5.6", usage: data.usage, maxCompletionTokens: 450, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
         const content = data.choices?.[0]?.message?.content || "";
         return { agent, content };
       })
@@ -725,7 +725,7 @@ Return ONLY valid JSON, no markdown fences:
         method: "POST",
         headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "gpt-5.5",
+          model: "gpt-5.6",
           messages: [{ role: "user", content: consensusPrompt }],
           max_completion_tokens: 600,
         }),
@@ -734,7 +734,7 @@ Return ONLY valid JSON, no markdown fences:
         method: "POST",
         headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "gpt-5.5",
+          model: "gpt-5.6",
           messages: [
             { role: "system", content: "You extract specific, owner-assigned, immediately executable action items from strategic debates. Every item must name a responsible role, a concrete deliverable, and connect to the central decision. Generic tasks are unacceptable. Return JSON only." },
             { role: "user", content: actionExtractionPrompt },
@@ -746,13 +746,13 @@ Return ONLY valid JSON, no markdown fences:
     ]);
 
     const consensusData = await consensusRes.json();
-    logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "consensus", model: "gpt-5.5", usage: consensusData.usage, maxCompletionTokens: 600, jsonMode: false, latencyMs: Date.now() - consensusStartedAt, status: consensusRes.ok ? "succeeded" : "errored", httpStatus: consensusRes.status });
+    logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "consensus", model: "gpt-5.6", usage: consensusData.usage, maxCompletionTokens: 600, jsonMode: false, latencyMs: Date.now() - consensusStartedAt, status: consensusRes.ok ? "succeeded" : "errored", httpStatus: consensusRes.status });
     const consensusContent = consensusData.choices?.[0]?.message?.content || "";
 
     // Write action items to DB — don't await so it doesn't block the response
     const VALID_SOURCE_AREAS = new Set(["CEO","CFO","HR","Legal","Product","Engineering","Finance","Risk","Strategy","Marketing","Operations","People"]);
     actionExtrRes.json().then(async (aj) => {
-      logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "action_extraction", model: "gpt-5.5", usage: aj.usage, maxCompletionTokens: 1200, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: actionExtrRes.ok ? "succeeded" : "errored", httpStatus: actionExtrRes.status });
+      logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "action_extraction", model: "gpt-5.6", usage: aj.usage, maxCompletionTokens: 1200, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: actionExtrRes.ok ? "succeeded" : "errored", httpStatus: actionExtrRes.status });
       try {
         const raw = aj.choices?.[0]?.message?.content || "{}";
         const parsed = JSON.parse(raw);

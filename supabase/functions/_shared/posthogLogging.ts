@@ -16,7 +16,7 @@
 const POSTHOG_KEY = Deno.env.get("POSTHOG_KEY");
 const POSTHOG_HOST = Deno.env.get("POSTHOG_HOST") || "https://eu.i.posthog.com";
 
-// Current gpt-5.5 pricing (USD per 1M tokens).
+// Current gpt-5.6 pricing (USD per 1M tokens).
 // Update if OpenAI pricing changes.
 const PRICE_INPUT_PER_M = 1.25;
 const PRICE_OUTPUT_PER_M = 10;
@@ -63,7 +63,7 @@ export interface AiCallLogInput {
   functionName: string;
   /** Granular call site, e.g. "main_synthesis", "agent_3", "title". */
   callSite: string;
-  /** Model name, e.g. "gpt-5.5". */
+  /** Model name, e.g. "gpt-5.6". */
   model: string;
   /** OpenAI response usage object (prompt_tokens / completion_tokens / total_tokens). */
   usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null;
