@@ -671,41 +671,54 @@ Return ONLY valid JSON in this exact shape, no markdown:
     // Run main synthesis first, then action items sequentially to avoid TPM rate limits.
     // Both calls together can exceed 30k tokens/min when parallelised.
     // Each call is hard-capped at 55 s so the total stays well under the 150 s edge-function limit.
-    const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-      signal: AbortSignal.timeout(55_000),
-      body: JSON.stringify({
-        model: "gpt-5.5",
-        messages: [
-          {
-            role: "system",
-            content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce comprehensive JSON exactly as instructed, grounded entirely in the transcript provided. Only include items with direct evidence — empty arrays are correct when a topic was not discussed.",
-          },
-          { role: "user", content: synthesisPrompt },
-        ],
-        max_completion_tokens: 6000,
-        response_format: { type: "json_object" },
-      }),
-    });
+    let openAiRes: Response;
+    try {
+      openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+        signal: AbortSignal.timeout(55_000),
+        body: JSON.stringify({
+          model: "gpt-5.5",
+          messages: [
+            {
+              role: "system",
+              content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce comprehensive JSON exactly as instructed, grounded entirely in the transcript provided. Only include items with direct evidence — empty arrays are correct when a topic was not discussed.",
+            },
+            { role: "user", content: synthesisPrompt },
+          ],
+          max_completion_tokens: 6000,
+          response_format: { type: "json_object" },
+        }),
+      });
+    } catch (fetchErr) {
+      const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+      console.error("Synthesis fetch failed:", fetchErr);
+      return new Response(JSON.stringify({ error: `Synthesis AI request failed: ${msg}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
-    const actionItemsRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-      signal: AbortSignal.timeout(45_000),
-      body: JSON.stringify({
-        model: "gpt-5.5",
-        messages: [
-          {
-            role: "system",
-            content: "You are a Chief of Staff who generates specific, owner-assigned, immediately executable action plans. Every action item must name a responsible role, a concrete deliverable, and connect directly to the decision being evaluated. Generic or vague tasks are unacceptable. You produce JSON only.",
-          },
-          { role: "user", content: actionItemsPrompt },
-        ],
-        max_completion_tokens: 2000,
-        response_format: { type: "json_object" },
-      }),
-    });
+    let actionItemsRes: Response;
+    try {
+      actionItemsRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+        signal: AbortSignal.timeout(45_000),
+        body: JSON.stringify({
+          model: "gpt-5.5",
+          messages: [
+            {
+              role: "system",
+              content: "You are a Chief of Staff who generates specific, owner-assigned, immediately executable action plans. Every action item must name a responsible role, a concrete deliverable, and connect directly to the decision being evaluated. Generic or vague tasks are unacceptable. You produce JSON only.",
+            },
+            { role: "user", content: actionItemsPrompt },
+          ],
+          max_completion_tokens: 2000,
+          response_format: { type: "json_object" },
+        }),
+      });
+    } catch (fetchErr) {
+      console.error("Action items fetch failed:", fetchErr);
+      actionItemsRes = new Response(JSON.stringify({ error: { message: "Action items call failed" } }), { status: 500 });
+    }
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
@@ -1498,6 +1511,6 @@ RULES:
   } catch (err) {
     const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     console.error("Synthesize error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error", detail: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: `Synthesis failed: ${msg}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
