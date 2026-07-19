@@ -5,8 +5,8 @@ import { getDisplayName } from '../lib/displayName';
 import { setUserProperties, trackUserLogin, trackUserSignup } from '../lib/analytics';
 import { phIdentify, phSetPersonProperties, phReset, phCapture, phSyncProfileProperties } from '../lib/posthog';
 
-const IDLE_TIMEOUT_ADMIN = 10 * 60 * 1000;      // 10 min for admins
-const IDLE_TIMEOUT_USER  = 6 * 60 * 60 * 1000;  // 6 hours for regular users
+const IDLE_TIMEOUT_ADMIN = 8 * 60 * 60 * 1000;  // 8 hours for admins
+const IDLE_TIMEOUT_USER  = 8 * 60 * 60 * 1000;  // 8 hours for regular users
 const IDLE_EVENTS = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'] as const;
 
 interface AuthContextType {

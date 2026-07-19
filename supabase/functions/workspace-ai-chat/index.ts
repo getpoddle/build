@@ -853,39 +853,6 @@ Return ONLY valid JSON, no markdown fences:
       }
     })();
 
-    // ── Queue auto-synthesis if message count crosses the threshold ──────────
-    // This replaces the browser-side debounce so synthesis runs even if the
-    // user navigates away. The workspace-synthesize function is invoked by the
-    // cron job that processes this queue (or can be triggered manually).
-    (async () => {
-      try {
-        const newCount = messageCount + agentResponses.length + validChallenges.length + (consensusContent.trim().length > 20 ? 1 : 0) + 1;
-        // Check existing synthesis to decide if we should queue
-        const { data: existingSynth } = await service
-          .from("workspace_synthesis")
-          .select("message_count")
-          .eq("workspace_id", workspace_id)
-          .maybeSingle();
-
-        const messagesSinceLastSynth = existingSynth
-          ? newCount - (existingSynth.message_count ?? 0)
-          : newCount;
-
-        // Queue synthesis if 3+ new messages have accumulated since last synthesis
-        if (messagesSinceLastSynth >= 3) {
-          // Insert only if no pending/running entry exists (unique index prevents duplicates)
-          await service
-            .from("workspace_synthesis_queue")
-            .upsert({ workspace_id, status: "pending", triggered_at: new Date().toISOString() }, {
-              onConflict: "workspace_id,status",
-              ignoreDuplicates: true,
-            });
-        }
-      } catch (e) {
-        console.error("Synthesis queue insert error:", e);
-      }
-    })();
-
     // Return all rounds so the client renders the full debate in order
     const allResponses: Array<{ agent_name: string; agent_role: string; content: string }> = [
       ...agentResponses.map(({ agent, content }) => ({
