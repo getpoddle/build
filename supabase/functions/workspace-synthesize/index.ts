@@ -682,67 +682,69 @@ Return ONLY valid JSON in this exact shape, no markdown:
   ]
 }`;
 
-    // Run main synthesis first, then action items sequentially to avoid TPM rate limits.
-    // Both calls together can exceed 30k tokens/min when parallelised.
-    // Main call allows up to 120 s for large transcripts; action items capped at 40 s.
-    let openAiRes: Response;
+    // Run main synthesis and action items in PARALLEL — they are independent
+    // calls. This cuts total latency from (synth + actions) to max(synth, actions).
     const synthStartedAt = Date.now();
-    try {
-      openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-        signal: AbortSignal.timeout(120_000),
-        body: JSON.stringify({
-          model: "gpt-5.6-sol",
-          messages: [
-            {
-              role: "system",
-              content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce comprehensive JSON exactly as instructed, grounded entirely in the transcript provided. The transcript contains a rich multi-agent debate — find the evidence that is there. Every section should have at least 2 items unless the topic was truly never discussed.",
-            },
-            { role: "user", content: synthesisPrompt },
-          ],
-          max_completion_tokens: 8000,
-          response_format: { type: "json_object" },
-        }),
-      });
-    } catch (fetchErr) {
+    const actionStartedAt = Date.now();
+
+    const synthPromise = fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+      signal: AbortSignal.timeout(90_000),
+      body: JSON.stringify({
+        model: "gpt-5.6-sol",
+        messages: [
+          {
+            role: "system",
+            content: "You are a world-class strategic synthesis engine and Chief Strategy Officer. You produce comprehensive JSON exactly as instructed, grounded entirely in the transcript provided. The transcript contains a rich multi-agent debate — find the evidence that is there. Every section should have at least 2 items unless the topic was truly never discussed.",
+          },
+          { role: "user", content: synthesisPrompt },
+        ],
+        max_completion_tokens: 8000,
+        response_format: { type: "json_object" },
+      }),
+    }).catch((fetchErr) => {
       const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
       logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
+      throw fetchErr;
+    });
+
+    const actionItemsPromise = fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+      signal: AbortSignal.timeout(40_000),
+      body: JSON.stringify({
+        model: "gpt-5.6-sol",
+        messages: [
+          {
+            role: "system",
+            content: "You are a Chief of Staff who generates specific, owner-assigned, immediately executable action plans. Every action item must name a responsible role, a concrete deliverable, and connect directly to the decision being evaluated. Generic or vague tasks are unacceptable. You produce JSON only.",
+          },
+          { role: "user", content: actionItemsPrompt },
+        ],
+        max_completion_tokens: 2000,
+        response_format: { type: "json_object" },
+      }),
+    }).catch((fetchErr) => {
+      const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.6-sol", maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: isTimeout ? "timeout" : "errored" });
+      console.error("Action items fetch failed:", fetchErr);
+      return null;
+    });
+
+    let openAiRes: Response;
+    let actionItemsRes: Response | null;
+    try {
+      [openAiRes, actionItemsRes] = await Promise.all([synthPromise, actionItemsPromise]);
+    } catch (fetchErr) {
       const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
       console.error("Synthesis fetch failed:", fetchErr);
       return new Response(JSON.stringify({ error: `Synthesis AI request failed: ${msg}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    let actionItemsRes: Response;
-    const actionStartedAt = Date.now();
-    try {
-      actionItemsRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-        signal: AbortSignal.timeout(40_000),
-        body: JSON.stringify({
-          model: "gpt-5.6-sol",
-          messages: [
-            {
-              role: "system",
-              content: "You are a Chief of Staff who generates specific, owner-assigned, immediately executable action plans. Every action item must name a responsible role, a concrete deliverable, and connect directly to the decision being evaluated. Generic or vague tasks are unacceptable. You produce JSON only.",
-            },
-            { role: "user", content: actionItemsPrompt },
-          ],
-          max_completion_tokens: 2000,
-          response_format: { type: "json_object" },
-        }),
-      });
-    } catch (fetchErr) {
-      const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.6-sol", maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: isTimeout ? "timeout" : "errored" });
-      console.error("Action items fetch failed:", fetchErr);
-      actionItemsRes = new Response(JSON.stringify({ error: { message: "Action items call failed" } }), { status: 500 });
-    }
-
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
-    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
       console.error("OpenAI error:", openAiRes.status, err);
       let detail = "AI synthesis failed";
       try { const parsed = JSON.parse(err); detail = parsed?.error?.message || detail; } catch { /* use default */ }
@@ -762,7 +764,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     }
 
     // Merge dedicated action items into synthesis (overrides whatever the main call produced)
-    if (actionItemsRes.ok) {
+    if (actionItemsRes && actionItemsRes.ok) {
       try {
         const aiJson = await actionItemsRes.json();
         logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.6-sol", usage: aiJson.usage, maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "succeeded", httpStatus: actionItemsRes.status });
@@ -776,7 +778,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
         console.error("Failed to parse action items response:", e);
         // Keep whatever action_items the main synthesis produced (may be empty)
       }
-    } else {
+    } else if (actionItemsRes) {
       const aiErr = await actionItemsRes.text();
       logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.6-sol", maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "errored", httpStatus: actionItemsRes.status });
       console.error("Action items call failed:", actionItemsRes.status, aiErr);
@@ -1006,54 +1008,62 @@ Return ONLY valid JSON in this exact shape, no markdown:
       failedSections.push("recommendation");
     }
 
-    // Regenerate failed sections if any
+    // Regenerate failed sections in the background — don't block the response.
+    // The regeneration call can take up to 90s, which would push total latency
+    // past client timeouts. We fire it off and let it update the DB row when
+    // it completes. The user sees the initial synthesis immediately; the
+    // regenerated sections appear on next page load.
     if (failedSections.length > 0 && openAiKey) {
       const synthesisMutable = synthesis as Record<string, unknown>;
-      await regenerateFailedSections(
+      regenerateFailedSections(
         synthesisMutable, failedSections, transcript, wsName, openAiKey,
-      );
+      ).then(async () => {
+        // Re-validate regenerated sections and update the DB row
+        let updatedConsensus = validatedConsensus;
+        let updatedConflictZones = validatedConflictZones;
+        let updatedOpenQuestions = validatedOpenQuestions;
+        let updatedRiskSignals = validatedRiskSignals;
+        let updatedBlindSpots = validatedBlindSpots;
+        let updatedBiasFlags = validatedBiasFlags;
+        let updatedActionItems = validatedActionItems;
+        let updatedRecommendation = validatedRecommendation;
 
-      // Pass 2: re-validate the regenerated sections
-      if (failedSections.includes("consensus_points")) {
-        validatedConsensus = validateSectionItems(
-          synthesisMutable.consensus_points, transcript, wsName, ["text", "context"],
-        );
-      }
-      if (failedSections.includes("conflict_zones")) {
-        validatedConflictZones = validateConflictZones(
-          synthesisMutable.conflict_zones, transcript,
-        );
-      }
-      if (failedSections.includes("open_questions")) {
-        validatedOpenQuestions = validateSectionItems(
-          synthesisMutable.open_questions, transcript, wsName, ["question", "context"],
-        );
-      }
-      if (failedSections.includes("risk_signals")) {
-        validatedRiskSignals = validateRiskSignals(
-          synthesisMutable.risk_signals, transcript,
-        );
-      }
-      if (failedSections.includes("blind_spots")) {
-        validatedBlindSpots = validateSectionItems(
-          synthesisMutable.blind_spots, transcript, wsName, ["area", "description"],
-        );
-      }
-      if (failedSections.includes("cognitive_bias_flags")) {
-        validatedBiasFlags = validateBiasFlags(
-          synthesisMutable.cognitive_bias_flags, transcript, wsName,
-        );
-      }
-      if (failedSections.includes("action_items")) {
-        validatedActionItems = validateSectionItems(
-          synthesisMutable.action_items, transcript, wsName, ["text", "source_area"],
-        );
-      }
-      if (failedSections.includes("recommendation")) {
-        validatedRecommendation = validateRecommendation(
-          synthesisMutable.recommendation, transcript, wsName,
-        );
-      }
+        if (failedSections.includes("consensus_points")) {
+          updatedConsensus = validateSectionItems(synthesisMutable.consensus_points, transcript, wsName, ["text", "context"]);
+        }
+        if (failedSections.includes("conflict_zones")) {
+          updatedConflictZones = validateConflictZones(synthesisMutable.conflict_zones, transcript);
+        }
+        if (failedSections.includes("open_questions")) {
+          updatedOpenQuestions = validateSectionItems(synthesisMutable.open_questions, transcript, wsName, ["question", "context"]);
+        }
+        if (failedSections.includes("risk_signals")) {
+          updatedRiskSignals = validateRiskSignals(synthesisMutable.risk_signals, transcript);
+        }
+        if (failedSections.includes("blind_spots")) {
+          updatedBlindSpots = validateSectionItems(synthesisMutable.blind_spots, transcript, wsName, ["area", "description"]);
+        }
+        if (failedSections.includes("cognitive_bias_flags")) {
+          updatedBiasFlags = validateBiasFlags(synthesisMutable.cognitive_bias_flags, transcript, wsName);
+        }
+        if (failedSections.includes("action_items")) {
+          updatedActionItems = validateSectionItems(synthesisMutable.action_items, transcript, wsName, ["text", "source_area"]);
+        }
+        if (failedSections.includes("recommendation")) {
+          updatedRecommendation = validateRecommendation(synthesisMutable.recommendation, transcript, wsName);
+        }
+
+        await service.from("workspace_synthesis").update({
+          consensus_points: updatedConsensus,
+          conflict_zones: updatedConflictZones,
+          open_questions: updatedOpenQuestions,
+          risk_signals: updatedRiskSignals,
+          blind_spots: updatedBlindSpots,
+          cognitive_bias_flags: updatedBiasFlags,
+          action_items: updatedActionItems,
+          recommendation: updatedRecommendation,
+        }).eq("workspace_id", workspace_id);
+      }).catch((e) => console.error("Background regeneration failed:", e));
     }
 
     const scores = computeScores();
@@ -1109,28 +1119,51 @@ RULES:
 - Maximum 60 words total.
 - Return ONLY the two sentences, no preamble.`;
 
-    const rationaleStartedAt = Date.now();
-    const rationaleRes = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-      body: JSON.stringify({
-        model: "gpt-5.6-sol",
-        messages: [{ role: "user", content: rationalePrompt }],
-        max_completion_tokens: 80,
-      }),
-    });
-
+    // Fire rationale call in the background — it's a nice-to-have that adds
+    // 10-30s of latency if awaited. We use a deterministic fallback immediately
+    // and update the DB row when the AI rationale comes back.
     let healthRationale: string | null = null;
-    if (rationaleRes.ok) {
-      const rationaleJson = await rationaleRes.json();
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", usage: rationaleJson.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "succeeded", httpStatus: rationaleRes.status });
-      const rationaleText = rationaleJson.choices?.[0]?.message?.content?.trim() ?? "";
-      if (rationaleText.length > 10) healthRationale = rationaleText;
-    } else {
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored", httpStatus: rationaleRes.status });
+    const rationaleStartedAt = Date.now();
+    const rationaleFallback = (() => {
+      if (scores.decisionHealth < 35) {
+        return `Severe gaps in financial data, unresolved critical risks, and multiple unresolved open questions make a confident recommendation impossible at this stage. Resolve the highest-urgency open questions and build financial projections before proceeding.`;
+      } else if (scores.decisionHealth < 55) {
+        return `${criticalRisks.length > 0 ? `Critical risks (${criticalRisks[0]}) remain unaddressed` : "Key strategic conflicts remain unresolved"} and the team lacks sufficient consensus to move forward confidently. Focus on resolving the highest-tension conflict and eliminating at least one critical risk signal.`;
+      } else if (scores.decisionHealth < 75) {
+        return `The team has established a working foundation but ${openQs.length > 0 ? `${openQs.length} high-urgency question(s) remain open` : "strategic alignment is still fragile"}. Resolve the outstanding decision blockers to push this score into the Sharp tier.`;
+      } else {
+        return `Strong consensus across ${consensusCount} points and ${resolvedDecisionCount} resolved key decision(s) show a team that has done the hard work. Maintain momentum by converting action items into owner-assigned deliverables.`;
+      }
+    })();
+    healthRationale = rationaleFallback;
+
+    if (openAiKey) {
+      fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+        signal: AbortSignal.timeout(30_000),
+        body: JSON.stringify({
+          model: "gpt-5.6-sol",
+          messages: [{ role: "user", content: rationalePrompt }],
+          max_completion_tokens: 80,
+        }),
+      }).then(async (rationaleRes) => {
+        if (rationaleRes.ok) {
+          const rationaleJson = await rationaleRes.json();
+          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", usage: rationaleJson.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "succeeded", httpStatus: rationaleRes.status });
+          const rationaleText = rationaleJson.choices?.[0]?.message?.content?.trim() ?? "";
+          if (rationaleText.length > 10) {
+            await service.from("workspace_synthesis").update({ health_rationale: rationaleText }).eq("workspace_id", workspace_id);
+          }
+        } else {
+          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored", httpStatus: rationaleRes.status });
+        }
+      }).catch(() => {
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored" });
+      });
     }
     // Fallback: deterministic rationale if the second call fails
-    if (!healthRationale) {
+    {
       if (scores.decisionHealth < 35) {
         healthRationale = `Severe gaps in financial data, unresolved critical risks, and multiple unresolved open questions make a confident recommendation impossible at this stage. Resolve the highest-urgency open questions and build financial projections before proceeding.`;
       } else if (scores.decisionHealth < 55) {

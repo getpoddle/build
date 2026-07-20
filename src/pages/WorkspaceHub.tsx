@@ -67,7 +67,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 55000);
+      const timeout = setTimeout(() => controller.abort(), 180000);
 
       let res: Response | null = null;
       try {
