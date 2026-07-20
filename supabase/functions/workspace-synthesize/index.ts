@@ -690,7 +690,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     const synthPromise = fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-      signal: AbortSignal.timeout(90_000),
+      signal: AbortSignal.timeout(300_000),
       body: JSON.stringify({
         model: "gpt-5.6-sol",
         messages: [
@@ -700,12 +700,12 @@ Return ONLY valid JSON in this exact shape, no markdown:
           },
           { role: "user", content: synthesisPrompt },
         ],
-        max_completion_tokens: 8000,
+        max_completion_tokens: 4000,
         response_format: { type: "json_object" },
       }),
     }).catch((fetchErr) => {
       const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
       throw fetchErr;
     });
 
@@ -744,7 +744,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
       console.error("OpenAI error:", openAiRes.status, err);
       let detail = "AI synthesis failed";
       try { const parsed = JSON.parse(err); detail = parsed?.error?.message || detail; } catch { /* use default */ }
@@ -752,7 +752,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     }
 
     const openAiJson = await openAiRes.json();
-    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", usage: openAiJson.usage, maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "succeeded", httpStatus: openAiRes.status });
+    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", usage: openAiJson.usage, maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "succeeded", httpStatus: openAiRes.status });
     const rawContent = openAiJson.choices?.[0]?.message?.content || "{}";
 
     let synthesis: Record<string, unknown>;
