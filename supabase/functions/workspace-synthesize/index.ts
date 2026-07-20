@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
     // This ensures that re-synthesis after a clarifying discussion captures BOTH the original
     // parameters AND any refined understanding of the decision that emerged in conversation.
     function formatMsg(m: { role: string; content: string; agent_role?: string | null }): string {
-      const content = m.content.length > 800 ? m.content.slice(0, 800) + "…" : m.content;
+      const content = m.content.length > 1500 ? m.content.slice(0, 1500) + "…" : m.content;
       if (m.role === "user") return `[TEAM]: ${content}`;
       const label = m.agent_role ? `[${(m.agent_role as string).toUpperCase().replace(/_/g, " ")}]` : "[AGENT]";
       return `${label}: ${content}`;
@@ -144,10 +144,10 @@ Deno.serve(async (req: Request) => {
         }
         const overlapRatio = matched / explWords.length;
 
-        // Require at least 30% of significant explanation words to appear in
+        // Require at least 15% of significant explanation words to appear in
         // the transcript. This filters out fabricated/hallucinated bias
-        // examples while allowing paraphrased quotes.
-        if (overlapRatio < 0.3) continue;
+        // examples while allowing paraphrased analysis.
+        if (overlapRatio < 0.15) continue;
 
         // If topic words are available, check that the explanation shares at
         // least some topical relevance. This catches cases where the bias is
@@ -161,7 +161,7 @@ Deno.serve(async (req: Request) => {
           // If zero topic words appear in the explanation AND the overlap
           // ratio is moderate (not a near-exact quote), skip the flag — it's
           // likely off-topic.
-          if (topicMatch === 0 && overlapRatio < 0.6) continue;
+          if (topicMatch === 0 && overlapRatio < 0.4) continue;
         }
 
         result.push({ bias_name: biasName, explanation, counter_question: counterQuestion });
@@ -200,9 +200,11 @@ Deno.serve(async (req: Request) => {
         }
         const overlapRatio = matched / words.length;
 
-        // Require at least 30% of significant words to appear in transcript
-        if (overlapRatio < 0.3) continue;
+        // Require at least 15% of significant words to appear in transcript
+        if (overlapRatio < 0.15) continue;
 
+        const positionA = typeof r.position_a === "string" ? r.position_a : "";
+        const positionB = typeof r.position_b === "string" ? r.position_b : "";
         result.push({
           topic,
           agent_a: typeof r.agent_a === "string" ? r.agent_a : "",
@@ -252,8 +254,8 @@ Deno.serve(async (req: Request) => {
         }
         const overlapRatio = matched / words.length;
 
-        // Require at least 30% of significant words to appear in transcript
-        if (overlapRatio < 0.3) continue;
+        // Require at least 15% of significant words to appear in transcript
+        if (overlapRatio < 0.15) continue;
 
         // Penalize generic platitudes: if the signal contains multiple generic
         // phrases and has low overlap, it's likely a platitude
@@ -261,7 +263,7 @@ Deno.serve(async (req: Request) => {
         for (const phrase of genericPhrases) {
           if (signalLower.includes(phrase)) genericCount++;
         }
-        if (genericCount > 0 && overlapRatio < 0.5) continue;
+        if (genericCount > 0 && overlapRatio < 0.35) continue;
 
         result.push({
           signal,
@@ -308,14 +310,14 @@ Deno.serve(async (req: Request) => {
           if (transcriptLower.includes(w)) matched++;
         }
         const overlapRatio = matched / words.length;
-        if (overlapRatio < 0.2) continue;
+        if (overlapRatio < 0.1) continue;
 
         if (topicWords.length > 0) {
           let topicMatch = 0;
           for (const w of topicWords) {
             if (combined.includes(w)) topicMatch++;
           }
-          if (topicMatch === 0 && overlapRatio < 0.5) continue;
+          if (topicMatch === 0 && overlapRatio < 0.3) continue;
         }
 
         result.push(r);
@@ -345,7 +347,7 @@ Deno.serve(async (req: Request) => {
         if (transcriptLower.includes(w)) matched++;
       }
       const overlapRatio = matched / words.length;
-      if (overlapRatio < 0.2) return null;
+      if (overlapRatio < 0.1) return null;
 
       const topicWords = (workspaceName || "")
         .toLowerCase()
@@ -357,7 +359,7 @@ Deno.serve(async (req: Request) => {
         for (const w of topicWords) {
           if (textLower.includes(w)) topicMatch++;
         }
-        if (topicMatch === 0 && overlapRatio < 0.5) return null;
+        if (topicMatch === 0 && overlapRatio < 0.3) return null;
       }
 
       return text;
@@ -700,12 +702,12 @@ Return ONLY valid JSON in this exact shape, no markdown:
           },
           { role: "user", content: synthesisPrompt },
         ],
-        max_completion_tokens: 4000,
+        max_completion_tokens: 8000,
         response_format: { type: "json_object" },
       }),
     }).catch((fetchErr) => {
       const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
       throw fetchErr;
     });
 
@@ -744,7 +746,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
       console.error("OpenAI error:", openAiRes.status, err);
       let detail = "AI synthesis failed";
       try { const parsed = JSON.parse(err); detail = parsed?.error?.message || detail; } catch { /* use default */ }
@@ -752,14 +754,15 @@ Return ONLY valid JSON in this exact shape, no markdown:
     }
 
     const openAiJson = await openAiRes.json();
-    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", usage: openAiJson.usage, maxCompletionTokens: 4000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "succeeded", httpStatus: openAiRes.status });
+    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", usage: openAiJson.usage, maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "succeeded", httpStatus: openAiRes.status });
     const rawContent = openAiJson.choices?.[0]?.message?.content || "{}";
+    const finishReason = openAiJson.choices?.[0]?.finish_reason || "";
 
     let synthesis: Record<string, unknown>;
     try {
       synthesis = JSON.parse(rawContent);
     } catch {
-      console.error("Failed to parse synthesis JSON:", rawContent.slice(0, 500));
+      console.error("Failed to parse synthesis JSON (finish_reason:", finishReason + "):", rawContent.slice(0, 500));
       return new Response(JSON.stringify({ error: "Failed to parse synthesis" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -1062,6 +1065,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
           cognitive_bias_flags: updatedBiasFlags,
           action_items: updatedActionItems,
           recommendation: updatedRecommendation,
+          generated_at: new Date().toISOString(),
         }).eq("workspace_id", workspace_id);
       }).catch((e) => console.error("Background regeneration failed:", e));
     }
@@ -1162,18 +1166,7 @@ RULES:
         logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored" });
       });
     }
-    // Fallback: deterministic rationale if the second call fails
-    {
-      if (scores.decisionHealth < 35) {
-        healthRationale = `Severe gaps in financial data, unresolved critical risks, and multiple unresolved open questions make a confident recommendation impossible at this stage. Resolve the highest-urgency open questions and build financial projections before proceeding.`;
-      } else if (scores.decisionHealth < 55) {
-        healthRationale = `${criticalRisks.length > 0 ? `Critical risks (${criticalRisks[0]}) remain unaddressed` : "Key strategic conflicts remain unresolved"} and the team lacks sufficient consensus to move forward confidently. Focus on resolving the highest-tension conflict and eliminating at least one critical risk signal.`;
-      } else if (scores.decisionHealth < 75) {
-        healthRationale = `The team has established a working foundation but ${openQs.length > 0 ? `${openQs.length} high-urgency question(s) remain open` : "strategic alignment is still fragile"}. Resolve the outstanding decision blockers to push this score into the Sharp tier.`;
-      } else {
-        healthRationale = `Strong consensus across ${consensusCount} points and ${resolvedDecisionCount} resolved key decision(s) show a team that has done the hard work. Maintain momentum by converting action items into owner-assigned deliverables.`;
-      }
-    }
+
 
     // Use validated recommendation (already checked against transcript + topic)
     const recommendation = validatedRecommendation;
