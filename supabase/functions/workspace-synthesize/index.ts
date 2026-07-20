@@ -416,7 +416,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiApiKey}` },
           signal: AbortSignal.timeout(90_000),
           body: JSON.stringify({
-            model: "gpt-5.6-sol",
+            model: "gpt-4o",
             messages: [
               {
                 role: "system",
@@ -424,17 +424,17 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
               },
               { role: "user", content: regenPrompt },
             ],
-            max_completion_tokens: 3000,
+            max_tokens: 3000,
             response_format: { type: "json_object" },
           }),
         });
 
         if (!regenRes.ok) {
-          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.6-sol", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "errored", httpStatus: regenRes.status });
+          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-4o", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "errored", httpStatus: regenRes.status });
           return;
         }
         const regenJson = await regenRes.json();
-        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.6-sol", usage: regenJson.usage, maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "succeeded", httpStatus: regenRes.status });
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-4o", usage: regenJson.usage, maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "succeeded", httpStatus: regenRes.status });
         const regenRaw = regenJson.choices?.[0]?.message?.content || "{}";
         const regenParsed = JSON.parse(regenRaw);
 
@@ -445,7 +445,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
         }
       } catch (e) {
         const isTimeout = e instanceof DOMException && e.name === "TimeoutError";
-        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.6-sol", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: isTimeout ? "timeout" : "errored" });
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-4o", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: isTimeout ? "timeout" : "errored" });
         console.error("Regeneration call failed:", e);
       }
     }
@@ -716,7 +716,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
       signal: AbortSignal.timeout(40_000),
       body: JSON.stringify({
-        model: "gpt-5.6-sol",
+        model: "gpt-4o",
         messages: [
           {
             role: "system",
@@ -724,12 +724,12 @@ Return ONLY valid JSON in this exact shape, no markdown:
           },
           { role: "user", content: actionItemsPrompt },
         ],
-        max_completion_tokens: 2000,
+        max_tokens: 2000,
         response_format: { type: "json_object" },
       }),
     }).catch((fetchErr) => {
       const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.6-sol", maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: isTimeout ? "timeout" : "errored" });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-4o", maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: isTimeout ? "timeout" : "errored" });
       console.error("Action items fetch failed:", fetchErr);
       return null;
     });
@@ -770,7 +770,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     if (actionItemsRes && actionItemsRes.ok) {
       try {
         const aiJson = await actionItemsRes.json();
-        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.6-sol", usage: aiJson.usage, maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "succeeded", httpStatus: actionItemsRes.status });
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-4o", usage: aiJson.usage, maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "succeeded", httpStatus: actionItemsRes.status });
         const aiRaw = aiJson.choices?.[0]?.message?.content || "{}";
         const aiParsed = JSON.parse(aiRaw);
         if (Array.isArray(aiParsed.action_items) && aiParsed.action_items.length > 0) {
@@ -783,7 +783,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       }
     } else if (actionItemsRes) {
       const aiErr = await actionItemsRes.text();
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-5.6-sol", maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "errored", httpStatus: actionItemsRes.status });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "action_items", model: "gpt-4o", maxCompletionTokens: 2000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "errored", httpStatus: actionItemsRes.status });
       console.error("Action items call failed:", actionItemsRes.status, aiErr);
     }
 
@@ -1148,23 +1148,23 @@ RULES:
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
         signal: AbortSignal.timeout(30_000),
         body: JSON.stringify({
-          model: "gpt-5.6-sol",
+          model: "gpt-4o",
           messages: [{ role: "user", content: rationalePrompt }],
-          max_completion_tokens: 80,
+          max_tokens: 80,
         }),
       }).then(async (rationaleRes) => {
         if (rationaleRes.ok) {
           const rationaleJson = await rationaleRes.json();
-          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", usage: rationaleJson.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "succeeded", httpStatus: rationaleRes.status });
+          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-4o", usage: rationaleJson.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "succeeded", httpStatus: rationaleRes.status });
           const rationaleText = rationaleJson.choices?.[0]?.message?.content?.trim() ?? "";
           if (rationaleText.length > 10) {
             await service.from("workspace_synthesis").update({ health_rationale: rationaleText }).eq("workspace_id", workspace_id);
           }
         } else {
-          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored", httpStatus: rationaleRes.status });
+          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-4o", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored", httpStatus: rationaleRes.status });
         }
       }).catch(() => {
-        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored" });
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-4o", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored" });
       });
       EdgeRuntime.waitUntil(rationalePromise);
     }
