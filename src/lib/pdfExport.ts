@@ -15,14 +15,13 @@ function formatAgentName(role: string): string {
   return AGENT_DISPLAY_NAMES[role] ?? role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-async function logExport(exportType: string, workspaceName: string, workspaceId?: string) {
+async function logExport(exportType: string, _workspaceName: string, workspaceId?: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
   supabase.from('pdf_exports').insert({
     user_id: user.id,
     workspace_id: workspaceId ?? null,
     export_type: exportType,
-    workspace_name: workspaceName,
   }).then(() => {});
 }
 
