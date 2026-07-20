@@ -203,14 +203,14 @@ Deno.serve(async (req: Request) => {
         // Require at least 15% of significant words to appear in transcript
         if (overlapRatio < 0.15) continue;
 
-        const positionA = typeof r.position_a === "string" ? r.position_a : "";
-        const positionB = typeof r.position_b === "string" ? r.position_b : "";
+        const positionAVal = typeof r.position_a === "string" ? r.position_a : "";
+        const positionBVal = typeof r.position_b === "string" ? r.position_b : "";
         result.push({
           topic,
           agent_a: typeof r.agent_a === "string" ? r.agent_a : "",
-          position_a: positionA,
+          position_a: positionAVal,
           agent_b: typeof r.agent_b === "string" ? r.agent_b : "",
-          position_b: positionB,
+          position_b: positionBVal,
           tension_level: typeof r.tension_level === "number" ? r.tension_level : 50,
         });
       }
@@ -1018,7 +1018,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     // regenerated sections appear on next page load.
     if (failedSections.length > 0 && openAiKey) {
       const synthesisMutable = synthesis as Record<string, unknown>;
-      regenerateFailedSections(
+      const regenPromise = regenerateFailedSections(
         synthesisMutable, failedSections, transcript, wsName, openAiKey,
       ).then(async () => {
         // Re-validate regenerated sections and update the DB row
@@ -1068,6 +1068,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
           generated_at: new Date().toISOString(),
         }).eq("workspace_id", workspace_id);
       }).catch((e) => console.error("Background regeneration failed:", e));
+      EdgeRuntime.waitUntil(regenPromise);
     }
 
     const scores = computeScores();
@@ -1142,7 +1143,7 @@ RULES:
     healthRationale = rationaleFallback;
 
     if (openAiKey) {
-      fetch("https://api.openai.com/v1/chat/completions", {
+      const rationalePromise = fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
         signal: AbortSignal.timeout(30_000),
@@ -1165,6 +1166,7 @@ RULES:
       }).catch(() => {
         logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "health_rationale", model: "gpt-5.6-sol", maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - rationaleStartedAt, status: "errored" });
       });
+      EdgeRuntime.waitUntil(rationalePromise);
     }
 
 
@@ -1248,7 +1250,7 @@ RULES:
 
     // ── Cross-workspace Pattern Intelligence rollup ───────────────────────────
     // Fire-and-forget — runs as the response is already sent
-    (async () => {
+    const patternPromise = (async () => {
       try {
         // Fetch all workspaces where this user is owner or member
         const { data: memberRows } = await service
@@ -1545,6 +1547,7 @@ RULES:
         console.error("Cross-workspace pattern rollup error:", e);
       }
     })();
+    EdgeRuntime.waitUntil(patternPromise);
 
     // Mark the queue entry as done so the cron won't re-process it
     await service
