@@ -128,12 +128,12 @@ async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens =
   if (!openaiKey) throw new Error("OpenAI API key not configured");
 
   const body = {
-    model: "gpt-4o",
+    model: "gpt-5.6-sol",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userMessage },
     ],
-    max_tokens: maxTokens,
+    max_completion_tokens: maxTokens,
   };
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {

@@ -938,7 +938,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       const { data: { session } } = await supabase.auth.refreshSession();
       if (!session?.access_token) { setError('Session expired. Please sign in again.'); return; }
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 200000);
+      const timeout = setTimeout(() => controller.abort(), 330000);
       let res: Response | null = null;
       try {
         res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-synthesize`, {

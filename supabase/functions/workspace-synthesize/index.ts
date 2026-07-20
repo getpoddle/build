@@ -416,7 +416,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiApiKey}` },
           signal: AbortSignal.timeout(90_000),
           body: JSON.stringify({
-            model: "gpt-4o",
+            model: "gpt-5.6-sol",
             messages: [
               {
                 role: "system",
@@ -424,17 +424,17 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
               },
               { role: "user", content: regenPrompt },
             ],
-            max_tokens: 3000,
+            max_completion_tokens: 3000,
             response_format: { type: "json_object" },
           }),
         });
 
         if (!regenRes.ok) {
-          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-4o", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "errored", httpStatus: regenRes.status });
+          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.6-sol", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "errored", httpStatus: regenRes.status });
           return;
         }
         const regenJson = await regenRes.json();
-        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-4o", usage: regenJson.usage, maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "succeeded", httpStatus: regenRes.status });
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.6-sol", usage: regenJson.usage, maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "succeeded", httpStatus: regenRes.status });
         const regenRaw = regenJson.choices?.[0]?.message?.content || "{}";
         const regenParsed = JSON.parse(regenRaw);
 
@@ -445,7 +445,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
         }
       } catch (e) {
         const isTimeout = e instanceof DOMException && e.name === "TimeoutError";
-        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-4o", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: isTimeout ? "timeout" : "errored" });
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.6-sol", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: isTimeout ? "timeout" : "errored" });
         console.error("Regeneration call failed:", e);
       }
     }
