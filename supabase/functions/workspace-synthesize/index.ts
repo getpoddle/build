@@ -416,7 +416,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiApiKey}` },
           signal: AbortSignal.timeout(90_000),
           body: JSON.stringify({
-            model: "gpt-5.6-sol",
+            model: "gpt-4.1",
             messages: [
               {
                 role: "system",
@@ -424,16 +424,17 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
               },
               { role: "user", content: regenPrompt },
             ],
-            max_completion_tokens: 3000,
+            max_tokens: 3000,
+            response_format: { type: "json_object" },
           }),
         });
 
         if (!regenRes.ok) {
-          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.6-sol", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "errored", httpStatus: regenRes.status });
+          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-4.1", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "errored", httpStatus: regenRes.status });
           return;
         }
         const regenJson = await regenRes.json();
-        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.6-sol", usage: regenJson.usage, maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "succeeded", httpStatus: regenRes.status });
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-4.1", usage: regenJson.usage, maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: "succeeded", httpStatus: regenRes.status });
         const regenRaw = regenJson.choices?.[0]?.message?.content || "{}";
         const regenParsed = JSON.parse(regenRaw);
 
@@ -444,7 +445,7 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
         }
       } catch (e) {
         const isTimeout = e instanceof DOMException && e.name === "TimeoutError";
-        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-5.6-sol", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: isTimeout ? "timeout" : "errored" });
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "section_regeneration", model: "gpt-4.1", maxCompletionTokens: 3000, jsonMode: true, latencyMs: Date.now() - regenStartedAt, status: isTimeout ? "timeout" : "errored" });
         console.error("Regeneration call failed:", e);
       }
     }
@@ -693,7 +694,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
       signal: AbortSignal.timeout(300_000),
       body: JSON.stringify({
-        model: "gpt-5.6-sol",
+        model: "gpt-4.1",
         messages: [
           {
             role: "system",
@@ -701,11 +702,12 @@ Return ONLY valid JSON in this exact shape, no markdown:
           },
           { role: "user", content: synthesisPrompt },
         ],
-        max_completion_tokens: 8000,
+        max_tokens: 8000,
+        response_format: { type: "json_object" },
       }),
     }).catch((fetchErr) => {
       const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-4.1", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: isTimeout ? "timeout" : "errored" });
       throw fetchErr;
     });
 
@@ -744,7 +746,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
-      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
+      logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-4.1", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
       console.error("OpenAI error:", openAiRes.status, err);
       let detail = "AI synthesis failed";
       try { const parsed = JSON.parse(err); detail = parsed?.error?.message || detail; } catch { /* use default */ }
@@ -752,7 +754,7 @@ Return ONLY valid JSON in this exact shape, no markdown:
     }
 
     const openAiJson = await openAiRes.json();
-    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-5.6-sol", usage: openAiJson.usage, maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "succeeded", httpStatus: openAiRes.status });
+    logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-4.1", usage: openAiJson.usage, maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "succeeded", httpStatus: openAiRes.status });
     const rawContent = openAiJson.choices?.[0]?.message?.content || "{}";
     const finishReason = openAiJson.choices?.[0]?.finish_reason || "";
 
