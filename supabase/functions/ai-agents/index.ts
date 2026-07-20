@@ -820,7 +820,7 @@ async function callOpenAI(systemPrompt: string, userMessage: string, maxTokens =
     max_completion_tokens: maxTokens,
   };
 
-  if (jsonMode) {
+  if (jsonMode && body.model !== "gpt-5.6-sol") {
     body.response_format = { type: "json_object" };
   }
 

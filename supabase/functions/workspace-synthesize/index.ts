@@ -425,7 +425,6 @@ Return ONLY valid JSON with exactly these top-level keys. No markdown fences.`;
               { role: "user", content: regenPrompt },
             ],
             max_completion_tokens: 3000,
-            response_format: { type: "json_object" },
           }),
         });
 
@@ -703,7 +702,6 @@ Return ONLY valid JSON in this exact shape, no markdown:
           { role: "user", content: synthesisPrompt },
         ],
         max_completion_tokens: 8000,
-        response_format: { type: "json_object" },
       }),
     }).catch((fetchErr) => {
       const isTimeout = fetchErr instanceof DOMException && fetchErr.name === "TimeoutError";
