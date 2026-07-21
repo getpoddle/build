@@ -109,7 +109,7 @@ function formatDate(iso: string): string {
 }
 
 function scoreColor(s: number): string {
-  return s >= 75 ? '#16a34a' : s >= 55 ? '#f59e0b' : s >= 35 ? '#dc2626' : '#7f1d1d';
+  return s >= 75 ? '#1e7a52' : s >= 55 ? '#b35c10' : s >= 35 ? '#a8292a' : '#7a1d1d';
 }
 
 function scoreLabel(s: number): string {
@@ -117,13 +117,13 @@ function scoreLabel(s: number): string {
 }
 
 function severityColor(sev: string): string {
-  const map: Record<string, string> = { critical: '#dc2626', high: '#f59e0b', medium: '#e8b84b', low: '#94a3b8' };
+  const map: Record<string, string> = { critical: '#dc2626', high: '#f59e0b', medium: '#b8860b', low: '#94a3b8' };
   return map[sev?.toLowerCase()] || '#94a3b8';
 }
 
 
 function severityText(sev: string): string {
-  const map: Record<string, string> = { critical: '#b91c1c', high: '#b45309', medium: '#a07c2a', low: '#475569' };
+  const map: Record<string, string> = { critical: '#a8292a', high: '#b35c10', medium: '#8a6508', low: '#5D6B82' };
   return map[sev?.toLowerCase()] || '#475569';
 }
 
@@ -164,7 +164,7 @@ function svgTensionBar(level: number): string {
   const safe = Math.max(0, Math.min(100, level));
   const totalW = 120, h = 6, r = 3;
   const fillW = Math.max(r * 2, (safe / 100) * totalW);
-  const c = safe >= 70 ? '#dc2626' : safe >= 45 ? '#f59e0b' : '#e8b84b';
+  const c = safe >= 70 ? '#a8292a' : safe >= 45 ? '#b35c10' : '#b8860b';
   return `
     <svg width="${totalW}" height="${h}" viewBox="0 0 ${totalW} ${h}" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="0" width="${totalW}" height="${h}" rx="${r}" fill="#1f2535"/>
@@ -233,9 +233,9 @@ function svgRiskMatrix(risks: WarRoomExport['riskSignals']): string {
 const BASE_STYLES = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     font-size: 11pt;
-    color: #1e293b;
+    color: #111827;
     background: #fff;
     line-height: 1.55;
     width: 100%;
@@ -268,23 +268,23 @@ const BASE_STYLES = `
     gap: 12px;
   }
   .print-toolbar-title {
-    font-size: 10pt; font-weight: 700; color: #e8b84b; flex: 1;
+    font-size: 10pt; font-weight: 700; color: #b8860b; flex: 1;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .btn-print {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 18px;
-    background: #e8b84b; color: #07090f;
-    border: none; border-radius: 8px;
+    background: #b8860b; color: #07090f;
+    border: none; border-radius: 3px;
     font-size: 9.5pt; font-weight: 700;
     cursor: pointer; white-space: nowrap;
   }
-  .btn-print:hover { background: #a07c2a; color: #fff; }
+  .btn-print:hover { background: #d4a535; }
   .btn-close {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 14px;
     background: rgba(255,255,255,0.10); color: #e2e8f0;
-    border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 3px;
     font-size: 9.5pt; font-weight: 600;
     cursor: pointer; white-space: nowrap;
     text-decoration: none;
@@ -302,14 +302,14 @@ const BASE_STYLES = `
   /* ── Logo ── */
   .logo-wrap { display: flex; align-items: center; gap: 8px; }
   .logo-box {
-    width: 26px; height: 26px; border-radius: 7px;
-    background: linear-gradient(135deg, #0e1117, #e8b84b);
+    width: 26px; height: 26px; border-radius: 4px;
+    background: linear-gradient(135deg, #0e1117, #b8860b);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
   .logo-dot { width: 11px; height: 11px; border-radius: 50%; background: #07090f; }
-  .logo-text { font-size: 13pt; font-weight: 900; letter-spacing: -0.03em; color: #07090f; }
-  .logo-sub { font-size: 8pt; font-weight: 600; color: #94a3b8; letter-spacing: 0.04em; text-transform: uppercase; }
+  .logo-text { font-size: 13pt; font-weight: 900; letter-spacing: -0.03em; color: #111827; }
+  .logo-sub { font-size: 8pt; font-weight: 600; color: #5D6B82; letter-spacing: 0.04em; text-transform: uppercase; }
 
   /* ── Per-page header + footer via @page margin boxes (Chrome-supported) ── */
   .page-header { display: none; }
@@ -358,14 +358,14 @@ const BASE_STYLES = `
 
   /* ── Doc header ── */
   .doc-header {
-    border-bottom: 2px solid #e8b84b;
+    border-bottom: 2px solid #b8860b;
     padding-bottom: 14px; margin-bottom: 22px; margin-top: 18px;
   }
   .doc-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .brand { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #64748b; margin-bottom: 3px; }
-  .title { font-size: 18pt; font-weight: 900; color: #07090f; line-height: 1.2; }
-  .subtitle { font-size: 9pt; color: #64748b; margin-top: 3px; }
-  .meta-right { font-size: 8pt; font-weight: 600; color: #64748b; text-align: right; line-height: 1.7; }
+  .brand { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #5D6B82; margin-bottom: 3px; }
+  .title { font-size: 18pt; font-weight: 900; color: #111827; line-height: 1.2; }
+  .subtitle { font-size: 9pt; color: #5D6B82; margin-top: 3px; }
+  .meta-right { font-size: 8pt; font-weight: 600; color: #5D6B82; text-align: right; line-height: 1.7; }
 
   /* ── Score block ── */
   .score-block {
@@ -416,7 +416,7 @@ const BASE_STYLES = `
   .sec-conflicts .row { border-color: rgba(245,158,11,0.12); }
 
   /* Questions */
-  .sec-questions .section-hdr { background: rgba(232,184,75,0.08) !important; color: #a07c2a; border-color: rgba(232,184,75,0.22); }
+  .sec-questions .section-hdr { background: rgba(184,134,11,0.08) !important; color: #8a6508; border-color: rgba(184,134,11,0.22); }
   .sec-questions .section-body { border-color: rgba(232,184,75,0.2); }
   .sec-questions .row { border-color: rgba(232,184,75,0.08); }
 
@@ -446,7 +446,7 @@ const BASE_STYLES = `
   .sec-operational .row { border-color: rgba(245,158,11,0.1); }
 
   /* Strategic (non-financial) */
-  .sec-strategic .section-hdr { background: rgba(232,184,75,0.08) !important; color: #a07c2a; border-color: rgba(232,184,75,0.22); }
+  .sec-strategic .section-hdr { background: rgba(184,134,11,0.08) !important; color: #8a6508; border-color: rgba(184,134,11,0.22); }
   .sec-strategic .section-body { border-color: rgba(232,184,75,0.2); }
   .sec-strategic .row { border-color: rgba(232,184,75,0.08); }
 
@@ -461,7 +461,7 @@ const BASE_STYLES = `
   .sec-biases .row { border-color: rgba(245,158,11,0.08); }
 
   /* Recommendation */
-  .sec-recommendation .section-hdr { background: rgba(232,184,75,0.10) !important; color: #a07c2a; border-color: rgba(232,184,75,0.28); }
+  .sec-recommendation .section-hdr { background: rgba(184,134,11,0.10) !important; color: #8a6508; border-color: rgba(184,134,11,0.28); }
   .sec-recommendation .section-body { border-color: rgba(232,184,75,0.18); }
   .sec-recommendation .row { border-color: rgba(232,184,75,0.08); font-size: 10pt; line-height: 1.75; color: #334155; }
 
@@ -470,11 +470,11 @@ const BASE_STYLES = `
     display: inline-block; font-size: 7.5pt; font-weight: 700;
     padding: 1px 7px; border-radius: 999px; text-transform: capitalize;
   }
-  .tag-critical { background: rgba(220,38,38,0.12) !important; color: #b91c1c; }
-  .tag-high     { background: rgba(245,158,11,0.12) !important; color: #b45309; }
-  .tag-medium   { background: rgba(232,184,75,0.10) !important; color: #a07c2a; }
-  .tag-low      { background: rgba(15,23,42,0.07)  !important; color: #475569; }
-  .tag-manual   { background: rgba(15,23,42,0.07)  !important; color: #475569; }
+  .tag-critical { background: rgba(168,41,42,0.12) !important; color: #a8292a; }
+  .tag-high     { background: rgba(179,92,16,0.12) !important; color: #b35c10; }
+  .tag-medium   { background: rgba(184,134,11,0.10) !important; color: #8a6508; }
+  .tag-low      { background: rgba(15,23,42,0.07)  !important; color: #5D6B82; }
+  .tag-manual   { background: rgba(15,23,42,0.07)  !important; color: #5D6B82; }
   .tag-ai       { background: rgba(124,58,237,0.10) !important; color: #7c3aed; }
 
   /* Conflict pair */
@@ -482,8 +482,8 @@ const BASE_STYLES = `
   .conflict-side { padding: 8px 10px; border-radius: 6px; font-size: 9pt; }
   .cs-a { background: rgba(232,184,75,0.06) !important; border: 1px solid rgba(232,184,75,0.14); }
   .cs-b { background: rgba(220,38,38,0.05) !important; border: 1px solid rgba(220,38,38,0.14); }
-  .ca-a { font-size: 7.5pt; font-weight: 700; color: #a07c2a; margin-bottom: 3px; }
-  .ca-b { font-size: 7.5pt; font-weight: 700; color: #b91c1c; margin-bottom: 3px; }
+  .ca-a { font-size: 7.5pt; font-weight: 700; color: #8a6508; margin-bottom: 3px; }
+  .ca-b { font-size: 7.5pt; font-weight: 700; color: #a8292a; margin-bottom: 3px; }
 
   /* In-flow document footer — always at the natural end of content, never overlapping */
   .doc-footer {
@@ -503,7 +503,7 @@ const BASE_STYLES = `
   .topic-banner {
     display: flex; align-items: flex-start; gap: 12px;
     background: rgba(232,184,75,0.06) !important;
-    border-left: 3px solid #e8b84b;
+    border-left: 3px solid #b8860b;
     border-radius: 0 4px 4px 0;
     padding: 10px 14px;
     margin-bottom: 22px;
@@ -515,7 +515,7 @@ const BASE_STYLES = `
     white-space: nowrap; padding-top: 2px;
   }
   .topic-banner-text {
-    font-size: 11pt; font-weight: 800; color: #07090f; line-height: 1.35;
+    font-size: 11pt; font-weight: 800; color: #111827; line-height: 1.35;
   }
 
   /* ── Chat ── */
@@ -527,39 +527,39 @@ const BASE_STYLES = `
   .agent-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12pt; flex-shrink: 0; }
   .agent-name { font-size: 7.5pt; font-weight: 700; margin-bottom: 2px; }
   .agent-bubble { border-radius: 2px 14px 14px 14px; padding: 9px 13px; font-size: 10pt; }
-  .role-strategic_analyst .agent-name { color: #a07c2a; }
+  .role-strategic_analyst .agent-name { color: #8a6508; }
   .role-strategic_analyst .agent-bubble { background: rgba(232,184,75,0.07) !important; border: 1px solid rgba(232,184,75,0.15); }
-  .role-devils_advocate .agent-name { color: #b91c1c; }
+  .role-devils_advocate .agent-name { color: #a8292a; }
   .role-devils_advocate .agent-bubble { background: rgba(220,38,38,0.07) !important; border: 1px solid rgba(220,38,38,0.15); }
   .role-innovation_scout .agent-name { color: #065f46; }
   .role-innovation_scout .agent-bubble { background: rgba(16,185,129,0.07) !important; border: 1px solid rgba(16,185,129,0.18); }
-  .role-other .agent-name { color: #475569; }
+  .role-other .agent-name { color: #5D6B82; }
   .role-other .agent-bubble { background: #f1f5f9 !important; border: 1px solid #1f2535; }
 
   /* ── Board Brief ── */
   .bb-score-ring { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; page-break-inside: avoid; break-inside: avoid; }
   .bb-score-info { flex: 1; }
-  .bb-score-title { font-size: 20pt; font-weight: 900; color: #07090f; }
+  .bb-score-title { font-size: 20pt; font-weight: 900; color: #111827; }
   .bb-score-sub { font-size: 9pt; color: #64748b; margin-top: 2px; margin-bottom: 6px; }
-  .bb-score-rationale { font-size: 9.5pt; color: #475569; line-height: 1.6; }
+  .bb-score-rationale { font-size: 9.5pt; color: #5D6B82; line-height: 1.6; }
   .bb-section { margin-bottom: 20px; }
   .bb-section-title {
     font-size: 8pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
-    color: #8892a4; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1.5px solid #e8b84b;
+    color: #8892a4; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1.5px solid #b8860b;
     page-break-after: avoid; break-after: avoid;
   }
   .bb-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; break-inside: avoid; }
   .bb-num { font-size: 8.5pt; font-weight: 700; color: #94a3b8; min-width: 18px; flex-shrink: 0; margin-top: 1px; }
-  .bb-text { font-size: 10pt; color: #1e293b; line-height: 1.5; flex: 1; }
+  .bb-text { font-size: 10pt; color: #111827; line-height: 1.5; flex: 1; }
   .bb-badge { font-size: 7pt; font-weight: 700; padding: 1px 7px; border-radius: 999px; flex-shrink: 0; margin-top: 2px; text-transform: capitalize; }
-  .bb-priority-critical { background: rgba(220,38,38,0.12) !important; color: #b91c1c; }
-  .bb-priority-high     { background: rgba(245,158,11,0.12) !important; color: #b45309; }
-  .bb-priority-medium   { background: rgba(232,184,75,0.10) !important; color: #a07c2a; }
-  .bb-priority-low      { background: rgba(15,23,42,0.07)  !important; color: #475569; }
-  .bb-sev-critical { background: rgba(220,38,38,0.12) !important; color: #b91c1c; }
-  .bb-sev-high     { background: rgba(245,158,11,0.12) !important; color: #b45309; }
-  .bb-sev-medium   { background: rgba(232,184,75,0.10) !important; color: #a07c2a; }
-  .bb-sev-low      { background: rgba(15,23,42,0.07)  !important; color: #475569; }
+  .bb-priority-critical { background: rgba(168,41,42,0.12) !important; color: #a8292a; }
+  .bb-priority-high     { background: rgba(179,92,16,0.12) !important; color: #b35c10; }
+  .bb-priority-medium   { background: rgba(184,134,11,0.10) !important; color: #8a6508; }
+  .bb-priority-low      { background: rgba(15,23,42,0.07)  !important; color: #5D6B82; }
+  .bb-sev-critical { background: rgba(168,41,42,0.12) !important; color: #a8292a; }
+  .bb-sev-high     { background: rgba(179,92,16,0.12) !important; color: #b35c10; }
+  .bb-sev-medium   { background: rgba(184,134,11,0.10) !important; color: #8a6508; }
+  .bb-sev-low      { background: rgba(15,23,42,0.07)  !important; color: #5D6B82; }
 `;
 
 // ─── Logo HTML ────────────────────────────────────────────────────────────────
@@ -741,8 +741,8 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
     if (!v) return '';
     const map: Record<string, { color: string; bg: string }> = {
       fast:     { color: '#15803d', bg: 'rgba(22,163,74,0.15)' },
-      moderate: { color: '#b45309', bg: 'rgba(245,158,11,0.15)' },
-      stalling: { color: '#b91c1c', bg: 'rgba(220,38,38,0.15)' },
+      moderate: { color: '#b35c10', bg: 'rgba(179,92,16,0.15)' },
+      stalling: { color: '#a8292a', bg: 'rgba(168,41,42,0.15)' },
     };
     const s = map[v.toLowerCase()] || map.moderate;
     return `<span style="display:inline-block;font-size:7pt;font-weight:700;padding:2px 8px;border-radius:999px;background:${s.bg};color:${s.color};margin-left:6px;">${v.charAt(0).toUpperCase() + v.slice(1)} Velocity</span>`;
@@ -752,8 +752,8 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
     if (!t) return '';
     const map: Record<string, { color: string; bg: string }> = {
       rising:  { color: '#15803d', bg: 'rgba(22,163,74,0.15)' },
-      flat:    { color: '#b45309', bg: 'rgba(245,158,11,0.15)' },
-      falling: { color: '#b91c1c', bg: 'rgba(220,38,38,0.15)' },
+      flat:    { color: '#b35c10', bg: 'rgba(179,92,16,0.15)' },
+      falling: { color: '#a8292a', bg: 'rgba(168,41,42,0.15)' },
     };
     const s = map[t.toLowerCase()] || map.flat;
     const label = t === 'rising' ? 'Confidence Rising' : t === 'falling' ? 'Confidence Falling' : 'Confidence Flat';
@@ -768,17 +768,17 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
     </div>`;
   }
 
-  const confColor = (c: string) => c === 'high' ? '#15803d' : c === 'low' ? '#b91c1c' : '#b45309';
+  const confColor = (c: string) => c === 'high' ? '#1e7a52' : c === 'low' ? '#a8292a' : '#b35c10';
   const confBg    = (c: string) => c === 'high' ? 'rgba(22,163,74,0.12)' : c === 'low' ? 'rgba(220,38,38,0.12)' : 'rgba(245,158,11,0.12)';
-  const opStatusColor = (s: string) => ['clear','on-track'].includes(s) ? '#15803d' : s === 'at-risk' ? '#b91c1c' : '#b45309';
+  const opStatusColor = (s: string) => ['clear','on-track'].includes(s) ? '#1e7a52' : s === 'at-risk' ? '#a8292a' : '#b35c10';
   const opStatusBg    = (s: string) => ['clear','on-track'].includes(s) ? 'rgba(22,163,74,0.12)' : s === 'at-risk' ? 'rgba(220,38,38,0.12)' : 'rgba(245,158,11,0.12)';
-  const sigColor = (s: string) => s === 'positive' ? '#15803d' : s === 'negative' ? '#b91c1c' : '#475569';
+  const sigColor = (s: string) => s === 'positive' ? '#1e7a52' : s === 'negative' ? '#a8292a' : '#5D6B82';
   const sigBg    = (s: string) => s === 'positive' ? 'rgba(22,163,74,0.12)' : s === 'negative' ? 'rgba(220,38,38,0.12)' : 'rgba(100,116,139,0.12)';
 
   // ── Consensus with SVG bars ──
   const consensusRows = data.consensusPoints.map((pt, i) => {
     const conf = Math.max(0, Math.min(100, pt.confidence || 0));
-    const c = conf >= 80 ? '#16a34a' : conf >= 60 ? '#84cc16' : '#f59e0b';
+    const c = conf >= 80 ? '#1e7a52' : conf >= 60 ? '#84cc16' : '#b35c10';
     return `<div class="row">
       <div style="display:flex;align-items:flex-start;gap:10px;">
         <span style="font-size:8pt;font-weight:700;color:#14532d;min-width:16px;flex-shrink:0;">${i + 1}.</span>
@@ -801,7 +801,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <strong style="font-size:9.5pt;">${escapeHtml(z.topic)}</strong>
         ${svgTensionBar(lvl)}
-        <span style="font-size:7.5pt;font-weight:700;color:${lvl >= 70 ? '#b91c1c' : lvl >= 45 ? '#b45309' : '#a07c2a'};">${lvl}/100</span>
+        <span style="font-size:7.5pt;font-weight:700;color:${lvl >= 70 ? '#a8292a' : lvl >= 45 ? '#b35c10' : '#8a6508'};">${lvl}/100</span>
       </div>
       <div class="conflict-pair">
         <div class="conflict-side cs-a">
@@ -850,7 +850,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
   const blindRows = data.blindSpots.map(bs => `
     <div class="row">
       <div style="font-size:10pt;font-weight:700;color:#0c4a6e;margin-bottom:2px;">${escapeHtml(bs.area)}</div>
-      <div style="font-size:9.5pt;color:#475569;">${escapeHtml(bs.description)}</div>
+      <div style="font-size:9.5pt;color:#5D6B82;">${escapeHtml(bs.description)}</div>
     </div>`);
 
   // ── Action items ──
@@ -858,12 +858,12 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
     <div class="row" style="display:flex;align-items:flex-start;gap:10px;">
       <span style="font-size:8.5pt;font-weight:700;color:#7c3aed;min-width:18px;flex-shrink:0;">${i + 1}.</span>
       <div style="flex:1;">
-        <div style="font-size:9.5pt;${a.status === 'done' ? 'text-decoration:line-through;color:#94a3b8;' : 'color:#1e293b;'}margin-bottom:4px;">${escapeHtml(a.text)}</div>
+        <div style="font-size:9.5pt;${a.status === 'done' ? 'text-decoration:line-through;color:#94a3b8;' : 'color:#111827;'}margin-bottom:4px;">${escapeHtml(a.text)}</div>
         <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
           <span class="tag tag-${a.priority?.toLowerCase()}">${escapeHtml(a.priority)}</span>
-          <span class="tag" style="background:rgba(15,23,42,0.07)!important;color:#475569;text-transform:capitalize;">${a.status.replace('_', ' ')}</span>
+          <span class="tag" style="background:rgba(15,23,42,0.07)!important;color:#5D6B82;text-transform:capitalize;">${a.status.replace('_', ' ')}</span>
           ${a.source === 'ai' ? '<span class="tag" style="background:rgba(124,58,237,0.10)!important;color:#7c3aed;">AI</span>' : ''}
-          ${a.source_area ? `<span class="tag" style="background:rgba(232,184,75,0.10)!important;color:#a07c2a;text-transform:uppercase;letter-spacing:0.04em;font-size:7pt;">${escapeHtml(a.source_area)}</span>` : ''}
+          ${a.source_area ? `<span class="tag" style="background:rgba(184,134,11,0.10)!important;color:#8a6508;text-transform:uppercase;letter-spacing:0.04em;font-size:7pt;">${escapeHtml(a.source_area)}</span>` : ''}
         </div>
       </div>
     </div>`);
@@ -876,7 +876,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
           <span style="font-size:9.5pt;font-weight:700;color:#14532d;">${escapeHtml(m.metric)}</span>
           <span style="font-size:7pt;font-weight:700;padding:1px 7px;border-radius:999px;background:${confBg(m.confidence?.toLowerCase())};color:${confColor(m.confidence?.toLowerCase())};">${escapeHtml(m.confidence)} confidence</span>
         </div>
-        <div style="font-size:9.5pt;font-weight:600;color:#1e293b;margin-bottom:2px;">${escapeHtml(m.value)}</div>
+        <div style="font-size:9.5pt;font-weight:600;color:#111827;margin-bottom:2px;">${escapeHtml(m.value)}</div>
         <div style="font-size:8.5pt;color:#64748b;">${escapeHtml(m.note)}</div>
       </div>
     </div>`);
@@ -898,7 +898,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
     <div class="row" style="display:flex;align-items:flex-start;gap:10px;">
       <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-          <span style="font-size:9.5pt;font-weight:700;color:#a07c2a;">${escapeHtml(m.metric)}</span>
+          <span style="font-size:9.5pt;font-weight:700;color:#8a6508;">${escapeHtml(m.metric)}</span>
           <span style="font-size:7pt;font-weight:700;padding:1px 7px;border-radius:999px;text-transform:capitalize;background:${sigBg(m.signal?.toLowerCase())};color:${sigColor(m.signal?.toLowerCase())};">${escapeHtml(m.signal)}</span>
         </div>
         <div style="font-size:8.5pt;color:#64748b;">${escapeHtml(m.note)}</div>
@@ -915,7 +915,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
             <span style="font-size:9.5pt;font-weight:700;color:#064e3b;">${escapeHtml(o.title)}</span>
             <span style="font-size:7pt;font-weight:700;padding:1px 7px;border-radius:999px;background:${confBg(o.confidence?.toLowerCase())};color:${confColor(o.confidence?.toLowerCase())};">${escapeHtml(o.confidence)}</span>
           </div>
-          <div style="font-size:9.5pt;color:#1e293b;margin-bottom:2px;">${escapeHtml(o.description)}</div>
+          <div style="font-size:9.5pt;color:#111827;margin-bottom:2px;">${escapeHtml(o.description)}</div>
           <div style="font-size:8pt;color:#94a3b8;font-style:italic;">Source: ${escapeHtml(o.source)}</div>
         </div>
       </div>
@@ -925,9 +925,9 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
   const biasRows = (data.cognitiveBiasFlags || []).map(f => `
     <div class="row">
       <div style="font-size:10pt;font-weight:800;color:#78350f;margin-bottom:3px;">${escapeHtml(f.bias_name)}</div>
-      <div style="font-size:9pt;color:#475569;margin-bottom:6px;">${escapeHtml(f.explanation)}</div>
+      <div style="font-size:9pt;color:#5D6B82;margin-bottom:6px;">${escapeHtml(f.explanation)}</div>
       <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:6px;padding:8px 10px;">
-        <div style="font-size:7.5pt;font-weight:700;color:#b45309;margin-bottom:2px;">Counter-question</div>
+        <div style="font-size:7.5pt;font-weight:700;color:#b35c10;margin-bottom:2px;">Counter-question</div>
         <div style="font-size:8.5pt;color:#78350f;font-style:italic;">"${escapeHtml(f.counter_question)}"</div>
       </div>
     </div>`);
@@ -1016,12 +1016,12 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
     </div>`;
   }
 
-  const confColor = (c: string) => c === 'high' ? '#15803d' : c === 'low' ? '#b91c1c' : '#b45309';
+  const confColor = (c: string) => c === 'high' ? '#1e7a52' : c === 'low' ? '#a8292a' : '#b35c10';
   const confBg    = (c: string) => c === 'high' ? 'rgba(22,163,74,0.12)' : c === 'low' ? 'rgba(220,38,38,0.12)' : 'rgba(245,158,11,0.12)';
 
   const consensusHtml = data.consensusPoints.slice(0, 3).map((p, i) => {
     const conf = Math.max(0, Math.min(100, p.confidence || 0));
-    const c = conf >= 80 ? '#16a34a' : conf >= 60 ? '#84cc16' : '#f59e0b';
+    const c = conf >= 80 ? '#1e7a52' : conf >= 60 ? '#84cc16' : '#b35c10';
     return `<div class="bb-row">
       <span class="bb-num">${i + 1}.</span>
       <div style="flex:1;">
@@ -1046,7 +1046,7 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
       <span class="bb-num">${i + 1}.</span>
       <div class="bb-text">${escapeHtml(a.text)}</div>
       <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-        ${a.source_area ? `<span class="bb-badge" style="background:rgba(232,184,75,0.10)!important;color:#a07c2a;text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(a.source_area)}</span>` : ''}
+        ${a.source_area ? `<span class="bb-badge" style="background:rgba(184,134,11,0.10)!important;color:#8a6508;text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(a.source_area)}</span>` : ''}
         <span class="bb-badge bb-priority-${a.priority?.toLowerCase()}">${escapeHtml(a.priority)}</span>
       </div>
     </div>`).join('');

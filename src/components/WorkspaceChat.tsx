@@ -917,7 +917,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               >
                 <Sparkles className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-base font-bold text-slate-800 mb-1">Continue the conversation</h3>
+              <h3 className="text-base font-bold mb-1" style={{ color: 'var(--app-text-primary)' }}>Continue the conversation</h3>
               <p className="text-sm text-slate-500 max-w-xs mx-auto leading-relaxed mb-6">
                 Seven specialist AI advisors will analyse your question across three rigorous debate rounds.
               </p>
@@ -989,7 +989,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                           }
                         }}
                         placeholder={step.placeholder}
-                        className="w-full text-sm text-slate-700 placeholder-slate-300 resize-none rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 transition-all"
+                        className="w-full text-sm resize-none rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 transition-all" style={{ color: 'var(--app-text-primary)' }}
                         style={{
                           background: 'rgba(15,23,42,0.03)',
                           border: '1px solid rgba(15,23,42,0.1)',
@@ -1110,7 +1110,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       <span className="text-xs ml-auto" style={{ color: '#64748b' }}>{formatMessageTime(msg.created_at)}</span>
                     </div>
                     <div className="px-4 py-3">
-                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--app-text-primary)' }}>{msg.content}</p>
                     </div>
                   </div>
                 </div>
@@ -1139,7 +1139,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       className="rounded-2xl rounded-tl-md px-4 py-3"
                       style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
                     >
-                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--app-text-primary)' }}>{msg.content}</p>
                     </div>
                   </div>
                 </div>
@@ -1219,7 +1219,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
             >
               <FileText className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-              <span className="text-xs font-semibold text-slate-700 truncate flex-1">{doc.filename}</span>
+              <span className="text-xs font-semibold truncate flex-1" style={{ color: 'var(--app-text-primary)' }}>{doc.filename}</span>
               <span className="text-xs text-slate-400 flex-shrink-0">{formatBytes(doc.size)} · {doc.wordCount.toLocaleString()} words</span>
               <button
                 onClick={() => removeDoc(doc.filename)}
@@ -1323,7 +1323,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             placeholder={`Ask the AI agents about ${workspaceName}…`}
             rows={1}
             disabled={loading}
-            className="flex-1 resize-none bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none disabled:opacity-60"
+            className="flex-1 resize-none bg-transparent text-sm focus:outline-none disabled:opacity-60" style={{ color: 'var(--app-text-primary)' }}
             style={{ lineHeight: '1.5', maxHeight: '120px' }}
           />
         )}

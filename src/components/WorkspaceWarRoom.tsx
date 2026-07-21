@@ -2105,8 +2105,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               </button>
             </div>
             <div className="p-6">
-              <pre className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap font-mono rounded-xl p-4 max-h-80 overflow-y-auto"
-                style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.08)' }}>
+              <pre className="text-xs leading-relaxed whitespace-pre-wrap font-mono rounded-xl p-4 max-h-80 overflow-y-auto"
+                style={{ background: 'var(--app-border-subtle)', border: '1px solid var(--app-border)', color: 'var(--app-text-primary)' }}>
                 {buildBoardSummary()}
               </pre>
               <div className="mt-4 flex gap-2">
