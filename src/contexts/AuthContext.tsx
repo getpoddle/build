@@ -17,6 +17,8 @@ interface AuthContextType {
   clearPasswordRecovery: () => void;
   signupEmailPending: string | null;
   clearSignupEmailPending: () => void;
+  oauthError: string | null;
+  clearOauthError: () => void;
   signUp: (email: string, password: string, firstName: string, lastName: string, username: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signInWithGoogle: () => Promise<{ error: AuthError | null }>;
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [signupEmailPending, setSignupEmailPending] = useState<string | null>(null);
+  const [oauthError, setOauthError] = useState<string | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAdminRef = useRef(false);
   const isLoggedInRef = useRef(false);
@@ -66,6 +69,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loadingTimeout = setTimeout(() => {
       setLoading(false);
     }, 8000);
+
+    // Detect OAuth redirect: Supabase bounces back to the app with tokens in the
+    // URL hash (implicit flow) or query string (PKCE). Detecting them here lets
+    // us surface provider errors and ensures the session is exchanged before
+    // the auth state change handler runs.
+    const detectOAuthError = () => {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const error = params.get('error_description') || params.get('error');
+      if (error) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        return error;
+      }
+      return null;
+    };
+
+    const detectedError = detectOAuthError();
+    if (detectedError) setOauthError(detectedError);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(loadingTimeout);
@@ -241,6 +262,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearPasswordRecovery = () => setIsPasswordRecovery(false);
   const clearSignupEmailPending = () => setSignupEmailPending(null);
+  const clearOauthError = () => setOauthError(null);
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, username: string) => {
     const { data, error } = await supabase.auth.signUp({
@@ -343,6 +365,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearPasswordRecovery,
     signupEmailPending,
     clearSignupEmailPending,
+    oauthError,
+    clearOauthError,
     signUp,
     signIn,
     signInWithGoogle,

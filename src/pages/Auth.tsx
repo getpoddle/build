@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, ArrowLeft, User, AtSign, Eye, EyeOff } from 'lucide-react';
 import PoddleMark from '../components/PoddleMark';
@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 type View = 'signin' | 'signup' | 'forgot';
 
 export default function Auth() {
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, oauthError, clearOauthError } = useAuth();
   const [view, setView] = useState<View>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,6 +21,13 @@ export default function Auth() {
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [resetCooldownUntil, setResetCooldownUntil] = useState(0);
+
+  useEffect(() => {
+    if (oauthError) {
+      setError(oauthError);
+      clearOauthError();
+    }
+  }, [oauthError, clearOauthError]);
 
   const checkUsernameAvailability = async (usernameToCheck: string) => {
     if (!usernameToCheck || usernameToCheck.length < 3) return;

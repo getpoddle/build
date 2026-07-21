@@ -47,7 +47,7 @@ function RouteFallback() {
 }
 
 function AppContent() {
-  const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation } = useAuth();
+  const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation, oauthError } = useAuth();
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendSent, setResendSent] = useState(false);
   const [resending, setResending] = useState(false);
@@ -738,6 +738,9 @@ function AppContent() {
   }
 
   if (!user) {
+    if (oauthError) {
+      return <Auth />;
+    }
     if (currentPage === 'auth') return <Auth />;
     return (
       <div className="min-h-screen bg-slate-50">
