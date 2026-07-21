@@ -24,7 +24,13 @@ interface Notification {
 }
 
 interface NotificationsProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (
+    page: string,
+    idParam?: string,
+    userId?: string,
+    editMode?: boolean,
+    initialTab?: string,
+  ) => void;
 }
 
 export default function Notifications({ onNavigate }: NotificationsProps) {
@@ -244,12 +250,18 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       onNavigate('workspaces');
     } else if (notification.type === 'workspace_invite_accepted') {
       onNavigate('workspaces');
-    } else if (notification.type === 'workspace_team_message') {
-      onNavigate('workspaces');
-    } else if (notification.type === 'workspace_team_mention') {
-      onNavigate('workspaces');
+    } else if (notification.type === 'workspace_team_message' || notification.type === 'workspace_team_mention') {
+      if (notification.related_id) {
+        onNavigate('workspace-hub', notification.related_id, undefined, undefined, 'team');
+      } else {
+        onNavigate('workspaces');
+      }
     } else if (notification.type === 'workspace_ai_activity') {
-      onNavigate('workspaces');
+      if (notification.related_id) {
+        onNavigate('workspace-hub', notification.related_id);
+      } else {
+        onNavigate('workspaces');
+      }
     }
   }
 
@@ -450,6 +462,11 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
                             )}
                             {notification.title.replace(notification.actor?.full_name || '', '').trim()}
                           </p>
+                          {notification.content && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                              {notification.content}
+                            </p>
+                          )}
                           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                             {formatTime(notification.created_at)}
                           </p>

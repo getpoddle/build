@@ -26,13 +26,14 @@ interface Workspace {
 
 interface WorkspaceHubProps {
   workspaceId: string;
+  initialTab?: string;
   onBack: () => void;
   onSettings: () => void;
   onNavigate: (page: string, id?: string) => void;
   onEntityClick?: (id: string, type: string) => void;
 }
 
-export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNavigate }: WorkspaceHubProps) {
+export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettings, onNavigate }: WorkspaceHubProps) {
   const { user } = useAuth();
   const { canAccess, isAdmin, isReadOnly, plan, subscriptionStatus, trialExpiresAt, loading: accessLoading } = useWorkspaceAccess(workspaceId);
   const { hasBetaAccess } = useBetaAccess();
@@ -48,7 +49,9 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
   const expiryWarning = daysLeft !== null && daysLeft <= 7 && !isReadOnly;
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [mainTab, setMainTab] = useState<MainTab>('chat');
+  const [mainTab, setMainTab] = useState<MainTab>(
+    initialTab === 'team' ? 'team' : initialTab === 'warroom' ? 'warroom' : 'chat'
+  );
   const [pendingPrompt, setPendingPrompt] = useState<string | undefined>(undefined);
   const [resyncing, setResyncing] = useState(false);
   const [warRoomKey, setWarRoomKey] = useState(0);

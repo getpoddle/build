@@ -140,6 +140,7 @@ function AppContent() {
   const [confirmingEmail, setConfirmingEmail] = useState(false);
   const [confirmResult, setConfirmResult] = useState<'success' | 'error' | 'already' | null>(null);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const [workspaceInitialTab, setWorkspaceInitialTab] = useState<string | undefined>(undefined);
   const [joinToken, setJoinToken] = useState<string | null>(null);
   const [blogSlug, setBlogSlug] = useState<string | null>(() => {
     const hash = window.location.hash.substring(1);
@@ -402,7 +403,7 @@ function AppContent() {
     }
   };
 
-  const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, _initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
+  const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
     if (page === 'public-post' && postId) {
       setPublicPostId(postId);
       setPublicDiscussionId(null);
@@ -416,6 +417,7 @@ function AppContent() {
 
     if (page === 'workspace-hub' && idParam) {
       setWorkspaceId(idParam);
+      setWorkspaceInitialTab(initialTab);
       setCurrentPage('workspace-hub');
       sessionStorage.setItem('currentPage', 'workspace-hub');
       history.pushState(null, '', `#workspace/${idParam}`);
@@ -781,6 +783,7 @@ function AppContent() {
                 <WorkspaceHub
                   key={`workspace-hub-${workspaceId}`}
                   workspaceId={workspaceId}
+                  initialTab={workspaceInitialTab}
                   onBack={() => handleNavigate('workspaces')}
                   onSettings={() => handleNavigate('workspace-settings', workspaceId)}
                   onNavigate={handleNavigate}
