@@ -136,7 +136,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
     <section
       className="relative overflow-hidden"
       style={{
-        background: 'linear-gradient(170deg, #0d1526 0%, #1a2a45 55%, #1e3a5f 100%)',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #1e40af 100%)',
         minHeight: '88vh',
         display: 'flex',
         alignItems: 'center',
@@ -159,7 +159,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           Decision Intelligence for Teams
         </div>
 
-        <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-black leading-[1.06] mb-5 text-white mx-auto max-w-3xl tracking-tight">
+        <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-bold leading-[1.06] mb-5 text-white mx-auto max-w-3xl tracking-tight">
           Stop making high-stakes decisions{' '}
           <span style={{ background: 'linear-gradient(135deg,#60a5fa,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             in an echo chamber.
@@ -174,7 +174,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           <button
             onClick={() => onNavigate('auth')}
             className="flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-            style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 8px 28px rgba(37,99,235,0.4)' }}
+            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
           >
             <Sparkles className="w-4 h-4" />
             Start for free
@@ -299,7 +299,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(15,23,42,0.05)', color: '#475569', border: '1px solid rgba(15,23,42,0.09)' }}>
             How Poddle works
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
             AI Collaboration feeds the War Room.<br className="hidden sm:block" /> The War Room produces the report.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
@@ -332,7 +332,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                             </div>
                           </div>
                         </div>
-                        <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-4 leading-tight tracking-tight">{step.title}</h3>
+                        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4 leading-tight tracking-tight">{step.title}</h3>
                         <p className="text-sm sm:text-base text-slate-500 leading-relaxed mb-5">{step.body}</p>
                         <div
                           className="flex items-start gap-2.5 rounded-xl px-4 py-3"
@@ -412,7 +412,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                               </div>
                               <div className="flex items-end justify-between">
                                 <div>
-                                  <p className="text-sm font-black text-white">European AI Lending</p>
+                                  <p className="text-sm font-bold text-white">European AI Lending</p>
                                   <p className="text-[10px]" style={{ color: 'rgba(148,163,184,0.5)' }}>Private Workspace · 12 messages</p>
                                 </div>
                                 <div className="text-right">
@@ -471,7 +471,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
             <button
               onClick={() => onNavigate('auth')}
               className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
-              style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 6px 20px rgba(37,99,235,0.3)' }}
+              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
             >
               <Sparkles className="w-4 h-4" />
               Try the full workflow
@@ -579,7 +579,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(37,99,235,0.07)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.12)' }}>
             Live example
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-3 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
             Watch the full workflow.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
@@ -729,7 +729,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               <button
                 onClick={() => onNavigate('auth')}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg,#2563eb,#0891b2)', boxShadow: '0 4px 12px rgba(37,99,235,0.35)' }}
+                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
               >
                 <Sparkles className="w-3 h-3" />
                 Try it
@@ -767,7 +767,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.7)' }}>Poddle · War Room Report</span>
                   </div>
-                  <h3 className="text-lg font-black text-white mb-1">European AI Lending Expansion</h3>
+                  <h3 className="text-lg font-bold text-white mb-1">European AI Lending Expansion</h3>
                   <p className="text-xs" style={{ color: 'rgba(148,163,184,0.65)' }}>
                     Private Workspace · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · 12 messages analysed
                   </p>
@@ -939,13 +939,13 @@ function SocialProofSection() {
 
 function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section style={{ background: 'linear-gradient(170deg,#0d1526 0%,#1e3a5f 100%)' }} className="py-24">
+    <section style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e3a5f 55%,#1e40af 100%)' }} className="py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <RevealSection>
           <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.09)' }}>
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
             Your next big decision<br />deserves a proper challenge.
           </h2>
           <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: 'rgba(203,213,225,0.75)' }}>
@@ -956,7 +956,7 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             <button
               onClick={() => onNavigate('auth')}
               className="flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
-              style={{ background: '#fff', color: '#1e2d4a', boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}
+              style={{ background: '#fff', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
             >
               <Sparkles className="w-4 h-4 text-blue-600" />
               Create free account
