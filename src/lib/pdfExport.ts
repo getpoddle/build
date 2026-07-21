@@ -117,13 +117,13 @@ function scoreLabel(s: number): string {
 }
 
 function severityColor(sev: string): string {
-  const map: Record<string, string> = { critical: '#dc2626', high: '#f59e0b', medium: '#3b82f6', low: '#94a3b8' };
+  const map: Record<string, string> = { critical: '#dc2626', high: '#f59e0b', medium: '#e8b84b', low: '#94a3b8' };
   return map[sev?.toLowerCase()] || '#94a3b8';
 }
 
 
 function severityText(sev: string): string {
-  const map: Record<string, string> = { critical: '#b91c1c', high: '#b45309', medium: '#1d4ed8', low: '#475569' };
+  const map: Record<string, string> = { critical: '#b91c1c', high: '#b45309', medium: '#a07c2a', low: '#475569' };
   return map[sev?.toLowerCase()] || '#475569';
 }
 
@@ -137,7 +137,7 @@ function svgScoreRing(score: number): string {
   const c = scoreColor(safe);
   return `
     <svg width="112" height="112" viewBox="0 0 112 112" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${sw}"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1f2535" stroke-width="${sw}"/>
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c}" stroke-width="${sw}"
         stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}"
         stroke-linecap="round"
@@ -155,7 +155,7 @@ function svgConsensusBar(confidence: number, color: string): string {
   const fillW = Math.max(r * 2, (safe / 100) * totalW);
   return `
     <svg width="${totalW}" height="${h}" viewBox="0 0 ${totalW} ${h}" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="0" width="${totalW}" height="${h}" rx="${r}" fill="#e2e8f0"/>
+      <rect x="0" y="0" width="${totalW}" height="${h}" rx="${r}" fill="#1f2535"/>
       <rect x="0" y="0" width="${fillW.toFixed(1)}" height="${h}" rx="${r}" fill="${color}"/>
     </svg>`;
 }
@@ -164,10 +164,10 @@ function svgTensionBar(level: number): string {
   const safe = Math.max(0, Math.min(100, level));
   const totalW = 120, h = 6, r = 3;
   const fillW = Math.max(r * 2, (safe / 100) * totalW);
-  const c = safe >= 70 ? '#dc2626' : safe >= 45 ? '#f59e0b' : '#3b82f6';
+  const c = safe >= 70 ? '#dc2626' : safe >= 45 ? '#f59e0b' : '#e8b84b';
   return `
     <svg width="${totalW}" height="${h}" viewBox="0 0 ${totalW} ${h}" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="0" width="${totalW}" height="${h}" rx="${r}" fill="#e2e8f0"/>
+      <rect x="0" y="0" width="${totalW}" height="${h}" rx="${r}" fill="#1f2535"/>
       <rect x="0" y="0" width="${fillW.toFixed(1)}" height="${h}" rx="${r}" fill="${c}"/>
     </svg>`;
 }
@@ -187,7 +187,7 @@ function svgRiskMatrix(risks: WarRoomExport['riskSignals']): string {
       const x = marginLeft + ci * cellW;
       const y = (SEVS.length - 1 - si) * cellH;
       const intensity = (si / (SEVS.length - 1)) * 0.08 * (ci / (CATS.length - 1) + 0.4);
-      cells += `<rect x="${x}" y="${y}" width="${cellW}" height="${cellH}" fill="rgba(220,38,38,${intensity.toFixed(3)})" stroke="#e2e8f0" stroke-width="0.5"/>`;
+      cells += `<rect x="${x}" y="${y}" width="${cellW}" height="${cellH}" fill="rgba(220,38,38,${intensity.toFixed(3)})" stroke="#1f2535" stroke-width="0.5"/>`;
     }
   }
 
@@ -263,23 +263,23 @@ const BASE_STYLES = `
     align-items: center;
     justify-content: space-between;
     padding: 10px 20px;
-    background: #0f172a;
+    background: #07090f;
     color: #fff;
     gap: 12px;
   }
   .print-toolbar-title {
-    font-size: 10pt; font-weight: 700; color: #e2e8f0; flex: 1;
+    font-size: 10pt; font-weight: 700; color: #e8b84b; flex: 1;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .btn-print {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 18px;
-    background: #2563eb; color: #fff;
+    background: #e8b84b; color: #07090f;
     border: none; border-radius: 8px;
     font-size: 9.5pt; font-weight: 700;
     cursor: pointer; white-space: nowrap;
   }
-  .btn-print:hover { background: #1d4ed8; }
+  .btn-print:hover { background: #a07c2a; color: #fff; }
   .btn-close {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 14px;
@@ -303,12 +303,12 @@ const BASE_STYLES = `
   .logo-wrap { display: flex; align-items: center; gap: 8px; }
   .logo-box {
     width: 26px; height: 26px; border-radius: 7px;
-    background: linear-gradient(135deg, #1e3a5f, #2563eb);
+    background: linear-gradient(135deg, #0e1117, #e8b84b);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
-  .logo-dot { width: 11px; height: 11px; border-radius: 50%; background: #fff; }
-  .logo-text { font-size: 13pt; font-weight: 900; letter-spacing: -0.03em; color: #0f172a; }
+  .logo-dot { width: 11px; height: 11px; border-radius: 50%; background: #07090f; }
+  .logo-text { font-size: 13pt; font-weight: 900; letter-spacing: -0.03em; color: #07090f; }
   .logo-sub { font-size: 8pt; font-weight: 600; color: #94a3b8; letter-spacing: 0.04em; text-transform: uppercase; }
 
   /* ── Per-page header + footer via @page margin boxes (Chrome-supported) ── */
@@ -358,28 +358,29 @@ const BASE_STYLES = `
 
   /* ── Doc header ── */
   .doc-header {
-    border-bottom: 2px solid #1e3a5f;
+    border-bottom: 2px solid #e8b84b;
     padding-bottom: 14px; margin-bottom: 22px; margin-top: 18px;
   }
   .doc-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .brand { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #64748b; margin-bottom: 3px; }
-  .title { font-size: 18pt; font-weight: 900; color: #0f172a; line-height: 1.2; }
+  .title { font-size: 18pt; font-weight: 900; color: #07090f; line-height: 1.2; }
   .subtitle { font-size: 9pt; color: #64748b; margin-top: 3px; }
   .meta-right { font-size: 8pt; font-weight: 600; color: #64748b; text-align: right; line-height: 1.7; }
 
   /* ── Score block ── */
   .score-block {
-    background: #0f172a !important;
-    color: #fff;
-    border-radius: 12px;
+    background: #0e1117 !important;
+    color: #e8ecf2;
+    border: 1px solid #1f2535;
+    border-radius: 4px;
     padding: 16px 22px;
     margin-bottom: 22px;
     display: flex; align-items: center; gap: 20px;
     page-break-inside: avoid; break-inside: avoid;
   }
   .score-label { font-size: 12pt; font-weight: 900; margin-bottom: 2px; }
-  .score-sub { font-size: 8pt; color: #94a3b8; margin-bottom: 8px; }
-  .score-rationale { font-size: 9pt; color: #cbd5e1; line-height: 1.55; }
+  .score-sub { font-size: 8pt; color: #8892a4; margin-bottom: 8px; }
+  .score-rationale { font-size: 9pt; color: #c8d0de; line-height: 1.55; }
 
   /* ── Sections ──
      No page-break-inside on the section wrapper — sections can span pages freely.
@@ -415,9 +416,9 @@ const BASE_STYLES = `
   .sec-conflicts .row { border-color: rgba(245,158,11,0.12); }
 
   /* Questions */
-  .sec-questions .section-hdr { background: rgba(37,99,235,0.08) !important; color: #1e3a8a; border-color: rgba(37,99,235,0.22); }
-  .sec-questions .section-body { border-color: rgba(37,99,235,0.2); }
-  .sec-questions .row { border-color: rgba(37,99,235,0.08); }
+  .sec-questions .section-hdr { background: rgba(232,184,75,0.08) !important; color: #a07c2a; border-color: rgba(232,184,75,0.22); }
+  .sec-questions .section-body { border-color: rgba(232,184,75,0.2); }
+  .sec-questions .row { border-color: rgba(232,184,75,0.08); }
 
   /* Risks */
   .sec-risks .section-hdr { background: rgba(220,38,38,0.08) !important; color: #7f1d1d; border-color: rgba(220,38,38,0.22); }
@@ -445,9 +446,9 @@ const BASE_STYLES = `
   .sec-operational .row { border-color: rgba(245,158,11,0.1); }
 
   /* Strategic (non-financial) */
-  .sec-strategic .section-hdr { background: rgba(37,99,235,0.08) !important; color: #1e3a8a; border-color: rgba(37,99,235,0.22); }
-  .sec-strategic .section-body { border-color: rgba(37,99,235,0.2); }
-  .sec-strategic .row { border-color: rgba(37,99,235,0.08); }
+  .sec-strategic .section-hdr { background: rgba(232,184,75,0.08) !important; color: #a07c2a; border-color: rgba(232,184,75,0.22); }
+  .sec-strategic .section-body { border-color: rgba(232,184,75,0.2); }
+  .sec-strategic .row { border-color: rgba(232,184,75,0.08); }
 
   /* Opportunities */
   .sec-opportunities .section-hdr { background: rgba(5,150,105,0.08) !important; color: #064e3b; border-color: rgba(5,150,105,0.22); }
@@ -460,9 +461,9 @@ const BASE_STYLES = `
   .sec-biases .row { border-color: rgba(245,158,11,0.08); }
 
   /* Recommendation */
-  .sec-recommendation .section-hdr { background: rgba(30,58,95,0.08) !important; color: #1e3a5f; border-color: rgba(30,58,95,0.22); }
-  .sec-recommendation .section-body { border-color: rgba(30,58,95,0.18); }
-  .sec-recommendation .row { border-color: rgba(30,58,95,0.08); font-size: 10pt; line-height: 1.75; color: #334155; }
+  .sec-recommendation .section-hdr { background: rgba(232,184,75,0.10) !important; color: #a07c2a; border-color: rgba(232,184,75,0.28); }
+  .sec-recommendation .section-body { border-color: rgba(232,184,75,0.18); }
+  .sec-recommendation .row { border-color: rgba(232,184,75,0.08); font-size: 10pt; line-height: 1.75; color: #334155; }
 
   /* Tags */
   .tag {
@@ -471,7 +472,7 @@ const BASE_STYLES = `
   }
   .tag-critical { background: rgba(220,38,38,0.12) !important; color: #b91c1c; }
   .tag-high     { background: rgba(245,158,11,0.12) !important; color: #b45309; }
-  .tag-medium   { background: rgba(37,99,235,0.10) !important; color: #1d4ed8; }
+  .tag-medium   { background: rgba(232,184,75,0.10) !important; color: #a07c2a; }
   .tag-low      { background: rgba(15,23,42,0.07)  !important; color: #475569; }
   .tag-manual   { background: rgba(15,23,42,0.07)  !important; color: #475569; }
   .tag-ai       { background: rgba(124,58,237,0.10) !important; color: #7c3aed; }
@@ -479,9 +480,9 @@ const BASE_STYLES = `
   /* Conflict pair */
   .conflict-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
   .conflict-side { padding: 8px 10px; border-radius: 6px; font-size: 9pt; }
-  .cs-a { background: rgba(37,99,235,0.06) !important; border: 1px solid rgba(37,99,235,0.14); }
+  .cs-a { background: rgba(232,184,75,0.06) !important; border: 1px solid rgba(232,184,75,0.14); }
   .cs-b { background: rgba(220,38,38,0.05) !important; border: 1px solid rgba(220,38,38,0.14); }
-  .ca-a { font-size: 7.5pt; font-weight: 700; color: #1d4ed8; margin-bottom: 3px; }
+  .ca-a { font-size: 7.5pt; font-weight: 700; color: #a07c2a; margin-bottom: 3px; }
   .ca-b { font-size: 7.5pt; font-weight: 700; color: #b91c1c; margin-bottom: 3px; }
 
   /* In-flow document footer — always at the natural end of content, never overlapping */
@@ -501,50 +502,50 @@ const BASE_STYLES = `
   /* ── Topic banner ── */
   .topic-banner {
     display: flex; align-items: flex-start; gap: 12px;
-    background: rgba(30,58,95,0.05) !important;
-    border-left: 3px solid #1e3a5f;
-    border-radius: 0 8px 8px 0;
+    background: rgba(232,184,75,0.06) !important;
+    border-left: 3px solid #e8b84b;
+    border-radius: 0 4px 4px 0;
     padding: 10px 14px;
     margin-bottom: 22px;
     page-break-inside: avoid; break-inside: avoid;
   }
   .topic-banner-label {
     font-size: 7pt; font-weight: 700; letter-spacing: 0.09em;
-    text-transform: uppercase; color: #64748b;
+    text-transform: uppercase; color: #8892a4;
     white-space: nowrap; padding-top: 2px;
   }
   .topic-banner-text {
-    font-size: 11pt; font-weight: 800; color: #0f172a; line-height: 1.35;
+    font-size: 11pt; font-weight: 800; color: #07090f; line-height: 1.35;
   }
 
   /* ── Chat ── */
   .msg { margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid; }
   .msg-user { display: flex; flex-direction: column; align-items: flex-end; }
-  .msg-user .bubble { background: #1e3a5f !important; color: #fff; border-radius: 14px 14px 2px 14px; padding: 9px 13px; max-width: 78%; font-size: 10pt; }
+  .msg-user .bubble { background: #171c26 !important; color: #e8ecf2; border: 1px solid #1f2535; border-radius: 14px 14px 2px 14px; padding: 9px 13px; max-width: 78%; font-size: 10pt; }
   .msg-user .meta { font-size: 7pt; color: #94a3b8; margin-top: 2px; text-align: right; }
   .msg-agent { display: flex; gap: 10px; align-items: flex-start; max-width: 84%; }
   .agent-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12pt; flex-shrink: 0; }
   .agent-name { font-size: 7.5pt; font-weight: 700; margin-bottom: 2px; }
   .agent-bubble { border-radius: 2px 14px 14px 14px; padding: 9px 13px; font-size: 10pt; }
-  .role-strategic_analyst .agent-name { color: #1d4ed8; }
-  .role-strategic_analyst .agent-bubble { background: rgba(37,99,235,0.07) !important; border: 1px solid rgba(37,99,235,0.15); }
+  .role-strategic_analyst .agent-name { color: #a07c2a; }
+  .role-strategic_analyst .agent-bubble { background: rgba(232,184,75,0.07) !important; border: 1px solid rgba(232,184,75,0.15); }
   .role-devils_advocate .agent-name { color: #b91c1c; }
   .role-devils_advocate .agent-bubble { background: rgba(220,38,38,0.07) !important; border: 1px solid rgba(220,38,38,0.15); }
   .role-innovation_scout .agent-name { color: #065f46; }
   .role-innovation_scout .agent-bubble { background: rgba(16,185,129,0.07) !important; border: 1px solid rgba(16,185,129,0.18); }
   .role-other .agent-name { color: #475569; }
-  .role-other .agent-bubble { background: #f8fafc !important; border: 1px solid #e2e8f0; }
+  .role-other .agent-bubble { background: #f1f5f9 !important; border: 1px solid #1f2535; }
 
   /* ── Board Brief ── */
   .bb-score-ring { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; page-break-inside: avoid; break-inside: avoid; }
   .bb-score-info { flex: 1; }
-  .bb-score-title { font-size: 20pt; font-weight: 900; color: #0f172a; }
+  .bb-score-title { font-size: 20pt; font-weight: 900; color: #07090f; }
   .bb-score-sub { font-size: 9pt; color: #64748b; margin-top: 2px; margin-bottom: 6px; }
   .bb-score-rationale { font-size: 9.5pt; color: #475569; line-height: 1.6; }
   .bb-section { margin-bottom: 20px; }
   .bb-section-title {
     font-size: 8pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
-    color: #64748b; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1.5px solid #e2e8f0;
+    color: #8892a4; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1.5px solid #e8b84b;
     page-break-after: avoid; break-after: avoid;
   }
   .bb-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; break-inside: avoid; }
@@ -553,11 +554,11 @@ const BASE_STYLES = `
   .bb-badge { font-size: 7pt; font-weight: 700; padding: 1px 7px; border-radius: 999px; flex-shrink: 0; margin-top: 2px; text-transform: capitalize; }
   .bb-priority-critical { background: rgba(220,38,38,0.12) !important; color: #b91c1c; }
   .bb-priority-high     { background: rgba(245,158,11,0.12) !important; color: #b45309; }
-  .bb-priority-medium   { background: rgba(37,99,235,0.10) !important; color: #1d4ed8; }
+  .bb-priority-medium   { background: rgba(232,184,75,0.10) !important; color: #a07c2a; }
   .bb-priority-low      { background: rgba(15,23,42,0.07)  !important; color: #475569; }
   .bb-sev-critical { background: rgba(220,38,38,0.12) !important; color: #b91c1c; }
   .bb-sev-high     { background: rgba(245,158,11,0.12) !important; color: #b45309; }
-  .bb-sev-medium   { background: rgba(37,99,235,0.10) !important; color: #1d4ed8; }
+  .bb-sev-medium   { background: rgba(232,184,75,0.10) !important; color: #a07c2a; }
   .bb-sev-low      { background: rgba(15,23,42,0.07)  !important; color: #475569; }
 `;
 
@@ -800,7 +801,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <strong style="font-size:9.5pt;">${escapeHtml(z.topic)}</strong>
         ${svgTensionBar(lvl)}
-        <span style="font-size:7.5pt;font-weight:700;color:${lvl >= 70 ? '#b91c1c' : lvl >= 45 ? '#b45309' : '#1d4ed8'};">${lvl}/100</span>
+        <span style="font-size:7.5pt;font-weight:700;color:${lvl >= 70 ? '#b91c1c' : lvl >= 45 ? '#b45309' : '#a07c2a'};">${lvl}/100</span>
       </div>
       <div class="conflict-pair">
         <div class="conflict-side cs-a">
@@ -862,7 +863,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
           <span class="tag tag-${a.priority?.toLowerCase()}">${escapeHtml(a.priority)}</span>
           <span class="tag" style="background:rgba(15,23,42,0.07)!important;color:#475569;text-transform:capitalize;">${a.status.replace('_', ' ')}</span>
           ${a.source === 'ai' ? '<span class="tag" style="background:rgba(124,58,237,0.10)!important;color:#7c3aed;">AI</span>' : ''}
-          ${a.source_area ? `<span class="tag" style="background:rgba(30,58,95,0.10)!important;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.04em;font-size:7pt;">${escapeHtml(a.source_area)}</span>` : ''}
+          ${a.source_area ? `<span class="tag" style="background:rgba(232,184,75,0.10)!important;color:#a07c2a;text-transform:uppercase;letter-spacing:0.04em;font-size:7pt;">${escapeHtml(a.source_area)}</span>` : ''}
         </div>
       </div>
     </div>`);
@@ -897,7 +898,7 @@ export function exportWarRoomToPDF(data: WarRoomExport) {
     <div class="row" style="display:flex;align-items:flex-start;gap:10px;">
       <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-          <span style="font-size:9.5pt;font-weight:700;color:#1e3a8a;">${escapeHtml(m.metric)}</span>
+          <span style="font-size:9.5pt;font-weight:700;color:#a07c2a;">${escapeHtml(m.metric)}</span>
           <span style="font-size:7pt;font-weight:700;padding:1px 7px;border-radius:999px;text-transform:capitalize;background:${sigBg(m.signal?.toLowerCase())};color:${sigColor(m.signal?.toLowerCase())};">${escapeHtml(m.signal)}</span>
         </div>
         <div style="font-size:8.5pt;color:#64748b;">${escapeHtml(m.note)}</div>
@@ -1008,7 +1009,7 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
     return `<div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
       <span style="font-size:7pt;color:#94a3b8;min-width:85px;">${label}</span>
       <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-        <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="#e2e8f0"/>
+        <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="#1f2535"/>
         <rect x="0" y="0" width="${fillW.toFixed(1)}" height="${H}" rx="${r}" fill="${c}"/>
       </svg>
       <span style="font-size:7.5pt;font-weight:800;color:${c};">${score}</span>
@@ -1045,7 +1046,7 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
       <span class="bb-num">${i + 1}.</span>
       <div class="bb-text">${escapeHtml(a.text)}</div>
       <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-        ${a.source_area ? `<span class="bb-badge" style="background:rgba(30,58,95,0.10)!important;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(a.source_area)}</span>` : ''}
+        ${a.source_area ? `<span class="bb-badge" style="background:rgba(232,184,75,0.10)!important;color:#a07c2a;text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(a.source_area)}</span>` : ''}
         <span class="bb-badge bb-priority-${a.priority?.toLowerCase()}">${escapeHtml(a.priority)}</span>
       </div>
     </div>`).join('');
