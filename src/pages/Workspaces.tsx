@@ -7,7 +7,6 @@ import CreateWorkspace from '../components/CreateWorkspace';
 import UpgradePrompt from '../components/UpgradePrompt';
 import CrossWorkspacePatternCard from '../components/CrossWorkspacePatternCard';
 import DecisionMap from '../components/DecisionMap';
-import AskAgentsSidebar from '../components/AskAgentsSidebar';
 
 interface WorkspacesProps {
   onNavigate: (page: string, workspaceId?: string) => void;
@@ -489,12 +488,6 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             )}
           </div>
 
-          {/* Right sidebar — desktop only */}
-          <div className="hidden xl:block">
-            <div className="sticky top-[4.5rem]">
-              <AskAgentsSidebar />
-            </div>
-          </div>
         </div>
       </div>
 
