@@ -75,10 +75,10 @@ export default function Home({ onNavigate }: HomeProps) {
                     <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
                     <span className="mono-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--signal)' }}>Decision Intelligence</span>
                   </div>
-                  <h2 className="display-heading text-xl lg:text-2xl xl:text-3xl mb-3">
+                  <h2 className="display-heading text-xl lg:text-2xl xl:text-3xl mb-3" style={{ color: 'var(--ink-900)' }}>
                     AI agents that challenge your best thinking.
                   </h2>
-                  <p className="text-sm lg:text-base leading-relaxed max-w-lg" style={{ color: 'var(--app-text-secondary)' }}>
+                  <p className="text-sm lg:text-base leading-relaxed max-w-lg" style={{ color: 'rgba(255,255,255,0.8)' }}>
                     Debate ideas, stress-test assumptions, and surface blind spots — in a private encrypted workspace only your team can see.
                   </p>
                 </div>

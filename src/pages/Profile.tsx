@@ -148,7 +148,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
             {user ? (
               <ProfilePictureUpload userId={user.id} currentAvatarUrl={profile?.avatar_url || null} onUploadComplete={loadProfile} />
             ) : (
-              <div className="w-16 h-16 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--ink-50)', border: '1px solid var(--app-border)' }}>
+              <div className="w-16 h-16 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)' }}>
                 <span className="text-xl font-bold" style={{ color: 'var(--signal)' }}>{avatarInitial}</span>
               </div>
             )}

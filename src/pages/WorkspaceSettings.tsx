@@ -319,7 +319,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 flex items-center justify-center" style={{ background: 'var(--ink-50)', border: '1px solid var(--app-border)' }}>
+          <div className="w-12 h-12 flex items-center justify-center" style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)' }}>
             <Lock className="w-6 h-6" style={{ color: 'var(--signal)' }} />
           </div>
           <div>
@@ -376,7 +376,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
               return (
                 <div key={m.id} className="flex items-center gap-3 p-3" style={{ background: 'var(--app-border-subtle)' }}>
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style={{ background: 'var(--ink-50)', color: 'var(--signal)', border: '1px solid var(--app-border)' }}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style={{ background: 'var(--app-surface-raised)', color: 'var(--signal)', border: '1px solid var(--app-border)' }}>
                     {(m.profile?.full_name || m.profile?.email || '?').charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">

@@ -207,17 +207,17 @@ export default function Pricing({ onNavigate }: PricingProps) {
               {currentTier === 'pro' ? 'Current plan' : 'Most popular'}
             </div>
             <div className="mb-5">
-              <p className="mono-xs font-bold uppercase tracking-widest mb-2 text-signal">Pro Individual</p>
+              <p className="mono-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--signal)' }}>Pro Individual</p>
               <div className="flex items-end gap-1 mb-1">
-                <span className="stat-card-value" style={{ color: 'var(--app-surface-raised)' }}>$19</span>
-                <span className="text-sm mb-1.5" style={{ color: 'var(--app-text-muted)' }}>/ month</span>
+                <span className="stat-card-value" style={{ color: '#ffffff' }}>$19</span>
+                <span className="text-sm mb-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>/ month</span>
               </div>
-              <p className="text-sm" style={{ color: 'var(--app-text-muted)' }}>For founders &amp; professionals</p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>For founders &amp; professionals</p>
             </div>
             <ul className="space-y-2.5 flex-1 mb-6">
               {proBenefits.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--app-text-secondary)' }}>
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-signal" />
+                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--signal)' }} />
                   {item}
                 </li>
               ))}
@@ -369,8 +369,8 @@ export default function Pricing({ onNavigate }: PricingProps) {
           <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
             <Lock className="w-6 h-6" style={{ color: 'var(--signal)' }} />
           </div>
-          <h2 className="display-heading text-2xl mb-3" style={{ color: 'var(--app-surface-raised)' }}>Ready to sharpen your decisions?</h2>
-          <p className="text-sm mb-7 max-w-md mx-auto" style={{ color: 'var(--app-text-muted)' }}>
+          <h2 className="display-heading text-2xl mb-3" style={{ color: '#ffffff' }}>Ready to sharpen your decisions?</h2>
+          <p className="text-sm mb-7 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.7)' }}>
             Get private encrypted workspaces, AI War Room intelligence, and a team that thinks faster — starting today.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -385,7 +385,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
                 Get Pro — $19/mo
               </button>
             )}
-            <button onClick={handleEnterprise} className="btn-secondary" style={{ background: 'transparent', color: 'var(--app-surface-raised)', borderColor: 'var(--app-text-muted)' }}>
+            <button onClick={handleEnterprise} className="btn-secondary" style={{ background: 'transparent', color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)' }}>
               <Mail className="w-4 h-4" />
               Contact sales
             </button>
