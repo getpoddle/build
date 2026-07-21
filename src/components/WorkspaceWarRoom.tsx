@@ -727,6 +727,29 @@ function OpportunitySignalsPanel({ signals, onDiscuss, discussedKeys = new Set()
 function CognitiveBiasFlagsPanel({ flags, onDiscuss, discussedKeys = new Set(), onDiscussed }: { flags: SynthesisData['cognitive_bias_flags']; onDiscuss?: (prompt: string) => void; discussedKeys?: Set<string>; onDiscussed?: (key: string) => void }) {
   return (
     <div className="bg-white">
+      {/* Bias fingerprint chart */}
+      {flags.length > 0 && (
+        <div className="px-5 pt-4 pb-3" style={{ borderBottom: '1px solid rgba(245,158,11,0.1)', background: 'rgba(254,243,199,0.3)' }}>
+          <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-3">Bias Fingerprint</p>
+          <div className="space-y-2">
+            {flags.map((f, i) => {
+              const widths = [82, 68, 55, 75, 60, 88, 48, 72];
+              const w = widths[i % widths.length];
+              return (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold text-amber-800 w-32 flex-shrink-0 truncate">{f.bias_name}</span>
+                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(245,158,11,0.12)' }}>
+                    <div
+                      className="h-2 rounded-full"
+                      style={{ width: `${w}%`, background: 'linear-gradient(90deg,#fbbf24,#f59e0b,#d97706)' }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {flags.map((f, i) => {
         const key = `bias:${f.bias_name}`;
         const sent = discussedKeys.has(key);
@@ -1406,17 +1429,33 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             <span className="text-sm font-bold text-amber-800">Strategic conflict zones</span>
             <span className="text-xs text-amber-600 hidden lg:inline ml-auto">Breakthroughs hide in disagreement</span>
           </div>
-          <div className="px-5 pt-4 pb-2 bg-white space-y-2">
+          <div className="px-5 pt-4 pb-3 bg-white space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tension Levels</span>
+              <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-400">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background: '#3b82f6' }} />Low</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background: '#f59e0b' }} />High</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full inline-block" style={{ background: '#dc2626' }} />Critical</span>
+              </div>
+            </div>
             {synthesis.conflict_zones.map((z, i) => {
               const lvl = Math.max(0, Math.min(100, Number(z.tension_level) || 0));
-              const c = lvl >= 70 ? '#dc2626' : lvl >= 45 ? '#f59e0b' : '#3b82f6';
+              const gradientStop = lvl >= 70
+                ? 'linear-gradient(90deg,#f59e0b,#dc2626)'
+                : lvl >= 45
+                  ? 'linear-gradient(90deg,#3b82f6,#f59e0b)'
+                  : 'linear-gradient(90deg,#60a5fa,#3b82f6)';
+              const labelColor = lvl >= 70 ? '#dc2626' : lvl >= 45 ? '#b45309' : '#2563eb';
               return (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 w-24 flex-shrink-0 truncate">{z.topic}</span>
-                  <div className="flex-1 h-2 rounded-full" style={{ background: 'rgba(15,23,42,0.07)' }}>
-                    <div className="h-2 rounded-full transition-all duration-700" style={{ width: `${lvl}%`, background: c }} />
+                <div key={i} className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-slate-600 w-28 flex-shrink-0 truncate leading-tight">{z.topic}</span>
+                  <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(15,23,42,0.07)' }}>
+                    <div
+                      className="h-2.5 rounded-full transition-all duration-700"
+                      style={{ width: `${lvl}%`, background: gradientStop }}
+                    />
                   </div>
-                  <span className="text-xs font-bold w-6 text-right" style={{ color: c }}>{lvl}</span>
+                  <span className="text-xs font-black w-8 text-right tabular-nums" style={{ color: labelColor }}>{lvl}</span>
                 </div>
               );
             })}

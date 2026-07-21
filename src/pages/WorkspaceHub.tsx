@@ -116,8 +116,22 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
   /* ── Loading & access-denied states ── */
   if (accessLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100dvh - 3.5rem)', background: '#f1f5f9' }}>
+        {/* Header skeleton */}
+        <div className="flex-shrink-0 bg-white px-4 lg:px-5 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
+          <div className="w-8 h-8 rounded-xl bg-slate-100 animate-pulse" />
+          <div className="w-8 h-8 rounded-xl bg-slate-200 animate-pulse" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3.5 w-40 bg-slate-200 rounded-full animate-pulse" />
+            <div className="h-2.5 w-60 bg-slate-100 rounded-full animate-pulse" />
+          </div>
+          <div className="w-24 h-8 bg-slate-100 rounded-xl animate-pulse" />
+        </div>
+        {/* Panel skeleton */}
+        <div className="flex-1 flex p-4 gap-4">
+          <div className="flex-1 bg-white rounded-2xl animate-pulse" style={{ border: '1px solid rgba(15,23,42,0.06)' }} />
+          <div className="hidden lg:block w-96 bg-white rounded-2xl animate-pulse" style={{ border: '1px solid rgba(15,23,42,0.06)' }} />
+        </div>
       </div>
     );
   }

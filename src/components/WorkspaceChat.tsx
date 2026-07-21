@@ -81,16 +81,16 @@ const AGENT_COLORS: Record<string, { bg: string; text: string; border: string }>
   consensus:          { bg: 'rgba(15,23,42,0.04)',     text: '#0f172a', border: 'rgba(15,23,42,0.12)' },
 };
 
-const AGENT_ICONS: Record<string, string> = {
-  strategic_analyst:   '📊',
-  devils_advocate:     '⚔️',
-  innovation_scout:    '🔭',
-  risk_analyst:        '⚠️',
-  market_analyst:      '📈',
-  financial_strategist:'💰',
-  execution_lead:      '🎯',
-  people_advisor:      '👥',
-  consensus:           '🤝',
+const AGENT_ABBR: Record<string, string> = {
+  strategic_analyst:    'SA',
+  devils_advocate:      'DA',
+  innovation_scout:     'IS',
+  risk_analyst:         'RA',
+  market_analyst:       'MA',
+  financial_strategist: 'FS',
+  execution_lead:       'EL',
+  people_advisor:       'PA',
+  consensus:            'C',
 };
 
 
@@ -1051,7 +1051,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
             const role = msg.agent_role || '';
             const colors = AGENT_COLORS[role] ?? { bg: 'rgba(15,23,42,0.05)', text: '#475569', border: 'rgba(15,23,42,0.1)' };
-            const icon = AGENT_ICONS[role] ?? '🤖';
+            const abbr = AGENT_ABBR[role] ?? role.slice(0, 2).toUpperCase();
             const isConsensus = role === 'consensus';
             const phase = isConsensus ? 'consensus' : detectPhase(msg.content);
 
@@ -1059,7 +1059,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               return (
                 <div key={msg.id} className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(15,23,42,0.12)', background: 'rgba(15,23,42,0.02)' }}>
                   <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'rgba(15,23,42,0.05)', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
-                    <span className="text-base">🤝</span>
+                    <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: '#0f172a' }}>
+                      <span className="text-white font-black" style={{ fontSize: '8px', letterSpacing: '0.02em' }}>C</span>
+                    </div>
                     <span className="text-xs font-black tracking-wide uppercase" style={{ color: '#0f172a' }}>Consensus</span>
                     <span className="text-xs ml-auto" style={{ color: '#64748b' }}>Agents reached alignment</span>
                   </div>
@@ -1073,10 +1075,10 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             return (
               <div key={msg.id} className="flex items-start gap-3">
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-sm"
-                  style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 flex-none"
+                  style={{ background: colors.text, border: `1px solid ${colors.border}` }}
                 >
-                  {icon}
+                  <span className="text-white font-black" style={{ fontSize: '10px', letterSpacing: '0.02em' }}>{abbr}</span>
                 </div>
                 <div className="max-w-[85%]">
                   <div className="flex items-center gap-2 mb-1">
