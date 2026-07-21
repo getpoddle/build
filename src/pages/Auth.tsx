@@ -143,55 +143,54 @@ export default function Auth() {
   return (
     <div
       className="min-h-screen flex items-start sm:items-center justify-center px-4 py-8 sm:py-4 relative overflow-hidden"
-      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)' }}
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)', background: 'var(--app-bg)' }}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent"></div>
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-cyan-400/30 to-blue-500/30 rounded-full blur-3xl floating"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-blue-400/30 to-cyan-500/30 rounded-full blur-3xl floating" style={{ animationDelay: '1.5s' }}></div>
+      <div className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl floating pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(184,134,11,0.06) 0%, transparent 70%)' }} />
+      <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full blur-3xl floating pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(184,134,11,0.04) 0%, transparent 70%)', animationDelay: '1.5s' }} />
 
       <div className="max-w-md w-full relative z-10 scale-in">
         <div className="text-center mb-6 sm:mb-8">
           <div className="inline-flex items-center gap-2.5 mb-3 sm:mb-4 floating">
             <PoddleMark size={40} />
-            <h1 className="text-3xl sm:text-5xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle AI</h1>
+            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight" style={{ color: 'var(--app-text-primary)' }}>Poddle AI</h1>
           </div>
-          <p className="text-slate-600 text-sm sm:text-base font-semibold">
+          <p className="text-sm sm:text-base font-semibold" style={{ color: 'var(--app-text-secondary)' }}>
             Judgement infrastructure for high-stakes decisions
           </p>
         </div>
 
-        <div className="glass-card-strong rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-8 border">
+        <div className="panel-raised p-5 sm:p-8" style={{ boxShadow: 'var(--shadow-xl)' }}>
           {view === 'forgot' && (
             <button
               onClick={() => switchView('signin')}
-              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4 transition-colors"
+              className="btn-ghost mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to sign in
             </button>
           )}
 
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1.5">
+          <h2 className="display-heading text-2xl sm:text-3xl mb-1.5">
             {view === 'signup' ? 'Create Account' : view === 'forgot' ? 'Reset Password' : 'Welcome Back'}
           </h2>
           {view === 'forgot' ? (
-            <p className="text-sm text-slate-600 mb-5 font-medium">
+            <p className="text-sm mb-5 font-medium" style={{ color: 'var(--app-text-secondary)' }}>
               Enter your email and we'll send you a link to reset your password.
             </p>
           ) : (
-            <p className="text-sm text-slate-600 mb-5 font-medium">
+            <p className="text-sm mb-5 font-medium" style={{ color: 'var(--app-text-secondary)' }}>
               {view === 'signup' ? 'Join the community and start collaborating' : 'Continue your journey'}
             </p>
           )}
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="mb-4 p-3 text-sm" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)', color: 'var(--negative)' }}>
               {error}
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+            <div className="mb-4 p-3 text-sm" style={{ background: 'var(--positive-bg)', border: '1px solid var(--positive)', color: 'var(--positive)' }}>
               {successMessage}
             </div>
           )}
@@ -201,11 +200,11 @@ export default function Auth() {
               <>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--app-text-primary)' }}>
                       First Name
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--app-text-muted)' }} />
                       <input
                         type="text"
                         value={firstName}
@@ -217,11 +216,11 @@ export default function Auth() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--app-text-primary)' }}>
                       Last Name
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--app-text-muted)' }} />
                       <input
                         type="text"
                         value={lastName}
@@ -235,11 +234,11 @@ export default function Auth() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--app-text-primary)' }}>
                     Username
                   </label>
                   <div className="relative">
-                    <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--app-text-muted)' }} />
                     <input
                       type="text"
                       value={username}
@@ -253,11 +252,11 @@ export default function Auth() {
                     />
                   </div>
                   {checkingUsername && (
-                    <p className="text-xs text-slate-500 mt-1">Checking availability...</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--app-text-muted)' }}>Checking availability...</p>
                   )}
                   {usernameSuggestions.length > 0 && (
                     <div className="mt-2">
-                      <p className="text-xs text-slate-600 mb-1">Username taken. Try these:</p>
+                      <p className="text-xs mb-1" style={{ color: 'var(--app-text-secondary)' }}>Username taken. Try these:</p>
                       <div className="flex flex-wrap gap-2">
                         {usernameSuggestions.map((suggestion) => (
                           <button
@@ -267,7 +266,8 @@ export default function Auth() {
                               setUsername(suggestion);
                               setUsernameSuggestions([]);
                             }}
-                            className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                            className="text-xs px-2 py-1 transition-colors"
+                            style={{ background: 'var(--signal-bg)', color: 'var(--signal)' }}
                           >
                             @{suggestion}
                           </button>
@@ -280,11 +280,11 @@ export default function Auth() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--app-text-primary)' }}>
                 Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--app-text-muted)' }} />
                 <input
                   type="email"
                   value={email}
@@ -299,33 +299,34 @@ export default function Auth() {
             {view !== 'forgot' && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-slate-700">
+                  <label className="block text-sm font-medium" style={{ color: 'var(--app-text-primary)' }}>
                     Password
                   </label>
                   {view === 'signin' && (
                     <button
                       type="button"
                       onClick={() => switchView('forgot')}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                      className="text-xs font-medium transition-colors text-signal"
                     >
                       Forgot password?
                     </button>
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--app-text-muted)' }} />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="input-modern pl-10 pr-11 text-slate-900"
+                    className="input-modern pl-10 pr-11"
                     placeholder="••••••••"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                    style={{ color: 'var(--app-text-muted)' }}
                     tabIndex={-1}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
@@ -338,7 +339,8 @@ export default function Auth() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none active:scale-95 transition-transform"
+              className="btn-primary w-full"
+              style={{ padding: '0.875rem 1.25rem', fontSize: '0.9375rem' }}
             >
               {loading
                 ? 'Loading...'
@@ -351,12 +353,12 @@ export default function Auth() {
           </form>
 
           {view !== 'forgot' && (
-            <div className="mt-6 pt-6 border-t border-slate-200">
-              <p className="text-center text-slate-600 font-medium">
+            <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--app-border)' }}>
+              <p className="text-center font-medium text-sm" style={{ color: 'var(--app-text-secondary)' }}>
                 {view === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
                 <button
                   onClick={() => switchView(view === 'signup' ? 'signin' : 'signup')}
-                  className="gradient-text font-bold hover:opacity-80 transition-opacity"
+                  className="font-bold text-signal"
                 >
                   {view === 'signup' ? 'Sign In' : 'Sign Up'}
                 </button>

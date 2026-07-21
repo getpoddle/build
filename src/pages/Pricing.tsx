@@ -139,32 +139,27 @@ export default function Pricing({ onNavigate }: PricingProps) {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 
         <div className="text-center mb-14">
           <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-4"
-            style={{ background: 'rgba(37,99,235,0.08)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.15)' }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 mb-4"
+            style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            Simple, transparent pricing
+            <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
+            <span className="mono-xs font-semibold uppercase tracking-widest text-signal">Simple, transparent pricing</span>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black text-slate-900 mb-4">
-            Choose your plan
-          </h1>
-          <p className="text-lg text-slate-500 max-w-xl mx-auto leading-relaxed">
+          <h1 className="display-heading text-4xl sm:text-5xl mb-4">Choose your plan</h1>
+          <p className="text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
             Private encrypted workspaces and AI decision intelligence for professionals and teams.
           </p>
         </div>
 
         {error && (
-          <div
-            className="rounded-2xl p-4 mb-6 flex items-center gap-3"
-            style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)' }}
-          >
-            <X className="w-4 h-4 text-red-600 flex-shrink-0" />
-            <p className="text-sm text-red-700 font-medium">{error}</p>
+          <div className="mb-6 p-4 flex items-center gap-3" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)' }}>
+            <X className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--negative)' }} />
+            <p className="text-sm font-medium" style={{ color: 'var(--negative)' }}>{error}</p>
           </div>
         )}
 
@@ -172,26 +167,24 @@ export default function Pricing({ onNavigate }: PricingProps) {
 
           {/* Free */}
           <div
-            className="rounded-2xl p-6 flex flex-col relative"
-            style={{ background: '#fff', border: currentTier === 'free' ? '2px solid rgba(15,23,42,0.15)' : '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }}
+            className="panel p-6 flex flex-col relative"
+            style={currentTier === 'free' ? { borderColor: 'var(--app-text-muted)' } : undefined}
           >
             {currentTier === 'free' && user && (
-              <div className="absolute top-4 right-4 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(15,23,42,0.07)', color: '#475569' }}>
-                Current plan
-              </div>
+              <div className="absolute top-4 right-4 badge badge-slate">Current plan</div>
             )}
             <div className="mb-5">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Free</p>
+              <p className="section-label mb-2">Free</p>
               <div className="flex items-end gap-1 mb-1">
-                <span className="text-4xl font-black text-slate-900">$0</span>
-                <span className="text-slate-400 text-sm mb-1.5">/ month</span>
+                <span className="stat-card-value">$0</span>
+                <span className="text-sm mb-1.5" style={{ color: 'var(--app-text-muted)' }}>/ month</span>
               </div>
-              <p className="text-sm text-slate-500">For individuals getting started</p>
+              <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>For individuals getting started</p>
             </div>
             <ul className="space-y-2.5 flex-1 mb-6">
               {freeBenefits.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--app-text-primary)' }}>
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-positive" />
                   {item}
                 </li>
               ))}
@@ -199,35 +192,32 @@ export default function Pricing({ onNavigate }: PricingProps) {
             <button
               onClick={() => !user && onNavigate('auth')}
               disabled={!!user}
-              className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 border border-slate-200 text-slate-700 disabled:opacity-60 disabled:cursor-default hover:border-slate-300 hover:bg-slate-50 disabled:hover:border-slate-200 disabled:hover:bg-transparent"
+              className="btn-secondary w-full"
             >
               {user ? 'Free plan' : 'Get started free'}
             </button>
           </div>
 
-          {/* Pro Individual */}
+          {/* Pro Individual — featured */}
           <div
-            className="rounded-2xl p-6 flex flex-col relative overflow-hidden"
-            style={{ background: 'linear-gradient(160deg, #1e3a5f 0%, #0f2040 100%)', boxShadow: '0 8px 32px rgba(37,99,235,0.25)' }}
+            className="relative overflow-hidden p-6 flex flex-col"
+            style={{ background: 'var(--ink-50)', border: '1px solid var(--signal)', boxShadow: 'var(--shadow-signal)' }}
           >
-            <div
-              className="absolute top-4 right-4 text-xs font-bold px-2.5 py-1 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', backdropFilter: 'blur(4px)' }}
-            >
+            <div className="absolute top-4 right-4 badge" style={{ background: 'var(--signal)', color: 'var(--ink-900)' }}>
               {currentTier === 'pro' ? 'Current plan' : 'Most popular'}
             </div>
             <div className="mb-5">
-              <p className="text-xs font-bold text-blue-300 uppercase tracking-widest mb-2">Pro Individual</p>
+              <p className="mono-xs font-bold uppercase tracking-widest mb-2 text-signal">Pro Individual</p>
               <div className="flex items-end gap-1 mb-1">
-                <span className="text-4xl font-black text-white">$19</span>
-                <span className="text-blue-300 text-sm mb-1.5">/ month</span>
+                <span className="stat-card-value" style={{ color: 'var(--app-surface-raised)' }}>$19</span>
+                <span className="text-sm mb-1.5" style={{ color: 'var(--app-text-muted)' }}>/ month</span>
               </div>
-              <p className="text-sm text-slate-400">For founders &amp; professionals</p>
+              <p className="text-sm" style={{ color: 'var(--app-text-muted)' }}>For founders &amp; professionals</p>
             </div>
             <ul className="space-y-2.5 flex-1 mb-6">
               {proBenefits.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-slate-200">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#34d399' }} />
+                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--app-text-secondary)' }}>
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-signal" />
                   {item}
                 </li>
               ))}
@@ -236,24 +226,22 @@ export default function Pricing({ onNavigate }: PricingProps) {
               <button
                 onClick={handleBillingPortal}
                 disabled={loadingPortal}
-                className="w-full py-3 rounded-xl text-slate-900 font-bold text-sm bg-white hover:bg-slate-50 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
-                style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}
+                className="btn-primary w-full"
               >
-                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <ExternalLink className="w-4 h-4 text-blue-600" />}
+                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
                 Manage subscription
               </button>
             ) : (
               <button
                 onClick={() => handleCheckout('pro')}
                 disabled={loadingPlan === 'pro' || currentTier !== 'free'}
-                className="w-full py-3 rounded-xl text-slate-900 font-bold text-sm bg-white hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                style={{ boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}
+                className="btn-primary w-full"
               >
                 {loadingPlan === 'pro' ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    <CreditCard className="w-4 h-4 text-blue-600" />
+                    <CreditCard className="w-4 h-4" />
                     {user ? 'Subscribe' : 'Get started'}
                   </>
                 )}
@@ -263,27 +251,24 @@ export default function Pricing({ onNavigate }: PricingProps) {
 
           {/* Poddle Team */}
           <div
-            className="rounded-2xl p-6 flex flex-col relative overflow-hidden"
-            style={{ background: '#fff', border: currentTier === 'team' ? '2px solid #2563eb' : '2px solid rgba(37,99,235,0.2)', boxShadow: '0 4px 16px rgba(37,99,235,0.1)' }}
+            className="panel p-6 flex flex-col relative"
+            style={currentTier === 'team' ? { borderColor: 'var(--signal)' } : undefined}
           >
-            <div
-              className="absolute top-4 right-4 text-xs font-bold px-2.5 py-1 rounded-full"
-              style={{ background: 'rgba(37,99,235,0.1)', color: '#1d4ed8' }}
-            >
+            <div className="absolute top-4 right-4 badge badge-amber">
               {currentTier === 'team' ? 'Current plan' : 'For teams'}
             </div>
             <div className="mb-5">
-              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#2563eb' }}>Poddle Team</p>
+              <p className="mono-xs font-bold uppercase tracking-widest mb-2 text-signal">Poddle Team</p>
               <div className="flex items-end gap-1 mb-1">
-                <span className="text-4xl font-black text-slate-900">$79</span>
-                <span className="text-slate-400 text-sm mb-1.5">/ month</span>
+                <span className="stat-card-value">$79</span>
+                <span className="text-sm mb-1.5" style={{ color: 'var(--app-text-muted)' }}>/ month</span>
               </div>
-              <p className="text-sm text-slate-500">For startups, agencies &amp; product teams</p>
+              <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>For startups, agencies &amp; product teams</p>
             </div>
             <ul className="space-y-2.5 flex-1 mb-6">
               {teamBenefits.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--app-text-primary)' }}>
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-positive" />
                   {item}
                 </li>
               ))}
@@ -292,8 +277,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
               <button
                 onClick={handleBillingPortal}
                 disabled={loadingPortal}
-                className="w-full py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-70 flex items-center justify-center gap-2 text-white hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+                className="btn-primary w-full"
               >
                 {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
                 Manage subscription
@@ -302,8 +286,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
               <button
                 onClick={() => handleCheckout('team')}
                 disabled={loadingPlan === 'team' || currentTier !== 'free'}
-                className="w-full py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-white hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+                className="btn-primary w-full"
               >
                 {loadingPlan === 'team' ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -318,30 +301,23 @@ export default function Pricing({ onNavigate }: PricingProps) {
           </div>
 
           {/* Enterprise */}
-          <div
-            className="rounded-2xl p-6 flex flex-col"
-            style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 8px rgba(15,23,42,0.04)' }}
-          >
+          <div className="panel p-6 flex flex-col">
             <div className="mb-5">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Enterprise</p>
+              <p className="section-label mb-2">Enterprise</p>
               <div className="flex items-end gap-1 mb-1">
-                <span className="text-2xl font-black text-slate-900 leading-tight pt-1">Contact sales</span>
+                <span className="text-2xl font-bold leading-tight pt-1" style={{ color: 'var(--app-text-primary)' }}>Contact sales</span>
               </div>
-              <p className="text-sm text-slate-500 mt-1">For large teams &amp; organizations</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--app-text-secondary)' }}>For large teams &amp; organizations</p>
             </div>
             <ul className="space-y-2.5 flex-1 mb-6">
               {enterpriseBenefits.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--app-text-primary)' }}>
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-positive" />
                   {item}
                 </li>
               ))}
             </ul>
-            <button
-              onClick={handleEnterprise}
-              className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 text-white hover:-translate-y-0.5"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
-            >
+            <button onClick={handleEnterprise} className="btn-secondary w-full">
               <Mail className="w-4 h-4" />
               Contact sales
             </button>
@@ -350,7 +326,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
 
         {/* Feature highlights */}
         <div className="mb-16">
-          <h2 className="text-2xl font-black text-slate-900 mb-8 text-center">Everything you get from day one</h2>
+          <h2 className="display-heading text-2xl mb-8 text-center">Everything you get from day one</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
               { icon: Lock, title: 'Private Workspaces', desc: 'Encrypted, invite-only spaces for founders and teams to structure decisions with AI — never publicly discoverable.', badge: null },
@@ -360,27 +336,15 @@ export default function Pricing({ onNavigate }: PricingProps) {
               { icon: Shield, title: 'Workspace Memory', desc: 'Every insight, decision, and War Room session builds a persistent memory layer that makes future AI analysis sharper over time.', badge: null },
               { icon: Zap, title: 'PDF Export', desc: 'Export your workspace decisions, War Room sessions, and AI synthesis into clean, shareable PDFs for stakeholders.', badge: null },
             ].map(({ icon: Icon, title, desc, badge }) => (
-              <div
-                key={title}
-                className="p-5 rounded-2xl relative"
-                style={{ background: '#fff', border: `1px solid ${badge ? 'rgba(37,99,235,0.15)' : 'rgba(15,23,42,0.06)'}` }}
-              >
+              <div key={title} className="panel p-5 relative">
                 {badge && (
-                  <span
-                    className="absolute top-4 right-4 text-xs font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: 'rgba(37,99,235,0.08)', color: '#1d4ed8' }}
-                  >
-                    {badge}
-                  </span>
+                  <span className="absolute top-4 right-4 badge badge-amber">{badge}</span>
                 )}
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
-                  style={{ background: 'rgba(37,99,235,0.08)' }}
-                >
-                  <Icon style={{ width: '1.125rem', height: '1.125rem', color: '#2563eb' }} />
+                <div className="w-9 h-9 flex items-center justify-center mb-3" style={{ background: 'var(--signal-bg)' }}>
+                  <Icon className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 mb-1.5">{title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                <h3 className="text-sm font-semibold mb-1.5" style={{ color: 'var(--app-text-primary)' }}>{title}</h3>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>{desc}</p>
               </div>
             ))}
           </div>
@@ -393,60 +357,38 @@ export default function Pricing({ onNavigate }: PricingProps) {
             { q: 'What is Poddle Team for?', a: "Fast-moving startups, small agencies, and product teams who need to collaborate with AI agents on proprietary ideas. Up to 10 members, full War Room access, and team-wide AI synthesis." },
             { q: 'What happens to my data if I cancel?', a: 'Your workspace data is retained for 30 days after cancellation. You can export your decisions and War Room intelligence before downgrading. Nothing is deleted without notice.' },
           ].map(({ q, a }) => (
-            <div key={q} className="p-5 rounded-2xl" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.06)' }}>
-              <h3 className="text-sm font-bold text-slate-900 mb-2">{q}</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">{a}</p>
+            <div key={q} className="panel p-5">
+              <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--app-text-primary)' }}>{q}</h3>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>{a}</p>
             </div>
           ))}
         </div>
 
         {/* CTA */}
-        <div
-          className="rounded-3xl overflow-hidden text-center"
-          style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0f2040 100%)' }}
-        >
-          <div className="px-8 py-12">
-            <div
-              className="w-12 h-12 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.12)' }}
-            >
-              <Lock className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-2xl font-black text-white mb-3">Ready to sharpen your decisions?</h2>
-            <p className="text-slate-300 text-sm mb-7 max-w-md mx-auto">
-              Get private encrypted workspaces, AI War Room intelligence, and a team that thinks faster — starting today.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              {currentTier !== 'free' ? (
-                <button
-                  onClick={handleBillingPortal}
-                  disabled={loadingPortal}
-                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-slate-900 bg-white text-sm hover:-translate-y-0.5 transition-transform disabled:opacity-70"
-                  style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
-                >
-                  {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <ExternalLink className="w-4 h-4 text-blue-600" />}
-                  Manage subscription
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleCheckout('pro')}
-                  disabled={loadingPlan === 'pro'}
-                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-slate-900 bg-white text-sm hover:-translate-y-0.5 transition-transform disabled:opacity-70"
-                  style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.25)' }}
-                >
-                  {loadingPlan === 'pro' ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <CreditCard className="w-4 h-4 text-blue-600" />}
-                  Get Pro — $19/mo
-                </button>
-              )}
-              <button
-                onClick={handleEnterprise}
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-white text-sm hover:-translate-y-0.5 transition-transform"
-                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}
-              >
-                <Mail className="w-4 h-4" />
-                Contact sales
+        <div className="panel p-8 sm:p-12 text-center" style={{ background: 'var(--ink-50)' }}>
+          <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
+            <Lock className="w-6 h-6" style={{ color: 'var(--signal)' }} />
+          </div>
+          <h2 className="display-heading text-2xl mb-3" style={{ color: 'var(--app-surface-raised)' }}>Ready to sharpen your decisions?</h2>
+          <p className="text-sm mb-7 max-w-md mx-auto" style={{ color: 'var(--app-text-muted)' }}>
+            Get private encrypted workspaces, AI War Room intelligence, and a team that thinks faster — starting today.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            {currentTier !== 'free' ? (
+              <button onClick={handleBillingPortal} disabled={loadingPortal} className="btn-primary">
+                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+                Manage subscription
               </button>
-            </div>
+            ) : (
+              <button onClick={() => handleCheckout('pro')} disabled={loadingPlan === 'pro'} className="btn-primary">
+                {loadingPlan === 'pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                Get Pro — $19/mo
+              </button>
+            )}
+            <button onClick={handleEnterprise} className="btn-secondary" style={{ background: 'transparent', color: 'var(--app-surface-raised)', borderColor: 'var(--app-text-muted)' }}>
+              <Mail className="w-4 h-4" />
+              Contact sales
+            </button>
           </div>
         </div>
 

@@ -70,51 +70,48 @@ export default function PaymentSuccess({ onNavigate }: PaymentSuccessProps) {
   const isEnterprise = plan === 'enterprise';
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--app-bg)' }}>
       <div className="max-w-md w-full text-center">
 
         {/* Success icon */}
         <div className="relative inline-flex mb-6">
           <div
-            className="w-20 h-20 rounded-3xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 12px 40px rgba(37,99,235,0.35)' }}
+            className="w-20 h-20 flex items-center justify-center"
+            style={{ background: 'var(--signal)', boxShadow: 'var(--shadow-signal)' }}
           >
-            <CheckCircle className="w-10 h-10 text-white" />
+            <CheckCircle className="w-10 h-10" style={{ color: 'var(--ink-900)' }} />
           </div>
           <div
             className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
-            style={{ background: '#16a34a', boxShadow: '0 2px 8px rgba(22,163,74,0.4)' }}
+            style={{ background: 'var(--positive)' }}
           >
             <Sparkles className="w-3 h-3 text-white" />
           </div>
         </div>
 
-        <h1 className="text-3xl font-black text-slate-900 mb-2">
+        <h1 className="display-heading text-3xl mb-2">
           Welcome to {isEnterprise ? 'Enterprise' : 'Pro'}!
         </h1>
 
         {workspaceStatus === 'polling' ? (
           <div className="mb-8">
-            <p className="text-slate-500 text-sm mb-3">
+            <p className="text-sm mb-3" style={{ color: 'var(--app-text-secondary)' }}>
               Your subscription is confirmed. Setting up your workspace...
             </p>
-            <div className="flex items-center justify-center gap-2 text-blue-600">
+            <div className="flex items-center justify-center gap-2 text-signal">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span className="text-sm font-medium">Opening workspace</span>
             </div>
           </div>
         ) : (
-          <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+          <p className="text-sm mb-8 leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
             Your subscription is active. You can now create private encrypted workspaces and collaborate with AI agents on your proprietary ideas.
           </p>
         )}
 
         {/* What's unlocked */}
-        <div
-          className="rounded-2xl p-5 mb-6 text-left"
-          style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
-        >
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">What's unlocked</p>
+        <div className="panel p-5 mb-6 text-left">
+          <p className="section-label mb-3">What's unlocked</p>
           <ul className="space-y-2.5">
             {[
               { icon: Lock, text: 'Create private encrypted workspaces' },
@@ -122,8 +119,8 @@ export default function PaymentSuccess({ onNavigate }: PaymentSuccessProps) {
               { icon: CheckCircle, text: isEnterprise ? 'Up to 25 workspace members' : 'Invite up to 3 team members' },
               ...(isEnterprise ? [{ icon: CheckCircle, text: 'Priority support & SLA guarantee' }] : []),
             ].map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-2.5 text-sm text-slate-700">
-                <Icon className="w-4 h-4 flex-shrink-0" style={{ color: '#2563eb' }} />
+              <li key={text} className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--app-text-primary)' }}>
+                <Icon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--signal)' }} />
                 {text}
               </li>
             ))}
@@ -134,8 +131,8 @@ export default function PaymentSuccess({ onNavigate }: PaymentSuccessProps) {
           {workspaceStatus === 'timeout' && (
             <button
               onClick={() => onNavigate('workspaces', true)}
-              className="w-full py-3.5 rounded-2xl font-bold text-white text-sm flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
+              className="btn-primary w-full"
+              style={{ padding: '0.875rem 1.25rem' }}
             >
               <Lock className="w-4 h-4" />
               Go to your workspace
@@ -144,7 +141,8 @@ export default function PaymentSuccess({ onNavigate }: PaymentSuccessProps) {
           )}
           <button
             onClick={() => onNavigate('home')}
-            className="w-full py-3 rounded-2xl text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
+            className="btn-secondary w-full"
+            style={{ padding: '0.75rem 1.25rem' }}
           >
             Back to home
           </button>

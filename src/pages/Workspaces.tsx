@@ -13,29 +13,7 @@ interface WorkspacesProps {
   onNavigate: (page: string, workspaceId?: string) => void;
 }
 
-const PLAN_BADGE_STYLE: Record<string, { background: string; color: string }> = {
-  pro: { background: 'rgba(37,99,235,0.08)', color: '#2563eb' },
-  enterprise: { background: 'rgba(245,158,11,0.1)', color: '#b45309' },
-};
-
-const STATUS_STYLE: Record<string, { background: string; color: string }> = {
-  active: { background: 'rgba(22,163,74,0.1)', color: '#16a34a' },
-  trialing: { background: 'rgba(37,99,235,0.08)', color: '#2563eb' },
-  cancelled: { background: 'rgba(239,68,68,0.08)', color: '#dc2626' },
-  past_due: { background: 'rgba(245,158,11,0.1)', color: '#b45309' },
-  inactive: { background: 'rgba(239,68,68,0.08)', color: '#dc2626' },
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  active: 'Active',
-  trialing: 'Trial',
-  cancelled: 'Cancelled',
-  past_due: 'Past due',
-  inactive: 'Expired',
-};
-
 const ROLE_ICONS = { owner: Crown, admin: Shield, member: User };
-const ROLE_COLORS = { owner: '#f59e0b', admin: '#2563eb', member: '#64748b' };
 
 function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null;
@@ -78,10 +56,10 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const ownerCount = appWorkspaces.filter(w => w.role === 'owner').length;
 
   const STATS = [
-    { label: 'Workspaces', value: String(appWorkspaces.length || 0), sub: `${activeCount} active`, icon: Lock, color: '#2563eb', bg: 'rgba(37,99,235,0.08)' },
-    { label: 'Total seats', value: String(totalSeats), sub: 'Across all plans', icon: Users, color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
-    { label: 'You own', value: String(ownerCount), sub: 'Owner role', icon: Crown, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-    { label: 'Slack sessions', value: String(slackWorkspaces.length), sub: 'From /poddle', icon: MessageSquare, color: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
+    { label: 'Workspaces', value: String(appWorkspaces.length || 0), sub: `${activeCount} active`, icon: Lock },
+    { label: 'Total seats', value: String(totalSeats), sub: 'Across all plans', icon: Users },
+    { label: 'You own', value: String(ownerCount), sub: 'Owner role', icon: Crown },
+    { label: 'Slack sessions', value: String(slackWorkspaces.length), sub: 'From /poddle', icon: MessageSquare },
   ];
 
   function formatDate(dateStr: string) {
@@ -89,7 +67,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
       <div
         className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 max-w-[1400px] mx-auto"
         style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
@@ -97,26 +75,23 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
         {/* Page header */}
         <div className="mb-6 lg:mb-10">
-          <h1 className="text-xl lg:text-2xl xl:text-3xl font-bold text-slate-900 mb-1 tracking-tight">Private Workspaces</h1>
-          <p className="text-slate-500 text-sm lg:text-base">Encrypted spaces where your team debates proprietary ideas with AI agents.</p>
+          <p className="section-label mb-2">Private Spaces</p>
+          <h1 className="display-heading text-xl lg:text-2xl xl:text-3xl">Private Workspaces</h1>
+          <p className="text-sm lg:text-base mt-1" style={{ color: 'var(--app-text-secondary)' }}>Encrypted spaces where your team debates proprietary ideas with AI agents.</p>
         </div>
 
         {/* Stats row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6 lg:mb-10">
-          {STATS.map(({ label, value, sub, icon: Icon, color, bg }) => (
-            <div
-              key={label}
-              className="bg-white rounded-2xl p-4 lg:p-5"
-              style={{ border: '1px solid rgba(15,23,42,0.07)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
-            >
+          {STATS.map(({ label, value, sub, icon: Icon }) => (
+            <div key={label} className="stat-card">
               <div className="flex items-center justify-between mb-3 lg:mb-4">
-                <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl flex items-center justify-center" style={{ background: bg }}>
-                  <Icon style={{ width: '1rem', height: '1rem', color }} />
+                <div className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center" style={{ background: 'var(--signal-bg)' }}>
+                  <Icon className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                 </div>
               </div>
-              <p className="text-xl lg:text-2xl xl:text-3xl font-bold text-slate-900 mb-0.5">{value}</p>
-              <p className="text-xs lg:text-sm font-semibold text-slate-600 leading-tight">{label}</p>
-              <p className="text-[11px] lg:text-xs text-slate-500 mt-0.5 hidden sm:block">{sub}</p>
+              <p className="stat-card-value">{value}</p>
+              <p className="stat-card-label">{label}</p>
+              <p className="text-[11px] lg:text-xs mt-0.5 hidden sm:block" style={{ color: 'var(--app-text-muted)' }}>{sub}</p>
             </div>
           ))}
         </div>
@@ -127,47 +102,39 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
             {/* Hero banner */}
             <div
-              className="relative overflow-hidden rounded-2xl p-6 lg:p-10"
+              className="relative overflow-hidden p-6 lg:p-10"
               style={{
-                background: 'linear-gradient(135deg,#0f172a 0%,#1e3a5f 55%,#1e40af 100%)',
-                boxShadow: '0 8px 24px rgba(15,23,42,0.18)',
+                background: 'var(--ink-50)',
+                border: '1px solid var(--app-border)',
+                boxShadow: 'var(--shadow-lg)',
               }}
             >
-              <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(6,182,212,0.15) 0%,transparent 70%)' }} />
-              <div className="absolute -bottom-8 -left-8 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(37,99,235,0.1) 0%,transparent 70%)' }} />
-              <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+              <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(184,134,11,0.08) 0%,transparent 70%)' }} />
+              <div className="absolute -bottom-8 -left-8 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(184,134,11,0.05) 0%,transparent 70%)' }} />
 
               <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
                 <div className="flex-1">
                   <div
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-4"
-                    style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.12)', color: '#93c5fd' }}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 mb-4"
+                    style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Encrypted Team Spaces
+                    <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
+                    <span className="mono-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--signal)' }}>Encrypted Team Spaces</span>
                   </div>
-                  <h2 className="text-lg lg:text-2xl xl:text-3xl font-bold text-white mb-3 leading-snug">
+                  <h2 className="display-heading text-lg lg:text-2xl xl:text-3xl mb-3">
                     Where your team's hardest decisions get debated.
                   </h2>
-                  <p className="text-sm lg:text-base leading-relaxed max-w-lg" style={{ color: 'rgba(203,213,225,0.85)' }}>
+                  <p className="text-sm lg:text-base leading-relaxed max-w-lg" style={{ color: 'var(--app-text-secondary)' }}>
                     Spin up a private workspace, invite your team, and let AI agents stress-test your ideas — risks, consensus, and action items in one place.
                   </p>
                 </div>
 
                 <div className="flex flex-row sm:flex-col gap-3 sm:flex-shrink-0">
-                  <button
-                    onClick={handleCreateClick}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 whitespace-nowrap"
-                    style={{ background: '#2563eb', color: '#fff', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
-                  >
+                  <button onClick={handleCreateClick} className="btn-primary flex-1 sm:flex-none">
                     {!isPro && !hasBetaAccess && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                     {!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade' : 'New Workspace'}
                   </button>
-                  <button
-                    onClick={() => onNavigate('pricing')}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 whitespace-nowrap"
-                    style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.12)' }}
-                  >
+                  <button onClick={() => onNavigate('pricing')} className="btn-secondary flex-1 sm:flex-none">
                     View Pricing
                   </button>
                 </div>
@@ -177,28 +144,21 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             {/* View toggle + actions row */}
             {!isLoading && appWorkspaces.length > 0 && (
               <div className="flex items-center justify-between gap-3">
-                <div
-                  className="flex items-center rounded-xl p-1"
-                  style={{ background: 'rgba(15,23,42,0.06)', border: '1px solid rgba(15,23,42,0.08)' }}
-                >
+                <div className="flex items-center p-1" style={{ background: 'var(--app-border-subtle)', border: '1px solid var(--app-border)' }}>
                   <button
                     onClick={() => setView('list')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150"
-                    style={view === 'list'
-                      ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }
-                      : { color: '#64748b' }}
+                    className="nav-pill"
+                    style={view === 'list' ? { background: 'var(--signal)', color: 'var(--ink-900)' } : { color: 'var(--app-text-muted)' }}
                   >
-                    <LayoutList className="w-3.5 h-3.5" />
+                    <LayoutList className="w-3.5 h-3.5 inline-block sm:mr-1.5" />
                     <span className="hidden sm:inline">List</span>
                   </button>
                   <button
                     onClick={() => setView('map')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150"
-                    style={view === 'map'
-                      ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 3px rgba(15,23,42,0.12)' }
-                      : { color: '#64748b' }}
+                    className="nav-pill"
+                    style={view === 'map' ? { background: 'var(--signal)', color: 'var(--ink-900)' } : { color: 'var(--app-text-muted)' }}
                   >
-                    <Map className="w-3.5 h-3.5" />
+                    <Map className="w-3.5 h-3.5 inline-block sm:mr-1.5" />
                     <span className="hidden sm:inline">Map</span>
                   </button>
                 </div>
@@ -208,19 +168,15 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             {/* Monthly workspace status banner */}
             {!isLoading && !isPro && !hasBetaAccess && monthlyLimitReached && (
               <div
-                className="flex items-center gap-3 px-5 py-3.5 rounded-2xl"
-                style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)' }}
+                className="flex items-center gap-3 px-5 py-3.5"
+                style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
               >
-                <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#2563eb' }} />
-                <p className="text-sm text-slate-700 flex-1">
-                  <span className="font-bold" style={{ color: '#2563eb' }}>Free workspace active this month</span>
+                <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--signal)' }} />
+                <p className="text-sm flex-1" style={{ color: 'var(--app-text-secondary)' }}>
+                  <span className="font-semibold text-signal">Free workspace active this month</span>
                   {' '}— expires {expiresOn}. New slot opens {resetsOn}.
                 </p>
-                <button
-                  onClick={() => setShowUpgrade(true)}
-                  className="text-xs font-bold px-3 py-1.5 rounded-xl text-white flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-                >
+                <button onClick={() => setShowUpgrade(true)} className="btn-primary flex-shrink-0" style={{ padding: '0.25rem 0.75rem', fontSize: '0.6875rem' }}>
                   Upgrade
                 </button>
               </div>
@@ -228,18 +184,12 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
             {/* Empty state */}
             {!isLoading && appWorkspaces.length === 0 && (
-              <div
-                className="rounded-2xl p-8 lg:p-16 text-center"
-                style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}
-              >
-                <div
-                  className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-                >
-                  <Lock className="w-8 h-8 text-white" />
+              <div className="panel p-8 lg:p-16 text-center">
+                <div className="w-16 h-16 flex items-center justify-center mx-auto mb-5" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
+                  <Lock className="w-8 h-8" style={{ color: 'var(--signal)' }} />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 mb-2">No private workspaces yet</h2>
-                <p className="text-slate-500 text-sm max-w-sm mx-auto mb-8 leading-relaxed">
+                <h2 className="display-heading text-xl mb-2">No private workspaces yet</h2>
+                <p className="text-sm max-w-sm mx-auto mb-8 leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
                   1 free workspace every month — no credit card needed. Full Pro features until the end of the month, including encrypted team spaces and AI War Room.
                 </p>
                 <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto mb-8">
@@ -249,26 +199,15 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                     { icon: Brain, label: 'AI agent debates' },
                   ].map(({ icon: Icon, label }) => (
                     <div key={label} className="flex flex-col items-center gap-2">
-                      <div
-                        className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                        style={{ background: 'rgba(37,99,235,0.08)' }}
-                      >
-                        <Icon className="w-5 h-5" style={{ color: '#2563eb' }} />
+                      <div className="w-10 h-10 flex items-center justify-center" style={{ background: 'var(--signal-bg)' }}>
+                        <Icon className="w-5 h-5" style={{ color: 'var(--signal)' }} />
                       </div>
-                      <span className="text-xs text-slate-500 text-center leading-tight">{label}</span>
+                      <span className="text-xs text-center leading-tight" style={{ color: 'var(--app-text-muted)' }}>{label}</span>
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={handleCreateClick}
-                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
-                >
-                  {trialExhausted ? (
-                    <><Sparkles className="w-4 h-4" /> Upgrade for Unlimited Workspaces</>
-                  ) : (
-                    <><Lock className="w-4 h-4" /> Create Your Free Workspace</>
-                  )}
+                <button onClick={handleCreateClick} className="btn-primary">
+                  {trialExhausted ? <><Sparkles className="w-4 h-4" /> Upgrade for Unlimited Workspaces</> : <><Lock className="w-4 h-4" /> Create Your Free Workspace</>}
                 </button>
               </div>
             )}
@@ -276,9 +215,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             {/* Loading */}
             {isLoading && (
               <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background: 'rgba(15,23,42,0.05)' }} />
-                ))}
+                {[1, 2, 3].map(i => <div key={i} className="skeleton h-20" />)}
               </div>
             )}
 
@@ -289,14 +226,11 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
             {/* Workspace list — desktop table-style */}
             {!isLoading && appWorkspaces.length > 0 && view === 'list' && (
-              <div
-                className="rounded-2xl overflow-hidden"
-                style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
-              >
+              <div className="panel overflow-hidden">
                 {/* Table header — hidden on mobile */}
                 <div
-                  className="hidden xl:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 px-6 py-3 text-xs font-bold uppercase tracking-widest text-slate-400"
-                  style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', background: 'rgba(248,250,252,0.8)' }}
+                  className="hidden xl:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 px-6 py-3 mono-xs uppercase tracking-widest"
+                  style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface-raised)', color: 'var(--app-text-muted)' }}
                 >
                   <span>Workspace</span>
                   <span className="text-center w-20">Plan</span>
@@ -306,12 +240,12 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                 </div>
 
                 {appWorkspaces.map((ws, idx) => {
-                  const planStyle = PLAN_BADGE_STYLE[ws.plan] || PLAN_BADGE_STYLE.pro;
-                  const statusStyle = STATUS_STYLE[ws.subscription_status] || STATUS_STYLE.inactive;
-                  const statusLabel = STATUS_LABEL[ws.subscription_status] || ws.subscription_status;
+                  const statusLabel = ws.subscription_status === 'active' ? 'Active' : ws.subscription_status === 'trialing' ? 'Trial' : ws.subscription_status === 'cancelled' ? 'Cancelled' : ws.subscription_status === 'past_due' ? 'Past due' : 'Expired';
+                  const statusColor = ws.subscription_status === 'active' ? 'var(--positive)' : ws.subscription_status === 'trialing' ? 'var(--signal)' : ws.subscription_status === 'cancelled' || ws.subscription_status === 'inactive' ? 'var(--negative)' : 'var(--caution)';
+                  const statusBg = ws.subscription_status === 'active' ? 'var(--positive-bg)' : ws.subscription_status === 'trialing' ? 'var(--signal-bg)' : ws.subscription_status === 'cancelled' || ws.subscription_status === 'inactive' ? 'var(--negative-bg)' : 'rgba(245,158,11,0.08)';
                   const role = ws.role as 'owner' | 'admin' | 'member';
                   const RoleIcon = ROLE_ICONS[role] || User;
-                  const roleColor = ROLE_COLORS[role] || '#64748b';
+                  const roleColor = role === 'owner' ? 'var(--signal)' : role === 'admin' ? 'var(--agent-fin)' : 'var(--app-text-muted)';
                   const isExpired = ws.subscription_status === 'inactive';
                   const isTrial = ws.subscription_status === 'trialing' && !ws.stripe_customer_id;
                   const daysLeft = isTrial ? daysUntil(ws.trial_workspace_expires_at) : null;
@@ -321,51 +255,50 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                   return (
                     <div
                       key={ws.id}
-                      className="group cursor-pointer transition-all duration-150 hover:bg-slate-50"
-                      style={!isLast ? { borderBottom: '1px solid rgba(15,23,42,0.06)' } : undefined}
+                      className="group cursor-pointer transition-colors duration-150"
+                      style={!isLast ? { borderBottom: '1px solid var(--app-border)' } : undefined}
                       onClick={() => onNavigate('workspace-hub', ws.id)}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--app-border-subtle)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       {/* Alert strip */}
                       {(expiryWarning && !isExpired) && (
                         <div
                           className="flex items-center gap-2 px-6 py-2 text-xs font-semibold"
-                          style={{ background: 'rgba(245,158,11,0.07)', borderBottom: '1px solid rgba(245,158,11,0.12)', color: '#b45309' }}
+                          style={{ background: 'var(--signal-bg)', borderBottom: '1px solid var(--signal)' }}
                         >
-                          <AlertTriangle className="w-3.5 h-3.5" />
-                          Trial expires in {daysLeft} day{daysLeft === 1 ? '' : 's'} — upgrade to keep this workspace active
+                          <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
+                          <span style={{ color: 'var(--caution)' }}>Trial expires in {daysLeft} day{daysLeft === 1 ? '' : 's'} — upgrade to keep this workspace active</span>
                         </div>
                       )}
                       {isExpired && (
                         <div
                           className="flex items-center gap-2 px-6 py-2 text-xs font-semibold"
-                          style={{ background: 'rgba(239,68,68,0.05)', borderBottom: '1px solid rgba(239,68,68,0.1)', color: '#dc2626' }}
+                          style={{ background: 'var(--negative-bg)', borderBottom: '1px solid var(--negative)' }}
                         >
-                          <AlertTriangle className="w-3.5 h-3.5" />
-                          Expired — this workspace is read-only. Upgrade to restore full access.
+                          <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--negative)' }} />
+                          <span style={{ color: 'var(--negative)' }}>Expired — this workspace is read-only. Upgrade to restore full access.</span>
                         </div>
                       )}
 
                       {/* Mobile layout */}
                       <div className="xl:hidden p-5 flex items-center gap-4">
-                        <div
-                          className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-                          style={{ background: isExpired ? 'rgba(100,116,139,0.1)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-                        >
-                          <Lock className={`w-5 h-5 ${isExpired ? 'text-slate-400' : 'text-white'}`} />
+                        <div className="w-11 h-11 flex items-center justify-center flex-shrink-0" style={{ background: isExpired ? 'var(--app-border)' : 'var(--ink-50)', border: '1px solid var(--app-border)' }}>
+                          <Lock className="w-5 h-5" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--signal)' }} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                            <h3 className={`text-sm font-bold truncate ${isExpired ? 'text-slate-400' : 'text-slate-900'}`}>{ws.name}</h3>
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={planStyle}>{ws.plan}</span>
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={statusStyle}>{statusLabel}</span>
+                            <h3 className="text-sm font-semibold truncate" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--app-text-primary)' }}>{ws.name}</h3>
+                            <span className="badge badge-amber capitalize">{ws.plan}</span>
+                            <span className="badge" style={{ background: statusBg, color: statusColor, borderColor: statusColor }}>{statusLabel}</span>
                           </div>
-                          {ws.description && <p className="text-xs text-slate-500 truncate">{ws.description}</p>}
+                          {ws.description && <p className="text-xs truncate" style={{ color: 'var(--app-text-muted)' }}>{ws.description}</p>}
                           <div className="flex items-center gap-3 mt-1">
                             <div className="flex items-center gap-1">
                               <RoleIcon className="w-3 h-3" style={{ color: roleColor }} />
                               <span className="text-xs capitalize" style={{ color: roleColor }}>{role}</span>
                             </div>
-                            <div className="flex items-center gap-1 text-slate-400">
+                            <div className="flex items-center gap-1" style={{ color: 'var(--app-text-muted)' }}>
                               <Users className="w-3 h-3" />
                               <span className="text-xs">{ws.seats} seats</span>
                             </div>
@@ -375,12 +308,12 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                           {(role === 'owner' || role === 'admin') && (
                             <button
                               onClick={e => { e.stopPropagation(); onNavigate('workspace-settings', ws.id); }}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              className="btn-ghost p-2"
                             >
                               <Settings className="w-4 h-4" />
                             </button>
                           )}
-                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                          <ChevronRight className="w-4 h-4" style={{ color: 'var(--app-text-muted)' }} />
                         </div>
                       </div>
 
@@ -388,34 +321,31 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                       <div className="hidden xl:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 items-center px-6 py-4">
                         {/* Name + description */}
                         <div className="flex items-center gap-4 min-w-0">
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={{ background: isExpired ? 'rgba(100,116,139,0.1)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-                          >
-                            <Lock className={`w-4.5 h-4.5 ${isExpired ? 'text-slate-400' : 'text-white'}`} style={{ width: '1.125rem', height: '1.125rem' }} />
+                          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: isExpired ? 'var(--app-border)' : 'var(--ink-50)', border: '1px solid var(--app-border)' }}>
+                            <Lock className="w-4 h-4" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--signal)' }} />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className={`text-sm font-bold truncate ${isExpired ? 'text-slate-400' : 'text-slate-900'}`}>{ws.name}</p>
+                              <p className="text-sm font-semibold truncate" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--app-text-primary)' }}>{ws.name}</p>
                               {isTrial && daysLeft !== null && !expiryWarning && (
-                                <span className="text-xs text-slate-400 flex-shrink-0">{daysLeft}d left</span>
+                                <span className="mono-xs" style={{ color: 'var(--app-text-muted)' }}>{daysLeft}d left</span>
                               )}
                             </div>
                             {ws.description
-                              ? <p className="text-xs text-slate-400 truncate mt-0.5">{ws.description}</p>
-                              : <p className="text-xs text-slate-300 mt-0.5">No description</p>
+                              ? <p className="text-xs truncate mt-0.5" style={{ color: 'var(--app-text-muted)' }}>{ws.description}</p>
+                              : <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-muted)', opacity: 0.5 }}>No description</p>
                             }
                           </div>
                         </div>
 
                         {/* Plan */}
                         <div className="w-20 flex justify-center">
-                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full capitalize" style={planStyle}>{ws.plan}</span>
+                          <span className="badge badge-amber capitalize">{ws.plan}</span>
                         </div>
 
                         {/* Status */}
                         <div className="w-20 flex justify-center">
-                          <span className="text-xs font-medium px-2.5 py-1 rounded-full" style={statusStyle}>{statusLabel}</span>
+                          <span className="badge" style={{ background: statusBg, color: statusColor, borderColor: statusColor }}>{statusLabel}</span>
                         </div>
 
                         {/* Role */}
@@ -431,14 +361,14 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                           {(role === 'owner' || role === 'admin') && (
                             <button
                               onClick={e => { e.stopPropagation(); onNavigate('workspace-settings', ws.id); }}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              className="btn-ghost p-2"
                               title="Settings"
                             >
                               <Settings className="w-3.5 h-3.5" />
                             </button>
                           )}
                           <div className="w-8 h-8 flex items-center justify-center">
-                            <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all" />
+                            <ArrowRight className="w-3.5 h-3.5" style={{ color: 'var(--app-text-muted)' }} />
                           </div>
                         </div>
                       </div>
@@ -450,25 +380,15 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
             {/* Upgrade banner when monthly limit reached */}
             {!isLoading && !isPro && monthlyLimitReached && appWorkspaces.length > 0 && view === 'list' && (
-              <div
-                className="rounded-2xl p-5 flex items-center gap-4"
-                style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdfa)', border: '1px solid rgba(37,99,235,0.15)' }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)' }}
-                >
-                  <Sparkles className="w-5 h-5 text-white" />
+              <div className="panel p-5 flex items-center gap-4" style={{ background: 'var(--signal-bg)' }}>
+                <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--signal)' }}>
+                  <Sparkles className="w-5 h-5" style={{ color: 'var(--ink-900)' }} />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-slate-900">Upgrade for unlimited workspaces</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Your free workspace resets {resetsOn}, or go Pro now for unlimited.</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>Upgrade for unlimited workspaces</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>Your free workspace resets {resetsOn}, or go Pro now for unlimited.</p>
                 </div>
-                <button
-                  onClick={() => setShowUpgrade(true)}
-                  className="px-4 py-2 rounded-xl text-sm font-bold text-white flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-                >
+                <button onClick={() => setShowUpgrade(true)} className="btn-primary flex-shrink-0">
                   Upgrade
                 </button>
               </div>
@@ -478,33 +398,24 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             {!isLoading && view === 'list' && (
               <div>
                 <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(74,21,75,0.08)' }}
-                  >
-                    <MessageSquare className="w-4 h-4" style={{ color: '#4a154b' }} />
+                  <div className="w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--app-border-subtle)' }}>
+                    <MessageSquare className="w-4 h-4" style={{ color: 'var(--app-text-muted)' }} />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">Slack Sessions</h2>
-                    <p className="text-xs text-slate-500">War Rooms generated from <code className="font-mono">/poddle</code> commands — each question gets its own isolated workspace.</p>
+                    <p className="section-label">Slack Sessions</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-muted)' }}>War Rooms generated from <code className="mono-xs">/poddle</code> commands — each question gets its own isolated workspace.</p>
                   </div>
                 </div>
 
                 {slackWorkspaces.length === 0 ? (
-                  <div
-                    className="rounded-2xl p-6 flex items-center gap-4"
-                    style={{ background: '#fff', border: '1px dashed rgba(15,23,42,0.12)' }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'rgba(74,21,75,0.07)' }}
-                    >
-                      <MessageSquare className="w-5 h-5" style={{ color: '#4a154b' }} />
+                  <div className="panel p-6 flex items-center gap-4" style={{ borderStyle: 'dashed' }}>
+                    <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--app-border-subtle)' }}>
+                      <MessageSquare className="w-5 h-5" style={{ color: 'var(--app-text-muted)' }} />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-700">No Slack sessions yet</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Use <code className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">/poddle &lt;your question&gt;</code> in Slack to generate a fresh War Room for any decision.
+                      <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>No Slack sessions yet</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
+                        Use <code className="mono-xs" style={{ background: 'var(--app-border-subtle)', padding: '0.125rem 0.375rem' }}>/poddle &lt;your question&gt;</code> in Slack to generate a fresh War Room for any decision.
                       </p>
                     </div>
                   </div>
@@ -516,41 +427,28 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                       return (
                         <div
                           key={ws.id}
-                          className="group flex items-center gap-4 px-5 py-4 rounded-2xl cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
-                          style={{
-                            background: '#fff',
-                            border: '1px solid rgba(15,23,42,0.08)',
-                            boxShadow: '0 1px 4px rgba(15,23,42,0.04)',
-                            opacity: isExpired ? 0.65 : 1,
-                          }}
+                          className="group flex items-center gap-4 px-5 py-4 panel cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
+                          style={{ opacity: isExpired ? 0.65 : 1 }}
                           onClick={() => onNavigate('workspace-hub', ws.id)}
                         >
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={{ background: isExpired ? 'rgba(100,116,139,0.1)' : 'rgba(74,21,75,0.1)' }}
-                          >
-                            <MessageSquare className="w-4 h-4" style={{ color: isExpired ? '#94a3b8' : '#4a154b' }} />
+                          <div className="w-9 h-9 flex items-center justify-center flex-shrink-0" style={{ background: isExpired ? 'var(--app-border)' : 'var(--app-border-subtle)' }}>
+                            <MessageSquare className="w-4 h-4" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--app-text-secondary)' }} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-semibold truncate ${isExpired ? 'text-slate-400' : 'text-slate-800'}`}>{ws.name}</p>
+                            <p className="text-sm font-semibold truncate" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--app-text-primary)' }}>{ws.name}</p>
                             <div className="flex items-center gap-3 mt-0.5">
-                              <span className="text-xs text-slate-400">{formatDate(ws.created_at)}</span>
+                              <span className="mono-xs" style={{ color: 'var(--app-text-muted)' }}>{formatDate(ws.created_at)}</span>
                               {daysLeft !== null && daysLeft > 0 && (
-                                <span className="text-xs text-slate-400">· expires in {daysLeft}d</span>
+                                <span className="mono-xs" style={{ color: 'var(--app-text-muted)' }}>· expires in {daysLeft}d</span>
                               )}
                               {isExpired && (
-                                <span className="text-xs font-medium" style={{ color: '#dc2626' }}>· expired</span>
+                                <span className="mono-xs" style={{ color: 'var(--negative)' }}>· expired</span>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span
-                              className="hidden sm:inline text-xs font-semibold px-2.5 py-1 rounded-full"
-                              style={{ background: 'rgba(74,21,75,0.08)', color: '#4a154b' }}
-                            >
-                              Slack
-                            </span>
-                            <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                            <span className="hidden sm:inline badge badge-slate">Slack</span>
+                            <ExternalLink className="w-3.5 h-3.5" style={{ color: 'var(--app-text-muted)' }} />
                           </div>
                         </div>
                       );
@@ -569,21 +467,17 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             {!isLoading && view === 'list' && (
               <div className="grid sm:grid-cols-3 gap-4">
                 {[
-                  { icon: Lock, title: 'End-to-end encrypted', desc: 'All workspace data encrypted at rest and in transit', color: '#2563eb', bg: 'rgba(37,99,235,0.07)' },
-                  { icon: Zap, title: 'AI War Room', desc: 'Synthesize discussions into structured intelligence in under 60s', color: '#7c3aed', bg: 'rgba(124,58,237,0.07)' },
-                  { icon: Users, title: 'Team collaboration', desc: 'Invite members and assign roles — owner, admin, or member', color: '#16a34a', bg: 'rgba(22,163,74,0.07)' },
-                ].map(({ icon: Icon, title, desc, color, bg }) => (
-                  <div
-                    key={title}
-                    className="flex items-start gap-3 p-4 rounded-2xl"
-                    style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
-                  >
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: bg }}>
-                      <Icon className="w-4 h-4" style={{ color }} />
+                  { icon: Lock, title: 'End-to-end encrypted', desc: 'All workspace data encrypted at rest and in transit' },
+                  { icon: Zap, title: 'AI War Room', desc: 'Synthesize discussions into structured intelligence in under 60s' },
+                  { icon: Users, title: 'Team collaboration', desc: 'Invite members and assign roles — owner, admin, or member' },
+                ].map(({ icon: Icon, title, desc }) => (
+                  <div key={title} className="panel p-4 flex items-start gap-3">
+                    <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
+                      <Icon className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-800">{title}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">{desc}</p>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>{title}</p>
+                      <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>{desc}</p>
                     </div>
                   </div>
                 ))}

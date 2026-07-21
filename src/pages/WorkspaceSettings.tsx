@@ -51,7 +51,7 @@ interface SlackConnection {
 }
 
 const ROLE_ICONS = { owner: Crown, admin: Shield, member: User };
-const ROLE_COLORS = { owner: '#f59e0b', admin: '#2563eb', member: '#64748b' };
+const ROLE_COLORS = { owner: 'var(--signal)', admin: 'var(--agent-fin)', member: 'var(--app-text-muted)' };
 
 export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: WorkspaceSettingsProps) {
   const { user } = useAuth();
@@ -284,82 +284,76 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
   if (loading || accessLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--app-bg)' }}>
+        <div className="w-8 h-8 border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--signal)', borderTopColor: 'transparent' }} />
       </div>
     );
   }
 
   if (!workspace || !isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--app-bg)' }}>
         <div className="text-center">
-          <Lock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500 font-medium">Access restricted</p>
+          <Lock className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--app-text-muted)' }} />
+          <p className="font-medium" style={{ color: 'var(--app-text-secondary)' }}>Access restricted</p>
         </div>
       </div>
     );
   }
 
+  const statusColor = workspace.subscription_status === 'active' ? 'var(--positive)' : workspace.subscription_status === 'cancelled' ? 'var(--app-text-muted)' : workspace.subscription_status === 'past_due' ? 'var(--caution)' : 'var(--signal)';
+  const statusBg = workspace.subscription_status === 'active' ? 'var(--positive-bg)' : workspace.subscription_status === 'cancelled' ? 'var(--app-border-subtle)' : workspace.subscription_status === 'past_due' ? 'rgba(245,158,11,0.08)' : 'var(--signal-bg)';
+  const statusLabel = workspace.subscription_status === 'active' ? 'Active' : workspace.subscription_status === 'cancelled' ? 'Cancelled' : workspace.subscription_status === 'past_due' ? 'Past due' : workspace.subscription_status;
+
   return (
-    <div className="flex-1 overflow-y-auto" style={{ background: '#f8fafc', minHeight: '100vh' }}>
-      <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="flex-1 overflow-y-auto" style={{ background: 'var(--app-bg)', minHeight: '100vh' }}>
+      <div className="max-w-2xl mx-auto px-4 py-8" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
         {/* Back */}
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6 group"
+          className="btn-ghost mb-6"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          <ArrowLeft className="w-4 h-4" />
           Back to workspace
         </button>
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-          >
-            <Lock className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 flex items-center justify-center" style={{ background: 'var(--ink-50)', border: '1px solid var(--app-border)' }}>
+            <Lock className="w-6 h-6" style={{ color: 'var(--signal)' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900">{workspace.name}</h1>
-            <p className="text-sm text-slate-500 capitalize">{workspace.plan} · {workspace.subscription_status}</p>
+            <h1 className="display-heading text-2xl">{workspace.name}</h1>
+            <p className="text-sm capitalize mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>{workspace.plan} · {workspace.subscription_status}</p>
           </div>
         </div>
 
         {/* General settings */}
-        <section className="bg-white rounded-2xl p-6 mb-4" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4">General</h2>
+        <section className="panel p-6 mb-4">
+          <p className="section-label mb-4">General</p>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Workspace Name</label>
+              <label className="block section-label mb-1.5">Workspace Name</label>
               <input
                 type="text"
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
                 disabled={!isOwner}
-                className="w-full px-3 py-2.5 rounded-xl text-sm border text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{ borderColor: 'rgba(15,23,42,0.12)', background: isOwner ? '#fafafa' : '#f1f5f9' }}
+                className="input-modern"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Description</label>
+              <label className="block section-label mb-1.5">Description</label>
               <textarea
                 value={editDesc}
                 onChange={e => setEditDesc(e.target.value)}
                 disabled={!isOwner}
                 rows={2}
-                className="w-full px-3 py-2.5 rounded-xl text-sm border text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed resize-none"
-                style={{ borderColor: 'rgba(15,23,42,0.12)', background: isOwner ? '#fafafa' : '#f1f5f9' }}
+                className="input-modern"
               />
             </div>
             {isOwner && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-5 py-2 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-              >
+              <button onClick={handleSave} disabled={saving} className="btn-primary">
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>
             )}
@@ -367,11 +361,11 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
         </section>
 
         {/* Members */}
-        <section className="bg-white rounded-2xl p-6 mb-4" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
+        <section className="panel p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+            <h2 className="section-label flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Members <span className="text-slate-400 font-normal normal-case">({seatsUsed}/{seatsTotal})</span>
+              Members <span style={{ color: 'var(--app-text-muted)' }} className="normal-case font-normal">({seatsUsed}/{seatsTotal})</span>
             </h2>
           </div>
           <div className="space-y-2">
@@ -381,20 +375,17 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
               const isCurrentUser = m.user_id === user?.id;
 
               return (
-                <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#f8fafc' }}>
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-                  >
+                <div key={m.id} className="flex items-center gap-3 p-3" style={{ background: 'var(--app-border-subtle)' }}>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style={{ background: 'var(--ink-50)', color: 'var(--signal)', border: '1px solid var(--app-border)' }}>
                     {(m.profile?.full_name || m.profile?.email || '?').charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-slate-900 truncate">
+                      <span className="text-sm font-semibold truncate" style={{ color: 'var(--app-text-primary)' }}>
                         {m.profile?.full_name || m.profile?.email}
                       </span>
                       {isCurrentUser && (
-                        <span className="text-xs text-slate-400">(you)</span>
+                        <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>(you)</span>
                       )}
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">
@@ -408,8 +399,8 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                         <select
                           value={m.role}
                           onChange={e => handleChangeRole(m.id, e.target.value as 'admin' | 'member')}
-                          className="text-xs border rounded-lg px-2 py-1 text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          style={{ borderColor: 'rgba(15,23,42,0.15)' }}
+                          className="text-xs input-modern"
+                          style={{ padding: '0.25rem 0.5rem' }}
                         >
                           <option value="member">Member</option>
                           <option value="admin">Admin</option>
@@ -417,7 +408,8 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                       )}
                       <button
                         onClick={() => handleRemoveMember(m.id, m.user_id)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="btn-ghost p-1.5"
+                        style={{ color: 'var(--negative)' }}
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -430,8 +422,8 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
         </section>
 
         {/* Invite */}
-        <section className="bg-white rounded-2xl p-6 mb-4" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 mb-4">
+        <section className="panel p-6 mb-4">
+          <h2 className="section-label flex items-center gap-2 mb-4">
             <Mail className="w-4 h-4" />
             Invite Members
           </h2>
@@ -441,25 +433,19 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
               onChange={e => setInviteEmails(e.target.value)}
               placeholder="Enter email addresses, one per line or comma-separated"
               rows={3}
-              className="w-full px-3 py-2.5 rounded-xl text-sm border text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fafafa' }}
+              className="input-modern"
             />
             {inviteError && (
-              <p className="text-xs text-red-600 font-medium">{inviteError}</p>
+              <p className="text-xs font-medium" style={{ color: 'var(--negative)' }}>{inviteError}</p>
             )}
             {inviteSuccess && (
-              <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+              <p className="text-xs font-medium flex items-center gap-1 text-positive">
                 <Check className="w-3.5 h-3.5" /> {inviteSuccess}
               </p>
             )}
-            <button
-              onClick={handleInvite}
-              disabled={inviting || !inviteEmails.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:translate-y-0"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-            >
+            <button onClick={handleInvite} disabled={inviting || !inviteEmails.trim()} className="btn-primary">
               {inviting ? (
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--ink-900)', borderTopColor: 'transparent' }} />
               ) : (
                 <Plus className="w-4 h-4" />
               )}
@@ -470,22 +456,23 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
           {/* Pending invites */}
           {invites.length > 0 && (
             <div className="mt-4">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Pending Invites</p>
+              <p className="section-label mb-2">Pending Invites</p>
               <div className="space-y-2">
                 {invites.map(inv => (
-                  <div key={inv.id} className="flex items-center gap-3 p-2.5 rounded-xl" style={{ background: '#f8fafc', border: '1px solid rgba(15,23,42,0.06)' }}>
-                    <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span className="text-sm text-slate-700 flex-1 truncate">{inv.invited_email}</span>
+                  <div key={inv.id} className="flex items-center gap-3 p-2.5 panel">
+                    <Mail className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--app-text-muted)' }} />
+                    <span className="text-sm flex-1 truncate" style={{ color: 'var(--app-text-primary)' }}>{inv.invited_email}</span>
                     <button
                       onClick={() => copyInviteLink(inv.token)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                      className="btn-ghost p-1.5"
                       title="Copy invite link"
                     >
-                      {copiedToken === inv.token ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedToken === inv.token ? <Check className="w-3.5 h-3.5 text-positive" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
                     <button
                       onClick={() => handleRevokeInvite(inv.id)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      className="btn-ghost p-1.5"
+                      style={{ color: 'var(--negative)' }}
                       title="Revoke invite"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -499,8 +486,8 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
         {/* Billing — always visible to owner */}
         {isOwner && (
-          <section className="bg-white rounded-2xl p-6 mb-4" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 mb-4">
+          <section className="panel p-6 mb-4">
+            <h2 className="section-label flex items-center gap-2 mb-4">
               <CreditCard className="w-4 h-4" />
               Billing
             </h2>
@@ -511,30 +498,16 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className="text-sm font-bold text-slate-900">
+                      <p className="text-sm font-bold" style={{ color: 'var(--app-text-primary)' }}>
                         {workspace.plan === 'pro' ? 'Pro Individual' : workspace.plan === 'team' ? 'Poddle Team' : workspace.plan} Plan
                       </p>
-                      <span
-                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={
-                          workspace.subscription_status === 'active'
-                            ? { background: 'rgba(22,163,74,0.1)', color: '#16a34a' }
-                            : workspace.subscription_status === 'cancelled'
-                            ? { background: 'rgba(100,116,139,0.1)', color: '#64748b' }
-                            : workspace.subscription_status === 'past_due'
-                            ? { background: 'rgba(245,158,11,0.1)', color: '#b45309' }
-                            : { background: 'rgba(37,99,235,0.08)', color: '#2563eb' }
-                        }
-                      >
-                        {workspace.subscription_status === 'active' ? 'Active'
-                          : workspace.subscription_status === 'cancelled' ? 'Cancelled'
-                          : workspace.subscription_status === 'past_due' ? 'Past due'
-                          : workspace.subscription_status}
+                      <span className="badge" style={{ background: statusBg, color: statusColor, borderColor: statusColor }}>
+                        {statusLabel}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500">{workspace.seats} seats included</p>
+                    <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>{workspace.seats} seats included</p>
                     {workspace.subscription_status === 'cancelled' && (
-                      <p className="text-xs text-slate-400 mt-1.5">
+                      <p className="text-xs mt-1.5" style={{ color: 'var(--app-text-muted)' }}>
                         Your workspace stays active until the end of the current billing period.
                       </p>
                     )}
@@ -542,8 +515,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                   <button
                     onClick={handleBillingPortal}
                     disabled={loadingBilling}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60 flex-shrink-0"
-                    style={{ borderColor: 'rgba(15,23,42,0.12)' }}
+                    className="btn-secondary flex-shrink-0"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     {loadingBilling ? 'Opening…' : 'Manage Billing'}
@@ -552,17 +524,15 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
                 {/* Cancel — only visible for active subscriptions */}
                 {workspace.subscription_status === 'active' && !showCancelConfirm && (
-                  <div
-                    className="flex items-center justify-between p-4 rounded-xl"
-                    style={{ background: 'rgba(239,68,68,0.03)', border: '1px solid rgba(239,68,68,0.1)' }}
-                  >
+                  <div className="flex items-center justify-between p-4" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)' }}>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">Cancel subscription</p>
-                      <p className="text-xs text-slate-500 mt-0.5">You'll keep full access until the end of your billing period.</p>
+                      <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>Cancel subscription</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>You'll keep full access until the end of your billing period.</p>
                     </div>
                     <button
                       onClick={() => setShowCancelConfirm(true)}
-                      className="flex-shrink-0 ml-4 px-4 py-2 rounded-xl text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors"
+                      className="btn-secondary flex-shrink-0 ml-4"
+                      style={{ borderColor: 'var(--negative)', color: 'var(--negative)' }}
                     >
                       Cancel plan
                     </button>
@@ -571,34 +541,28 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
                 {/* Cancel confirmation */}
                 {workspace.subscription_status === 'active' && showCancelConfirm && (
-                  <div
-                    className="p-4 rounded-xl space-y-3"
-                    style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}
-                  >
+                  <div className="p-4 space-y-3" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)' }}>
                     <div className="flex items-start gap-2.5">
-                      <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--negative)' }} />
                       <div>
-                        <p className="text-sm font-bold text-slate-900">Cancel your subscription?</p>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        <p className="text-sm font-bold" style={{ color: 'var(--app-text-primary)' }}>Cancel your subscription?</p>
+                        <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
                           Your workspace stays fully active until the end of the current billing period, then becomes read-only. You can resubscribe at any time.
                         </p>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => setShowCancelConfirm(false)}
-                        className="px-4 py-2 rounded-xl text-sm font-semibold border text-slate-700 hover:bg-slate-50 transition-colors"
-                        style={{ borderColor: 'rgba(15,23,42,0.12)' }}
-                      >
+                      <button onClick={() => setShowCancelConfirm(false)} className="btn-secondary">
                         Keep subscription
                       </button>
                       <button
                         onClick={handleCancelPortal}
                         disabled={loadingCancel}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+                        className="btn-primary"
+                        style={{ background: 'var(--negative)', borderColor: 'var(--negative)', color: 'var(--ink-900)' }}
                       >
                         {loadingCancel && (
-                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span className="w-3.5 h-3.5 border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--ink-900)', borderTopColor: 'transparent' }} />
                         )}
                         {loadingCancel ? 'Redirecting…' : 'Yes, cancel subscription'}
                       </button>
@@ -608,29 +572,19 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
               </>
             ) : (
               /* Free trial workspace — show upgrade CTA */
-              <div
-                className="flex items-center gap-4 p-4 rounded-xl"
-                style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdfa)', border: '1px solid rgba(37,99,235,0.15)' }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)' }}
-                >
-                  <CreditCard className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-4 p-4" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
+                <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--signal)' }}>
+                  <CreditCard className="w-5 h-5" style={{ color: 'var(--ink-900)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900">Free trial workspace</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-sm font-bold" style={{ color: 'var(--app-text-primary)' }}>Free trial workspace</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
                     {workspace.subscription_status === 'inactive'
                       ? 'This workspace has expired. Upgrade to Pro to restore full access.'
                       : 'Expires end of month. Upgrade to Pro for unlimited, permanent workspaces.'}
                   </p>
                 </div>
-                <button
-                  onClick={() => onNavigate('pricing')}
-                  className="flex-shrink-0 px-4 py-2 rounded-xl text-sm font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
-                >
+                <button onClick={() => onNavigate('pricing')} className="btn-primary flex-shrink-0">
                   Upgrade
                 </button>
               </div>
@@ -640,44 +594,35 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
         {/* Slack integration — visible to owners and admins */}
         {isAdmin && (
-          <section className="bg-white rounded-2xl p-6 mb-4" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2 mb-1">
+          <section className="panel p-6 mb-4">
+            <h2 className="section-label flex items-center gap-2 mb-1">
               <Zap className="w-4 h-4" />
               Integrations
             </h2>
-            <p className="text-xs text-slate-400 mb-4">Connect external tools to your workspace.</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--app-text-muted)' }}>Connect external tools to your workspace.</p>
 
-            <div className="rounded-xl p-4" style={{ background: '#f8fafc', border: '1px solid rgba(15,23,42,0.08)' }}>
+            <div className="p-4 panel">
               <div className="flex items-start gap-3">
-                {/* Slack logo placeholder using SVG colours */}
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'linear-gradient(135deg,#4a154b,#e01e5a)' }}
-                >
+                <div className="w-9 h-9 flex items-center justify-center flex-shrink-0" style={{ background: '#4a154b' }}>
                   <Zap className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-bold text-slate-900">Slack</p>
+                    <p className="text-sm font-bold" style={{ color: 'var(--app-text-primary)' }}>Slack</p>
                     {slackConnection && (
-                      <span
-                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}
-                      >
-                        Connected
-                      </span>
+                      <span className="badge badge-green">Connected</span>
                     )}
                   </div>
                   {slackConnection ? (
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
                       {slackConnection.slack_team_name
                         ? `${slackConnection.slack_team_name} · `
                         : ''}
                       Connected {new Date(slackConnection.created_at).toLocaleDateString()}
                     </p>
                   ) : (
-                    <p className="text-xs text-slate-500">
-                      Use <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-mono">/poddle</code> in any channel to kick off a War Room session.
+                    <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
+                      Use <code className="mono-xs" style={{ background: 'var(--app-border-subtle)', padding: '0.125rem 0.375rem' }}>/poddle</code> in any channel to kick off a War Room session.
                     </p>
                   )}
                 </div>
@@ -685,7 +630,8 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                   <button
                     onClick={handleSlackDisconnect}
                     disabled={disconnectingSlack}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    className="btn-secondary flex-shrink-0"
+                    style={{ borderColor: 'var(--negative)', color: 'var(--negative)', padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
                   >
                     <Unlink className="w-3.5 h-3.5" />
                     {disconnectingSlack ? 'Disconnecting…' : 'Disconnect'}
@@ -694,11 +640,11 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                   <button
                     onClick={handleSlackConnect}
                     disabled={connectingSlack}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0"
-                    style={{ background: 'linear-gradient(135deg,#4a154b,#e01e5a)' }}
+                    className="btn-primary flex-shrink-0"
+                    style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
                   >
                     {connectingSlack ? (
-                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span className="w-3.5 h-3.5 border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--ink-900)', borderTopColor: 'transparent' }} />
                     ) : (
                       <Link2 className="w-3.5 h-3.5" />
                     )}
@@ -708,25 +654,19 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
               </div>
 
               {slackError && (
-                <p className="mt-2 text-xs text-red-600 font-medium">{slackError}</p>
+                <p className="mt-2 text-xs font-medium" style={{ color: 'var(--negative)' }}>{slackError}</p>
               )}
 
               {slackConnection && (
-                <div
-                  className="mt-3 p-3 rounded-xl"
-                  style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.06)' }}
-                >
-                  <p className="text-xs font-semibold text-slate-600 mb-1">Slash command</p>
+                <div className="mt-3 p-3" style={{ background: 'var(--app-border-subtle)' }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: 'var(--app-text-secondary)' }}>Slash command</p>
                   <div className="flex items-center gap-2">
-                    <code
-                      className="flex-1 text-xs font-mono text-slate-700 px-2.5 py-1.5 rounded-lg overflow-x-auto"
-                      style={{ background: '#f1f5f9' }}
-                    >
+                    <code className="mono-xs flex-1 px-2.5 py-1.5 overflow-x-auto" style={{ background: 'var(--app-surface-raised)', color: 'var(--app-text-primary)' }}>
                       /poddle should we raise the enterprise price by 15%?
                     </code>
                   </div>
-                  <p className="text-xs text-slate-400 mt-2">
-                    Type <code className="font-mono">/poddle</code> followed by your decision question in any channel. Poddle will run a full War Room analysis and post the Board Brief back to that channel.
+                  <p className="text-xs mt-2" style={{ color: 'var(--app-text-muted)' }}>
+                    Type <code className="mono-xs">/poddle</code> followed by your decision question in any channel. Poddle will run a full War Room analysis and post the Board Brief back to that channel.
                   </p>
                 </div>
               )}
@@ -736,21 +676,22 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
         {/* Danger zone — visible to owners and admins only */}
         {isAdmin && (
-          <section className="bg-white rounded-2xl p-6" style={{ border: '1px solid rgba(239,68,68,0.2)' }}>
-            <h2 className="text-sm font-bold text-red-600 uppercase tracking-wide flex items-center gap-2 mb-1">
+          <section className="panel p-6" style={{ borderColor: 'var(--negative)' }}>
+            <h2 className="section-label flex items-center gap-2 mb-1" style={{ color: 'var(--negative)' }}>
               <AlertTriangle className="w-4 h-4" />
               Danger Zone
             </h2>
-            <p className="text-xs text-slate-400 mb-4">Only workspace owners and admins can perform these actions.</p>
+            <p className="text-xs mb-4" style={{ color: 'var(--app-text-muted)' }}>Only workspace owners and admins can perform these actions.</p>
             {!showDeleteConfirm ? (
-              <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.12)' }}>
+              <div className="flex items-center justify-between p-4" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)' }}>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Delete this workspace</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Permanently removes the workspace, all messages, and intelligence data. Irreversible.</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>Delete this workspace</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>Permanently removes the workspace, all messages, and intelligence data. Irreversible.</p>
                 </div>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors flex-shrink-0 ml-4"
+                  className="btn-secondary flex-shrink-0 ml-4"
+                  style={{ borderColor: 'var(--negative)', color: 'var(--negative)' }}
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete
@@ -758,7 +699,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-sm text-slate-700">
+                <p className="text-sm" style={{ color: 'var(--app-text-primary)' }}>
                   Type <strong>{workspace.name}</strong> to confirm. This cannot be undone.
                 </p>
                 <input
@@ -766,21 +707,21 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                   value={deleteConfirmText}
                   onChange={e => setDeleteConfirmText(e.target.value)}
                   placeholder={workspace.name}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm border text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500"
-                  style={{ borderColor: 'rgba(239,68,68,0.3)', background: '#fafafa' }}
+                  className="input-modern"
+                  style={{ borderColor: 'var(--negative)' }}
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
-                    className="px-4 py-2 rounded-xl text-sm font-semibold border text-slate-700 hover:bg-slate-50 transition-colors"
-                    style={{ borderColor: 'rgba(15,23,42,0.12)' }}
+                    className="btn-secondary"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={deleteConfirmText !== workspace.name || deleting}
-                    className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-40"
+                    className="btn-primary"
+                    style={{ background: 'var(--negative)', borderColor: 'var(--negative)', color: 'var(--ink-900)' }}
                   >
                     {deleting ? 'Deleting…' : 'Delete Forever'}
                   </button>
