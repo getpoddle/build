@@ -418,6 +418,41 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
             className="flex-1 min-w-0 max-w-[900px] mx-auto w-full flex flex-col overflow-hidden"
             style={{ borderRight: '1px solid var(--app-border)' }}
           >
+            {/* Desktop tab switcher */}
+            <div
+              className="flex-shrink-0 flex items-center px-3 pt-2 gap-1"
+              style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
+            >
+              {([
+                { id: 'chat' as MainTab, label: 'AI Collaboration', Icon: MessageSquare },
+                { id: 'team' as MainTab, label: 'Team Chat', Icon: Users },
+              ] as const).map(({ id, label, Icon }) => {
+                const active = mainTab === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setMainTab(id)}
+                    className="flex items-center gap-2 px-3 py-2 text-xs font-semibold transition-colors relative"
+                    style={{
+                      color: active ? 'var(--signal)' : 'var(--app-text-muted)',
+                      borderBottom: active ? '2px solid var(--signal)' : '2px solid transparent',
+                      background: active ? 'var(--signal-bg)' : 'transparent',
+                      marginBottom: '-1px',
+                    }}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                  </button>
+                );
+              })}
+              {mainTab === 'chat' && (
+                <div className="ml-auto flex items-center gap-1.5 pr-2">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--positive)' }} />
+                  <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>Live</span>
+                </div>
+              )}
+            </div>
+
             {mainTab === 'team' ? (
               <TeamChat
                 workspaceId={workspaceId}
@@ -425,21 +460,6 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
               />
             ) : (
               <>
-              {/* Panel header */}
-              <div
-                className="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5"
-                style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
-              >
-                <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--app-text-muted)' }} />
-                <span className="section-label">AI Collaboration</span>
-                <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>— 7 specialist advisors</span>
-                <div className="ml-auto flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--positive)' }} />
-                  <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>Live</span>
-                </div>
-              </div>
-
-              {/* Chat content */}
               <div className="flex-1 min-h-0 relative" style={{ background: 'var(--app-surface-raised)' }}>
                 {isReadOnly && <ReadOnlyOverlay />}
                 <div className="h-full p-5">
