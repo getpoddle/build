@@ -232,11 +232,6 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   <User className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
                   <span>Account Settings</span>
                 </button>
-                <div className="w-full flex items-center gap-3 px-3 py-2">
-                  <div className="flex-1">
-                    <Notifications onNavigate={onNavigate} />
-                  </div>
-                </div>
                 <button
                   onClick={() => handleNavigate('pricing')}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
@@ -281,9 +276,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
             ) : (
               /* Collapsed footer: icon-only buttons stacked */
               <div className="flex flex-col items-center gap-1">
-                <div className="w-9 h-9 flex items-center justify-center">
-                  <Notifications onNavigate={onNavigate} />
-                </div>
+                <Notifications onNavigate={onNavigate} />
                 <button
                   onClick={() => handleNavigate('profile')}
                   title="Account Settings"
@@ -409,9 +402,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
               {/* Authenticated mobile icon row */}
               {user ? (
                 <div className="flex items-center gap-0.5 xl:hidden">
-                  <div className="flex items-center" style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}>
-                    <Notifications onNavigate={onNavigate} />
-                  </div>
+                  <Notifications onNavigate={onNavigate} />
                   <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
