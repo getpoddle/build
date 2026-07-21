@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply, Bot, UserCheck } from 'lucide-react';
+import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply, Bot, UserCheck, Users } from 'lucide-react';
 import { SkeletonNotification } from './Skeleton';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,7 +34,6 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,10 +60,6 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       if (notificationWithActor) {
         setNotifications((prev) => [notificationWithActor, ...prev]);
         setUnreadCount((prev) => prev + 1);
-
-        if (notificationWithActor.type === 'follow' && notificationWithActor.actor_id) {
-          checkFollowingStatus([notificationWithActor.actor_id]);
-        }
       }
     }, 500);
 
@@ -144,38 +139,10 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
 
       if (error) throw error;
       setNotifications(data || []);
-
-      const followNotifications = (data || []).filter(n => n.type === 'follow' && n.actor_id);
-      if (followNotifications.length > 0) {
-        await checkFollowingStatus(followNotifications.map(n => n.actor_id!));
-      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function checkFollowingStatus(userIds: string[]) {
-    if (!user || userIds.length === 0) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('followers')
-        .select('following_id')
-        .eq('follower_id', user.id)
-        .in('following_id', userIds);
-
-      if (error) throw error;
-
-      const followingSet = new Set((data || []).map(f => f.following_id));
-      const newFollowingMap: Record<string, boolean> = {};
-      userIds.forEach(id => {
-        newFollowingMap[id] = followingSet.has(id);
-      });
-      setFollowingMap(newFollowingMap);
-    } catch (error) {
-      console.error('Error checking following status:', error);
     }
   }
 
@@ -249,27 +216,7 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
     }
   }
 
-  async function followBack(userId: string, notificationId: string) {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('followers')
-        .insert({
-          follower_id: user.id,
-          following_id: userId
-        });
-
-      if (error) throw error;
-
-      setFollowingMap(prev => ({ ...prev, [userId]: true }));
-      await markAsRead(notificationId);
-    } catch (error) {
-      console.error('Error following back:', error);
-    }
-  }
-
-  async function dismissFollowNotification(notificationId: string) {
+  async function dismissNotification(notificationId: string) {
     await markAsRead(notificationId);
   }
 
@@ -296,6 +243,10 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
     } else if (notification.type === 'workspace_agents_responded') {
       onNavigate('workspaces');
     } else if (notification.type === 'workspace_invite_accepted') {
+      onNavigate('workspaces');
+    } else if (notification.type === 'workspace_team_message') {
+      onNavigate('workspaces');
+    } else if (notification.type === 'workspace_ai_activity') {
       onNavigate('workspaces');
     }
   }
@@ -324,6 +275,10 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
         return <Bot className="w-4 h-4" />;
       case 'workspace_invite_accepted':
         return <UserCheck className="w-4 h-4" />;
+      case 'workspace_team_message':
+        return <Users className="w-4 h-4" />;
+      case 'workspace_ai_activity':
+        return <Bot className="w-4 h-4" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
@@ -341,6 +296,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       case 'challenge_replied': return 'bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-400';
       case 'workspace_agents_responded': return 'bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400';
       case 'workspace_invite_accepted': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
+      case 'workspace_team_message': return 'bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400';
+      case 'workspace_ai_activity': return 'bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400';
       default: return 'bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400';
     }
   }
@@ -494,30 +451,15 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
 
                           {notification.type === 'follow' && notification.actor_id && (
                             <div className="flex gap-2 mt-3">
-                              {!followingMap[notification.actor_id] ? (
-                                <>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      followBack(notification.actor_id!, notification.id);
-                                    }}
-                                    className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                                  >
-                                    Follow Back
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      dismissFollowNotification(notification.id);
-                                    }}
-                                    className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                  >
-                                    Dismiss
-                                  </button>
-                                </>
-                              ) : (
-                                <span className="text-xs text-slate-500 dark:text-slate-400 italic">Following</span>
-                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  dismissNotification(notification.id);
+                                }}
+                                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                              >
+                                Dismiss
+                              </button>
                             </div>
                           )}
                         </div>

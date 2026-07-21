@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Lock, Settings, ArrowLeft,
-  MessageSquare, Activity, RefreshCw, Loader2, AlertTriangle, Cpu, Clock
+  MessageSquare, Activity, RefreshCw, Loader2, AlertTriangle, Cpu, Clock, Users
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -9,9 +9,10 @@ import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
 import { useBetaAccess } from '../hooks/useBetaAccess';
 import WorkspaceChat from '../components/WorkspaceChat';
 import WorkspaceWarRoom, { WarRoomLockedState } from '../components/WorkspaceWarRoom';
+import TeamChat from '../components/TeamChat';
 import UpgradePrompt from '../components/UpgradePrompt';
 
-type MainTab = 'chat' | 'warroom';
+type MainTab = 'chat' | 'warroom' | 'team';
 
 interface Workspace {
   id: string;
@@ -314,6 +315,7 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         >
           {([ 
             { id: 'chat' as MainTab, label: 'AI Collaboration', Icon: MessageSquare },
+            { id: 'team' as MainTab, label: 'Team Chat', Icon: Users },
             { id: 'warroom' as MainTab, label: 'War Room', Icon: Activity },
           ] as const).map(({ id, label, Icon }) => {
             const active = mainTab === id;
@@ -366,6 +368,24 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           </div>
         )}
 
+        {/* ── MOBILE: Team Chat tab ── */}
+        {mainTab === 'team' && (
+          <div className="lg:hidden flex-1 overflow-hidden p-2">
+            <div
+              className="h-full overflow-hidden relative"
+              style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
+            >
+              {isReadOnly && <ReadOnlyOverlay />}
+              <div className="h-full">
+                <TeamChat
+                  workspaceId={workspaceId}
+                  workspaceName={workspace?.name || 'Workspace'}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── MOBILE: War Room tab ── */}
         {mainTab === 'warroom' && (
           <div className="lg:hidden flex-1 overflow-y-auto" style={{ paddingBottom: '1rem' }}>
@@ -390,41 +410,50 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         {/* ── DESKTOP: Side-by-side panels ── */}
         <div className="hidden lg:flex flex-1 overflow-hidden">
 
-          {/* Left: AI Collaboration */}
+          {/* Left: AI Collaboration or Team Chat (switches based on tab) */}
           <div
             className="flex-1 min-w-0 max-w-[900px] mx-auto w-full flex flex-col overflow-hidden"
             style={{ borderRight: '1px solid var(--app-border)' }}
           >
-            {/* Panel header */}
-            <div
-              className="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5"
-              style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
-            >
-              <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--app-text-muted)' }} />
-              <span className="section-label">AI Collaboration</span>
-              <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>— 7 specialist advisors</span>
-              <div className="ml-auto flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--positive)' }} />
-                <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>Live</span>
+            {mainTab === 'team' ? (
+              <TeamChat
+                workspaceId={workspaceId}
+                workspaceName={workspace?.name || 'Workspace'}
+              />
+            ) : (
+              <>
+              {/* Panel header */}
+              <div
+                className="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5"
+                style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
+              >
+                <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--app-text-muted)' }} />
+                <span className="section-label">AI Collaboration</span>
+                <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>— 7 specialist advisors</span>
+                <div className="ml-auto flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--positive)' }} />
+                  <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>Live</span>
+                </div>
               </div>
-            </div>
 
-            {/* Chat content */}
-            <div className="flex-1 min-h-0 relative" style={{ background: 'var(--app-surface-raised)' }}>
-              {isReadOnly && <ReadOnlyOverlay />}
-              <div className="h-full p-5">
-                <WorkspaceChat
-                  workspaceId={workspaceId}
-                  workspaceName={workspace?.name || 'Workspace'}
-                  workspaceTopic={workspace?.description}
-                  initialPrompt={pendingPrompt}
-                  onPromptConsumed={() => setPendingPrompt(undefined)}
-                  onAgentsReplied={() => {}}
-                  isPro={workspaceIsPro}
-                  onUpgrade={() => setShowUpgrade(true)}
-                />
+              {/* Chat content */}
+              <div className="flex-1 min-h-0 relative" style={{ background: 'var(--app-surface-raised)' }}>
+                {isReadOnly && <ReadOnlyOverlay />}
+                <div className="h-full p-5">
+                  <WorkspaceChat
+                    workspaceId={workspaceId}
+                    workspaceName={workspace?.name || 'Workspace'}
+                    workspaceTopic={workspace?.description}
+                    initialPrompt={pendingPrompt}
+                    onPromptConsumed={() => setPendingPrompt(undefined)}
+                    onAgentsReplied={() => {}}
+                    isPro={workspaceIsPro}
+                    onUpgrade={() => setShowUpgrade(true)}
+                  />
+                </div>
               </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Right: War Room */}
