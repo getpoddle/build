@@ -431,7 +431,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
             const profile = memberProfiles[msg.user_id];
             const color = memberColor(msg.user_id);
             const avatarUrl = profile ? getAvatarUrl(profile.avatar_url) : null;
-            const initials = profile ? getInitials(profile) : '?';
+            const initials = profile ? getInitials(getDisplayName(profile)) : '?';
 
             return (
               <div key={msg.id}>
@@ -512,7 +512,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
             {filteredMembers.map((m, i) => {
               const name = getDisplayName(m) || '';
               const avatarUrl = getAvatarUrl(m.avatar_url);
-              const initials = getInitials(m);
+              const initials = getInitials(getDisplayName(m));
               const color = memberColor(m.user_id);
               return (
                 <button
