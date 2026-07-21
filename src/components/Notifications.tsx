@@ -246,6 +246,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       onNavigate('workspaces');
     } else if (notification.type === 'workspace_team_message') {
       onNavigate('workspaces');
+    } else if (notification.type === 'workspace_team_mention') {
+      onNavigate('workspaces');
     } else if (notification.type === 'workspace_ai_activity') {
       onNavigate('workspaces');
     }
@@ -277,6 +279,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
         return <UserCheck className="w-4 h-4" />;
       case 'workspace_team_message':
         return <Users className="w-4 h-4" />;
+      case 'workspace_team_mention':
+        return <AtSign className="w-4 h-4" />;
       case 'workspace_ai_activity':
         return <Bot className="w-4 h-4" />;
       default:
@@ -297,6 +301,7 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       case 'workspace_agents_responded': return 'bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400';
       case 'workspace_invite_accepted': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
       case 'workspace_team_message': return 'bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400';
+      case 'workspace_team_mention': return 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400';
       case 'workspace_ai_activity': return 'bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400';
       default: return 'bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400';
     }

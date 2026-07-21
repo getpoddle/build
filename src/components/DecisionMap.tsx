@@ -1005,8 +1005,8 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className={`text-xs font-bold leading-tight ${isExpired ? 'text-slate-400' : 'text-slate-800'} truncate`}>{ws.name}</p>
-            {ws.description && <p className="text-[10px] text-slate-400 truncate mt-0.5">{ws.description}</p>}
+            <p className={`text-sm font-bold leading-snug ${isExpired ? 'text-slate-400' : 'text-slate-800'}`}>{ws.name}</p>
+            {ws.description && <p className="text-xs text-slate-500 leading-snug mt-0.5 line-clamp-2">{ws.description}</p>}
           </div>
 
           {isOwnerOrAdmin && !isSlack && (

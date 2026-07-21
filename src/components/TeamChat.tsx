@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Users, Loader2 } from 'lucide-react';
+import { Send, Users, Loader2, AtSign } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { acquireChannel, releaseChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +12,7 @@ interface ChatMessage {
   user_id: string;
   content: string;
   created_at: string;
+  mentioned_user_ids?: string[] | null;
 }
 
 interface MemberProfile {
@@ -64,6 +65,78 @@ function dateKey(ts: string): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
+/** Extract @mentioned user IDs from message content by matching member display names. */
+function extractMentionedIds(content: string, members: Record<string, MemberProfile>): string[] {
+  const ids: string[] = [];
+  for (const [uid, profile] of Object.entries(members)) {
+    const name = getDisplayName(profile);
+    if (!name) continue;
+    const mentionPattern = new RegExp(`@${escapeRegExp(name)}\\b`, 'i');
+    if (mentionPattern.test(content)) {
+      ids.push(uid);
+    }
+  }
+  return ids;
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Render message content with @mentions highlighted. */
+function renderContent(content: string, members: Record<string, MemberProfile>, ownUserId: string | undefined): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let remaining = content;
+  let keyIdx = 0;
+
+  // Build a regex that matches any @mention of known members
+  const memberNames = Object.values(members)
+    .map(m => getDisplayName(m))
+    .filter(Boolean) as string[];
+  if (memberNames.length === 0) {
+    return [content];
+  }
+  const pattern = new RegExp(
+    `@(${memberNames.map(escapeRegExp).join('|')})\\b`,
+    'gi'
+  );
+
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(remaining)) !== null) {
+    // Push text before the match
+    if (match.index > lastIndex) {
+      parts.push(remaining.slice(lastIndex, match.index));
+    }
+    const matchedName = match[1];
+    // Find the member by display name (case-insensitive)
+    const member = Object.values(members).find(m => {
+      const name = getDisplayName(m);
+      return name && name.toLowerCase() === matchedName.toLowerCase();
+    });
+    const isSelf = member?.user_id === ownUserId;
+    parts.push(
+      <span
+        key={`mention-${keyIdx++}`}
+        className="font-semibold"
+        style={{
+          color: isSelf ? 'var(--signal)' : '#2563eb',
+          background: 'rgba(37,99,235,0.10)',
+          padding: '0 4px',
+          borderRadius: '4px',
+        }}
+      >
+        @{matchedName}
+      </span>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < remaining.length) {
+    parts.push(remaining.slice(lastIndex));
+  }
+  return parts;
+}
+
 export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -75,6 +148,12 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const memberProfilesRef = useRef<Record<string, MemberProfile>>({});
+
+  // @mention picker state
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionStart, setMentionStart] = useState<number>(0);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const mentionDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     memberProfilesRef.current = memberProfiles;
@@ -165,12 +244,106 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     };
   }, [workspaceId, loadMessages, loadMemberProfiles, scrollToBottom]);
 
+  // ── Mention detection ──
+  const otherMembers = Object.values(memberProfiles).filter(m => m.user_id !== user?.id);
+
+  function detectMention(text: string, cursorPos: number): { query: string; start: number } | null {
+    // Find the last @ before the cursor that isn't preceded by a non-space character
+    const before = text.slice(0, cursorPos);
+    const atIdx = before.lastIndexOf('@');
+    if (atIdx === -1) return null;
+    // The @ must be at the start of input or preceded by whitespace
+    if (atIdx > 0 && !/\s/.test(before[atIdx - 1])) return null;
+    // No spaces allowed in the query (mention ends at first space)
+    const afterAt = before.slice(atIdx + 1);
+    if (afterAt.includes(' ') || afterAt.includes('\n')) return null;
+    return { query: afterAt, start: atIdx };
+  }
+
+  function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const val = e.target.value;
+    setInput(val);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+
+    // Detect @mention
+    const cursorPos = e.target.selectionStart;
+    const mention = detectMention(val, cursorPos);
+    if (mention && otherMembers.length > 0) {
+      setMentionQuery(mention.query);
+      setMentionStart(mention.start);
+      setMentionIndex(0);
+    } else {
+      setMentionQuery(null);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // Mention picker navigation
+    if (mentionQuery !== null && filteredMembers.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex(i => (i + 1) % filteredMembers.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex(i => (i - 1 + filteredMembers.length) % filteredMembers.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        insertMention(filteredMembers[mentionIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMentionQuery(null);
+        return;
+      }
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  const filteredMembers = mentionQuery !== null
+    ? otherMembers.filter(m => {
+        const name = getDisplayName(m) || '';
+        return name.toLowerCase().startsWith(mentionQuery.toLowerCase());
+      })
+    : [];
+
+  function insertMention(member: MemberProfile) {
+    const name = getDisplayName(member) || '';
+    const before = input.slice(0, mentionStart);
+    const after = input.slice(mentionStart + 1 + mentionQuery.length);
+    const newVal = `${before}@${name} ${after}`;
+    setInput(newVal);
+    setMentionQuery(null);
+
+    // Restore cursor position after state update
+    requestAnimationFrame(() => {
+      const pos = mentionStart + name.length + 2; // @name + space
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(pos, pos);
+    });
+  }
+
   async function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed || !user || sending) return;
 
+    // Extract mentioned user IDs from the text
+    const mentionedIds = extractMentionedIds(trimmed, memberProfiles);
+
     setSending(true);
     setInput('');
+    setMentionQuery(null);
 
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -183,33 +356,17 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
           workspace_id: workspaceId,
           user_id: user.id,
           content: trimmed,
+          mentioned_user_ids: mentionedIds.length > 0 ? mentionedIds : null,
         });
 
       if (error) throw error;
 
-      // Optimistic: the realtime subscription will add the message,
-      // but scroll immediately for responsiveness
       setTimeout(() => scrollToBottom(), 100);
     } catch (err) {
       console.error('Failed to send team chat message:', err);
-      setInput(trimmed); // restore input on failure
+      setInput(trimmed);
     } finally {
       setSending(false);
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  }
-
-  function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    setInput(e.target.value);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   }
 
@@ -321,7 +478,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
                           : { background: 'var(--app-surface)', color: 'var(--app-text-primary)', border: '1px solid var(--app-border)', borderBottomLeftRadius: '4px' }
                       }
                     >
-                      {msg.content}
+                      {renderContent(msg.content, memberProfiles, user?.id)}
                     </div>
                   </div>
                 </div>
@@ -334,16 +491,74 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
 
       {/* Input */}
       <div
-        className="flex-shrink-0 p-3"
+        className="flex-shrink-0 p-3 relative"
         style={{ borderTop: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
       >
+        {/* Mention dropdown */}
+        {mentionQuery !== null && filteredMembers.length > 0 && (
+          <div
+            ref={mentionDropdownRef}
+            className="absolute bottom-full left-3 right-3 mb-1 rounded-xl overflow-hidden shadow-lg"
+            style={{
+              background: 'var(--app-surface-raised)',
+              border: '1px solid var(--app-border)',
+              maxHeight: '200px',
+              overflowY: 'auto',
+            }}
+          >
+            {filteredMembers.map((m, i) => {
+              const name = getDisplayName(m) || '';
+              const avatarUrl = getAvatarUrl(m.avatar_url);
+              const initials = getInitials(m);
+              const color = memberColor(m.user_id);
+              return (
+                <button
+                  key={m.user_id}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    insertMention(m);
+                  }}
+                  onMouseEnter={() => setMentionIndex(i)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
+                  style={{
+                    background: i === mentionIndex ? 'rgba(37,99,235,0.08)' : 'transparent',
+                  }}
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={name} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                      style={{ background: color.bg, color: color.text }}
+                    >
+                      {initials}
+                    </div>
+                  )}
+                  <span className="text-sm font-medium" style={{ color: 'var(--app-text-primary)' }}>
+                    {name}
+                  </span>
+                  {m.role === 'owner' && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'rgba(37,99,235,0.10)', color: 'var(--signal)' }}>
+                      Owner
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="Message your team..."
+            onBlur={() => {
+              // Delay to allow click on dropdown to register
+              setTimeout(() => setMentionQuery(null), 150);
+            }}
+            placeholder="Message your team... (use @ to mention)"
             rows={1}
             className="flex-1 resize-none rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors"
             style={{
