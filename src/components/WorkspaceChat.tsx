@@ -1106,7 +1106,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: '#0f172a' }}>
                         <span className="text-white font-black" style={{ fontSize: '8px', letterSpacing: '0.02em' }}>C</span>
                       </div>
-                      <span className="text-xs font-black tracking-wide uppercase" style={{ color: '#0f172a' }}>Consensus</span>
+                      <span className="text-xs font-black tracking-wide uppercase agent-name-text" style={{ '--agent-color': '#0f172a' } as React.CSSProperties}>Consensus</span>
                       <span className="text-xs ml-auto" style={{ color: '#64748b' }}>{formatMessageTime(msg.created_at)}</span>
                     </div>
                     <div className="px-4 py-3">
@@ -1129,7 +1129,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                   </div>
                   <div className="max-w-[85%]">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="text-xs font-bold" style={{ color: colors.text }}>{msg.agent_name}</p>
+                      <p className="text-xs font-bold agent-name-text" style={{ '--agent-color': colors.text } as React.CSSProperties}>{msg.agent_name}</p>
                       <span className="text-[10px] text-slate-400">{formatMessageTime(msg.created_at)}</span>
                       {phase === 'challenge' && (
                         <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: 'rgba(234,88,12,0.1)', color: '#c2410c' }}>challenges</span>

@@ -156,7 +156,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           style={{ background: 'rgba(184,134,11,0.15)', color: '#d4a535', border: '1px solid rgba(184,134,11,0.22)' }}
         >
           <Zap className="w-3.5 h-3.5" />
-          Decision Intelligence for Teams
+          Adversarial Multi-Agent Decision Intelligence
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-bold leading-[1.06] mb-5 text-white mx-auto max-w-3xl tracking-tight">

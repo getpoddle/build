@@ -503,7 +503,7 @@ function AgentPositionMatrix({
               </span>
 
               {/* Agent name */}
-              <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--app-text-secondary)' }}>
+              <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--app-text-primary)' }}>
                 {ag.label}
               </span>
 
