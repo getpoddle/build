@@ -125,7 +125,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                     Where your team's hardest decisions get debated.
                   </h2>
                   <p className="text-sm lg:text-base leading-relaxed max-w-lg" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                    Spin up a private workspace, invite your team, and let AI agents stress-test your ideas — risks, consensus, and action items in one place.
+                    Spin up a private workspace, invite your team, and let AI agents stress-test your decisions — risks, financials, strategy, bias, consensus, recommendations, action items in one place.
                   </p>
                 </div>
 
