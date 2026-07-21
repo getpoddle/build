@@ -124,6 +124,26 @@ function memberColor(userId: string) {
   return MEMBER_COLORS[Math.abs(hash) % MEMBER_COLORS.length];
 }
 
+function formatDateDivider(ts: string): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 86400000);
+  const msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (msgDay.getTime() === today.getTime()) return 'Today';
+  if (msgDay.getTime() === yesterday.getTime()) return 'Yesterday';
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: msgDay.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+}
+
+function formatMessageTime(ts: string): string {
+  return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function dateKey(ts: string): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
 const INTAKE_STEPS = [
   {
     icon: Target,
@@ -1010,26 +1030,46 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             </div>
           )
         ) : (
-          messages.map((msg) => {
+          (() => {
+            let lastDateKey = '';
+            return messages.map((msg) => {
+              const dKey = dateKey(msg.created_at);
+              const showDivider = dKey !== lastDateKey;
+              lastDateKey = dKey;
+              const dateDivider = showDivider ? (
+                <div key={`date-${dKey}`} className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px" style={{ background: 'var(--app-border)' }} />
+                  <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ color: 'var(--app-text-secondary)', background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}>
+                    {formatDateDivider(msg.created_at)}
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: 'var(--app-border)' }} />
+                </div>
+              ) : null;
+
             if (msg.role === 'user') {
               const isMe = msg.user_id === user?.id;
               const senderName = msg.user_id ? getSenderName(msg.user_id) : 'Member';
               const colors = msg.user_id ? memberColor(msg.user_id) : memberColor('default');
 
               return (
-                <div key={msg.id} className={`flex items-end gap-2.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                <div key={msg.id}>
+                  {dateDivider}
+                  <div className={`flex items-end gap-2.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
                   {!isMe && msg.user_id && (
                     <div className="flex-shrink-0 mb-0.5">
                       {renderUserAvatar(msg.user_id)}
                     </div>
                   )}
                   <div className={`flex flex-col max-w-[78%] ${isMe ? 'items-end' : 'items-start'}`}>
-                    <span
-                      className="text-xs font-semibold mb-1 px-1"
-                      style={{ color: isMe ? '#1d4ed8' : colors.text }}
-                    >
-                      {senderName}
-                    </span>
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span
+                        className="text-xs font-semibold px-1"
+                        style={{ color: isMe ? '#1d4ed8' : colors.text }}
+                      >
+                        {senderName}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{formatMessageTime(msg.created_at)}</span>
+                    </div>
                     <div
                       className="px-4 py-3"
                       style={
@@ -1046,6 +1086,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       {renderUserAvatar(msg.user_id)}
                     </div>
                   )}
+                  </div>
                 </div>
               );
             }
@@ -1058,46 +1099,54 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
             if (isConsensus) {
               return (
-                <div key={msg.id} className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(15,23,42,0.12)', background: 'rgba(15,23,42,0.02)' }}>
-                  <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'rgba(15,23,42,0.05)', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
-                    <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: '#0f172a' }}>
-                      <span className="text-white font-black" style={{ fontSize: '8px', letterSpacing: '0.02em' }}>C</span>
+                <div key={msg.id}>
+                  {dateDivider}
+                  <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(15,23,42,0.12)', background: 'rgba(15,23,42,0.02)' }}>
+                    <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'rgba(15,23,42,0.05)', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
+                      <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: '#0f172a' }}>
+                        <span className="text-white font-black" style={{ fontSize: '8px', letterSpacing: '0.02em' }}>C</span>
+                      </div>
+                      <span className="text-xs font-black tracking-wide uppercase" style={{ color: '#0f172a' }}>Consensus</span>
+                      <span className="text-xs ml-auto" style={{ color: '#64748b' }}>{formatMessageTime(msg.created_at)}</span>
                     </div>
-                    <span className="text-xs font-black tracking-wide uppercase" style={{ color: '#0f172a' }}>Consensus</span>
-                    <span className="text-xs ml-auto" style={{ color: '#64748b' }}>Agents reached alignment</span>
-                  </div>
-                  <div className="px-4 py-3">
-                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    <div className="px-4 py-3">
+                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    </div>
                   </div>
                 </div>
               );
             }
 
             return (
-              <div key={msg.id} className="flex items-start gap-3">
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 flex-none"
-                  style={{ background: colors.text, border: `1px solid ${colors.border}` }}
-                >
-                  <span className="text-white font-black" style={{ fontSize: '10px', letterSpacing: '0.02em' }}>{abbr}</span>
-                </div>
-                <div className="max-w-[85%]">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-xs font-bold" style={{ color: colors.text }}>{msg.agent_name}</p>
-                    {phase === 'challenge' && (
-                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: 'rgba(234,88,12,0.1)', color: '#c2410c' }}>challenges</span>
-                    )}
-                  </div>
+              <div key={msg.id}>
+                {dateDivider}
+                <div className="flex items-start gap-3">
                   <div
-                    className="rounded-2xl rounded-tl-md px-4 py-3"
-                    style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
+                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 flex-none"
+                    style={{ background: colors.text, border: `1px solid ${colors.border}` }}
                   >
-                    <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    <span className="text-white font-black" style={{ fontSize: '10px', letterSpacing: '0.02em' }}>{abbr}</span>
+                  </div>
+                  <div className="max-w-[85%]">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-xs font-bold" style={{ color: colors.text }}>{msg.agent_name}</p>
+                      <span className="text-[10px] text-slate-400">{formatMessageTime(msg.created_at)}</span>
+                      {phase === 'challenge' && (
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: 'rgba(234,88,12,0.1)', color: '#c2410c' }}>challenges</span>
+                      )}
+                    </div>
+                    <div
+                      className="rounded-2xl rounded-tl-md px-4 py-3"
+                      style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
+                    >
+                      <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             );
-          })
+            });
+          })()
         )}
 
         {loading && (

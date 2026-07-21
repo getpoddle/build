@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { isInviteUsable, emailMatchesInvite, hasSeatAvailable } from "../_shared/inviteLogic.ts";
+import { buildInviteAcceptedEmail } from "../_shared/emailTemplates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,7 +50,7 @@ Deno.serve(async (req: Request) => {
     // Fetch invite + workspace in one query via join
     const { data: invite, error: inviteErr } = await service
       .from("workspace_invites")
-      .select("id, workspace_id, invited_email, expires_at, accepted_at, workspaces(seats, subscription_status, stripe_subscription_id)")
+      .select("id, workspace_id, invited_email, invited_by, expires_at, accepted_at, workspaces(seats, subscription_status, stripe_subscription_id)")
       .eq("token", token)
       .maybeSingle();
 
@@ -132,6 +133,69 @@ Deno.serve(async (req: Request) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ── Notify the inviter that their invite was accepted ──
+    try {
+      const { data: workspaceRow } = await service
+        .from("workspaces")
+        .select("name")
+        .eq("id", invite.workspace_id)
+        .maybeSingle();
+
+      const { data: accepterProfile } = await service
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const { data: inviterProfile } = await service
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", invite.invited_by)
+        .maybeSingle();
+
+      if (inviterProfile) {
+        const accepterName = accepterProfile?.full_name || accepterProfile?.email || "A team member";
+        const wsName = workspaceRow?.name || "your workspace";
+
+        // In-app notification
+        await service.from("notifications").insert({
+          user_id: invite.invited_by,
+          type: "workspace_invite_accepted",
+          title: `${accepterName} accepted your invitation`,
+          content: `${accepterName} joined ${wsName}.`,
+          related_id: invite.workspace_id,
+          related_type: "workspace",
+          actor_id: user.id,
+          is_read: false,
+        });
+
+        // Email notification via Resend
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        if (resendKey && inviterProfile.email) {
+          const html = buildInviteAcceptedEmail(
+            inviterProfile.full_name || inviterProfile.email,
+            accepterName,
+            wsName,
+          );
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${resendKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: "Poddle <hello@poddleme.com>",
+              to: [inviterProfile.email],
+              subject: `${accepterName} accepted your workspace invitation`,
+              html,
+            }),
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("Failed to send invite-accepted notification:", notifErr);
     }
 
     return new Response(JSON.stringify({ success: true, workspace_id: invite.workspace_id }), {

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply, Bot } from 'lucide-react';
+import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply, Bot, UserCheck } from 'lucide-react';
 import { SkeletonNotification } from './Skeleton';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -295,6 +295,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       onNavigate('pods');
     } else if (notification.type === 'workspace_agents_responded') {
       onNavigate('workspaces');
+    } else if (notification.type === 'workspace_invite_accepted') {
+      onNavigate('workspaces');
     }
   }
 
@@ -320,6 +322,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
         return <Reply className="w-4 h-4" />;
       case 'workspace_agents_responded':
         return <Bot className="w-4 h-4" />;
+      case 'workspace_invite_accepted':
+        return <UserCheck className="w-4 h-4" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
@@ -438,6 +442,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
                               ? 'bg-slate-100 text-slate-600'
                               : notification.type === 'workspace_agents_responded'
                               ? 'bg-blue-100 text-blue-600'
+                              : notification.type === 'workspace_invite_accepted'
+                              ? 'bg-emerald-100 text-emerald-600'
                               : 'bg-green-100 text-green-600'
                           }`}
                         >

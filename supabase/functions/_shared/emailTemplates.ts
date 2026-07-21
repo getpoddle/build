@@ -290,3 +290,29 @@ export function buildCancellationEmail(
 
   return emailShell(`Your Poddle ${planLabel} subscription has been cancelled`, header, body);
 }
+
+// ─── Workspace Invite Accepted ──────────────────────────────────────────────
+
+export function buildInviteAcceptedEmail(
+  inviterName: string,
+  accepterName: string,
+  workspaceName: string,
+): string {
+  const header = `<div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:32px 32px 28px;">
+    <p style="color:rgba(255,255,255,0.65);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px 0;">Invite Accepted</p>
+    <h1 style="color:#ffffff;font-size:26px;font-weight:800;margin:0;line-height:1.2;">${accepterName} joined your workspace</h1>
+  </div>`;
+
+  const body = `
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 16px 0;">
+      Hi ${inviterName},
+    </p>
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 28px 0;">
+      <strong style="color:#e2e8f0;">${accepterName}</strong> has accepted your invitation and joined
+      <strong style="color:#e2e8f0;">${workspaceName}</strong>. They can now participate in AI Collaboration sessions and view the War Room synthesis.
+    </p>
+    ${ctaButton("Open Workspace", `${APP_URL}/#workspaces`)}
+    ${supportNote()}`;
+
+  return emailShell(`${accepterName} accepted your workspace invitation`, header, body);
+}
