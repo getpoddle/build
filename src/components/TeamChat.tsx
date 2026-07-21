@@ -144,6 +144,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sendError, setSendError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -344,6 +345,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     setSending(true);
     setInput('');
     setMentionQuery(null);
+    setSendError(null);
 
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -362,8 +364,9 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       if (error) throw error;
 
       setTimeout(() => scrollToBottom(), 100);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to send team chat message:', err);
+      setSendError(err?.message || 'Failed to send message');
       setInput(trimmed);
     } finally {
       setSending(false);
@@ -548,6 +551,12 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
           </div>
         )}
 
+        {sendError && (
+          <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg text-xs" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>
+            <span>{sendError}</span>
+            <button onClick={() => setSendError(null)} className="ml-auto font-semibold">Dismiss</button>
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
@@ -583,3 +592,6 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     </div>
   );
 }
+
+
+export default TeamChat
