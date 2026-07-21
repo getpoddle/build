@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply, Bot, UserCheck, Users } from 'lucide-react';
 import { SkeletonNotification } from './Skeleton';
 import { supabase } from '../lib/supabase';
@@ -352,7 +353,7 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
         )}
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div
           className="fixed inset-0 z-[100]"
           onClick={() => setIsOpen(false)}
@@ -496,7 +497,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
