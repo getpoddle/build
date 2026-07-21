@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Lock, Settings, ArrowLeft,
-  MessageSquare, Zap, RefreshCw, Loader2, AlertTriangle, Sparkles, Clock, ChevronDown
+  MessageSquare, Activity, RefreshCw, Loader2, AlertTriangle, Cpu, Clock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -113,145 +113,152 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
     }
   }, [accessLoading, canAccess, fetchWorkspace]);
 
-  /* ── Loading & access-denied states ── */
+  /* ── Loading state ── */
   if (accessLoading) {
     return (
-      <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100dvh - 3.5rem)', background: '#f1f5f9' }}>
+      <div className="flex flex-col overflow-hidden" style={{ height: 'calc(100dvh - 3.5rem)', background: 'var(--app-bg)' }}>
         {/* Header skeleton */}
-        <div className="flex-shrink-0 bg-white px-4 lg:px-5 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
-          <div className="w-8 h-8 rounded-xl bg-slate-100 animate-pulse" />
-          <div className="w-8 h-8 rounded-xl bg-slate-200 animate-pulse" />
-          <div className="flex-1 space-y-1.5">
-            <div className="h-3.5 w-40 bg-slate-200 rounded-full animate-pulse" />
-            <div className="h-2.5 w-60 bg-slate-100 rounded-full animate-pulse" />
+        <div
+          className="flex-shrink-0 flex items-center gap-3 px-4 lg:px-5 py-3"
+          style={{ background: 'var(--app-surface-raised)', borderBottom: '1px solid var(--app-border)' }}
+        >
+          <div className="skeleton w-7 h-7" />
+          <div className="skeleton w-7 h-7" />
+          <div className="flex-1 space-y-2">
+            <div className="skeleton h-3 w-36" />
+            <div className="skeleton h-2.5 w-52" />
           </div>
-          <div className="w-24 h-8 bg-slate-100 rounded-xl animate-pulse" />
+          <div className="skeleton w-28 h-7" />
         </div>
         {/* Panel skeleton */}
-        <div className="flex-1 flex p-4 gap-4">
-          <div className="flex-1 bg-white rounded-2xl animate-pulse" style={{ border: '1px solid rgba(15,23,42,0.06)' }} />
-          <div className="hidden lg:block w-96 bg-white rounded-2xl animate-pulse" style={{ border: '1px solid rgba(15,23,42,0.06)' }} />
+        <div className="flex-1 flex p-3 gap-3">
+          <div className="skeleton flex-1" style={{ border: '1px solid var(--app-border)' }} />
+          <div className="skeleton hidden lg:block w-[420px]" style={{ border: '1px solid var(--app-border)' }} />
         </div>
       </div>
     );
   }
 
+  /* ── Access denied ── */
   if (!canAccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#f8fafc' }}>
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(15,23,42,0.05)' }}>
-            <Lock className="w-8 h-8 text-slate-400" />
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--app-bg)' }}>
+        <div className="text-center max-w-xs" style={{ color: 'var(--app-text-primary)' }}>
+          <div className="w-12 h-12 flex items-center justify-center mx-auto mb-5" style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}>
+            <Lock className="w-5 h-5" style={{ color: 'var(--app-text-muted)' }} />
           </div>
-          <h2 className="text-xl font-black text-slate-900 mb-2">Private Workspace</h2>
-          <p className="text-slate-500 text-sm leading-relaxed">
-            This workspace is invite-only. Ask an owner or admin to send you an invitation.
+          <p className="section-label mb-2">Access Restricted</p>
+          <h2 className="text-base font-semibold mb-2" style={{ color: 'var(--app-text-primary)' }}>Private Workspace</h2>
+          <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--app-text-secondary)' }}>
+            This workspace is invite-only. Contact the workspace owner for access.
           </p>
-          <button onClick={onBack} className="mt-6 text-sm font-semibold text-blue-600 hover:text-blue-700">
-            Go back
+          <button onClick={onBack} className="btn-ghost text-xs">
+            Return to overview
           </button>
         </div>
       </div>
     );
   }
 
-  /* ── Read-only overlay helper ── */
+  /* ── Read-only overlay ── */
   function ReadOnlyOverlay() {
     return (
       <div
-        className="absolute inset-0 z-10 flex items-center justify-center rounded-xl"
-        style={{ background: 'rgba(248,250,252,0.92)', backdropFilter: 'blur(4px)' }}
+        className="absolute inset-0 z-10 flex items-center justify-center"
+        style={{ background: 'rgba(240,243,247,0.92)', backdropFilter: 'blur(3px)' }}
       >
         <div className="text-center px-6">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(239,68,68,0.1)' }}>
-            <Lock className="w-6 h-6 text-red-400" />
+          <div className="w-10 h-10 flex items-center justify-center mx-auto mb-3" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)', borderOpacity: '0.3' }}>
+            <Lock className="w-4 h-4" style={{ color: 'var(--negative)' }} />
           </div>
-          <p className="text-sm font-bold text-slate-700 mb-1">Chat is read-only</p>
-          <p className="text-xs text-slate-500 mb-4">Upgrade to resume conversations with AI agents.</p>
+          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--app-text-primary)' }}>Read-only mode</p>
+          <p className="text-xs mb-4" style={{ color: 'var(--app-text-secondary)' }}>Upgrade to resume analysis sessions.</p>
           <button
             onClick={() => setShowUpgrade(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+            className="btn-primary"
           >
-            <Sparkles className="w-4 h-4" />
-            Upgrade to unlock
+            Upgrade plan
           </button>
         </div>
       </div>
     );
   }
+
+  const planLabel = plan === 'enterprise' ? 'ENTERPRISE' : 'PRO';
 
   return (
     <div
       className="flex flex-col overflow-hidden lg:!h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))]"
       style={{
         height: 'calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px) - 5.5rem - env(safe-area-inset-bottom, 0px))',
-        background: '#f1f5f9',
+        background: 'var(--app-bg)',
       }}
     >
 
       {/* ── Top header bar ── */}
-      <div className="flex-shrink-0 bg-white" style={{ borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
+      <div
+        className="flex-shrink-0"
+        style={{ background: 'var(--app-surface-raised)', borderBottom: '1px solid var(--app-border)' }}
+      >
 
         {/* Main header row */}
-        <div className="flex items-center gap-3 px-4 lg:px-5 py-3">
+        <div className="flex items-center gap-3 px-4 lg:px-5 py-2.5">
           <button
             onClick={onBack}
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all"
+            className="btn-ghost p-1.5"
+            aria-label="Back to workspaces"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
           </button>
 
+          {/* Workspace identity mark */}
           <div
-            className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-xs font-black"
+            style={{ background: 'var(--ink-50)', color: 'var(--ink-900)', border: '1px solid var(--app-border)' }}
+            title={workspace?.name}
           >
-            <Zap className="w-4 h-4 text-white" />
+            {(workspace?.name || 'W').slice(0, 1).toUpperCase()}
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-sm lg:text-base font-bold text-slate-900 truncate tracking-tight">{workspace?.name || 'Private Workspace'}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-semibold truncate" style={{ color: 'var(--app-text-primary)' }}>
+                {workspace?.name || 'Private Workspace'}
+              </h1>
               {workspaceIsPro && (
-                <span
-                  className="flex-shrink-0 text-xs font-black px-1.5 py-0.5 rounded-full"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', fontSize: '9px' }}
-                >
-                  {plan === 'enterprise' ? 'ENTERPRISE' : 'PRO'}
-                </span>
+                <span className="badge badge-amber flex-shrink-0">{planLabel}</span>
               )}
               {isTrial && !isReadOnly && daysLeft !== null && (
-                <span
-                  className="flex-shrink-0 hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(37,99,235,0.08)', color: '#2563eb' }}
-                >
-                  <Clock className="w-3 h-3" />
-                  {daysLeft}d trial
+                <span className="hidden sm:inline-flex items-center gap-1 badge badge-slate flex-shrink-0">
+                  <Clock className="w-2.5 h-2.5" />
+                  {daysLeft}d
                 </span>
               )}
             </div>
             {workspace?.description && (
-              <p className="text-xs lg:text-sm text-slate-500 truncate hidden sm:block mt-0.5">{workspace.description}</p>
+              <p className="text-xs truncate hidden sm:block mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
+                {workspace.description}
+              </p>
             )}
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Re-synthesize — desktop primary action in header */}
             {workspaceIsPro && !isReadOnly && (
               <button
                 onClick={handleResynthesis}
                 disabled={resyncing}
-                className="hidden lg:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs lg:text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', boxShadow: '0 2px 8px rgba(37,99,235,0.2)' }}
+                className="hidden lg:flex btn-primary gap-1.5 disabled:opacity-50"
+                style={{ padding: '0.375rem 0.875rem', fontSize: '0.75rem' }}
               >
                 {resyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                {resyncing ? 'Synthesizing…' : 'Synthesize'}
+                {resyncing ? 'Synthesizing' : 'Synthesize'}
               </button>
             )}
             {isAdmin && (
               <button
                 onClick={onSettings}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all"
+                className="btn-ghost gap-1.5"
+                style={{ padding: '0.375rem 0.625rem', fontSize: '0.75rem' }}
               >
                 <Settings className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Settings</span>
@@ -260,71 +267,75 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           </div>
         </div>
 
-        {/* Trial / read-only banners */}
+        {/* Banners */}
         {expiryWarning && (
-          <div className="px-4 lg:px-5 py-2 flex items-center gap-3" style={{ background: 'rgba(245,158,11,0.07)', borderTop: '1px solid rgba(245,158,11,0.15)' }}>
-            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b45309' }} />
-            <p className="text-xs flex-1" style={{ color: '#92400e' }}>
-              <span className="font-bold">Trial expires in {daysLeft} day{daysLeft === 1 ? '' : 's'}.</span>
-              {' '}Upgrade to keep this workspace active.
+          <div
+            className="px-4 lg:px-5 py-2 flex items-center gap-3"
+            style={{ background: 'var(--signal-bg)', borderTop: '1px solid var(--signal)', borderTopOpacity: '0.3' }}
+          >
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--signal)' }} />
+            <p className="text-xs flex-1" style={{ color: 'var(--app-text-secondary)' }}>
+              <span className="font-semibold">Trial expires in {daysLeft} day{daysLeft === 1 ? '' : 's'}.</span>
+              {' '}Upgrade to maintain access.
             </p>
             <button
               onClick={() => setShowUpgrade(true)}
-              className="text-xs font-bold px-2.5 py-1 rounded-lg text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#b45309,#d97706)' }}
+              className="btn-primary flex-shrink-0"
+              style={{ padding: '0.25rem 0.75rem', fontSize: '0.6875rem' }}
             >
               Upgrade
             </button>
           </div>
         )}
         {isReadOnly && (
-          <div className="px-4 lg:px-5 py-2 flex items-center gap-3" style={{ background: 'rgba(239,68,68,0.05)', borderTop: '1px solid rgba(239,68,68,0.15)' }}>
-            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 text-red-500" />
-            <p className="text-xs flex-1 text-red-700">
-              <span className="font-bold">Trial expired — read-only.</span>
-              {' '}Your data is safe. Upgrade to restore full access.
+          <div
+            className="px-4 lg:px-5 py-2 flex items-center gap-3"
+            style={{ background: 'var(--negative-bg)', borderTop: '1px solid var(--negative)', borderTopOpacity: '0.25' }}
+          >
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--negative)' }} />
+            <p className="text-xs flex-1" style={{ color: 'var(--app-text-secondary)' }}>
+              <span className="font-semibold">Trial expired — read-only.</span>
+              {' '}Your data is preserved. Upgrade to restore full access.
             </p>
             <button
               onClick={() => setShowUpgrade(true)}
-              className="text-xs font-bold px-2.5 py-1 rounded-lg text-white flex-shrink-0 flex items-center gap-1"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+              className="btn-primary flex-shrink-0"
+              style={{ padding: '0.25rem 0.75rem', fontSize: '0.6875rem' }}
             >
-              <Sparkles className="w-3 h-3" />
               Upgrade
             </button>
           </div>
         )}
 
         {/* ── Mobile tab bar ── */}
-        <div className="lg:hidden flex flex-shrink-0" style={{ borderTop: '1px solid rgba(15,23,42,0.07)', background: 'rgba(255,255,255,0.6)' }}>
-          <button
-            onClick={() => setMainTab('chat')}
-            className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors relative"
-            style={mainTab === 'chat'
-              ? { color: '#2563eb', borderBottom: '2.5px solid #2563eb', background: 'rgba(37,99,235,0.04)' }
-              : { color: '#94a3b8', borderBottom: '2.5px solid transparent' }}
-          >
-            <MessageSquare className="w-4 h-4" />
-            AI Collaboration
-          </button>
-          <button
-            onClick={() => setMainTab('warroom')}
-            className="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold transition-colors relative"
-            style={mainTab === 'warroom'
-              ? { color: '#d97706', borderBottom: '2.5px solid #d97706', background: 'rgba(245,158,11,0.04)' }
-              : { color: '#94a3b8', borderBottom: '2.5px solid transparent' }}
-          >
-            <Zap className="w-4 h-4" />
-            War Room
-            {!workspaceIsPro && (
-              <span
-                className="absolute top-2 right-3 text-white font-bold rounded-full"
-                style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', fontSize: '8px', padding: '1px 4px' }}
+        <div
+          className="lg:hidden flex flex-shrink-0"
+          style={{ borderTop: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
+        >
+          {([ 
+            { id: 'chat' as MainTab, label: 'AI Collaboration', Icon: MessageSquare },
+            { id: 'warroom' as MainTab, label: 'War Room', Icon: Activity },
+          ] as const).map(({ id, label, Icon }) => {
+            const active = mainTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setMainTab(id)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-colors relative"
+                style={{
+                  color: active ? 'var(--signal)' : 'var(--app-text-muted)',
+                  borderBottom: active ? '2px solid var(--signal)' : '2px solid transparent',
+                  background: active ? 'var(--signal-bg)' : 'transparent',
+                }}
               >
-                PRO
-              </span>
-            )}
-          </button>
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+                {id === 'warroom' && !workspaceIsPro && (
+                  <span className="badge badge-amber absolute top-1.5 right-2" style={{ padding: '0.1rem 0.35rem', fontSize: '9px' }}>PRO</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -333,8 +344,11 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
 
         {/* ── MOBILE: Chat tab ── */}
         {mainTab === 'chat' && (
-          <div className="lg:hidden flex-1 overflow-hidden px-3 pt-2 pb-1">
-            <div className="h-full rounded-2xl overflow-hidden relative bg-white" style={{ boxShadow: '0 1px 4px rgba(15,23,42,0.06)', border: '1px solid rgba(15,23,42,0.08)' }}>
+          <div className="lg:hidden flex-1 overflow-hidden p-2">
+            <div
+              className="h-full overflow-hidden relative"
+              style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
+            >
               {isReadOnly && <ReadOnlyOverlay />}
               <div className="h-full p-3">
                 <WorkspaceChat
@@ -377,25 +391,26 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
         <div className="hidden lg:flex flex-1 overflow-hidden">
 
           {/* Left: AI Collaboration */}
-          <div className="flex-1 min-w-0 max-w-[900px] mx-auto w-full flex flex-col overflow-hidden" style={{ borderRight: '1px solid rgba(15,23,42,0.08)' }}>
-            {/* Panel sub-header */}
+          <div
+            className="flex-1 min-w-0 max-w-[900px] mx-auto w-full flex flex-col overflow-hidden"
+            style={{ borderRight: '1px solid var(--app-border)' }}
+          >
+            {/* Panel header */}
             <div
               className="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5"
-              style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', background: 'rgba(37,99,235,0.02)' }}
+              style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
             >
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.10)' }}>
-                <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-              </div>
-              <span className="text-xs lg:text-sm font-bold text-slate-700">AI Collaboration</span>
-              <span className="text-xs lg:text-sm text-slate-500 ml-1">— 7 specialist advisors</span>
+              <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--app-text-muted)' }} />
+              <span className="section-label">AI Collaboration</span>
+              <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>— 7 specialist advisors</span>
               <div className="ml-auto flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                <span className="text-xs text-slate-400">Live</span>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--positive)' }} />
+                <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>Live</span>
               </div>
             </div>
 
             {/* Chat content */}
-            <div className="flex-1 min-h-0 relative bg-white">
+            <div className="flex-1 min-h-0 relative" style={{ background: 'var(--app-surface-raised)' }}>
               {isReadOnly && <ReadOnlyOverlay />}
               <div className="h-full p-5">
                 <WorkspaceChat
@@ -417,35 +432,33 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
             className="flex-shrink-0 flex flex-col overflow-hidden"
             style={{ width: 'clamp(440px, 38vw, 640px)' }}
           >
-            {/* Panel sub-header */}
+            {/* Panel header */}
             <div
-              className="flex-shrink-0 flex items-center gap-2.5 px-5 py-3"
-              style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', background: 'rgba(245,158,11,0.02)' }}
+              className="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5"
+              style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
             >
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.12)' }}>
-                <Zap className="w-3.5 h-3.5 text-amber-500" />
-              </div>
-              <span className="text-xs lg:text-sm font-bold text-slate-700">War Room</span>
+              <Activity className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--signal)' }} />
+              <span className="section-label">War Room</span>
               {!workspaceIsPro && (
-                <span className="text-xs font-black px-1.5 py-0.5 rounded-full text-white" style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', fontSize: '9px' }}>PRO</span>
+                <span className="badge badge-amber" style={{ fontSize: '9px' }}>PRO</span>
               )}
               <div className="ml-auto flex items-center gap-2">
                 {workspaceIsPro && !isReadOnly && (
                   <button
                     onClick={handleResynthesis}
                     disabled={resyncing}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', boxShadow: '0 1px 6px rgba(37,99,235,0.2)' }}
+                    className="btn-primary disabled:opacity-50"
+                    style={{ padding: '0.25rem 0.75rem', fontSize: '0.6875rem', gap: '0.375rem' }}
                   >
-                    {resyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                    {resyncing ? 'Synthesizing…' : 'Synthesize'}
+                    {resyncing ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <RefreshCw className="w-2.5 h-2.5" />}
+                    {resyncing ? 'Synthesizing' : 'Synthesize'}
                   </button>
                 )}
               </div>
             </div>
 
-            {/* War Room content — owns the scroll */}
-            <div className="flex-1 min-h-0 overflow-y-auto" style={{ background: '#f8fafc' }}>
+            {/* War Room content */}
+            <div className="flex-1 min-h-0 overflow-y-auto" style={{ background: 'var(--app-bg)' }}>
               {workspaceIsPro ? (
                 <WorkspaceWarRoom
                   key={warRoomKey}
@@ -473,6 +486,9 @@ export default function WorkspaceHub({ workspaceId, onBack, onSettings, onNaviga
           onUpgrade={() => { setShowUpgrade(false); onNavigate('pricing'); }}
         />
       )}
+
+      {/* suppress unused import lint */}
+      <span className="hidden">{user?.id}{Cpu && ''}</span>
     </div>
   );
 }

@@ -336,18 +336,18 @@ function ScoreRing({ score, size = 96 }: { score: number; size?: number }) {
   const r = size * 0.375;
   const circ = 2 * Math.PI * r;
   const dash = (safe / 100) * circ;
-  const color = safe >= 70 ? '#16a34a' : safe >= 45 ? '#f59e0b' : '#dc2626';
+  const color = safe >= 70 ? 'var(--positive)' : safe >= 45 ? 'var(--caution)' : 'var(--negative)';
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+    <div className="relative flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="7" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--app-border)" strokeWidth="7" />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="7"
-          strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="butt"
           style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.4,0,0.2,1)' }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-black" style={{ color, fontSize: size * 0.24 }}>{safe}</span>
-        <span className="text-slate-400 font-semibold" style={{ fontSize: size * 0.1 }}>/ 100</span>
+        <span className="font-black mono" style={{ color, fontSize: size * 0.24 }}>{safe}</span>
+        <span className="mono-xs" style={{ color: 'var(--app-text-muted)', fontSize: size * 0.10 }}>/ 100</span>
       </div>
     </div>
   );
@@ -357,13 +357,13 @@ function ScoreRing({ score, size = 96 }: { score: number; size?: number }) {
 function SubScorePill({ label, score, icon: Icon }: { label: string; score: number | null; icon: React.ElementType }) {
   if (score === null) return null;
   const safe = Math.max(0, Math.min(100, score));
-  const color = safe >= 70 ? '#16a34a' : safe >= 45 ? '#f59e0b' : '#dc2626';
-  const bg    = safe >= 70 ? 'rgba(22,163,74,0.15)' : safe >= 45 ? 'rgba(245,158,11,0.15)' : 'rgba(220,38,38,0.15)';
+  const color = safe >= 70 ? 'var(--positive)' : safe >= 45 ? 'var(--caution)' : 'var(--negative)';
+  const bg    = safe >= 70 ? 'var(--positive-bg)' : safe >= 45 ? 'var(--signal-bg)' : 'var(--negative-bg)';
   return (
-    <div className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 min-w-[80px]" style={{ background: bg }}>
+    <div className="stat-card flex flex-col items-center gap-1 min-w-[72px]" style={{ background: bg, borderColor: color, borderOpacity: 0.3, padding: '0.5rem 0.75rem' }}>
       <Icon className="w-3.5 h-3.5" style={{ color }} />
-      <span className="text-lg font-black leading-none" style={{ color }}>{safe}</span>
-      <span className="text-xs font-semibold text-center leading-tight" style={{ color, opacity: 0.8 }}>{label}</span>
+      <span className="stat-card-value" style={{ color, fontSize: '1.125rem' }}>{safe}</span>
+      <span className="stat-card-label text-center leading-tight" style={{ color, opacity: 0.75 }}>{label}</span>
     </div>
   );
 }
@@ -372,14 +372,14 @@ function SubScorePill({ label, score, icon: Icon }: { label: string; score: numb
 function VelocityBadge({ velocity }: { velocity: string | null }) {
   if (!velocity) return null;
   const map: Record<string, { label: string; color: string; bg: string }> = {
-    fast:     { label: 'Fast Velocity', color: '#15803d', bg: 'rgba(22,163,74,0.12)' },
-    moderate: { label: 'Moderate',      color: '#b45309', bg: 'rgba(245,158,11,0.12)' },
-    stalling: { label: 'Stalling',      color: '#b91c1c', bg: 'rgba(220,38,38,0.12)' },
+    fast:     { label: 'Fast Velocity', color: 'var(--positive)', bg: 'var(--positive-bg)' },
+    moderate: { label: 'Moderate',      color: 'var(--caution)',  bg: 'var(--signal-bg)'   },
+    stalling: { label: 'Stalling',      color: 'var(--negative)', bg: 'var(--negative-bg)' },
   };
   const s = map[velocity] || map.moderate;
   return (
-    <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: s.bg, color: s.color }}>
-      <Activity className="w-3 h-3" />{s.label}
+    <span className="badge flex-shrink-0" style={{ background: s.bg, color: s.color, borderColor: s.color }}>
+      <Activity className="w-2.5 h-2.5" />{s.label}
     </span>
   );
 }
@@ -387,14 +387,14 @@ function VelocityBadge({ velocity }: { velocity: string | null }) {
 function TrajectoryBadge({ trajectory }: { trajectory: string | null }) {
   if (!trajectory) return null;
   const map: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
-    rising:  { label: 'Confidence Rising',  color: '#15803d', bg: 'rgba(22,163,74,0.12)',  Icon: TrendingUp },
-    flat:    { label: 'Confidence Flat',    color: '#b45309', bg: 'rgba(245,158,11,0.12)', Icon: Minus },
-    falling: { label: 'Confidence Falling', color: '#b91c1c', bg: 'rgba(220,38,38,0.12)', Icon: TrendingDown },
+    rising:  { label: 'Confidence Rising',  color: 'var(--positive)', bg: 'var(--positive-bg)', Icon: TrendingUp },
+    flat:    { label: 'Confidence Flat',    color: 'var(--caution)',  bg: 'var(--signal-bg)',   Icon: Minus },
+    falling: { label: 'Confidence Falling', color: 'var(--negative)', bg: 'var(--negative-bg)', Icon: TrendingDown },
   };
   const s = map[trajectory] || map.flat;
   return (
-    <span className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: s.bg, color: s.color }}>
-      <s.Icon className="w-3 h-3" />{s.label}
+    <span className="badge flex-shrink-0" style={{ background: s.bg, color: s.color, borderColor: s.color }}>
+      <s.Icon className="w-2.5 h-2.5" />{s.label}
     </span>
   );
 }
@@ -410,47 +410,161 @@ function HealthSparkline({ history }: { history: HistoryRow[] }) {
   return (
     <div className="flex items-center gap-3 mt-1">
       <svg width={W} height={H} style={{ overflow: 'visible' }}>
-        <polyline points={pts.join(' ')} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinejoin="round" />
-        <polyline points={pts.join(' ')} fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinejoin="round" />
+        <polyline points={pts.join(' ')} fill="none" stroke="var(--app-border)" strokeWidth="1.5" strokeLinejoin="round" />
+        <polyline points={pts.join(' ')} fill="none" stroke="var(--signal)" strokeWidth="2" strokeLinejoin="round" />
         {scores.map((s, i) => {
           const x = (i / (scores.length - 1)) * W;
           const y = H - ((s - minV) / range) * H;
-          const c = s >= 70 ? '#16a34a' : s >= 45 ? '#f59e0b' : '#dc2626';
+          const c = s >= 70 ? 'var(--positive)' : s >= 45 ? 'var(--caution)' : 'var(--negative)';
           return <circle key={i} cx={x} cy={y} r="3" fill={c} />;
         })}
       </svg>
       <div>
-        <span className="text-xs font-black" style={{ color: delta >= 0 ? '#16a34a' : '#dc2626' }}>
+        <span className="text-xs font-black" style={{ color: delta >= 0 ? 'var(--positive)' : 'var(--negative)' }}>
           {delta >= 0 ? '+' : ''}{delta} pts
         </span>
-        <p className="text-xs text-slate-400">{history.length} runs</p>
+        <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>{history.length} runs</p>
       </div>
     </div>
   );
 }
 
 // ─── Consensus Bar Chart ──────────────────────────────────────────────────────
+// ── Agent Position Matrix — Signature Element ───────────────────────────────
+const AGENT_ROSTER = [
+  { role: 'risk_analyst',         abbr: 'RA', label: 'Risk Analyst',         varKey: 'agent-risk' },
+  { role: 'financial_strategist', abbr: 'FS', label: 'Financial Strategist', varKey: 'agent-fin'  },
+  { role: 'market_analyst',       abbr: 'MA', label: 'Market Analyst',       varKey: 'agent-strat' },
+  { role: 'devils_advocate',      abbr: 'DA', label: "Devil's Advocate",     varKey: 'agent-exec' },
+  { role: 'execution_lead',       abbr: 'EL', label: 'Execution Lead',       varKey: 'agent-exec' },
+  { role: 'innovation_scout',     abbr: 'IS', label: 'Innovation Scout',     varKey: 'agent-strat' },
+  { role: 'people_advisor',       abbr: 'PA', label: 'People Advisor',       varKey: 'agent-risk'  },
+];
+
+function AgentPositionMatrix({
+  conflictZones,
+}: {
+  conflictZones: SynthesisData['conflict_zones'];
+}) {
+  // Build per-agent conflict map — match loosely against agent_a / agent_b strings
+  const conflictMap = new Map<string, { count: number; topics: string[] }>();
+  for (const z of conflictZones) {
+    for (const ag of AGENT_ROSTER) {
+      const needle = ag.role.replace(/_/g, '').toLowerCase();
+      const inA = (z.agent_a || '').toLowerCase().replace(/[\s_-]/g, '').includes(needle);
+      const inB = (z.agent_b || '').toLowerCase().replace(/[\s_-]/g, '').includes(needle);
+      if (inA || inB) {
+        const prev = conflictMap.get(ag.role) || { count: 0, topics: [] };
+        conflictMap.set(ag.role, { count: prev.count + 1, topics: [...prev.topics, z.topic] });
+      }
+    }
+  }
+
+  return (
+    <div style={{ borderBottom: '1px solid var(--app-border)' }}>
+      <div
+        className="px-5 py-2.5 flex items-center gap-2.5"
+        style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
+      >
+        <Brain className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--signal)' }} />
+        <span className="section-label">Agent Position Matrix</span>
+        <span className="hidden sm:inline text-xs" style={{ color: 'var(--app-text-muted)' }}>
+          — stance derived from debate analysis
+        </span>
+      </div>
+      <div style={{ background: 'var(--app-surface-raised)' }}>
+        {AGENT_ROSTER.map((ag, idx) => {
+          const data = conflictMap.get(ag.role);
+          const isConflict = !!data && data.count > 0;
+          const stanceLabel = isConflict ? 'DISSENTING' : 'SUPPORTING';
+          const stanceColor = isConflict ? 'var(--negative)' : 'var(--positive)';
+          const stanceBg    = isConflict ? 'var(--negative-bg)' : 'var(--positive-bg)';
+          const filled = isConflict ? Math.min(5, 2 + data.count) : 3;
+
+          return (
+            <div
+              key={ag.role}
+              className="flex items-center gap-3 px-5 py-2"
+              style={{ borderBottom: idx < AGENT_ROSTER.length - 1 ? '1px solid var(--app-border)' : 'none' }}
+            >
+              {/* Abbreviation badge */}
+              <span
+                className="badge flex-shrink-0"
+                style={{
+                  background: `var(--${ag.varKey}-bg)`,
+                  color: `var(--${ag.varKey})`,
+                  borderColor: `var(--${ag.varKey})`,
+                  fontFamily: 'IBM Plex Mono, monospace',
+                  minWidth: '2.125rem',
+                  justifyContent: 'center',
+                }}
+              >
+                {ag.abbr}
+              </span>
+
+              {/* Agent name */}
+              <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--app-text-secondary)' }}>
+                {ag.label}
+              </span>
+
+              {/* Conviction segments */}
+              <div className="flex items-center gap-px flex-shrink-0" aria-hidden="true">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: 9,
+                      height: 16,
+                      background: i < filled ? stanceColor : 'var(--app-border)',
+                      opacity: i < filled ? 1 : 0.35,
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Stance pill */}
+              <span
+                className="badge flex-shrink-0"
+                style={{ background: stanceBg, color: stanceColor, borderColor: stanceColor, minWidth: '76px', justifyContent: 'center' }}
+              >
+                {stanceLabel}
+              </span>
+
+              {/* Conflict count */}
+              {isConflict && (
+                <span className="mono-xs flex-shrink-0 text-right" style={{ color: 'var(--negative)', minWidth: '3rem' }}>
+                  {data.count} flag{data.count !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ConsensusBarChart({ points }: { points: SynthesisData['consensus_points'] }) {
   return (
-    <div className="space-y-3 px-5 py-4 bg-white">
+    <div className="space-y-3 px-5 py-4" style={{ background: 'var(--app-surface-raised)' }}>
       {points.map((pt, i) => {
         const conf = Math.max(0, Math.min(100, Number(pt.confidence) || 0));
         const color = conf >= 80 ? '#16a34a' : conf >= 60 ? '#84cc16' : '#f59e0b';
         return (
           <div key={i} className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-              style={{ background: 'rgba(22,163,74,0.1)' }}>
-              <span className="text-xs font-black text-green-700">{i + 1}</span>
+            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5"
+              style={{ background: 'var(--positive-bg)', border: '1px solid', borderColor: 'var(--positive)', borderOpacity: 0.3 }}>
+              <span className="text-xs font-black" style={{ color: 'var(--positive)' }}>{i + 1}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-slate-800 leading-relaxed mb-2">{pt.text}</p>
+              <p className="text-sm leading-relaxed mb-2" style={{ color: 'var(--app-text-primary)' }}>{pt.text}</p>
               <div className="flex items-center gap-2">
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden" style={{ width: '160px' }}>
-                  <div className="h-2 rounded-full transition-all duration-1000"
-                    style={{ width: `${conf}%`, background: `linear-gradient(90deg,${color}88,${color})` }} />
+                <div className="h-2 bg-opacity-10 overflow-hidden" style={{ width: '160px', background: 'var(--app-border)' }}>
+                  <div className="h-2 transition-all duration-1000"
+                    style={{ width: `${conf}%`, background: color }} />
                 </div>
                 <span className="text-xs font-bold tabular-nums" style={{ color }}>{conf}%</span>
-                <span className="text-xs text-slate-400">{pt.source_count} agreed</span>
+                <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>{pt.source_count} agreed</span>
               </div>
             </div>
           </div>
@@ -1182,23 +1296,23 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     return (
       <div className="space-y-5 p-4 lg:p-5">
         <div className="text-center py-10 lg:py-12">
-          <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-5"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
-            <Brain className="w-8 h-8 text-white" />
+          <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}>
+            <Brain className="w-6 h-6" style={{ color: 'var(--signal)' }} />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-2">War Room is ready</h3>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto leading-relaxed mb-6">
-            After your team has had some conversations, run a synthesis to surface consensus, conflicts, blind spots, risk signals, financial metrics, and AI-suggested action items.
+          <p className="section-label mb-2">War Room</p>
+          <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--app-text-primary)' }}>Ready for synthesis</h3>
+          <p className="text-xs max-w-sm mx-auto leading-relaxed mb-5" style={{ color: 'var(--app-text-secondary)' }}>
+            After your team has debated, run a synthesis to surface consensus, conflicts, blind spots, risk signals, and actionable next steps.
           </p>
           {messageCount >= 3 ? (
             <button onClick={generate} disabled={generating}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}>
+              className="btn-primary disabled:opacity-60">
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
               {generating ? 'Synthesizing…' : 'Run Intelligence Synthesis'}
             </button>
           ) : (
-            <p className="text-xs text-slate-400 italic">Start a few conversations first — then run a synthesis.</p>
+            <p className="text-xs italic" style={{ color: 'var(--app-text-muted)' }}>Start a few conversations first — then run a synthesis.</p>
           )}
           {error && <p className="text-sm text-red-600 mt-3 font-medium">{error}</p>}
         </div>
@@ -1208,7 +1322,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
   const score = synthesis.decision_health_score;
   const scoreLabel = score >= 75 ? 'Sharp' : score >= 55 ? 'Developing' : score >= 35 ? 'Fragmented' : 'Critical';
-  const scoreColor = score >= 75 ? '#16a34a' : score >= 55 ? '#f59e0b' : score >= 35 ? '#dc2626' : '#7f1d1d';
+  const scoreColor = score >= 75 ? 'var(--positive)' : score >= 55 ? 'var(--caution)' : score >= 35 ? 'var(--negative)' : 'var(--negative)';
 
   const hasFinancial    = synthesis.financial_metrics.length > 0;
   const hasOperational  = synthesis.operational_metrics.length > 0;
@@ -1219,18 +1333,18 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const hasRecommendation = !!synthesis.recommendation;
 
   const sections = [
-    hasRecommendation && { key: 'recommendation', label: 'Recommendation', icon: Sparkles, count: 1,                                    color: '#1e3a5f', bg: 'rgba(30,58,95,0.08)' },
-    { key: 'consensus',     label: 'Consensus',     icon: CheckCircle2,  count: synthesis.consensus_points.length,      color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
-    { key: 'conflicts',     label: 'Conflicts',      icon: GitBranch,     count: synthesis.conflict_zones.length,        color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
-    { key: 'questions',     label: 'Questions',      icon: HelpCircle,    count: synthesis.open_questions.length,        color: '#3b82f6', bg: 'rgba(37,99,235,0.08)' },
-    { key: 'risks',         label: 'Risks',          icon: AlertTriangle, count: synthesis.risk_signals.length,          color: '#dc2626', bg: 'rgba(220,38,38,0.08)' },
-    { key: 'blindspots',    label: 'Blind Spots',    icon: Eye,           count: synthesis.blind_spots.length,           color: '#0891b2', bg: 'rgba(8,145,178,0.08)' },
-    hasFinancial    && { key: 'financial',    label: 'Financial',    icon: DollarSign,    count: synthesis.financial_metrics.length,    color: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
-    hasOperational  && { key: 'operational',  label: 'Operational',  icon: Settings,      count: synthesis.operational_metrics.length,  color: '#b45309', bg: 'rgba(245,158,11,0.08)' },
-    hasNonFinancial && { key: 'strategic',    label: 'Strategic',    icon: BarChart3,     count: synthesis.non_financial_metrics.length, color: '#1d4ed8', bg: 'rgba(37,99,235,0.08)' },
-    hasOpportunities && { key: 'opportunities', label: 'Opportunities', icon: Lightbulb, count: synthesis.opportunity_signals.length,  color: '#15803d', bg: 'rgba(22,163,74,0.1)' },
-    hasBiases       && { key: 'biases',       label: 'Bias Flags',   icon: AlertCircle,  count: synthesis.cognitive_bias_flags.length, color: '#b45309', bg: 'rgba(245,158,11,0.1)' },
-    { key: 'actions',       label: 'Actions',        icon: Target,        count: actionItems.length,                      color: '#2563eb', bg: 'rgba(37,99,235,0.08)' },
+    hasRecommendation && { key: 'recommendation', label: 'Recommendation', icon: Target,       count: 1,                                    color: 'var(--app-text-primary)', bg: 'var(--app-border-subtle)' },
+    { key: 'consensus',     label: 'Consensus',     icon: CheckCircle2,  count: synthesis.consensus_points.length,      color: 'var(--positive)', bg: 'var(--positive-bg)' },
+    { key: 'conflicts',     label: 'Conflicts',      icon: GitBranch,     count: synthesis.conflict_zones.length,        color: 'var(--caution)',  bg: 'var(--signal-bg)'   },
+    { key: 'questions',     label: 'Questions',      icon: HelpCircle,    count: synthesis.open_questions.length,        color: 'var(--agent-fin)', bg: 'var(--agent-fin-bg)' },
+    { key: 'risks',         label: 'Risks',          icon: AlertTriangle, count: synthesis.risk_signals.length,          color: 'var(--negative)', bg: 'var(--negative-bg)' },
+    { key: 'blindspots',    label: 'Blind Spots',    icon: Eye,           count: synthesis.blind_spots.length,           color: 'var(--agent-strat)', bg: 'var(--agent-strat-bg)' },
+    hasFinancial    && { key: 'financial',    label: 'Financial',    icon: DollarSign,    count: synthesis.financial_metrics.length,    color: 'var(--positive)', bg: 'var(--positive-bg)' },
+    hasOperational  && { key: 'operational',  label: 'Operational',  icon: Settings,      count: synthesis.operational_metrics.length,  color: 'var(--caution)',    bg: 'var(--signal-bg)' },
+    hasNonFinancial && { key: 'strategic',    label: 'Strategic',    icon: BarChart3,     count: synthesis.non_financial_metrics.length, color: 'var(--agent-fin)',  bg: 'var(--agent-fin-bg)' },
+    hasOpportunities && { key: 'opportunities', label: 'Opportunities', icon: Lightbulb, count: synthesis.opportunity_signals.length,  color: 'var(--positive)',    bg: 'var(--positive-bg)' },
+    hasBiases       && { key: 'biases',       label: 'Bias Flags',   icon: AlertCircle,  count: synthesis.cognitive_bias_flags.length, color: 'var(--caution)',    bg: 'var(--signal-bg)' },
+    { key: 'actions',       label: 'Actions',        icon: Target,        count: actionItems.length,                      color: 'var(--agent-strat)', bg: 'var(--agent-strat-bg)' },
   ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ElementType; count: number; color: string; bg: string }>;
 
   return (
@@ -1243,14 +1357,14 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">War Room</span>
+            <span className="section-label">War Room</span>
             {stale && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.12)', color: '#b45309' }}>
                 {messageCount - synthesis.message_count} new messages — re-synthesize for fresh intel
               </span>
             )}
           </div>
-          <h2 className="text-xl lg:text-2xl font-bold text-slate-900 tracking-tight">Strategic Intelligence</h2>
+          <h2 className="text-base font-bold tracking-tight" style={{ color: 'var(--app-text-primary)' }}>Decision Intelligence</h2>
           <p className="text-xs text-slate-500 mt-1">
             Based on full War Room session · {new Date(synthesis.generated_at).toLocaleString()}
             {history.length > 0 && ` · Run #${history.length}`}
@@ -1258,9 +1372,9 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowBoardSummary(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5"
-            style={{ background: 'rgba(15,23,42,0.05)', color: '#475569' }}>
-            <Clipboard className="w-4 h-4" />Board Brief
+            className="btn-ghost"
+            style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}>
+            <Clipboard className="w-3.5 h-3.5" />Board Brief
           </button>
           <button onClick={() => exportWarRoomToPDF({
             workspaceName, topic: workspaceTopic, generatedAt: synthesis.generated_at, messageCount: synthesis.message_count,
@@ -1276,13 +1390,13 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             recommendation: synthesis.recommendation,
             actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source: a.source, source_area: a.source_area })),
           })}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5"
-            style={{ background: 'rgba(15,23,42,0.05)', color: '#475569' }}>
-            <Download className="w-4 h-4" />Export PDF
+            className="btn-ghost"
+            style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}>
+            <Download className="w-3.5 h-3.5" />Export PDF
           </button>
           <button onClick={generate} disabled={generating || synthQueued}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-50"
-            style={{ background: stale ? 'linear-gradient(135deg,#1e3a5f,#2563eb)' : 'rgba(15,23,42,0.05)', color: stale ? '#fff' : '#475569' }}>
+            className="btn-primary disabled:opacity-50"
+            style={{ padding: '0.375rem 0.875rem', fontSize: '0.75rem' }}>
             {(generating || synthQueued) ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             {generating ? 'Synthesizing…' : synthQueued ? 'Running in background…' : 'Re-synthesize'}
           </button>
@@ -1298,7 +1412,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       {/* ── Background synthesis in-progress banner ── */}
       {synthQueued && !generating && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium"
-          style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.07),rgba(6,182,212,0.05))', border: '1px solid rgba(37,99,235,0.18)' }}>
+          style={{ background: 'var(--signal-bg)', border: '1px solid', borderColor: 'rgba(184,134,11,0.3)' }}>
           <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" style={{ color: '#2563eb' }} />
           <span style={{ color: '#1e40af' }}>
             Synthesis is running in the background — you can leave this page and we'll update the intelligence report automatically when it's done.
@@ -1307,24 +1421,23 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       )}
 
       {/* ── Decision Health Panel ── */}
-      <div className="rounded-2xl p-5"
-        style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="p-4 lg:p-5" style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
           <ScoreRing score={score} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-lg font-bold text-white">{scoreLabel} Team</span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${scoreColor}22`, color: scoreColor }}>Decision Health</span>
+          <span className="badge badge-amber" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>{scoreLabel}</span>
+              <span className="badge" style={{ background: `${scoreColor}18`, color: scoreColor, borderColor: scoreColor }}>Decision Health</span>
               {scoreDelta !== null && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: scoreDelta >= 0 ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)', color: scoreDelta >= 0 ? '#16a34a' : '#dc2626' }}>
+                <span className="badge"
+                  style={{ background: scoreDelta >= 0 ? 'var(--positive-bg)' : 'var(--negative-bg)', color: scoreDelta >= 0 ? 'var(--positive)' : 'var(--negative)', borderColor: scoreDelta >= 0 ? 'var(--positive)' : 'var(--negative)' }}>
                   {scoreDelta >= 0 ? '+' : ''}{scoreDelta} vs last run
                 </span>
               )}
               <VelocityBadge velocity={synthesis.decision_velocity} />
               <TrajectoryBadge trajectory={synthesis.confidence_trajectory} />
             </div>
-            <p className="text-sm text-slate-300 leading-relaxed mb-3" style={{ lineHeight: '1.7' }}>
+            <p className="text-xs mb-3 leading-relaxed" style={{ lineHeight: '1.7', color: 'var(--app-text-secondary)' }}>
               {synthesis.health_rationale || 'AI-assessed clarity, risk coverage, and strategic alignment.'}
             </p>
 
@@ -1339,24 +1452,24 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
               {questionsDelta !== null && questionsDelta > 0 && (
-                <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(22,163,74,0.15)' }}>
-                  <p className="text-sm font-black text-green-400">{questionsDelta} closed</p>
-                  <p className="text-xs text-green-300/70">questions resolved</p>
+                <div className="stat-card">
+                  <p className="stat-card-value text-sm" style={{ color: 'var(--positive)' }}>{questionsDelta} closed</p>
+                  <p className="stat-card-label">questions resolved</p>
                 </div>
               )}
               {history.length > 0 && (
-                <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                  <p className="text-sm font-bold text-white">#{history.length}</p>
-                  <p className="text-xs text-slate-400">synthesis run</p>
+                <div className="stat-card">
+                  <p className="stat-card-value text-sm">#{history.length}</p>
+                  <p className="stat-card-label">synthesis run</p>
                 </div>
               )}
-              <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                <p className="text-sm font-bold text-white">{synthesis.conflict_zones.length} zones</p>
-                <p className="text-xs text-slate-400">active tensions</p>
+              <div className="stat-card">
+                <p className="stat-card-value text-sm">{synthesis.conflict_zones.length}</p>
+                <p className="stat-card-label">active tensions</p>
               </div>
-              <div className="rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                <p className="text-sm font-bold text-white">{doneItems.length}/{actionItems.length}</p>
-                <p className="text-xs text-slate-400">actions done</p>
+              <div className="stat-card">
+                <p className="stat-card-value text-sm">{doneItems.length}/{actionItems.length}</p>
+                <p className="stat-card-label">actions done</p>
               </div>
             </div>
             <HealthSparkline history={history} />
@@ -1365,26 +1478,21 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       </div>
 
       {/* ── Section nav pills ── */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1 px-5 py-3" style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}>
         <button
           onClick={() => setActiveSection(null)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-          style={activeSection === null
-            ? { background: 'rgba(15,23,42,0.12)', color: '#0f172a', border: '1px solid rgba(15,23,42,0.2)' }
-            : { background: 'rgba(15,23,42,0.04)', color: '#94a3b8', border: '1px solid transparent' }}>
+          className={`nav-pill ${activeSection === null ? 'nav-pill-active' : 'nav-pill-inactive'}`}>
           All
         </button>
         {sections.map(s => (
           <button key={s.key}
             onClick={() => setActiveSection(activeSection === s.key ? null : s.key)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-            style={activeSection === s.key
-              ? { background: s.bg, color: s.color, border: `1px solid ${s.color}33` }
-              : { background: 'rgba(15,23,42,0.04)', color: '#64748b', border: '1px solid transparent' }}>
+            className={`nav-pill flex items-center gap-1.5 ${activeSection === s.key ? '' : 'nav-pill-inactive'}`}
+            style={activeSection === s.key ? { background: s.bg, color: s.color, border: `1px solid ${s.color}`, borderOpacity: 0.4 } : {}}>
             <s.icon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline lg:inline">{s.label}</span>
-            <span className="ml-0.5 text-xs font-black w-4 h-4 rounded-full flex items-center justify-center"
-              style={{ background: activeSection === s.key ? `${s.color}22` : 'rgba(15,23,42,0.08)', color: activeSection === s.key ? s.color : '#64748b' }}>
+            <span className="hidden sm:inline">{s.label}</span>
+            <span className="mono-xs w-5 h-5 flex items-center justify-center flex-shrink-0"
+              style={{ background: activeSection === s.key ? `${s.color}20` : 'var(--app-border)', color: activeSection === s.key ? s.color : 'var(--app-text-muted)' }}>
               {s.count}
             </span>
           </button>
@@ -1393,16 +1501,21 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       </div>{/* end header/health/nav group */}
 
+      {/* ── SIGNATURE ELEMENT: Agent Position Matrix ── */}
+      {synthesis.conflict_zones.length > 0 && (
+        <AgentPositionMatrix conflictZones={synthesis.conflict_zones} />
+      )}
+
       {/* ── RECOMMENDATION ── */}
       {(activeSection === null || activeSection === 'recommendation') && synthesis.recommendation && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(30,58,95,0.2)' }}>
-          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(30,58,95,0.06)' }}>
-            <Sparkles className="w-4 h-4" style={{ color: '#1e3a5f' }} />
-            <span className="text-sm font-bold" style={{ color: '#1e3a5f' }}>Strategic Recommendation</span>
-            <span className="text-xs ml-auto hidden sm:inline" style={{ color: '#64748b' }}>From your War Room advisors</span>
+        <div style={{ border: '1px solid var(--app-border)' }}>
+          <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: 'var(--app-surface)', borderBottom: '1px solid var(--app-border)' }}>
+            <Target className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
+            <span className="section-label">Strategic Recommendation</span>
+            <span className="text-xs ml-auto hidden sm:inline" style={{ color: 'var(--app-text-muted)' }}>From War Room synthesis</span>
           </div>
-          <div className="p-5 bg-white">
-            <p className="text-sm lg:text-base leading-relaxed text-slate-700" style={{ lineHeight: '1.75' }}>
+          <div className="p-5" style={{ background: 'var(--app-surface-raised)' }}>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--app-text-secondary)', lineHeight: '1.75' }}>
               {synthesis.recommendation}
             </p>
           </div>
@@ -1411,11 +1524,11 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── CONSENSUS ── */}
       {(activeSection === null || activeSection === 'consensus') && synthesis.consensus_points.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(22,163,74,0.15)' }}>
-          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(22,163,74,0.06)' }}>
-            <CheckCircle2 className="w-4 h-4 text-green-600" />
-            <span className="text-sm font-bold text-green-800">What your team agrees on</span>
-            <span className="text-xs text-green-600 ml-auto hidden lg:inline">Bar width = confidence</span>
+        <div style={{ border: '1px solid var(--positive)', borderOpacity: 0.25 }}>
+          <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: 'var(--positive-bg)', borderBottom: '1px solid var(--positive)', borderBottomOpacity: 0.25 }}>
+            <CheckCircle2 className="w-3.5 h-3.5" style={{ color: 'var(--positive)' }} />
+            <span className="section-label" style={{ color: 'var(--positive)' }}>Consensus points</span>
+            <span className="text-xs ml-auto hidden lg:inline" style={{ color: 'var(--positive)' }}>Bar width = confidence</span>
           </div>
           <ConsensusBarChart points={synthesis.consensus_points} />
         </div>
@@ -1423,11 +1536,11 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── CONFLICT ZONES ── */}
       {(activeSection === null || activeSection === 'conflicts') && synthesis.conflict_zones.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(245,158,11,0.2)' }}>
-          <div className="px-5 py-3 flex flex-wrap items-center gap-2" style={{ background: 'rgba(245,158,11,0.07)' }}>
-            <GitBranch className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <span className="text-sm font-bold text-amber-800">Strategic conflict zones</span>
-            <span className="text-xs text-amber-600 hidden lg:inline ml-auto">Breakthroughs hide in disagreement</span>
+        <div style={{ border: '1px solid var(--caution)', borderOpacity: 0.25 }}>
+          <div className="px-5 py-2.5 flex flex-wrap items-center gap-2" style={{ background: 'var(--signal-bg)', borderBottom: '1px solid var(--signal)', borderBottomOpacity: 0.3 }}>
+            <GitBranch className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--signal)' }} />
+            <span className="section-label" style={{ color: 'var(--signal)' }}>Conflict zones</span>
+            <span className="text-xs hidden lg:inline ml-auto" style={{ color: 'var(--signal)' }}>Breakthroughs hide in disagreement</span>
           </div>
           <div className="px-5 pt-4 pb-3 bg-white space-y-3">
             <div className="flex items-center justify-between mb-1">
@@ -1580,8 +1693,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── OPEN QUESTIONS ── */}
       {(activeSection === null || activeSection === 'questions') && synthesis.open_questions.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.15)' }}>
-          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(37,99,235,0.06)' }}>
+        <div style={{ border: '1px solid var(--agent-fin)', borderOpacity: 0.2 }}>          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(37,99,235,0.06)' }}>
             <HelpCircle className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-bold text-blue-800">Unresolved questions</span>
             {onDiscuss && <span className="text-xs text-blue-400 ml-auto">Click to discuss with AI agents</span>}
@@ -1616,7 +1728,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── RISK SIGNALS ── */}
       {(activeSection === null || activeSection === 'risks') && synthesis.risk_signals.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(220,38,38,0.15)' }}>
+        <div style={{ border: '1px solid var(--negative)', borderOpacity: 0.2 }}>
           <div className="px-5 py-3 flex items-center gap-2 flex-wrap" style={{ background: 'rgba(220,38,38,0.06)' }}>
             <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
             <span className="text-sm font-bold text-red-800">Risk signals detected</span>
@@ -1634,7 +1746,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── BLIND SPOTS ── */}
       {(activeSection === null || activeSection === 'blindspots') && synthesis.blind_spots.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(8,145,178,0.2)' }}>
+        <div style={{ border: '1px solid var(--agent-fin)', borderOpacity: 0.2 }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(8,145,178,0.06)' }}>
             <Eye className="w-4 h-4" style={{ color: '#0891b2' }} />
             <span className="text-sm font-bold" style={{ color: '#0e7490' }}>Blind spots</span>
@@ -1675,7 +1787,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── FINANCIAL METRICS ── */}
       {(activeSection === null || activeSection === 'financial') && hasFinancial && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(22,163,74,0.2)' }}>
+        <div style={{ border: '1px solid var(--positive)', borderOpacity: 0.25 }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(22,163,74,0.07)' }}>
             <DollarSign className="w-4 h-4 text-green-600" />
             <span className="text-sm font-bold text-green-800">Financial signals</span>
@@ -1695,7 +1807,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── OPERATIONAL METRICS ── */}
       {(activeSection === null || activeSection === 'operational') && hasOperational && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(245,158,11,0.2)' }}>
+        <div style={{ border: '1px solid var(--caution)', borderOpacity: 0.25 }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(245,158,11,0.07)' }}>
             <Settings className="w-4 h-4 text-amber-600" />
             <span className="text-sm font-bold text-amber-800">Operational readiness</span>
@@ -1715,8 +1827,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── NON-FINANCIAL / STRATEGIC METRICS ── */}
       {(activeSection === null || activeSection === 'strategic') && hasNonFinancial && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.15)' }}>
-          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(37,99,235,0.06)' }}>
+        <div style={{ border: '1px solid var(--agent-fin)', borderOpacity: 0.2 }}>          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(37,99,235,0.06)' }}>
             <BarChart3 className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-bold text-blue-800">Strategic &amp; non-financial signals</span>
             {synthesis.alignment_score !== null && (
@@ -1735,7 +1846,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── OPPORTUNITY SIGNALS ── */}
       {(activeSection === null || activeSection === 'opportunities') && hasOpportunities && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(22,163,74,0.2)' }}>
+        <div style={{ border: '1px solid var(--positive)', borderOpacity: 0.25 }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(22,163,74,0.06)' }}>
             <Lightbulb className="w-4 h-4 text-green-600" />
             <span className="text-sm font-bold text-green-800">Opportunity signals</span>
@@ -1747,7 +1858,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── COGNITIVE BIAS FLAGS ── */}
       {(activeSection === null || activeSection === 'biases') && hasBiases && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(245,158,11,0.25)' }}>
+        <div style={{ border: '1px solid var(--caution)', borderOpacity: 0.25 }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(245,158,11,0.08)' }}>
             <AlertCircle className="w-4 h-4 text-amber-600" />
             <span className="text-sm font-bold text-amber-800">Cognitive bias flags</span>
@@ -1759,7 +1870,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── ACTION ITEMS (Kanban) ── */}
       {(activeSection === null || activeSection === 'actions') && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.2)' }}>
+        <div style={{ border: '1px solid var(--agent-fin)', borderOpacity: 0.25 }}>
           <div className="px-5 py-3 flex items-center gap-2 flex-wrap" style={{ background: 'rgba(37,99,235,0.06)' }}>
             <Target className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-bold text-blue-800">Action Items</span>
@@ -1776,11 +1887,11 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                 <input ref={addInputRef} type="text" value={newActionText} onChange={e => setNewActionText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') addManualAction(); if (e.key === 'Escape') setAddingAction(false); }}
                   placeholder="Type an action item and press Enter…"
-                  className="flex-1 text-sm px-3 py-2 rounded-xl border text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400"
-                  style={{ borderColor: 'rgba(37,99,235,0.3)' }} />
+                  className="input-modern text-sm flex-1"
+                  style={{ borderColor: 'var(--app-input-border)' }} />
                 <button onClick={addManualAction} disabled={savingAction || !newActionText.trim()}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
+                  className="btn-primary text-xs disabled:opacity-50"
+                  style={{ padding: '0.5rem 0.875rem' }}>
                   {savingAction ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Add'}
                 </button>
                 <button onClick={() => setAddingAction(false)} className="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-600">
@@ -1972,8 +2083,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               synthesis.conflict_zones.forEach(z => onDiscussed?.(`conflict:${z.topic}`));
               synthesis.blind_spots.forEach(b => onDiscussed?.(`blindspot:${b.area}`));
             }}
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:-translate-y-0.5"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 12px rgba(37,99,235,0.25)' }}>
+            className="flex-shrink-0 btn-primary">
             <MessageSquare className="w-4 h-4" />Discuss All
           </button>
         </div>
@@ -1984,12 +2094,11 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(4px)' }}
           onClick={e => { if (e.target === e.currentTarget) setShowBoardSummary(false); }}>
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="px-6 py-4 flex items-center justify-between"
-              style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
+          <div className="w-full max-w-lg overflow-hidden" style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-xl)' }}>
+            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">War Room</p>
-                <h3 className="text-base font-bold text-white">Board-Ready Brief</h3>
+                <p className="section-label mb-0.5">War Room</p>
+                <h3 className="text-base font-semibold" style={{ color: 'var(--app-text-primary)' }}>Board-Ready Brief</h3>
               </div>
               <button onClick={() => setShowBoardSummary(false)} className="text-slate-400 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
@@ -2007,8 +2116,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                     setTimeout(() => setBoardCopied(false), 2000);
                   });
                 }}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:-translate-y-0.5"
-                  style={{ background: boardCopied ? 'linear-gradient(135deg,#16a34a,#15803d)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
+              className="btn-primary flex-1 disabled:opacity-50"
+                  style={{ justifyContent: 'center' }}>
                   {boardCopied ? <CheckCircle2 className="w-4 h-4" /> : <Clipboard className="w-4 h-4" />}
                   {boardCopied ? 'Copied!' : 'Copy text'}
                 </button>
@@ -2029,8 +2138,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                     actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source_area: a.source_area })),
                     synthesisRunNumber: history.length || undefined,
                   })}
-                  className="flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold transition-all hover:-translate-y-0.5"
-                  style={{ background: 'rgba(15,23,42,0.07)', color: '#475569' }}>
+                  className="btn-ghost">
                   <Download className="w-4 h-4" />PDF
                 </button>
               </div>
@@ -2045,7 +2153,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 // ─── Locked overlay ───────────────────────────────────────────────────────────
 export function WarRoomLockedState({ onUpgrade }: { onUpgrade: () => void }) {
   return (
-    <div className="relative rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(15,23,42,0.08)' }}>
+    <div className="relative overflow-hidden" style={{ border: '1px solid var(--app-border)' }}>
       <div className="select-none pointer-events-none" style={{ filter: 'blur(6px)', opacity: 0.4 }}>
         <div className="p-6 space-y-4">
           <div className="flex items-center gap-4">
@@ -2059,37 +2167,36 @@ export function WarRoomLockedState({ onUpgrade }: { onUpgrade: () => void }) {
           {[1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-100 rounded-2xl" />)}
         </div>
       </div>
-      <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(248,250,252,0.92)' }}>
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(240,243,247,0.94)', backdropFilter: 'blur(4px)' }}>
         <div className="text-center px-8 max-w-sm">
-          <div className="w-14 h-14 rounded-3xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
-            <Lock className="w-7 h-7 text-white" />
+          <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}>
+            <Lock className="w-5 h-5" style={{ color: 'var(--app-text-muted)' }} />
           </div>
-          <h3 className="text-lg font-black text-slate-900 mb-2">War Room is a Pro feature</h3>
-          <p className="text-sm text-slate-500 leading-relaxed mb-5">
-            Surface consensus, blind spots, financial signals, strategic conflicts, risk signals, opportunity signals, and AI-generated action items from your team's conversations.
+          <p className="section-label mb-2">Pro feature</p>
+          <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--app-text-primary)' }}>War Room is a Pro feature</h3>
+          <p className="text-xs leading-relaxed mb-4" style={{ color: 'var(--app-text-secondary)' }}>
+            Surface consensus, blind spots, financial signals, strategic conflicts, risk signals, and AI-generated action items from your team's conversations.
           </p>
           <div className="space-y-2 mb-5 text-left">
             {[
-              { icon: Activity,     text: 'Decision Health Score — with Financial, Operational & Alignment sub-scores' },
+              { icon: Activity,     text: 'Decision Health Score + Financial, Operational & Alignment sub-scores' },
               { icon: DollarSign,   text: 'Financial Signals — budget assumptions, projections, ROI, burn rate' },
               { icon: Settings,     text: 'Operational Readiness — timelines, dependencies, bottlenecks' },
               { icon: Lightbulb,    text: 'Opportunity Signals — upsides your team should capture' },
               { icon: AlertCircle,  text: 'Cognitive Bias Flags — reasoning traps with counter-questions' },
               { icon: TrendingUp,   text: 'Risk Matrix — visual 2D plot by category and severity' },
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-start gap-2.5">
-                <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(37,99,235,0.1)' }}>
-                  <Icon className="w-3 h-3 text-blue-600" />
+              <div key={text} className="flex items-start gap-2">
+                <div className="flex-shrink-0 mt-0.5 w-4 h-4 flex items-center justify-center" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)', borderOpacity: 0.4 }}>
+                  <Icon className="w-2.5 h-2.5" style={{ color: 'var(--signal)' }} />
                 </div>
-                <span className="text-xs text-slate-600 leading-relaxed">{text}</span>
+                <span className="text-xs leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>{text}</span>
               </div>
             ))}
           </div>
-          <button onClick={onUpgrade}
-            className="w-full py-3 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}>
-            <Sparkles className="w-4 h-4" />Unlock War Room
+          <button onClick={onUpgrade} className="w-full btn-primary" style={{ justifyContent: 'center' }}>
+            <Activity className="w-3.5 h-3.5" />Unlock War Room
           </button>
         </div>
       </div>

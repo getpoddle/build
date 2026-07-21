@@ -170,17 +170,17 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   onClick={() => handleNavigate(item.id)}
                   aria-current={isActive ? 'page' : undefined}
                   title={collapsed ? item.label : undefined}
-                  className="relative w-full flex items-center rounded-xl text-sm font-medium transition-all duration-150"
+                  className="relative w-full flex items-center rounded text-sm font-medium transition-all duration-150"
                   style={{
                     gap: collapsed ? 0 : '0.75rem',
                     padding: collapsed ? '0.625rem' : '0.625rem 0.75rem',
                     justifyContent: collapsed ? 'center' : 'flex-start',
-                    ...(isActive ? { background: 'rgba(37,99,235,0.18)', color: '#93c5fd' } : { color: 'rgba(148,163,184,0.85)' }),
+                    ...(isActive ? { background: 'var(--signal-bg)', color: 'var(--signal)' } : { color: 'rgba(148,163,184,0.85)' }),
                   }}
                   onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
                   onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
                 >
-                  {isActive && !collapsed && <span className="absolute left-0 w-0.5 h-5 rounded-r-full bg-blue-400" aria-hidden="true" />}
+                  {isActive && !collapsed && <span className="absolute left-0 w-0.5 h-5" style={{ background: 'var(--signal)' }} aria-hidden="true" />}
                   <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
                   {!collapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
                   {!collapsed && isActive && <ChevronRight className="ml-auto w-3.5 h-3.5 opacity-60 flex-shrink-0" />}
@@ -224,7 +224,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 <button
                   onClick={() => handleNavigate('profile')}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
-                  style={{ color: activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.85)', background: activeId === 'profile' ? 'rgba(37,99,235,0.18)' : '' }}
+                  style={{ color: activeId === 'profile' ? 'var(--signal)' : 'rgba(148,163,184,0.85)', background: activeId === 'profile' ? 'var(--signal-bg)' : '' }}
                   onMouseEnter={e => { if (activeId !== 'profile') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
                   onMouseLeave={e => { if (activeId !== 'profile') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
                 >
@@ -252,7 +252,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
                 </button>
                 <div className="flex items-center gap-3 p-3 rounded-xl mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
+                  <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-xs font-black" style={{ background: 'var(--signal)', color: 'var(--ink-950)' }}>
                     {initials}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -379,9 +379,9 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                         aria-current={isActive ? 'page' : undefined}
                         className="relative flex items-center gap-2 h-9 px-3 rounded-xl transition-all duration-200"
                         style={isActive ? {
-                          background: 'linear-gradient(135deg,#2563eb,#06b6d4)',
-                          color: '#fff',
-                          boxShadow: '0 3px 10px rgba(37,99,235,0.3)',
+                          background: 'var(--signal-bg)',
+                          color: 'var(--signal)',
+                          borderLeft: '2px solid var(--signal)',
                         } : { color: '#475569' }}
                         onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(15,23,42,0.05)'; }}
                         onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = ''; }}
@@ -458,7 +458,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   <button
                     onClick={() => onNavigate('auth')}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all hover:-translate-y-px"
-                    style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+                    style={{ background: 'var(--signal)', boxShadow: '0 4px 10px rgba(184,134,11,0.25)' }}
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Join free</span>
@@ -487,14 +487,14 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           <div className="flex items-center gap-3 px-4 py-3">
             <button
               onClick={() => onNavigate('auth')}
-              className="flex-1 py-3 rounded-2xl text-white font-bold text-sm transition-all active:scale-95"
-              style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+              className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide transition-all active:scale-95 btn-primary"
+              style={{ justifyContent: 'center' }}
             >
               Join free — it's instant
             </button>
             <button
               onClick={() => onNavigate('auth')}
-              className="py-3 px-4 rounded-2xl text-slate-600 font-semibold text-sm bg-slate-100 active:bg-slate-200 transition-colors"
+              className="py-2.5 px-4 text-xs font-semibold transition-colors btn-ghost"
             >
               Sign in
             </button>
@@ -541,7 +541,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     style={{
                       width: '1.375rem',
                       height: '1.375rem',
-                      color: isActive ? '#2563eb' : (theme === 'dark' ? '#52525b' : '#94a3b8'),
+                      color: isActive ? 'var(--signal)' : (theme === 'dark' ? '#52525b' : '#94a3b8'),
                     }}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
@@ -555,7 +555,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     <span
                       aria-hidden="true"
                       className="absolute top-0 left-1/2 -translate-x-1/2 rounded-full"
-                      style={{ width: '1.5rem', height: '2.5px', background: 'linear-gradient(90deg,#2563eb,#06b6d4)' }}
+                      style={{ width: '1.5rem', height: '2px', background: 'var(--signal)' }}
                     />
                   )}
                 </button>

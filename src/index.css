@@ -15,15 +15,15 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
 
-  /* ── LIGHT THEME (refined, premium — not SaaS consumer) ── */
-  --ink-950:  #f4f1ec;   /* page bg: warm parchment */
-  --ink-900:  #faf8f4;   /* card surface */
-  --ink-800:  #ffffff;   /* elevated surface */
-  --ink-700:  #ddd8cf;   /* borders */
-  --ink-500:  #b8b0a4;   /* disabled, muted borders */
-  --ink-300:  #7a7168;   /* muted text */
-  --ink-100:  #3d3630;   /* secondary text */
-  --ink-50:   #1a1612;   /* primary text */
+  /* ── LIGHT THEME (cool enterprise field — Bloomberg/McKinsey register) ── */
+  --ink-950:  #F0F3F7;   /* page bg: cool blue-grey field */
+  --ink-900:  #F7F9FC;   /* card surface */
+  --ink-800:  #FFFFFF;   /* elevated surface */
+  --ink-700:  #D8DDE8;   /* borders */
+  --ink-500:  #9BA6B8;   /* disabled, muted borders */
+  --ink-300:  #5D6B82;   /* muted text */
+  --ink-100:  #2B3444;   /* secondary text */
+  --ink-50:   #111827;   /* primary text */
 
   --signal:      #b8860b;  /* amber-gold — sharp, not garish */
   --signal-dim:  #d4a535;

@@ -892,8 +892,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             /* Intake already done or prompt injected externally — show legacy starters */
             <div className="text-center py-12">
               <div
-                className="w-14 h-14 rounded-3xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+                className="w-14 h-14 flex items-center justify-center mx-auto mb-4"
+                style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
               >
                 <Sparkles className="w-7 h-7 text-white" />
               </div>
@@ -907,14 +907,14 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             <div className="flex flex-col items-center justify-center py-8 px-2">
               {/* Header */}
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+                className="w-12 h-12 flex items-center justify-center mb-4"
+                style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
               >
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-base font-bold text-slate-800 mb-1">Brief your advisors</h3>
-              <p className="text-xs text-slate-500 mb-6 max-w-xs text-center leading-relaxed">
-                Three quick questions so your AI team gives you deep, decision-specific analysis — not generic advice.
+              <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--app-text-primary)' }}>Submit decision briefing</h3>
+              <p className="text-xs mb-6 max-w-xs text-center leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
+                Three structured inputs. Seven specialist advisors will analyse the decision across independent debate rounds.
               </p>
 
               {/* Progress dots */}
@@ -924,9 +924,10 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                     key={i}
                     className="rounded-full transition-all"
                     style={{
-                      width: i === intakeStep ? '20px' : '8px',
-                      height: '8px',
-                      background: i <= intakeStep ? 'linear-gradient(135deg,#1e3a5f,#2563eb)' : 'rgba(15,23,42,0.12)',
+                      width: i === intakeStep ? '20px' : '6px',
+                      height: '4px',
+                      background: i <= intakeStep ? 'var(--signal)' : 'var(--app-border)',
+                      borderRadius: '1px',
                     }}
                   />
                 ))}
@@ -934,8 +935,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
               {/* Question card */}
               <div
-                className="w-full max-w-sm rounded-2xl p-5"
-                style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 2px 12px rgba(15,23,42,0.06)' }}
+                className="w-full max-w-sm p-5"
+                style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
               >
                 {(() => {
                   const step = INTAKE_STEPS[intakeStep];
@@ -945,16 +946,16 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       <div className="flex items-center gap-2 mb-3">
                         <div
                           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: 'rgba(37,99,235,0.08)' }}
+                          style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
                         >
-                          <StepIcon className="w-3.5 h-3.5 text-blue-700" />
+                          <StepIcon className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
                         </div>
-                        <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">{step.label}</span>
+                        <span className="section-label">{step.label}</span>
                         <span className="ml-auto text-xs text-slate-400 font-medium">{intakeStep + 1} / {INTAKE_STEPS.length}</span>
                       </div>
 
-                      <p className="text-sm font-semibold text-slate-800 mb-1 leading-snug">{step.question}</p>
-                      <p className="text-xs text-slate-400 mb-3 leading-relaxed">{step.hint}</p>
+                      <p className="text-sm font-medium mb-1 leading-snug" style={{ color: 'var(--app-text-primary)' }}>{step.question}</p>
+                      <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>{step.hint}</p>
 
                       <textarea
                         autoFocus
@@ -988,8 +989,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                         <button
                           onClick={intakeAdvance}
                           disabled={!step.skippable && !intakeAnswers[intakeStep].trim()}
-                          className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+                          className="btn-primary ml-auto disabled:opacity-40 disabled:cursor-not-allowed"
+                          style={{ padding: '0.4rem 0.875rem', fontSize: '0.8125rem' }}
                         >
                           {intakeStep < INTAKE_STEPS.length - 1 ? (
                             <>Continue <ArrowRight className="w-3.5 h-3.5" /></>
@@ -1030,11 +1031,11 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       {senderName}
                     </span>
                     <div
-                      className="rounded-2xl px-4 py-3"
+                      className="px-4 py-3"
                       style={
                         isMe
-                          ? { background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff', borderRadius: '18px 18px 4px 18px' }
-                          : { background: colors.bg, color: '#1e293b', border: `1px solid ${colors.bg}`, borderRadius: '18px 18px 18px 4px' }
+                          ? { background: 'var(--ink-900)', color: 'var(--ink-50)', borderRadius: '4px 4px 1px 4px' }
+                          : { background: colors.bg, color: 'var(--app-text-primary)', border: `1px solid ${colors.border}`, borderRadius: '4px 4px 4px 1px' }
                       }
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
@@ -1138,8 +1139,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       {showScrollBtn && (
         <button
           onClick={() => scrollToBottom()}
-          className="absolute bottom-20 right-4 lg:bottom-24 lg:right-6 w-9 h-9 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 z-10"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', color: '#fff' }}
+          className="absolute bottom-20 right-4 lg:bottom-24 lg:right-6 w-8 h-8 flex items-center justify-center shadow-lg transition-all hover:opacity-80 z-10"
+          style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
         >
           <ChevronDown className="w-4 h-4" />
         </button>
@@ -1165,8 +1166,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           {chatDocuments.map(doc => (
             <div
               key={doc.filename}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
-              style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.12)' }}
+              className="flex items-center gap-2.5 px-3 py-2"
+              style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
             >
               <FileText className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
               <span className="text-xs font-semibold text-slate-700 truncate flex-1">{doc.filename}</span>
@@ -1224,8 +1225,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
       {/* Input area */}
       <div
-        className="mt-2 rounded-2xl p-2.5 sm:p-3 flex items-end gap-2 sm:gap-3"
-        style={{ background: '#fff', border: `1.5px solid ${isRecording ? 'rgba(220,38,38,0.35)' : 'rgba(37,99,235,0.2)'}`, boxShadow: isRecording ? '0 4px 16px rgba(220,38,38,0.1)' : '0 4px 16px rgba(37,99,235,0.08)', transition: 'border-color 0.2s, box-shadow 0.2s' }}
+        className="mt-2 p-2.5 sm:p-3 flex items-end gap-2 sm:gap-3"
+        style={{ background: 'var(--app-surface-raised)', border: `1.5px solid ${isRecording ? 'var(--negative)' : 'var(--app-border)'}`, boxShadow: 'var(--shadow-sm)', transition: 'border-color 0.2s' }}
       >
         {isTranscribing ? (
           /* Transcribing overlay */
@@ -1255,7 +1256,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       height: `${Math.round(h * 100)}%`,
                       minWidth: '3px',
                       maxWidth: '6px',
-                      background: `rgba(37,99,235,${0.45 + h * 0.55})`,
+                      background: `rgba(232,184,75,${0.35 + h * 0.65})`,
                     }}
                   />
                 ))}
@@ -1337,8 +1338,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         <button
           onClick={() => sendMessage()}
           disabled={loading || !input.trim() || isRecording || isTranscribing}
-          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:scale-105"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
+          className="w-9 h-9 flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:opacity-80"
+          style={{ background: 'var(--signal)', color: 'var(--ink-950)' }}
         >
           {loading ? (
             <Loader2 className="w-4 h-4 text-white animate-spin" />
