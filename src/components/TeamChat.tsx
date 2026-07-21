@@ -592,6 +592,3 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     </div>
   );
 }
-
-
-export default TeamChat
