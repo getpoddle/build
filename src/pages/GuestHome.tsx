@@ -65,7 +65,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       {!bannerDismissed && (
         <div
           className="fixed top-14 left-0 right-0 z-40 flex items-center justify-center gap-3 px-4 py-2"
-          style={{ background: 'rgba(15,23,42,0.97)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'rgba(0,0,0,0.97)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}
         >
           <a
             href={LENS_URL}
@@ -103,7 +103,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       <SocialProofSection />
       <FinalCTA onNavigate={onNavigate} />
 
-      <footer style={{ background: '#0f172a', borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-12">
+      <footer style={{ background: '#000000', borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -136,7 +136,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
     <section
       className="relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #1e40af 100%)',
+        background: 'linear-gradient(135deg, #000000 0%, #0a0a0a 55%, #111111 100%)',
         minHeight: '88vh',
         display: 'flex',
         alignItems: 'center',
@@ -144,8 +144,8 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
     >
       {/* Background mesh */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(37,99,235,0.16) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(6,182,212,0.10) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
+        <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.12) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.06) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)', backgroundSize: '52px 52px' }} />
       </div>
 
@@ -153,7 +153,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         {/* Badge */}
         <div
           className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-8"
-          style={{ background: 'rgba(37,99,235,0.15)', color: '#93c5fd', border: '1px solid rgba(37,99,235,0.22)' }}
+          style={{ background: 'rgba(184,134,11,0.15)', color: '#d4a535', border: '1px solid rgba(184,134,11,0.22)' }}
         >
           <Zap className="w-3.5 h-3.5" />
           Decision Intelligence for Teams
@@ -174,7 +174,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           <button
             onClick={() => onNavigate('auth')}
             className="flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
+            style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
           >
             <Sparkles className="w-4 h-4" />
             Start for free
@@ -220,7 +220,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                 key={a.abbr}
                 title={a.label}
                 className="w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-black ring-2 transition-transform hover:-translate-y-1 cursor-default"
-                style={{ background: a.bg, color: a.color, ringColor: 'rgba(15,23,42,0.6)', zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0 }}
+                style={{ background: a.bg, color: a.color, ringColor: 'rgba(0,0,0,0.6)', zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0 }}
               >
                 {a.abbr}
               </div>
@@ -247,9 +247,9 @@ const HOW_STEPS = [
   {
     number: '01',
     icon: MessageSquare,
-    color: '#2563eb',
-    bg: 'rgba(37,99,235,0.08)',
-    border: 'rgba(37,99,235,0.18)',
+    color: '#b8860b',
+    bg: 'rgba(184,134,11,0.08)',
+    border: 'rgba(184,134,11,0.18)',
     label: 'AI Collaboration',
     title: 'Submit your decision to a private workspace',
     body: "Describe the decision you're facing. Seven specialized agents \u2014 Risk Analyst, Devil\u2019s Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor \u2014 respond simultaneously, each from a completely different angle. Your team can join, challenge agents, and upload supporting documents (PDF, DOCX, Excel) to ground the analysis in real data.",
@@ -273,7 +273,7 @@ const HOW_STEPS = [
     visual: [
       { label: 'Decision Health Score', value: '68', sub: 'Developing', color: '#f59e0b' },
       { label: 'Risk Signals', value: '3', sub: '2 critical', color: '#dc2626' },
-      { label: 'Action Items', value: '4', sub: 'Prioritized', color: '#2563eb' },
+      { label: 'Action Items', value: '4', sub: 'Prioritized', color: '#b8860b' },
     ],
   },
   {
@@ -292,11 +292,11 @@ const HOW_STEPS = [
 
 function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section id="how-it-works" style={{ background: '#fff', borderTop: '1px solid rgba(15,23,42,0.06)' }} className="py-24">
+    <section id="how-it-works" style={{ background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <RevealSection className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(15,23,42,0.05)', color: '#475569', border: '1px solid rgba(15,23,42,0.09)' }}>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(0,0,0,0.05)', color: '#475569', border: '1px solid rgba(0,0,0,0.09)' }}>
             How Poddle works
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
@@ -315,7 +315,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
               <RevealSection key={step.number} delay={idx * 100}>
                 <div
                   className="rounded-3xl overflow-hidden"
-                  style={{ border: `1px solid ${step.border}`, background: '#fff', boxShadow: '0 2px 16px rgba(15,23,42,0.06)' }}
+                  style={{ border: `1px solid ${step.border}`, background: '#fff', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}
                 >
                   <div className="p-8 sm:p-10">
                     <div className="flex flex-col lg:flex-row gap-10">
@@ -346,7 +346,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                       {/* Right — visual */}
                       <div className="lg:w-80 flex-shrink-0">
                         {idx === 0 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(170deg,#0f172a,#1a2744)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(170deg,#000000,#0a0a0a)', border: '1px solid rgba(255,255,255,0.07)' }}>
                             <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
                               <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -357,9 +357,9 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                             <div className="p-4 space-y-3">
                               {/* User message */}
                               <div className="flex gap-2.5">
-                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', color: '#fff' }}>YO</div>
-                                <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.18)' }}>
-                                  <p className="text-[10px] font-bold mb-1" style={{ color: '#93c5fd' }}>You</p>
+                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', color: '#fff' }}>YO</div>
+                                <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(184,134,11,0.15)', border: '1px solid rgba(184,134,11,0.18)' }}>
+                                  <p className="text-[10px] font-bold mb-1" style={{ color: '#d4a535' }}>You</p>
                                   <p className="text-[11px] leading-relaxed text-white">Should we launch our AI lending product across Europe now, or stage the rollout?</p>
                                 </div>
                               </div>
@@ -377,7 +377,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                         )}
 
                         {idx === 1 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg,#0f172a,#1e2d4a)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg,#000000,#0f0f0f)', border: '1px solid rgba(255,255,255,0.07)' }}>
                             <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
                               <Swords className="w-3 h-3" style={{ color: '#f87171' }} />
                               <span className="text-[10px] font-bold" style={{ color: 'rgba(148,163,184,0.7)' }}>War Room Synthesis</span>
@@ -392,8 +392,8 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                                   </div>
                                 ))}
                               </div>
-                              <div className="rounded-xl p-3.5" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.22)' }}>
-                                <p className="text-[10px] font-black uppercase tracking-wide mb-1.5" style={{ color: '#93c5fd' }}>Strategic Recommendation</p>
+                              <div className="rounded-xl p-3.5" style={{ background: 'rgba(184,134,11,0.12)', border: '1px solid rgba(184,134,11,0.22)' }}>
+                                <p className="text-[10px] font-black uppercase tracking-wide mb-1.5" style={{ color: '#d4a535' }}>Strategic Recommendation</p>
                                 <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.85)' }}>
                                   <strong style={{ color: '#e2e8f0' }}>Stage the rollout. Start Germany.</strong> BaFin approval is the hardest, most valuable first stamp. Target Q3 Germany, Q1 next year France & Netherlands.
                                 </p>
@@ -403,9 +403,9 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                         )}
 
                         {idx === 2 && (
-                          <div className="rounded-2xl overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.09)', boxShadow: '0 4px 20px rgba(15,23,42,0.08)' }}>
+                          <div className="rounded-2xl overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.09)', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
                             {/* PDF mini header */}
-                            <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg,#0f172a,#1e3a5f)', borderBottom: '1px solid rgba(15,23,42,0.1)' }}>
+                            <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg,#000000,#111111)', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
                               <div className="flex items-center gap-2 mb-2">
                                 <Brain className="w-3.5 h-3.5 text-white opacity-70" />
                                 <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.6)' }}>Poddle · War Room Report</span>
@@ -423,9 +423,9 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                             </div>
                             <div className="p-5 space-y-3">
                               {[
-                                { icon: TrendingUp, label: 'Strategic Recommendation', color: '#1e3a5f', bg: 'rgba(30,58,95,0.05)' },
+                                { icon: TrendingUp, label: 'Strategic Recommendation', color: '#111111', bg: 'rgba(184,134,11,0.05)' },
                                 { icon: AlertTriangle, label: '3 Risk Signals identified', color: '#b91c1c', bg: 'rgba(220,38,38,0.05)' },
-                                { icon: Target, label: '4 Action Items · by owner', color: '#1d4ed8', bg: 'rgba(37,99,235,0.05)' },
+                                { icon: Target, label: '4 Action Items · by owner', color: '#b8860b', bg: 'rgba(184,134,11,0.05)' },
                               ].map(({ icon: I, label, color, bg }) => (
                                 <div key={label} className="flex items-center gap-2.5 rounded-xl px-3 py-2.5" style={{ background: bg }}>
                                   <I className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
@@ -447,8 +447,8 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                 {/* Connector arrow between steps */}
                 {idx < HOW_STEPS.length - 1 && (
                   <div className="flex flex-col items-center py-3">
-                    <div className="w-px h-6" style={{ background: 'rgba(15,23,42,0.1)' }} />
-                    <ArrowDown className="w-4 h-4" style={{ color: 'rgba(15,23,42,0.2)' }} />
+                    <div className="w-px h-6" style={{ background: 'rgba(0,0,0,0.1)' }} />
+                    <ArrowDown className="w-4 h-4" style={{ color: 'rgba(0,0,0,0.2)' }} />
                   </div>
                 )}
               </RevealSection>
@@ -460,7 +460,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
         <RevealSection delay={300} className="mt-12">
           <div
             className="rounded-3xl p-8 sm:p-10 text-center"
-            style={{ background: 'linear-gradient(135deg,rgba(37,99,235,0.07),rgba(6,182,212,0.05))', border: '1px solid rgba(37,99,235,0.14)' }}
+            style={{ background: 'linear-gradient(135deg,rgba(184,134,11,0.07),rgba(212,165,53,0.05))', border: '1px solid rgba(184,134,11,0.14)' }}
           >
             <p className="text-base sm:text-lg font-bold text-slate-800 mb-2">
               The sequence matters.
@@ -471,7 +471,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
             <button
               onClick={() => onNavigate('auth')}
               className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
+              style={{ background: 'linear-gradient(135deg,#111111,#b8860b)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
             >
               <Sparkles className="w-4 h-4" />
               Try the full workflow
@@ -520,13 +520,13 @@ const DEMO_ACTIONS = [
 const SEV_COLORS: Record<string, { bg: string; text: string }> = {
   critical: { bg: 'rgba(220,38,38,0.1)', text: '#b91c1c' },
   high:     { bg: 'rgba(245,158,11,0.1)', text: '#b45309' },
-  medium:   { bg: 'rgba(37,99,235,0.1)',  text: '#1d4ed8' },
+  medium:   { bg: 'rgba(184,134,11,0.1)',  text: '#b8860b' },
 };
 
 const PRI_COLORS: Record<string, { bg: string; text: string }> = {
   critical: { bg: 'rgba(220,38,38,0.08)', text: '#b91c1c' },
   high:     { bg: 'rgba(245,158,11,0.08)', text: '#b45309' },
-  medium:   { bg: 'rgba(37,99,235,0.07)',  text: '#1d4ed8' },
+  medium:   { bg: 'rgba(184,134,11,0.07)',  text: '#b8860b' },
 };
 
 function ScoreArc({ score, label, color }: { score: number; label: string; color: string }) {
@@ -536,7 +536,7 @@ function ScoreArc({ score, label, color }: { score: number; label: string; color
     <div className="flex flex-col items-center gap-1">
       <div className="relative w-14 h-14">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 56 56">
-          <circle cx="28" cy="28" r={r} fill="none" stroke="rgba(15,23,42,0.08)" strokeWidth="5" />
+          <circle cx="28" cy="28" r={r} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="5" />
           <circle cx="28" cy="28" r={r} fill="none" stroke={color} strokeWidth="5"
             strokeDasharray={`${dash} ${c}`} strokeLinecap="round" />
         </svg>
@@ -573,10 +573,10 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   }, [revealed]);
 
   return (
-    <section ref={ref} style={{ background: '#f8fafc', borderTop: '1px solid rgba(15,23,42,0.06)', borderBottom: '1px solid rgba(15,23,42,0.06)' }} className="py-24">
+    <section ref={ref} style={{ background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)' }} className="py-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(37,99,235,0.07)', color: '#1d4ed8', border: '1px solid rgba(37,99,235,0.12)' }}>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(184,134,11,0.07)', color: '#b8860b', border: '1px solid rgba(184,134,11,0.12)' }}>
             Live example
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
@@ -590,7 +590,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         {/* Phase labels */}
         <div className="flex items-center justify-center gap-4 mb-6 flex-wrap">
           {[
-            { step: '1', label: 'AI Collaboration', color: '#2563eb', bg: 'rgba(37,99,235,0.08)' },
+            { step: '1', label: 'AI Collaboration', color: '#b8860b', bg: 'rgba(184,134,11,0.08)' },
             { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
             { step: '2', label: 'War Room Synthesis', color: '#dc2626', bg: 'rgba(220,38,38,0.07)' },
             { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
@@ -607,7 +607,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         {/* Browser-style demo */}
         <div
           className="rounded-3xl overflow-hidden mx-auto"
-          style={{ maxWidth: 800, background: 'linear-gradient(170deg,#0f172a,#1a2744)', boxShadow: '0 32px 80px rgba(0,0,0,0.32)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ maxWidth: 800, background: 'linear-gradient(170deg,#000000,#0a0a0a)', boxShadow: '0 32px 80px rgba(0,0,0,0.32)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
           {/* Title bar */}
           <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
@@ -625,16 +625,16 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           <div className="px-5 pt-5 pb-4">
             <div
               className="flex items-start gap-3 rounded-2xl p-4 mb-1"
-              style={{ background: 'rgba(37,99,235,0.15)', border: '1px solid rgba(37,99,235,0.2)' }}
+              style={{ background: 'rgba(184,134,11,0.15)', border: '1px solid rgba(184,134,11,0.2)' }}
             >
               <div
                 className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
-                style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', color: '#fff' }}
+                style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', color: '#fff' }}
               >
                 YO
               </div>
               <div>
-                <p className="text-[11px] font-bold mb-1" style={{ color: '#93c5fd' }}>You</p>
+                <p className="text-[11px] font-bold mb-1" style={{ color: '#d4a535' }}>You</p>
                 <p className="text-sm leading-relaxed text-white font-medium">We're ready to launch our AI-powered lending product. Should we go multi-market across Europe now, or stage the rollout?</p>
               </div>
             </div>
@@ -688,17 +688,17 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               <div
                 className="mt-4 rounded-2xl p-4 transition-all duration-700"
                 style={{
-                  background: 'linear-gradient(135deg,rgba(37,99,235,0.18),rgba(6,182,212,0.12))',
-                  border: '1px solid rgba(37,99,235,0.3)',
+                  background: 'linear-gradient(135deg,rgba(184,134,11,0.18),rgba(212,165,53,0.12))',
+                  border: '1px solid rgba(184,134,11,0.3)',
                   opacity: 1,
                 }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.3)' }}>
-                    <Brain className="w-3 h-3" style={{ color: '#93c5fd' }} />
+                  <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(184,134,11,0.3)' }}>
+                    <Brain className="w-3 h-3" style={{ color: '#d4a535' }} />
                   </div>
-                  <span className="text-[11px] font-bold" style={{ color: '#93c5fd' }}>War Room Synthesis</span>
-                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(37,99,235,0.2)', color: '#93c5fd' }}>Built from your AI Collaboration</span>
+                  <span className="text-[11px] font-bold" style={{ color: '#d4a535' }}>War Room Synthesis</span>
+                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(184,134,11,0.2)', color: '#d4a535' }}>Built from your AI Collaboration</span>
                 </div>
                 <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.9)' }}>
                   <strong style={{ color: '#e2e8f0' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp — it de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year.
@@ -729,7 +729,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               <button
                 onClick={() => onNavigate('auth')}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.4)' }}
+                style={{ background: 'linear-gradient(135deg,#111111,#b8860b)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
               >
                 <Sparkles className="w-3 h-3" />
                 Try it
@@ -748,17 +748,17 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           }}
         >
           <div className="flex flex-col items-center mb-4">
-            <div className="w-0.5 h-6" style={{ background: 'rgba(15,23,42,0.12)' }} />
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold" style={{ background: 'rgba(15,23,42,0.06)', color: '#64748b', border: '1px solid rgba(15,23,42,0.08)' }}>
+            <div className="w-0.5 h-6" style={{ background: 'rgba(0,0,0,0.12)' }} />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold" style={{ background: 'rgba(0,0,0,0.06)', color: '#64748b', border: '1px solid rgba(0,0,0,0.08)' }}>
               <Download className="w-3 h-3" />
               Exported War Room report · Step 3 of 3
             </div>
-            <div className="w-0.5 h-4" style={{ background: 'rgba(15,23,42,0.12)' }} />
-            <div className="w-2 h-2 rotate-45" style={{ background: 'rgba(15,23,42,0.12)', marginTop: -4 }} />
+            <div className="w-0.5 h-4" style={{ background: 'rgba(0,0,0,0.12)' }} />
+            <div className="w-2 h-2 rotate-45" style={{ background: 'rgba(0,0,0,0.12)', marginTop: -4 }} />
           </div>
 
-          <div className="rounded-3xl overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.1)', boxShadow: '0 8px 32px rgba(15,23,42,0.1)' }}>
-            <div className="px-8 pt-8 pb-6" style={{ borderBottom: '1px solid rgba(15,23,42,0.07)', background: 'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
+          <div className="rounded-3xl overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
+            <div className="px-8 pt-8 pb-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: 'linear-gradient(135deg,#000000,#111111)' }}>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-3">
@@ -784,17 +784,17 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               </div>
             </div>
 
-            <div className="px-8 py-6" style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', background: 'rgba(30,58,95,0.03)' }}>
+            <div className="px-8 py-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'rgba(184,134,11,0.03)' }}>
               <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4" style={{ color: '#1e3a5f' }} />
-                <span className="text-xs font-black uppercase tracking-wider" style={{ color: '#1e3a5f' }}>Strategic Recommendation</span>
+                <TrendingUp className="w-4 h-4" style={{ color: '#111111' }} />
+                <span className="text-xs font-black uppercase tracking-wider" style={{ color: '#111111' }}>Strategic Recommendation</span>
               </div>
               <p className="text-sm leading-relaxed text-slate-700">
                 <strong className="text-slate-900">Stage the rollout. Start with Germany.</strong> BaFin approval is the hardest and most valuable first stamp — it de-risks France, Netherlands, and the Nordics. Target Germany in Q3 with a compliant audit trail in place. Parallel multi-market filing will cost more time than it saves.
               </p>
             </div>
 
-            <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x" style={{ borderBottom: '1px solid rgba(15,23,42,0.06)', borderColor: 'rgba(15,23,42,0.06)' }}>
+            <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', borderColor: 'rgba(0,0,0,0.06)' }}>
               <div className="px-8 py-6">
                 <div className="flex items-center gap-2 mb-4">
                   <AlertTriangle className="w-4 h-4 text-red-600" />
@@ -817,7 +817,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                 <div className="flex items-center gap-2 mb-4">
                   <Target className="w-4 h-4 text-blue-600" />
                   <span className="text-xs font-black uppercase tracking-wider text-slate-800">Action Items</span>
-                  <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(37,99,235,0.08)', color: '#1d4ed8' }}>4 items</span>
+                  <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(184,134,11,0.08)', color: '#b8860b' }}>4 items</span>
                 </div>
                 <div className="space-y-3">
                   {DEMO_ACTIONS.map((a) => (
@@ -843,7 +843,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               <button
                 onClick={() => onNavigate('auth')}
                 className="flex items-center gap-1.5 text-[10px] font-bold transition-colors hover:text-blue-700"
-                style={{ color: '#2563eb' }}
+                style={{ color: '#b8860b' }}
               >
                 Get your own report
                 <ChevronRight className="w-3 h-3" />
@@ -863,7 +863,7 @@ const TESTIMONIALS = [
     quote: "We used the War Room before a board presentation. The Devil's Advocate agent surfaced a risk our CFO hadn't considered. We caught it in time.",
     role: "Head of Strategy · Series B SaaS",
     initial: "S",
-    color: '#2563eb',
+    color: '#b8860b',
   },
   {
     quote: "I didn't realize the PDF came from the War Room until I read the walkthrough. Once I understood the flow, the reports became 10x more useful.",
@@ -881,7 +881,7 @@ const TESTIMONIALS = [
 
 function SocialProofSection() {
   return (
-    <section style={{ background: '#fff', borderTop: '1px solid rgba(15,23,42,0.06)' }} className="py-20">
+    <section style={{ background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <RevealSection className="text-center mb-12">
           <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">What teams say</p>
@@ -892,7 +892,7 @@ function SocialProofSection() {
             <RevealSection key={i} delay={i * 100}>
               <div
                 className="h-full p-6 rounded-2xl flex flex-col gap-4"
-                style={{ background: '#fafafa', border: '1px solid rgba(15,23,42,0.07)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
+                style={{ background: '#fafafa', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
               >
                 <p className="text-sm text-slate-600 leading-relaxed flex-1">"{t.quote}"</p>
                 <div className="flex items-center gap-3">
@@ -912,14 +912,14 @@ function SocialProofSection() {
         {/* Feature grid */}
         <div className="grid sm:grid-cols-3 gap-5 mt-10">
           {[
-            { icon: Brain, color: '#2563eb', bg: '#eff6ff', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Scout, People Advisor — each with a different mandate." },
+            { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Scout, People Advisor — each with a different mandate." },
             { icon: Shield, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Your workspace is encrypted and invisible to the public. Invite your team. Nothing leaves your org. SOC 2-aligned infrastructure.' },
             { icon: FileText, color: '#059669', bg: '#ecfdf5', title: 'Board-ready exports', desc: 'The War Room PDF includes your recommendation, risk signals, action items by owner, and decision health scores — ready to share.' },
           ].map(({ icon: Icon, color, bg, title, desc }, i) => (
             <RevealSection key={title} delay={i * 80}>
               <div
                 className="h-full p-6 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}
+                style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: bg }}>
                   <Icon className="w-5 h-5" style={{ color }} />
@@ -939,7 +939,7 @@ function SocialProofSection() {
 
 function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section style={{ background: 'linear-gradient(135deg,#0f172a 0%,#1e3a5f 55%,#1e40af 100%)' }} className="py-24">
+    <section style={{ background: 'linear-gradient(135deg,#000000 0%,#0a0a0a 55%,#111111 100%)' }} className="py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <RevealSection>
           <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.09)' }}>
@@ -956,7 +956,7 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             <button
               onClick={() => onNavigate('auth')}
               className="flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
-              style={{ background: '#fff', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+              style={{ background: '#fff', color: '#b8860b', boxShadow: '0 4px 14px rgba(184,134,11,0.3)' }}
             >
               <Sparkles className="w-4 h-4 text-blue-600" />
               Create free account
