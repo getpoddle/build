@@ -31,7 +31,7 @@ export default function Home({ onNavigate }: HomeProps) {
         {/* Page header */}
         <div className="mb-6 lg:mb-10">
           <p className="section-label mb-2">Dashboard</p>
-          <h1 className="display-heading text-2xl lg:text-3xl xl:text-4xl mb-1">Decision Intelligence Platform</h1>
+          <h1 className="display-heading text-2xl lg:text-3xl xl:text-4xl mb-1">Adversarial Multi-Agent Decision Intelligence</h1>
         </div>
 
         {/* Stats row */}
