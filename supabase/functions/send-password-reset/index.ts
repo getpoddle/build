@@ -68,12 +68,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (redirectTo && !isSafeRedirect(redirectTo)) {
-      return new Response(JSON.stringify({ error: "Invalid redirect URL" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // If the requested redirect doesn't match an allowed origin, silently fall
+    // back to SITE_URL instead of rejecting the request. This prevents open
+    // redirect abuse while keeping password reset working across deployments
+    // (preview URLs, localhost, etc.) where SITE_URL may differ from the
+    // origin the user is currently browsing.
+    const safeRedirect = (redirectTo && isSafeRedirect(redirectTo))
+      ? redirectTo
+      : (Deno.env.get("SITE_URL") || Deno.env.get("SUPABASE_URL") || "");
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -124,7 +126,6 @@ Deno.serve(async (req: Request) => {
     if (users) {
       const userExists = users.users.some((u) => u.email?.toLowerCase() === emailLower);
       if (userExists) {
-        const safeRedirect = redirectTo || Deno.env.get("SITE_URL") || Deno.env.get("SUPABASE_URL");
         const supabasePublic = createClient(
           Deno.env.get("SUPABASE_URL")!,
           Deno.env.get("SUPABASE_ANON_KEY")!
