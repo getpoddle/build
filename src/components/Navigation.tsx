@@ -222,16 +222,21 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           >
             {!collapsed ? (
               <div className="space-y-0.5">
-                <button
-                  onClick={() => handleNavigate('profile')}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
-                  style={{ color: activeId === 'profile' ? 'var(--signal)' : 'rgba(148,163,184,0.85)', background: activeId === 'profile' ? 'var(--signal-bg)' : '' }}
-                  onMouseEnter={e => { if (activeId !== 'profile') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-                  onMouseLeave={e => { if (activeId !== 'profile') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
-                >
-                  <User className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-                  <span>Account Settings</span>
-                </button>
+                <div className="flex items-center gap-0.5 px-1 pb-1">
+                  <Notifications onNavigate={onNavigate} />
+                  <button
+                    onClick={() => handleNavigate('profile')}
+                    aria-label="Account Settings"
+                    title="Account Settings"
+                    className="flex-1 flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+                    style={{ color: activeId === 'profile' ? 'var(--signal)' : 'rgba(148,163,184,0.85)', background: activeId === 'profile' ? 'var(--signal-bg)' : '' }}
+                    onMouseEnter={e => { if (activeId !== 'profile') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
+                    onMouseLeave={e => { if (activeId !== 'profile') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
+                  >
+                    <User className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                    <span>Account Settings</span>
+                  </button>
+                </div>
                 <button
                   onClick={() => handleNavigate('pricing')}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
