@@ -201,7 +201,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
           {/* Pro Individual — featured */}
           <div
             className="relative overflow-hidden p-6 flex flex-col"
-            style={{ background: 'var(--ink-50)', border: '1px solid var(--signal)', boxShadow: 'var(--shadow-signal)' }}
+            style={{ background: '#0e1117', border: '1px solid var(--signal)', boxShadow: 'var(--shadow-signal)' }}
           >
             <div className="absolute top-4 right-4 badge" style={{ background: 'var(--signal)', color: 'var(--ink-900)' }}>
               {currentTier === 'pro' ? 'Current plan' : 'Most popular'}
@@ -365,7 +365,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         </div>
 
         {/* CTA */}
-        <div className="panel p-8 sm:p-12 text-center" style={{ background: 'var(--ink-50)' }}>
+        <div className="panel p-8 sm:p-12 text-center" style={{ background: '#0e1117' }}>
           <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
             <Lock className="w-6 h-6" style={{ color: 'var(--signal)' }} />
           </div>

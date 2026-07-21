@@ -58,7 +58,7 @@ export default function Home({ onNavigate }: HomeProps) {
             <div
               className="relative overflow-hidden p-6 lg:p-10"
               style={{
-                background: 'var(--ink-50)',
+                background: '#0e1117',
                 border: '1px solid var(--app-border)',
                 boxShadow: 'var(--shadow-lg)',
               }}
@@ -94,6 +94,7 @@ export default function Home({ onNavigate }: HomeProps) {
                   <button
                     onClick={() => onNavigate('pricing')}
                     className="btn-secondary flex-1 sm:flex-none"
+                    style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)', background: 'transparent' }}
                   >
                     View Pricing
                   </button>

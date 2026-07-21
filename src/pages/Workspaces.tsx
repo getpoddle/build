@@ -104,7 +104,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             <div
               className="relative overflow-hidden p-6 lg:p-10"
               style={{
-                background: 'var(--ink-50)',
+                background: '#0e1117',
                 border: '1px solid var(--app-border)',
                 boxShadow: 'var(--shadow-lg)',
               }}
@@ -134,7 +134,11 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                     {!isPro && !hasBetaAccess && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                     {!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade' : 'New Workspace'}
                   </button>
-                  <button onClick={() => onNavigate('pricing')} className="btn-secondary flex-1 sm:flex-none">
+                  <button
+                    onClick={() => onNavigate('pricing')}
+                    className="btn-secondary flex-1 sm:flex-none"
+                    style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)', background: 'transparent' }}
+                  >
                     View Pricing
                   </button>
                 </div>
@@ -283,7 +287,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
                       {/* Mobile layout */}
                       <div className="xl:hidden p-5 flex items-center gap-4">
-                        <div className="w-11 h-11 flex items-center justify-center flex-shrink-0" style={{ background: isExpired ? 'var(--app-border)' : 'var(--ink-50)', border: '1px solid var(--app-border)' }}>
+                        <div className="w-11 h-11 flex items-center justify-center flex-shrink-0" style={{ background: isExpired ? 'var(--app-border)' : 'var(--app-surface-raised)', border: '1px solid var(--app-border)' }}>
                           <Lock className="w-5 h-5" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--signal)' }} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -321,7 +325,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                       <div className="hidden xl:grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 items-center px-6 py-4">
                         {/* Name + description */}
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: isExpired ? 'var(--app-border)' : 'var(--ink-50)', border: '1px solid var(--app-border)' }}>
+                          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: isExpired ? 'var(--app-border)' : 'var(--app-surface-raised)', border: '1px solid var(--app-border)' }}>
                             <Lock className="w-4 h-4" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--signal)' }} />
                           </div>
                           <div className="min-w-0">
