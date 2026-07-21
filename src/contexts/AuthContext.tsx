@@ -71,15 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 8000);
 
     // Detect OAuth redirect: Supabase bounces back to the app with tokens in the
-    // URL hash (implicit flow) or query string (PKCE). Detecting them here lets
-    // us surface provider errors and ensures the session is exchanged before
-    // the auth state change handler runs.
+    // URL hash (implicit flow) or query string (PKCE). With PKCE (the default in
+    // supabase-js v2), errors come back in the query string as ?error=...&error_description=...
+    // We need to check both to surface provider errors to the user.
     const detectOAuthError = () => {
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
-      const error = params.get('error_description') || params.get('error');
+      const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const error = params.get('error_description') || params.get('error') ||
+                    hashParams.get('error_description') || hashParams.get('error');
       if (error) {
-        history.replaceState(null, '', window.location.pathname + window.location.search);
+        history.replaceState(null, '', window.location.pathname);
         return error;
       }
       return null;
@@ -87,6 +88,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const detectedError = detectOAuthError();
     if (detectedError) setOauthError(detectedError);
+
+    // If Supabase redirected back with a PKCE code in the query string,
+    // exchange it explicitly. detectSessionInUrl should handle this, but
+    // calling it here ensures the session is exchanged before getSession runs.
+    const code = new URLSearchParams(window.location.search).get('code');
+    if (code) {
+      supabase.auth.exchangeCodeForSession(window.location.href).catch((e) => {
+        console.error('PKCE code exchange failed:', e);
+      }).finally(() => {
+        history.replaceState(null, '', window.location.pathname);
+      });
+    }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(loadingTimeout);
@@ -179,6 +192,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   })
                 : session.user.email?.split('@')[0] || 'User';
 
+              // Google doesn't always provide a username. Generate a safe one
+              // from the email prefix so it passes the ^[a-zA-Z0-9_-]{3,30}$ check.
+              const rawUsername = session.user.user_metadata?.username
+                || session.user.email?.split('@')[0]?.replace(/[^a-zA-Z0-9_-]/g, '')?.slice(0, 30)
+                || null;
+              const safeUsername = rawUsername && rawUsername.length >= 3 ? rawUsername : null;
+
               try {
                 const { error: insertErr } = await withTimeout(
                   supabase.from('profiles').insert({
@@ -186,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     email: session.user.email!,
                     first_name: session.user.user_metadata?.first_name || null,
                     last_name: session.user.user_metadata?.last_name || null,
-                    username: session.user.user_metadata?.username || null,
+                    username: safeUsername,
                     full_name: fullName,
                     onboarded: false,
                   }),
