@@ -202,7 +202,7 @@ export default function Auth() {
             </div>
           )}
 
-          {view !== 'forgot' && (
+          {view !== 'forgot' && false && (
             <div className="mt-4">
               <button
                 type="button"
