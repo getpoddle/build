@@ -422,53 +422,95 @@ async function runWarRoom(
       metadata: { source: "slack_slash_command", slack_session_id: slackSessionId },
     });
 
-    // Trigger synthesis (internal call using service role key)
-    const synthRes = await fetch(`${supabaseUrl}/functions/v1/workspace-synthesize`, {
+    // Trigger synthesis without awaiting — the synthesis edge function makes
+    // expensive OpenAI calls (gpt-4.1, up to 300s) that would exceed this
+    // function's wall-clock limit if awaited. We fire it and poll the DB.
+    fetch(`${supabaseUrl}/functions/v1/workspace-synthesize`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${serviceKey}`,
       },
       body: JSON.stringify({ workspace_id: workspaceId }),
-    });
+    }).catch((err) => console.error("Synthesis trigger failed:", err));
 
-    if (!synthRes.ok) {
-      const errText = await synthRes.text();
-      throw new Error(`Synthesis failed: ${errText}`);
+    // Poll the workspace_synthesis table for the result. The synthesis
+    // function upserts a row once the main OpenAI calls complete.
+    const synthSelect =
+      "decision_health_score, financial_score, operational_score, alignment_score, " +
+      "decision_velocity, confidence_trajectory, health_rationale, executive_summary, recommendation, " +
+      "consensus_points, conflict_zones, open_questions, risk_signals, blind_spots, " +
+      "action_items, financial_metrics, operational_metrics, non_financial_metrics, " +
+      "opportunity_signals, key_decisions, cognitive_bias_flags";
+
+    const pollIntervalMs = 5000;
+    const maxPollMs = 150_000; // 2.5 minutes — stays within edge function wall clock
+    const deadline = Date.now() + maxPollMs;
+
+    let fullSynthesis: Record<string, unknown> | null = null;
+
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+
+      const { data: synthRow } = await service
+        .from("workspace_synthesis")
+        .select(synthSelect)
+        .eq("workspace_id", workspaceId)
+        .maybeSingle();
+
+      if (synthRow) {
+        fullSynthesis = synthRow as Record<string, unknown>;
+        break;
+      }
     }
 
-    await synthRes.json(); // consume response body
+    if (fullSynthesis) {
+      await service
+        .from("slack_sessions")
+        .update({ status: "completed" })
+        .eq("id", slackSessionId);
 
-    await service
-      .from("slack_sessions")
-      .update({ status: "completed" })
-      .eq("id", slackSessionId);
+      const blocks = buildSlackBlocks(question, fullSynthesis, appUrl, workspaceId);
+      await fetch(responseUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          response_type: "in_channel",
+          blocks,
+        }),
+      });
+    } else {
+      // Synthesis is still running — give the user a link to check later
+      await service
+        .from("slack_sessions")
+        .update({ status: "processing" })
+        .eq("id", slackSessionId);
 
-    // Fetch the full synthesis row — the synthesize function only returns a
-    // trimmed response, but all fields (blind_spots, risk_signals, etc.) are
-    // persisted in workspace_synthesis. Use that as the source of truth.
-    const { data: fullSynthesis } = await service
-      .from("workspace_synthesis")
-      .select(
-        "decision_health_score, financial_score, operational_score, alignment_score, " +
-        "decision_velocity, confidence_trajectory, health_rationale, executive_summary, recommendation, " +
-        "consensus_points, conflict_zones, open_questions, risk_signals, blind_spots, " +
-        "action_items, financial_metrics, operational_metrics, non_financial_metrics, " +
-        "opportunity_signals, key_decisions, cognitive_bias_flags"
-      )
-      .eq("workspace_id", workspaceId)
-      .maybeSingle();
-
-    // Post the Board Brief summary back to Slack
-    const blocks = buildSlackBlocks(question, (fullSynthesis ?? {}) as Record<string, unknown>, appUrl, workspaceId);
-    await fetch(responseUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        response_type: "in_channel",
-        blocks,
-      }),
-    });
+      await fetch(responseUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          response_type: "in_channel",
+          blocks: [
+            {
+              type: "section",
+              text: { type: "mrkdwn", text: `⚡ *War Room still in progress…*\n> ${question}\n\nThe AI advisors are still debating. Your Board Brief will be ready shortly — view it here:` },
+            },
+            {
+              type: "actions",
+              elements: [
+                {
+                  type: "button",
+                  text: { type: "plain_text", text: "Open War Room", emoji: true },
+                  style: "primary",
+                  url: `${appUrl}/?workspace=${workspaceId}`,
+                },
+              ],
+            },
+          ],
+        }),
+      });
+    }
   } catch (err) {
     console.error("War room processing error:", err);
     await service
