@@ -1,33 +1,24 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Sparkles, LogIn, Loader2, AlertCircle, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
-const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ask-agents`;
-const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-async function invokeAskAgents(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const res = await fetch(FUNCTIONS_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${ANON_KEY}`,
-      Apikey: ANON_KEY,
-    },
-    body: JSON.stringify(body),
-  });
-  const payload = await res.json().catch(() => ({})) as Record<string, unknown>;
-  if (!res.ok) {
-    throw new Error((payload.error as string) || `Request failed (${res.status})`);
-  }
-  return payload;
-}
+const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lens-warroom`;
 
 const EXTENSION_ORIGIN_PREFIX = 'chrome-extension://';
 const PODDLE_ORIGIN = window.location.origin;
 
-const POLL_INTERVAL_MS = 1500;
-const INITIAL_POLL_DELAY_MS = 1200;
+const POLL_INTERVAL_MS = 4000;
+const INITIAL_POLL_DELAY_MS = 3000;
+const MAX_POLL_MS = 150_000;
 const MAX_QUESTION_CHARS = 400;
+
+const SYNTH_SELECT =
+  'decision_health_score, financial_score, operational_score, alignment_score, ' +
+  'decision_velocity, confidence_trajectory, health_rationale, executive_summary, recommendation, ' +
+  'consensus_points, conflict_zones, open_questions, risk_signals, blind_spots, ' +
+  'action_items, financial_metrics, operational_metrics, non_financial_metrics, ' +
+  'opportunity_signals, key_decisions, cognitive_bias_flags';
 
 interface IncomingContent {
   text: string;
@@ -35,35 +26,77 @@ interface IncomingContent {
   url: string;
 }
 
-interface Turn {
-  agent_name: string;
-  display_name: string;
-  content: string;
-  turn_number: number;
-}
-
-interface PanelAgent {
-  agent_name: string;
-  display_name: string;
+interface Synthesis {
+  decision_health_score: number | null;
+  financial_score: number | null;
+  operational_score: number | null;
+  alignment_score: number | null;
+  decision_velocity: string | null;
+  confidence_trajectory: string | null;
+  health_rationale: string | null;
+  executive_summary: string | null;
+  recommendation: string | null;
+  consensus_points: Array<{ text: string; confidence?: number }> | null;
+  conflict_zones: Array<{ topic: string; agent_a?: string; position_a?: string; agent_b?: string; position_b?: string; tension_level?: number }> | null;
+  open_questions: Array<{ question: string; urgency?: string }> | null;
+  risk_signals: Array<{ signal: string; severity: string; category?: string }> | null;
+  blind_spots: Array<{ area: string; description: string }> | null;
+  action_items: Array<{ text: string; priority: string; source_area?: string }> | null;
+  financial_metrics: Array<{ metric: string; value: string; confidence?: string; note?: string }> | null;
+  operational_metrics: Array<{ metric: string; status: string; note?: string }> | null;
+  non_financial_metrics: Array<{ metric: string; signal: string; note?: string }> | null;
+  opportunity_signals: Array<{ title: string; description: string; confidence?: string }> | null;
+  key_decisions: Array<{ decision: string; status: string; rationale?: string; owner?: string }> | null;
+  cognitive_bias_flags: Array<{ bias_name: string; explanation: string; counter_question?: string }> | null;
 }
 
 type Status = 'idle' | 'running' | 'completed' | 'failed';
 
-const AGENT_STYLES: Record<string, { bg: string; text: string; border: string; dot: string }> = {
-  'The Skeptic':    { bg: '#1a0a0a', text: '#fca5a5', border: '#7f1d1d', dot: '#ef4444' },
-  'Risk Analyst':   { bg: '#1a0f06', text: '#fdba74', border: '#7c2d12', dot: '#f97316' },
-  'The Optimist':   { bg: '#061a0e', text: '#86efac', border: '#14532d', dot: '#22c55e' },
-  'Data Detective': { bg: '#06101a', text: '#93c5fd', border: '#1e3a5f', dot: '#3b82f6' },
-  'The Pragmatist': { bg: '#0f1117', text: '#cbd5e1', border: '#334155', dot: '#94a3b8' },
-};
+// ── Helpers ───────────────────────────────────────────────────────
 
-function getAgentStyle(name: string) {
-  return AGENT_STYLES[name] ?? AGENT_STYLES['The Pragmatist'];
+function extractDomain(url: string) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
 }
 
-function getInitials(name: string) {
-  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+function severityEmoji(s: string): string {
+  return s === 'critical' ? '🔴' : s === 'high' ? '🟠' : s === 'medium' ? '🟡' : '⚪';
 }
+
+function priorityEmoji(p: string): string {
+  return p === 'critical' ? '🔴' : p === 'high' ? '🟠' : '🟡';
+}
+
+function statusEmoji(s: string): string {
+  return s === 'on-track' ? '🟢' : s === 'at-risk' ? '🟠' : '⚪';
+}
+
+function signalEmoji(s: string): string {
+  return s === 'positive' ? '🟢' : s === 'negative' ? '🔴' : '🔵';
+}
+
+function velocityEmoji(v: string | null): string {
+  return v === 'fast' ? '🚀' : v === 'stalling' ? '🐢' : '⚡';
+}
+
+function trajEmoji(t: string | null): string {
+  return t === 'rising' ? '📈' : t === 'falling' ? '📉' : '➡️';
+}
+
+function scoreColor(score: number): string {
+  if (score >= 75) return '#22c55e';
+  if (score >= 55) return '#f59e0b';
+  if (score >= 35) return '#f97316';
+  return '#ef4444';
+}
+
+function scoreLabel(score: number): string {
+  if (score >= 75) return 'Sharp';
+  if (score >= 55) return 'Developing';
+  if (score >= 35) return 'Fragmented';
+  return 'Critical';
+}
+
+// ── Component ────────────────────────────────────────────────────
 
 export default function ExtensionView() {
   const { user, loading: authLoading } = useAuth();
@@ -75,13 +108,10 @@ export default function ExtensionView() {
   const [submitting, setSubmitting] = useState(false);
   const [sendError, setSendError] = useState('');
   const [status, setStatus] = useState<Status>('idle');
-  const [panel, setPanel] = useState<PanelAgent[]>([]);
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [tlDr, setTlDr] = useState('');
+  const [synthesis, setSynthesis] = useState<Synthesis | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState('');
+  const [workspaceId, setWorkspaceId] = useState('');
 
-  const sessionIdRef = useRef<string>('');
-  const discussionIdRef = useRef<string>('');
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const readyPostedRef = useRef(false);
@@ -123,8 +153,7 @@ export default function ExtensionView() {
       setInputValue(prefilled);
       setContentReceived(true);
       setStatus('idle');
-      setTurns([]);
-      setTlDr('');
+      setSynthesis(null);
       setSendError('');
 
       requestAnimationFrame(() => {
@@ -139,12 +168,12 @@ export default function ExtensionView() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Auto-scroll results as turns arrive
+  // Auto-scroll results as content arrives
   useEffect(() => {
-    if (resultsRef.current && turns.length > 0) {
+    if (resultsRef.current) {
       resultsRef.current.scrollTop = resultsRef.current.scrollHeight;
     }
-  }, [turns]);
+  }, [synthesis, status]);
 
   // ── Polling ──────────────────────────────────────────────────
   const stopPolling = useCallback(() => {
@@ -154,46 +183,37 @@ export default function ExtensionView() {
     }
   }, []);
 
-  const poll = useCallback(async () => {
-    const sessionId = sessionIdRef.current;
-    if (!sessionId) return;
+  const poll = useCallback(async (wsId: string, deadline: number) => {
+    if (Date.now() > deadline) {
+      setStatus('failed');
+      return;
+    }
 
     try {
-      const data = await invokeAskAgents({ mode: 'poll', session_id: sessionId });
+      const { data: synthRow, error } = await supabase
+        .from('workspace_synthesis')
+        .select(SYNTH_SELECT)
+        .eq('workspace_id', wsId)
+        .maybeSingle();
 
-      if (data?.status === 'not_found') {
-        stopPolling();
-        setStatus('failed');
-        return;
-      }
+      if (error) throw error;
 
-      const newTurns: Turn[] = (data?.turns as Turn[] ?? []).filter((t: Turn) => t.turn_number > 0);
-      setTurns(newTurns);
-
-      if ((data?.discussion as { tl_dr?: string })?.tl_dr) {
-        setTlDr((data.discussion as { tl_dr: string }).tl_dr);
-      }
-
-      if (data?.status === 'completed' || (data?.discussion as { discussion_status?: string })?.discussion_status === 'completed') {
+      if (synthRow) {
+        setSynthesis(synthRow as Synthesis);
         setStatus('completed');
-        stopPolling();
-        return;
-      }
-      if (data?.status === 'failed') {
-        setStatus('failed');
-        stopPolling();
         return;
       }
 
-      pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
+      pollTimerRef.current = setTimeout(() => poll(wsId, deadline), POLL_INTERVAL_MS);
     } catch {
-      pollTimerRef.current = setTimeout(poll, 2500);
+      pollTimerRef.current = setTimeout(() => poll(wsId, deadline), POLL_INTERVAL_MS * 2);
     }
-  }, [stopPolling]);
+  }, []);
 
-  const schedulePoll = useCallback(() => {
+  const schedulePoll = useCallback((wsId: string) => {
     stopPolling();
-    pollTimerRef.current = setTimeout(poll, INITIAL_POLL_DELAY_MS);
+    const deadline = Date.now() + MAX_POLL_MS;
+    pollTimerRef.current = setTimeout(() => poll(wsId, deadline), INITIAL_POLL_DELAY_MS);
   }, [poll, stopPolling]);
 
   useEffect(() => () => stopPolling(), [stopPolling]);
@@ -203,24 +223,36 @@ export default function ExtensionView() {
     if (!inputValue.trim() || !user || submitting) return;
 
     const question = inputValue.trim().slice(0, MAX_QUESTION_CHARS);
-    const sessionId = `ext-${user.id}-${Date.now()}`;
-    sessionIdRef.current = sessionId;
 
     setSubmitting(true);
     setSendError('');
     setStatus('running');
-    setTurns([]);
-    setTlDr('');
+    setSynthesis(null);
     setCurrentQuestion(question);
 
     try {
-      const data = await invokeAskAgents({ question, session_id: sessionId });
-      if (!data?.ok) throw new Error((data?.error as string) ?? 'Unknown error');
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+      if (!accessToken) throw new Error('Not authenticated');
 
-      discussionIdRef.current = data.discussion_id as string;
-      setPanel((data.panel as PanelAgent[]) ?? []);
+      const res = await fetch(FUNCTIONS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ question }),
+      });
+
+      const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+      if (!res.ok || !data?.ok) {
+        throw new Error((data?.error as string) ?? `Request failed (${res.status})`);
+      }
+
+      const wsId = data.workspace_id as string;
+      setWorkspaceId(wsId);
       setInputValue('');
-      schedulePoll();
+      schedulePoll(wsId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to send. Please try again.';
       setSendError(msg);
@@ -233,10 +265,9 @@ export default function ExtensionView() {
   const handleReset = () => {
     stopPolling();
     setStatus('idle');
-    setTurns([]);
-    setTlDr('');
-    setPanel([]);
+    setSynthesis(null);
     setCurrentQuestion('');
+    setWorkspaceId('');
     setSendError('');
     setContentReceived(false);
     setInputValue('');
@@ -331,50 +362,29 @@ export default function ExtensionView() {
           </div>
         )}
 
-        {/* Agent turns */}
-        {turns.map((turn) => {
-          const st = getAgentStyle(turn.display_name);
-          return (
-            <div key={turn.turn_number} style={{ ...s.turnCard, background: st.bg, borderColor: st.border }}>
-              <div style={s.turnHeader}>
-                <div style={{ ...s.avatar, background: st.border, color: st.text }}>
-                  {getInitials(turn.display_name)}
-                </div>
-                <span style={{ ...s.agentName, color: st.text }}>{turn.display_name}</span>
-              </div>
-              <p style={s.turnContent}>{turn.content}</p>
-            </div>
-          );
-        })}
-
-        {/* In-progress indicator */}
+        {/* Running state */}
         {isRunning && (
-          <div style={s.thinkingRow}>
-            <Loader2 size={13} style={{ animation: 'spin 0.75s linear infinite', color: '#3b82f6', flexShrink: 0 }} />
-            <span style={s.thinkingText}>
-              {turns.length === 0
-                ? 'The panel is deliberating…'
-                : panel[turns.length]
-                  ? `${panel[turns.length].display_name} is replying…`
-                  : 'Finalising…'}
-            </span>
+          <div style={s.thinkingCard}>
+            <Loader2 size={16} style={{ animation: 'spin 0.75s linear infinite', color: '#3b82f6', flexShrink: 0 }} />
+            <div>
+              <p style={s.thinkingTitle}>War Room in progress…</p>
+              <p style={s.thinkingSub}>Seven AI advisors are debating your decision. The Board Brief will appear here when ready.</p>
+            </div>
           </div>
         )}
 
-        {/* TL;DR summary */}
-        {status === 'completed' && tlDr && (
-          <div style={s.summaryCard}>
-            <div style={s.summaryLabel}>
-              <Sparkles size={11} color="#f59e0b" /> Panel verdict
-            </div>
-            <p style={s.summaryText}>{tlDr}</p>
-          </div>
-        )}
+        {/* Board Brief */}
+        {synthesis && <BoardBrief synth={synthesis} workspaceId={workspaceId} />}
 
         {/* Failed state */}
-        {status === 'failed' && turns.length === 0 && (
+        {status === 'failed' && !synthesis && (
           <div style={s.errorBanner}>
-            <AlertCircle size={13} /> Analysis failed. Please try again.
+            <AlertCircle size={13} /> Analysis timed out. The War Room may still be processing — check it directly.
+            {workspaceId && (
+              <a href={`https://poddleme.com/?workspace=${workspaceId}`} target="_blank" rel="noopener noreferrer" style={s.errorLink}>
+                Open War Room
+              </a>
+            )}
           </div>
         )}
       </div>
@@ -436,11 +446,307 @@ export default function ExtensionView() {
   );
 }
 
-// ── Helpers ───────────────────────────────────────────────────────
+// ── Board Brief Component ────────────────────────────────────────
 
-function extractDomain(url: string) {
-  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
+function BoardBrief({ synth, workspaceId }: { synth: Synthesis; workspaceId: string }) {
+  const score = synth.decision_health_score;
+  const rec = synth.recommendation;
+  const execSummary = synth.executive_summary;
+  const healthRationale = synth.health_rationale;
+  const consensus = synth.consensus_points ?? [];
+  const risks = synth.risk_signals ?? [];
+  const openQs = synth.open_questions ?? [];
+  const actions = synth.action_items ?? [];
+  const blindSpots = synth.blind_spots ?? [];
+  const conflicts = synth.conflict_zones ?? [];
+  const finMetrics = synth.financial_metrics ?? [];
+  const opMetrics = synth.operational_metrics ?? [];
+  const nonFinMetrics = synth.non_financial_metrics ?? [];
+  const opportunities = synth.opportunity_signals ?? [];
+  const keyDecisions = synth.key_decisions ?? [];
+  const biasFlags = synth.cognitive_bias_flags ?? [];
+
+  return (
+    <>
+      {/* Score header */}
+      {score != null && (
+        <div style={s.scoreCard}>
+          <div style={s.scoreHeader}>
+            <span style={s.scoreTitle}>⚡ Board Brief</span>
+            <div style={s.scoreBadge(score)}>
+              <span style={s.scoreNumber(score)}>{score}</span>
+              <span style={s.scoreMax}>/100</span>
+            </div>
+          </div>
+          <span style={s.scoreLabel(score)}>{scoreLabel(score)} Team</span>
+
+          {/* Score breakdown */}
+          <div style={s.scoreBreakdown}>
+            {synth.financial_score != null && (
+              <div style={s.scorePill}>
+                <span style={s.scorePillLabel}>Financial</span>
+                <span style={s.scorePillValue}>{synth.financial_score}</span>
+              </div>
+            )}
+            {synth.operational_score != null && (
+              <div style={s.scorePill}>
+                <span style={s.scorePillLabel}>Operational</span>
+                <span style={s.scorePillValue}>{synth.operational_score}</span>
+              </div>
+            )}
+            {synth.alignment_score != null && (
+              <div style={s.scorePill}>
+                <span style={s.scorePillLabel}>Alignment</span>
+                <span style={s.scorePillValue}>{synth.alignment_score}</span>
+              </div>
+            )}
+            {synth.decision_velocity && (
+              <div style={s.scorePill}>
+                <span style={s.scorePillLabel}>Velocity</span>
+                <span style={s.scorePillValue}>{velocityEmoji(synth.decision_velocity)} {synth.decision_velocity}</span>
+              </div>
+            )}
+            {synth.confidence_trajectory && (
+              <div style={s.scorePill}>
+                <span style={s.scorePillLabel}>Confidence</span>
+                <span style={s.scorePillValue}>{trajEmoji(synth.confidence_trajectory)} {synth.confidence_trajectory}</span>
+              </div>
+            )}
+          </div>
+
+          {healthRationale && (
+            <p style={s.rationale}>{healthRationale}</p>
+          )}
+        </div>
+      )}
+
+      {/* Executive Summary */}
+      {execSummary && (
+        <Section title="Executive Summary">
+          <p style={s.sectionText}>{execSummary}</p>
+        </Section>
+      )}
+
+      {/* Recommendation */}
+      {rec && (
+        <Section title="Recommendation" accent="#3b82f6">
+          <p style={s.sectionText}>{rec}</p>
+        </Section>
+      )}
+
+      {/* Action Items */}
+      {actions.length > 0 && (
+        <Section title="Action Items">
+          {actions.slice(0, 5).map((a, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>{priorityEmoji(a.priority)}</span>
+              <span style={s.listText}>
+                <span style={s.listTag}>[{a.source_area ?? a.priority}]</span> {a.text}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Consensus Points */}
+      {consensus.length > 0 && (
+        <Section title="Consensus Points" accent="#22c55e">
+          {consensus.slice(0, 4).map((c, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>•</span>
+              <span style={s.listText}>
+                {c.text}
+                {c.confidence != null && <span style={s.listMeta}> ({c.confidence}% confidence)</span>}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Risk Signals */}
+      {risks.length > 0 && (
+        <Section title="Risk Signals" accent="#f97316">
+          {risks.slice(0, 5).map((r, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>{severityEmoji(r.severity)}</span>
+              <span style={s.listText}>
+                <span style={s.listTag}>[{r.category ?? r.severity}]</span> {r.signal}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Blind Spots */}
+      {blindSpots.length > 0 && (
+        <Section title="Blind Spots" accent="#a855f7">
+          <p style={s.sectionSubtext}>What your team may not be seeing:</p>
+          {blindSpots.map((b, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>•</span>
+              <span style={s.listText}>
+                <span style={s.listBold}>{b.area}</span> — {b.description}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Financial Metrics */}
+      {finMetrics.length > 0 && (
+        <Section title="Financial Metrics" accent="#22c55e">
+          {finMetrics.slice(0, 5).map((f, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>•</span>
+              <span style={s.listText}>
+                <span style={s.listBold}>{f.metric}:</span> {f.value}
+                {f.note && <span style={s.listMeta}> — {f.note}</span>}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Operational Metrics */}
+      {opMetrics.length > 0 && (
+        <Section title="Operational Metrics" accent="#3b82f6">
+          {opMetrics.slice(0, 5).map((o, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>{statusEmoji(o.status)}</span>
+              <span style={s.listText}>
+                <span style={s.listBold}>{o.metric}:</span> {o.status}
+                {o.note && <span style={s.listMeta}> — {o.note}</span>}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Strategic Metrics */}
+      {nonFinMetrics.length > 0 && (
+        <Section title="Strategic Metrics" accent="#06b6d4">
+          {nonFinMetrics.slice(0, 4).map((n, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>{signalEmoji(n.signal)}</span>
+              <span style={s.listText}>
+                <span style={s.listBold}>{n.metric}</span>
+                {n.note && <span style={s.listMeta}> — {n.note}</span>}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Open Questions */}
+      {openQs.length > 0 && (
+        <Section title="Open Questions" accent="#f59e0b">
+          {openQs.slice(0, 4).map((q, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>•</span>
+              <span style={s.listText}>
+                {q.question}
+                {q.urgency === 'critical' && <span style={s.listMeta}> 🔴</span>}
+                {q.urgency === 'high' && <span style={s.listMeta}> 🟠</span>}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Opportunities */}
+      {opportunities.length > 0 && (
+        <Section title="Opportunities" accent="#22c55e">
+          {opportunities.slice(0, 3).map((o, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>•</span>
+              <span style={s.listText}>
+                <span style={s.listBold}>{o.title}</span> — {o.description}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Key Decisions */}
+      {keyDecisions.length > 0 && (
+        <Section title="Key Decisions" accent="#3b82f6">
+          {keyDecisions.slice(0, 4).map((d, i) => {
+            const st = d.status === 'resolved' ? '✅' : d.status === 'in-progress' ? '🔄' : '⏳';
+            return (
+              <div key={i} style={s.listItem}>
+                <span style={s.listBullet}>{st}</span>
+                <span style={s.listText}>
+                  <span style={s.listBold}>{d.decision}</span>
+                  {d.owner && <span style={s.listMeta}> ({d.owner})</span>}
+                </span>
+              </div>
+            );
+          })}
+        </Section>
+      )}
+
+      {/* Conflict Zones */}
+      {conflicts.length > 0 && (
+        <Section title="Conflict Zones" accent="#ef4444">
+          {conflicts.slice(0, 3).map((c, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>•</span>
+              <span style={s.listText}>
+                <span style={s.listBold}>{c.topic}</span>
+                {c.position_a && c.position_b && (
+                  <span style={s.listMeta}>: "{c.position_a}" vs "{c.position_b}"</span>
+                )}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Cognitive Bias Flags */}
+      {biasFlags.length > 0 && (
+        <Section title="Cognitive Bias Flags" accent="#a855f7">
+          {biasFlags.slice(0, 2).map((b, i) => (
+            <div key={i} style={s.listItem}>
+              <span style={s.listBullet}>•</span>
+              <span style={s.listText}>
+                <span style={s.listBold}>{b.bias_name}</span> — {b.explanation}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Link to full War Room */}
+      {workspaceId && (
+        <a
+          href={`https://poddleme.com/?workspace=${workspaceId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={s.warRoomLink}
+        >
+          View Full War Room →
+        </a>
+      )}
+    </>
+  );
 }
+
+// ── Section Component ─────────────────────────────────────────────
+
+function Section({ title, accent, children }: { title: string; accent?: string; children: React.ReactNode }) {
+  return (
+    <div style={s.sectionCard}>
+      <div style={{ ...s.sectionHeader, borderLeftColor: accent ?? '#334155' }}>
+        <span style={s.sectionTitle}>{title}</span>
+      </div>
+      <div style={s.sectionBody}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Poddle Logo ───────────────────────────────────────────────────
 
 function PoddleLogo({ size }: { size: number }) {
   return (
@@ -464,7 +770,7 @@ const scrollbarCss = `
   textarea:focus { outline: none; }
 `;
 
-const s: Record<string, React.CSSProperties> = {
+const s: Record<string, any> = {
   container: {
     display: 'flex',
     flexDirection: 'column',
@@ -578,75 +884,189 @@ const s: Record<string, React.CSSProperties> = {
     lineHeight: 1.5,
     margin: 0,
   },
-  turnCard: {
-    borderRadius: '10px',
-    border: '1px solid',
-    padding: '10px 12px',
+  thinkingCard: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: '16px 14px',
+    background: '#0b1225',
+    border: '1px solid rgba(59,130,246,0.15)',
+    borderRadius: '12px',
     flexShrink: 0,
   },
-  turnHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+  thinkingTitle: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#f1f5f9',
+    margin: '0 0 4px 0',
   },
-  avatar: {
-    width: 24,
-    height: 24,
-    borderRadius: '6px',
+  thinkingSub: {
+    fontSize: '11.5px',
+    color: '#64748b',
+    lineHeight: 1.5,
+    margin: 0,
+  },
+  // ── Score Card ──
+  scoreCard: {
+    background: '#0b1225',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '12px',
+    padding: '14px',
+    flexShrink: 0,
+  },
+  scoreHeader: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '9px',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  scoreTitle: {
+    fontSize: '14px',
     fontWeight: 700,
+    color: '#f1f5f9',
+    letterSpacing: '-0.02em',
+  },
+  scoreBadge: (score: number) => ({
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: 2,
+    padding: '4px 10px',
+    borderRadius: '8px',
+    background: `${scoreColor(score)}15`,
+    border: `1px solid ${scoreColor(score)}40`,
+  }),
+  scoreNumber: (score: number) => ({
+    fontSize: '18px',
+    fontWeight: 700,
+    color: scoreColor(score),
+  }),
+  scoreMax: {
+    fontSize: '11px',
+    color: '#475569',
+  },
+  scoreLabel: (score: number) => ({
+    display: 'inline-block',
+    fontSize: '10px',
+    fontWeight: 600,
+    color: scoreColor(score),
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    marginBottom: 10,
+  }),
+  scoreBreakdown: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  scorePill: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '3px 8px',
+    borderRadius: '6px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.06)',
+  },
+  scorePillLabel: {
+    fontSize: '9.5px',
+    color: '#64748b',
+    fontWeight: 500,
+  },
+  scorePillValue: {
+    fontSize: '10px',
+    color: '#cbd5e1',
+    fontWeight: 600,
+  },
+  rationale: {
+    fontSize: '11px',
+    color: '#94a3b8',
+    fontStyle: 'italic',
+    lineHeight: 1.5,
+    margin: '10px 0 0 0',
+  },
+  // ── Section ──
+  sectionCard: {
+    background: '#0b1225',
+    border: '1px solid rgba(255,255,255,0.07)',
+    borderRadius: '10px',
+    overflow: 'hidden',
     flexShrink: 0,
   },
-  agentName: {
+  sectionHeader: {
+    padding: '8px 12px',
+    borderLeft: '3px solid #334155',
+    background: 'rgba(255,255,255,0.03)',
+  },
+  sectionTitle: {
     fontSize: '11px',
     fontWeight: 700,
-    letterSpacing: '-0.01em',
+    color: '#f1f5f9',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
   },
-  turnContent: {
+  sectionBody: {
+    padding: '10px 12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  sectionText: {
     fontSize: '12px',
     color: '#cbd5e1',
     lineHeight: 1.65,
     margin: 0,
   },
-  thinkingRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '6px 0',
-  },
-  thinkingText: {
-    fontSize: '11.5px',
+  sectionSubtext: {
+    fontSize: '10.5px',
     color: '#475569',
     fontStyle: 'italic',
+    margin: '0 0 4px 0',
   },
-  summaryCard: {
-    background: 'rgba(245,158,11,0.07)',
-    border: '1px solid rgba(245,158,11,0.2)',
-    borderRadius: '10px',
-    padding: '10px 12px',
-    flexShrink: 0,
-  },
-  summaryLabel: {
+  // ── List Items ──
+  listItem: {
     display: 'flex',
-    alignItems: 'center',
-    gap: 5,
-    fontSize: '9.5px',
-    fontWeight: 700,
-    color: '#f59e0b',
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    marginBottom: 6,
-  },
-  summaryText: {
+    alignItems: 'flex-start',
+    gap: 7,
     fontSize: '12px',
-    color: '#e2e8f0',
-    lineHeight: 1.65,
-    margin: 0,
+    lineHeight: 1.55,
   },
+  listBullet: {
+    flexShrink: 0,
+    fontSize: '11px',
+    lineHeight: '1.7',
+  },
+  listText: {
+    color: '#cbd5e1',
+    flex: 1,
+  },
+  listTag: {
+    fontWeight: 600,
+    color: '#94a3b8',
+  },
+  listBold: {
+    fontWeight: 600,
+    color: '#e2e8f0',
+  },
+  listMeta: {
+    color: '#475569',
+    fontSize: '11px',
+  },
+  // ── War Room Link ──
+  warRoomLink: {
+    display: 'block',
+    textAlign: 'center',
+    padding: '10px',
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#3b82f6',
+    background: 'rgba(59,130,246,0.08)',
+    border: '1px solid rgba(59,130,246,0.2)',
+    borderRadius: '10px',
+    textDecoration: 'none',
+    flexShrink: 0,
+    transition: 'background 0.18s ease',
+  },
+  // ── Error ──
   errorBanner: {
     display: 'flex',
     alignItems: 'center',
@@ -657,7 +1077,15 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: '8px',
     color: '#ef4444',
     fontSize: '12px',
+    flexWrap: 'wrap',
   },
+  errorLink: {
+    color: '#3b82f6',
+    fontSize: '11px',
+    textDecoration: 'underline',
+    marginLeft: 'auto',
+  },
+  // ── Input ──
   inputSection: {
     flexShrink: 0,
     padding: '0 14px 14px',
@@ -740,6 +1168,7 @@ const s: Record<string, React.CSSProperties> = {
     fontFamily: 'inherit',
     cursor: 'pointer',
   },
+  // ── Auth ──
   fullCenter: {
     display: 'flex',
     flexDirection: 'column',
