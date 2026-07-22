@@ -392,6 +392,7 @@ async function runWarRoom(
         plan: "pro",
         subscription_status: "trialing",
         trial_workspace_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        is_public: true,
       })
       .select("id")
       .single();
@@ -422,10 +423,10 @@ async function runWarRoom(
       metadata: { source: "slack_slash_command", slack_session_id: slackSessionId },
     });
 
-    // Trigger synthesis without awaiting — the synthesis edge function makes
-    // expensive OpenAI calls (gpt-4.1, up to 300s) that would exceed this
-    // function's wall-clock limit if awaited. We fire it and poll the DB.
-    fetch(`${supabaseUrl}/functions/v1/workspace-synthesize`, {
+    // Trigger fast synthesis without awaiting — lens-synthesize uses a single
+    // gpt-4o call (no regeneration/rationale/pattern rollup) so the Board
+    // Brief is ready in ~30-60s instead of 2-5 minutes.
+    fetch(`${supabaseUrl}/functions/v1/lens-synthesize`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -443,7 +444,7 @@ async function runWarRoom(
       "action_items, financial_metrics, operational_metrics, non_financial_metrics, " +
       "opportunity_signals, key_decisions, cognitive_bias_flags";
 
-    const pollIntervalMs = 5000;
+    const pollIntervalMs = 3000;
     const maxPollMs = 150_000; // 2.5 minutes — stays within edge function wall clock
     const deadline = Date.now() + maxPollMs;
 

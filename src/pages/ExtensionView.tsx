@@ -8,9 +8,9 @@ const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lens-wa
 const EXTENSION_ORIGIN_PREFIX = 'chrome-extension://';
 const PODDLE_ORIGIN = window.location.origin;
 
-const POLL_INTERVAL_MS = 4000;
-const INITIAL_POLL_DELAY_MS = 3000;
-const MAX_POLL_MS = 150_000;
+const POLL_INTERVAL_MS = 3000;
+const INITIAL_POLL_DELAY_MS = 2000;
+const MAX_POLL_MS = 180_000;
 const MAX_QUESTION_CHARS = 400;
 
 const SYNTH_SELECT =

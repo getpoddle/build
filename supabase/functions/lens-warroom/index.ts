@@ -80,6 +80,7 @@ Deno.serve(async (req: Request) => {
         plan: "pro",
         subscription_status: "trialing",
         trial_workspace_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        is_public: true,
       })
       .select("id")
       .single();
@@ -107,9 +108,9 @@ Deno.serve(async (req: Request) => {
       metadata: { source: "poddle_lens" },
     });
 
-    // Fire synthesis without awaiting — the synthesis edge function makes
-    // expensive OpenAI calls that would exceed this function's wall-clock.
-    fetch(`${supabaseUrl}/functions/v1/workspace-synthesize`, {
+    // Fire fast synthesis without awaiting — lens-synthesize uses a single
+    // gpt-4o call (no regeneration/rationale/pattern rollup) for speed.
+    fetch(`${supabaseUrl}/functions/v1/lens-synthesize`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
