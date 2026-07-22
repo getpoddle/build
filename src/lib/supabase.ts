@@ -16,10 +16,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
 }
 
+// detectSessionInUrl processes the URL during client initialization, firing
+// PASSWORD_RECOVERY before any onAuthStateChange listener can register.
+// Capture the recovery type here so AuthContext can use it as initial state.
+export const isInitialPasswordRecovery =
+  window.location.pathname === '/reset-password' ||
+  new URLSearchParams(window.location.hash.substring(1)).get('type') === 'recovery';
+
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     flowType: 'pkce',
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
     autoRefreshToken: true,
     persistSession: true,
   },
