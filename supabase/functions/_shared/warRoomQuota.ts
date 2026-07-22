@@ -24,9 +24,10 @@ export interface WarRoomLimit {
 }
 
 export const WAR_ROOM_LIMITS: Record<WarRoomPlan, WarRoomLimit> = {
-  // Free: one trial War Room session per billing period. Hard block after that.
+  // Free: 10 War Room sessions per billing period. Enough for a new user to
+  // meaningfully evaluate the AI collaboration across a full decision cycle.
   free: {
-    cap: 1,
+    cap: 10,
     included: 0,
     overageUnitPrice: 0,
     hardBlock: true,
