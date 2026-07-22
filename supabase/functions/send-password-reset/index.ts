@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildPasswordResetEmail, APP_URL } from "../_shared/emailTemplates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,29 +12,11 @@ const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 
 function getClientIp(req: Request): string {
-  // cf-connecting-ip is set by Cloudflare and cannot be spoofed by the client.
-  // x-forwarded-for is client-controllable and must not be used for security decisions.
   return (
     req.headers.get("cf-connecting-ip") ||
     req.headers.get("x-real-ip") ||
     "unknown"
   );
-}
-
-function isSafeRedirect(redirectTo: string | undefined): boolean {
-  if (!redirectTo) return true;
-  const allowed = [
-    Deno.env.get("SITE_URL") || "",
-    Deno.env.get("SUPABASE_URL") || "",
-  ].filter(Boolean);
-  try {
-    const target = new URL(redirectTo);
-    return allowed.some((a) => {
-      try { return new URL(a).host === target.host; } catch { return false; }
-    });
-  } catch {
-    return false;
-  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -49,8 +32,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Enforce a minimum response time to prevent timing-based email enumeration.
-    // Both the "user exists" and "user not found" paths complete in ≥ MIN_RESPONSE_MS.
     const MIN_RESPONSE_MS = 800;
     const reqStart = Date.now();
     const minDelay = () => {
@@ -59,7 +40,7 @@ Deno.serve(async (req: Request) => {
       return remaining > 0 ? new Promise(r => setTimeout(r, remaining)) : Promise.resolve();
     };
 
-    const { email, redirectTo } = await req.json();
+    const { email } = await req.json();
 
     if (!email || typeof email !== "string") {
       return new Response(JSON.stringify({ error: "Email is required" }), {
@@ -68,14 +49,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // If the requested redirect doesn't match an allowed origin, silently fall
-    // back to SITE_URL instead of rejecting the request. This prevents open
-    // redirect abuse while keeping password reset working across deployments
-    // (preview URLs, localhost, etc.) where SITE_URL may differ from the
-    // origin the user is currently browsing.
-    const safeRedirect = (redirectTo && isSafeRedirect(redirectTo))
-      ? redirectTo
-      : (Deno.env.get("SITE_URL") || Deno.env.get("SUPABASE_URL") || "");
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) {
+      console.error("RESEND_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Email service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -121,28 +102,72 @@ Deno.serve(async (req: Request) => {
       .lt("attempted_at", new Date(Date.now() - RATE_LIMIT_WINDOW_MS * 24).toISOString());
 
     const emailLower = email.toLowerCase().trim();
-    const { data: users } = await supabaseAdmin.auth.admin.listUsers();
 
-    if (users) {
-      const userExists = users.users.some((u) => u.email?.toLowerCase() === emailLower);
-      if (userExists) {
-        const supabasePublic = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_ANON_KEY")!
-        );
-        await supabasePublic.auth.resetPasswordForEmail(emailLower, {
-          redirectTo: safeRedirect,
-        });
-      }
+    // Generate a password recovery link via the admin API.
+    // This produces a one-time link that Supabase exchanges for a session
+    // when the user clicks it, landing them on the reset password page.
+    const { data, error: generateError } = await supabaseAdmin.auth.admin
+      .generateLink({
+        type: "recovery",
+        email: emailLower,
+        options: {
+          redirectTo: `${APP_URL}/reset-password`,
+        },
+      });
+
+    if (generateError || !data?.user?.email) {
+      // User doesn't exist or link generation failed — return success to
+      // prevent email enumeration (same as the original behavior).
+      await minDelay();
+      return new Response(
+        JSON.stringify({ sent: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
+    // data.properties.action_link is the recovery URL Supabase generated.
+    const resetUrl = data.properties?.action_link;
+    if (!resetUrl) {
+      console.error("generateLink returned no action_link");
+      await minDelay();
+      return new Response(
+        JSON.stringify({ sent: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const firstName = data.user.user_metadata?.first_name || emailLower.split("@")[0] || "there";
+    const html = buildPasswordResetEmail(firstName, resetUrl);
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Poddle <notifications@poddleme.com>",
+        to: emailLower,
+        subject: "Reset your password — Poddle",
+        html,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("Resend error (password reset):", err);
+      await minDelay();
+      return new Response(
+        JSON.stringify({ error: "Failed to send email" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Password reset email sent to ${emailLower}`);
     await minDelay();
     return new Response(
       JSON.stringify({ sent: true }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch {
     return new Response(JSON.stringify({ error: "Unexpected error" }), {

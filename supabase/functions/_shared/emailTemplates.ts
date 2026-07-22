@@ -316,3 +316,30 @@ export function buildInviteAcceptedEmail(
 
   return emailShell(`${accepterName} accepted your workspace invitation`, header, body);
 }
+
+// ─── Password Reset ──────────────────────────────────────────────────────────
+
+export function buildPasswordResetEmail(firstName: string, resetUrl: string): string {
+  const header = `<div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:32px 32px 28px;">
+    <p style="color:rgba(255,255,255,0.65);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px 0;">Password Reset</p>
+    <h1 style="color:#ffffff;font-size:26px;font-weight:800;margin:0;line-height:1.2;">Reset your password, ${firstName}</h1>
+  </div>`;
+
+  const body = `
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 24px 0;">
+      Hi ${firstName},
+    </p>
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 28px 0;">
+      We received a request to reset the password for your Poddle account. Click the button below to choose a new password.
+    </p>
+    ${ctaButton("Reset my password", resetUrl)}
+    <p style="color:#475569;font-size:13px;line-height:1.6;margin:28px 0 0 0;">
+      Or copy this link into your browser:<br/>
+      <a href="${resetUrl}" style="color:#64748b;word-break:break-all;">${resetUrl}</a>
+    </p>
+    <p style="color:#475569;font-size:12px;line-height:1.6;margin:20px 0 0 0;">
+      This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.
+    </p>`;
+
+  return emailShell(`Reset your password — Poddle`, header, body);
+}
