@@ -132,7 +132,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 {[
                   { icon: Lock, text: 'End-to-end encrypted', sub: 'All workspace data encrypted at rest and in transit' },
                   { icon: Shield, text: 'Invite-only access', sub: 'Completely private — no public discovery' },
-                  { icon: Sparkles, text: '7 specialized AI agents', sub: 'Skeptic, Risk Analyst, Optimist, and more' },
+                  { icon: Sparkles, text: '7 specialized AI agents', sub: 'Risk Analyst, Financial Strategist, Execution Lead, and more' },
                 ].map(({ icon: Icon, text, sub }) => (
                   <div key={text} className="flex items-start gap-3">
                     <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
