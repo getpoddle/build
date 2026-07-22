@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Lock, CheckCircle } from 'lucide-react';
 import PoddleMark from '../components/PoddleMark';
@@ -13,6 +13,30 @@ export default function ResetPassword({ onDone }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // Wait for the session to be established from the recovery URL.
+      // detectSessionInUrl processes the hash tokens during _initialize(),
+      // but the PASSWORD_RECOVERY event fires before our listener registers.
+      // getSession() should return the session once _initialize() completes.
+      const maxAttempts = 10;
+      for (let i = 0; i < maxAttempts; i++) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          if (!cancelled) setSessionReady(true);
+          return;
+        }
+        await new Promise(r => setTimeout(r, 200));
+      }
+      if (!cancelled) {
+        setError('Session expired or invalid. Please request a new password reset link.');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +54,12 @@ export default function ResetPassword({ onDone }: Props) {
 
     setLoading(true);
     try {
+      // Ensure we have a session before attempting the update
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Session expired. Please request a new password reset link.');
+        return;
+      }
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         setError(error.message);
@@ -69,6 +99,11 @@ export default function ResetPassword({ onDone }: Props) {
                 Go to Sign In
               </button>
             </div>
+          ) : !sessionReady && !error ? (
+            <div className="text-center py-8">
+              <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-slate-500 text-sm">Verifying your reset link...</p>
+            </div>
           ) : (
             <>
               <h2 className="text-2xl font-bold text-slate-900 mb-1">Set new password</h2>
@@ -89,7 +124,7 @@ export default function ResetPassword({ onDone }: Props) {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-slate-900 bg-white"
                       placeholder="••••••••"
                       required
                       minLength={6}
@@ -105,7 +140,7 @@ export default function ResetPassword({ onDone }: Props) {
                       type="password"
                       value={confirm}
                       onChange={(e) => setConfirm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-slate-900 bg-white"
                       placeholder="••••••••"
                       required
                       minLength={6}

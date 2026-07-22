@@ -89,17 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const detectedError = detectOAuthError();
     if (detectedError) setOauthError(detectedError);
 
-    // If Supabase redirected back with a PKCE code in the query string,
-    // exchange it explicitly. detectSessionInUrl should handle this, but
-    // calling it here ensures the session is exchanged before getSession runs.
-    const code = new URLSearchParams(window.location.search).get('code');
-    if (code) {
-      supabase.auth.exchangeCodeForSession(window.location.href).catch((e) => {
-        console.error('PKCE code exchange failed:', e);
-      }).finally(() => {
-        history.replaceState(null, '', window.location.pathname);
-      });
-    }
+    // detectSessionInUrl: true handles PKCE code exchange and implicit-flow
+    // hash token processing during _initialize(). The manual exchange that
+    // was here caused a race condition — two concurrent exchanges for the
+    // same one-time-use code, where neither reliably established the session
+    // before getSession() ran. URL cleanup happens in onAuthStateChange.
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(loadingTimeout);
@@ -124,6 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(session?.user ?? null);
             setLoading(false);
             setIsPasswordRecovery(true);
+            // Clean the recovery tokens from the URL
+            if (window.location.pathname === '/reset-password' || window.location.hash) {
+              history.replaceState(null, '', '/reset-password');
+            }
             return;
           }
 
