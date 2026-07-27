@@ -246,14 +246,30 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 const HOW_STEPS = [
   {
     number: '01',
+    icon: Users,
+    color: '#0891b2',
+    bg: 'rgba(8,145,178,0.07)',
+    border: 'rgba(8,145,178,0.15)',
+    label: 'Team Chat',
+    title: 'Your team debates the decision together',
+    body: "Invite your team into a private, encrypted workspace where everyone can post their perspective, share context, and challenge each other’s thinking. Upload supporting documents — PDF, DOCX, Excel — to ground the discussion in real data. The team chat is where the human debate happens before any AI ever speaks.",
+    callout: 'Team Chat is the human layer — your team’s own debate, in your own words, inside a secure workspace.',
+    visual: [
+      { abbr: 'SK', bg: '#0c4a6e', color: '#7dd3fc', name: 'Sarah (CFO)', text: 'Our burn rate gives us 8 months. We can’t afford a slow rollout — we need revenue fast.' },
+      { abbr: 'JT', bg: '#14532d', color: '#86efac', name: 'James (COO)', text: 'But rushing into 6 markets simultaneously is how we lost the APAC launch. Sequencing matters.' },
+      { abbr: 'ML', bg: '#7c2d12', color: '#fdba74', name: 'Maya (Head of Risk)', text: 'Agreed. Let’s get the AI agents in here to stress-test both options before we decide.' },
+    ],
+  },
+  {
+    number: '02',
     icon: MessageSquare,
     color: '#b8860b',
     bg: 'rgba(184,134,11,0.08)',
     border: 'rgba(184,134,11,0.18)',
     label: 'AI Collaboration',
-    title: 'Submit your decision to a private workspace',
-    body: "Describe the decision you're facing. Seven specialized agents \u2014 Risk Analyst, Devil\u2019s Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor \u2014 respond simultaneously, each from a completely different angle. Your team can join, challenge agents, and upload supporting documents (PDF, DOCX, Excel) to ground the analysis in real data.",
-    callout: 'This is the AI Collaboration \u2014 a live, multi-agent debate inside your secure workspace.',
+    title: 'Bring AI agents into the debate in real time',
+    body: "Seven specialized agents — Risk Analyst, Devil’s Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor — join the conversation alongside your team. Each agent responds from a completely different angle, challenging both your team’s assumptions and each other. Your team can reply, push back, and steer the debate. This is multiplayer AI — humans and agents debating together in one shared thread.",
+    callout: 'AI Collaboration is where humans and agents debate together — not agents talking at you, but a real-time, multi-perspective conversation.',
     visual: [
       { abbr: 'RA', bg: '#7c2d12', color: '#fdba74', text: 'Distribution shift risk in EU markets could cause 40–60% prediction errors in year one.' },
       { abbr: 'FS', bg: '#0c4a6e', color: '#7dd3fc', text: 'EU AI Act requires per-decision explainability — adds 6–9 months to your launch.' },
@@ -261,14 +277,14 @@ const HOW_STEPS = [
     ],
   },
   {
-    number: '02',
+    number: '03',
     icon: Swords,
     color: '#dc2626',
     bg: 'rgba(220,38,38,0.07)',
     border: 'rgba(220,38,38,0.15)',
     label: 'War Room',
-    title: 'The War Room synthesizes the debate into a recommendation',
-    body: 'Once the agents have debated, the War Room reads every message, identifies consensus points, conflict zones, blind spots, and cognitive biases. It produces a single strategic recommendation with a Decision Health Score, risk signals, and prioritized action items — all grounded in the actual agent discussion from your workspace.',
+    title: 'The intelligence layer that synthesizes everything',
+    body: 'Once the debate is underway, the War Room reads every message — from your team and from the agents — and synthesizes it all. It identifies consensus points, conflict zones, blind spots, and cognitive biases across the entire AI Collaboration. It produces a single strategic recommendation with a Decision Health Score, risk signals, and prioritized action items — all grounded in the actual conversation from your workspace.',
     callout: 'The War Room is not a separate conversation. It is the intelligence layer built on top of your AI Collaboration.',
     visual: [
       { label: 'Decision Health Score', value: '68', sub: 'Developing', color: '#f59e0b' },
@@ -276,19 +292,7 @@ const HOW_STEPS = [
       { label: 'Action Items', value: '4', sub: 'Prioritized', color: '#b8860b' },
     ],
   },
-  {
-    number: '03',
-    icon: FileText,
-    color: '#059669',
-    bg: 'rgba(5,150,105,0.07)',
-    border: 'rgba(5,150,105,0.15)',
-    label: 'PDF Export',
-    title: 'Export a polished executive report',
-    body: 'Package the full War Room synthesis into a structured PDF — strategic recommendation, risk signals with severity ratings, prioritized action items by owner, and all decision health metrics. Share it with your board, investors, or leadership team without disclosing your full workspace.',
-    callout: 'The PDF report is generated from the War Room synthesis. Run the AI Collaboration first — the War Room does the rest.',
-    visual: null,
-  },
-];
+]
 
 function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
@@ -300,10 +304,10 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
             How Poddle works
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
-            AI Collaboration feeds the War Room.<br className="hidden sm:block" /> The War Room produces the report.
+            Team Chat starts the debate.<br className="hidden sm:block" /> AI Collaboration widens it. The War Room resolves it.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            The two features are connected — not separate tools. Here is exactly how they work together.
+            Three connected features \u2014 not separate tools. Here is exactly how they work together.
           </p>
         </RevealSection>
 
@@ -349,18 +353,41 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                           <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(170deg,#000000,#0a0a0a)', border: '1px solid rgba(255,255,255,0.07)' }}>
                             <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
                               <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                <span className="text-[10px] font-semibold" style={{ color: 'rgba(148,163,184,0.6)' }}>AI Collaboration · Private Workspace</span>
+                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                                <span className="text-[10px] font-semibold" style={{ color: 'rgba(148,163,184,0.6)' }}>Team Chat · Private Workspace</span>
                                 <Lock className="w-2.5 h-2.5 ml-auto" style={{ color: 'rgba(100,116,139,0.4)' }} />
                               </div>
                             </div>
                             <div className="p-4 space-y-3">
-                              {/* User message */}
+                              {(step.visual as { abbr: string; bg: string; color: string; name: string; text: string }[]).map((v) => (
+                                <div key={v.abbr} className="flex gap-2.5">
+                                  <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: v.bg, color: v.color }}>{v.abbr}</div>
+                                  <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                                    <p className="text-[10px] font-bold mb-1" style={{ color: v.color }}>{v.name}</p>
+                                    <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.82)' }}>{v.text}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {idx === 1 && step.visual && (
+                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(170deg,#000000,#0a0a0a)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                            <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                <span className="text-[10px] font-semibold" style={{ color: 'rgba(148,163,184,0.6)' }}>AI Collaboration · Agents + Team</span>
+                                <Lock className="w-2.5 h-2.5 ml-auto" style={{ color: 'rgba(100,116,139,0.4)' }} />
+                              </div>
+                            </div>
+                            <div className="p-4 space-y-3">
+                              {/* Team member message */}
                               <div className="flex gap-2.5">
-                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', color: '#fff' }}>YO</div>
-                                <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(184,134,11,0.15)', border: '1px solid rgba(184,134,11,0.18)' }}>
-                                  <p className="text-[10px] font-bold mb-1" style={{ color: '#d4a535' }}>You</p>
-                                  <p className="text-[11px] leading-relaxed text-white">Should we launch our AI lending product across Europe now, or stage the rollout?</p>
+                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: '#0c4a6e', color: '#7dd3fc' }}>ML</div>
+                                <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(8,145,178,0.12)', border: '1px solid rgba(8,145,178,0.18)' }}>
+                                  <p className="text-[10px] font-bold mb-1" style={{ color: '#7dd3fc' }}>Maya (Head of Risk)</p>
+                                  <p className="text-[11px] leading-relaxed text-white">Let\u2019s get the agents in here to stress-test both options.</p>
                                 </div>
                               </div>
                               {/* Agent responses */}
@@ -376,7 +403,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                           </div>
                         )}
 
-                        {idx === 1 && step.visual && (
+                        {idx === 2 && step.visual && (
                           <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg,#000000,#0f0f0f)', border: '1px solid rgba(255,255,255,0.07)' }}>
                             <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
                               <Swords className="w-3 h-3" style={{ color: '#f87171' }} />
@@ -397,44 +424,6 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                                 <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.85)' }}>
                                   <strong style={{ color: '#e2e8f0' }}>Stage the rollout. Start Germany.</strong> BaFin approval is the hardest, most valuable first stamp. Target Q3 Germany, Q1 next year France & Netherlands.
                                 </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {idx === 2 && (
-                          <div className="rounded-2xl overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.09)', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-                            {/* PDF mini header */}
-                            <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg,#000000,#111111)', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-                              <div className="flex items-center gap-2 mb-2">
-                                <Brain className="w-3.5 h-3.5 text-white opacity-70" />
-                                <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.6)' }}>Poddle · War Room Report</span>
-                              </div>
-                              <div className="flex items-end justify-between">
-                                <div>
-                                  <p className="text-sm font-bold text-white">European AI Lending</p>
-                                  <p className="text-[10px]" style={{ color: 'rgba(148,163,184,0.5)' }}>Private Workspace · 12 messages</p>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-2xl font-black text-white">68</div>
-                                  <div className="text-[9px] font-bold" style={{ color: '#f59e0b' }}>Decision Health</div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="p-5 space-y-3">
-                              {[
-                                { icon: TrendingUp, label: 'Strategic Recommendation', color: '#111111', bg: 'rgba(184,134,11,0.05)' },
-                                { icon: AlertTriangle, label: '3 Risk Signals identified', color: '#b91c1c', bg: 'rgba(220,38,38,0.05)' },
-                                { icon: Target, label: '4 Action Items · by owner', color: '#b8860b', bg: 'rgba(184,134,11,0.05)' },
-                              ].map(({ icon: I, label, color, bg }) => (
-                                <div key={label} className="flex items-center gap-2.5 rounded-xl px-3 py-2.5" style={{ background: bg }}>
-                                  <I className="w-3.5 h-3.5 flex-shrink-0" style={{ color }} />
-                                  <span className="text-xs font-semibold" style={{ color }}>{label}</span>
-                                </div>
-                              ))}
-                              <div className="flex items-center gap-2 pt-1">
-                                <Download className="w-3 h-3" style={{ color: '#64748b' }} />
-                                <span className="text-[10px] font-semibold" style={{ color: '#64748b' }}>Export as PDF</span>
                               </div>
                             </div>
                           </div>
@@ -466,7 +455,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
               The sequence matters.
             </p>
             <p className="text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
-              Start an AI Collaboration → let the agents debate → open the War Room → get your recommendation → export the report. Every feature builds on the last.
+              Start a Team Chat → bring in the AI agents → open the War Room → get your recommendation. Every feature builds on the last.
             </p>
             <button
               onClick={() => onNavigate('auth')}
@@ -590,11 +579,11 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         {/* Phase labels */}
         <div className="flex items-center justify-center gap-4 mb-6 flex-wrap">
           {[
-            { step: '1', label: 'AI Collaboration', color: '#b8860b', bg: 'rgba(184,134,11,0.08)' },
+            { step: '1', label: 'Team Chat', color: '#0891b2', bg: 'rgba(8,145,178,0.07)' },
             { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
-            { step: '2', label: 'War Room Synthesis', color: '#dc2626', bg: 'rgba(220,38,38,0.07)' },
+            { step: '2', label: 'AI Collaboration', color: '#b8860b', bg: 'rgba(184,134,11,0.08)' },
             { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
-            { step: '3', label: 'PDF Export', color: '#059669', bg: 'rgba(5,150,105,0.07)' },
+            { step: '3', label: 'War Room Synthesis', color: '#dc2626', bg: 'rgba(220,38,38,0.07)' },
           ].map((item, i) => item.label ? (
             <span key={i} className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: item.bg, color: item.color }}>
               {item.step} · {item.label}
