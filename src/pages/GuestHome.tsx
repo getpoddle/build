@@ -269,6 +269,20 @@ function AsSeenOnSection() {
               <rect x="0" y="26" width="120" height="2" fill="#6001d2" rx="1" />
             </svg>
           </a>
+          {/* Benzinga */}
+          <a href="https://www.benzinga.com/pressreleases/26/07/n60758133/poddle-ai-launches-world-s-first-self-service-adversarial-ai-platform" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
+            <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="28" fill="#1e293b" fontSize="22" fontWeight="800" fontFamily="Arial, sans-serif">Benzinga</text>
+            </svg>
+          </a>
+          {/* AI Journal */}
+          <a href="https://aijourn.com/poddle-ai-launches-worlds-first-self-service-adversarial-ai-platform/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
+            <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="18" fill="#2563eb" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif">AI</text>
+              <text x="30" y="18" fill="#1e293b" fontSize="16" fontWeight="700" fontFamily="Arial, sans-serif">Journal</text>
+              <rect x="0" y="24" width="92" height="2" fill="#2563eb" rx="1" />
+            </svg>
+          </a>
         </div>
       </div>
     </section>
