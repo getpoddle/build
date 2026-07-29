@@ -246,15 +246,15 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 
 function AsSeenOnSection() {
   return (
-    <section style={{ background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-10">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-xs font-bold uppercase tracking-widest mb-6" style={{ color: 'rgba(100,116,139,0.7)' }}>
+    <section style={{ background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-14">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <p className="text-center text-sm font-bold uppercase tracking-widest mb-8" style={{ color: 'rgba(100,116,139,0.7)' }}>
           As seen on
         </p>
-        <div className="flex items-center justify-center gap-12 sm:gap-16 flex-wrap">
+        <div className="flex items-center justify-center gap-16 sm:gap-24 flex-wrap">
           {/* PR Newswire */}
-          <div className="flex items-center gap-2.5 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
-            <svg viewBox="0 0 120 40" className="h-7 sm:h-8 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="flex items-center gap-3 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
+            <svg viewBox="0 0 120 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="16" cy="20" r="13" fill="#c8102e" />
               <text x="16" y="25" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="800" fontFamily="Arial, sans-serif">PR</text>
               <text x="34" y="18" fill="#1e293b" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">PR Newswire</text>
@@ -262,8 +262,8 @@ function AsSeenOnSection() {
             </svg>
           </div>
           {/* Yahoo! Finance */}
-          <div className="flex items-center gap-2.5 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
-            <svg viewBox="0 0 140 40" className="h-7 sm:h-8 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="flex items-center gap-3 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
+            <svg viewBox="0 0 140 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
               <text x="0" y="20" fill="#6001d2" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif" fontStyle="italic">Yahoo!</text>
               <text x="62" y="20" fill="#1e293b" fontSize="14" fontWeight="700" fontFamily="Arial, sans-serif">Finance</text>
               <rect x="0" y="26" width="120" height="2" fill="#6001d2" rx="1" />
