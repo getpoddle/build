@@ -245,44 +245,53 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 // ─── As Seen On ────────────────────────────────────────────────────────────────
 
 function AsSeenOnSection() {
+  const logos = (
+    <>
+      {/* PR Newswire */}
+      <a href="https://www.prnewswire.com/news-releases/poddle-ai-launches-worlds-first-self-service-adversarial-ai-platform-302837161.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
+        <svg viewBox="0 0 120 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="20" r="13" fill="#c8102e" />
+          <text x="16" y="25" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="800" fontFamily="Arial, sans-serif">PR</text>
+          <text x="34" y="18" fill="#1e293b" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">PR Newswire</text>
+          <text x="34" y="30" fill="#64748b" fontSize="7" fontWeight="600" fontFamily="Arial, sans-serif" letterSpacing="1.5">PRESS RELEASE DISTRIBUTION</text>
+        </svg>
+      </a>
+      {/* Yahoo! Finance */}
+      <a href="https://finance.yahoo.com/technology/ai/articles/poddle-ai-launches-worlds-first-123700881.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
+        <svg viewBox="0 0 140 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="20" fill="#6001d2" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif" fontStyle="italic">Yahoo!</text>
+          <text x="62" y="20" fill="#1e293b" fontSize="14" fontWeight="700" fontFamily="Arial, sans-serif">Finance</text>
+          <rect x="0" y="26" width="120" height="2" fill="#6001d2" rx="1" />
+        </svg>
+      </a>
+      {/* Benzinga */}
+      <a href="https://www.benzinga.com/pressreleases/26/07/n60758133/poddle-ai-launches-world-s-first-self-service-adversarial-ai-platform" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
+        <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="28" fill="#1e293b" fontSize="22" fontWeight="800" fontFamily="Arial, sans-serif">Benzinga</text>
+        </svg>
+      </a>
+      {/* AI Journal */}
+      <a href="https://aijourn.com/poddle-ai-launches-worlds-first-self-service-adversarial-ai-platform/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
+        <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="18" fill="#2563eb" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif">AI</text>
+          <text x="30" y="18" fill="#1e293b" fontSize="16" fontWeight="700" fontFamily="Arial, sans-serif">Journal</text>
+          <rect x="0" y="24" width="92" height="2" fill="#2563eb" rx="1" />
+        </svg>
+      </a>
+    </>
+  );
+
   return (
     <section style={{ background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-14">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <p className="text-center text-sm font-bold uppercase tracking-widest mb-8" style={{ color: 'rgba(100,116,139,0.7)' }}>
           As seen on
         </p>
-        <div className="flex items-center justify-center gap-16 sm:gap-24 flex-wrap">
-          {/* PR Newswire */}
-          <a href="https://www.prnewswire.com/news-releases/poddle-ai-launches-worlds-first-self-service-adversarial-ai-platform-302837161.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
-            <svg viewBox="0 0 120 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="16" cy="20" r="13" fill="#c8102e" />
-              <text x="16" y="25" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="800" fontFamily="Arial, sans-serif">PR</text>
-              <text x="34" y="18" fill="#1e293b" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">PR Newswire</text>
-              <text x="34" y="30" fill="#64748b" fontSize="7" fontWeight="600" fontFamily="Arial, sans-serif" letterSpacing="1.5">PRESS RELEASE DISTRIBUTION</text>
-            </svg>
-          </a>
-          {/* Yahoo! Finance */}
-          <a href="https://finance.yahoo.com/technology/ai/articles/poddle-ai-launches-worlds-first-123700881.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
-            <svg viewBox="0 0 140 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <text x="0" y="20" fill="#6001d2" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif" fontStyle="italic">Yahoo!</text>
-              <text x="62" y="20" fill="#1e293b" fontSize="14" fontWeight="700" fontFamily="Arial, sans-serif">Finance</text>
-              <rect x="0" y="26" width="120" height="2" fill="#6001d2" rx="1" />
-            </svg>
-          </a>
-          {/* Benzinga */}
-          <a href="https://www.benzinga.com/pressreleases/26/07/n60758133/poddle-ai-launches-world-s-first-self-service-adversarial-ai-platform" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
-            <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <text x="0" y="28" fill="#1e293b" fontSize="22" fontWeight="800" fontFamily="Arial, sans-serif">Benzinga</text>
-            </svg>
-          </a>
-          {/* AI Journal */}
-          <a href="https://aijourn.com/poddle-ai-launches-worlds-first-self-service-adversarial-ai-platform/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100" style={{ opacity: 0.85 }}>
-            <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <text x="0" y="18" fill="#2563eb" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif">AI</text>
-              <text x="30" y="18" fill="#1e293b" fontSize="16" fontWeight="700" fontFamily="Arial, sans-serif">Journal</text>
-              <rect x="0" y="24" width="92" height="2" fill="#2563eb" rx="1" />
-            </svg>
-          </a>
+        <div className="relative overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)' }}>
+          <div className="flex items-center gap-16 sm:gap-24 w-max" style={{ animation: 'marqueeScroll 28s linear infinite' }}>
+            {logos}
+            {logos}
+          </div>
         </div>
       </div>
     </section>
