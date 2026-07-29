@@ -167,7 +167,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         </h1>
 
         <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-2xl mx-auto" style={{ color: 'rgba(203,213,225,0.78)' }}>
-          Poddle gives teams a private workspace where seven specialized AI agents challenge your thinking from every angle — and the War Room synthesizes everything into a clear, defensible recommendation.
+          Poddle gives teams a private workspace where seven specialized AI agents challenge your thinking from every angle, and the War Room synthesizes everything into a clear, defensible recommendation.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
@@ -252,12 +252,12 @@ const HOW_STEPS = [
     border: 'rgba(8,145,178,0.15)',
     label: 'Team Chat',
     title: 'Your team debates the decision together',
-    body: "Invite your team into a private, encrypted workspace where everyone can post their perspective, share context, and challenge each other’s thinking. Upload supporting documents — PDF, DOCX, Excel — to ground the discussion in real data. The team chat is where the human debate happens before any AI ever speaks.",
-    callout: 'Team Chat is the human layer — your team’s own debate, in your own words, inside a secure workspace.',
+    body: "Invite your team into a private, encrypted workspace where everyone can post their perspective, share context, and challenge each other's thinking. Upload supporting documents (PDF, DOCX, Excel) to ground the discussion in real data. The team chat is where the human debate happens before any AI ever speaks.",
+    callout: "Team Chat is the human layer: your team's own debate, in your own words, inside a secure workspace.",
     visual: [
-      { abbr: 'SK', bg: '#0c4a6e', color: '#7dd3fc', name: 'Sarah (CFO)', text: 'Our burn rate gives us 8 months. We can’t afford a slow rollout — we need revenue fast.' },
+      { abbr: 'SK', bg: '#0c4a6e', color: '#7dd3fc', name: 'Sarah (CFO)', text: 'Our burn rate gives us 8 months. We cannot afford a slow rollout, we need revenue fast.' },
       { abbr: 'JT', bg: '#14532d', color: '#86efac', name: 'James (COO)', text: 'But rushing into 6 markets simultaneously is how we lost the APAC launch. Sequencing matters.' },
-      { abbr: 'ML', bg: '#7c2d12', color: '#fdba74', name: 'Maya (Head of Risk)', text: 'Agreed. Let’s get the AI agents in here to stress-test both options before we decide.' },
+      { abbr: 'ML', bg: '#7c2d12', color: '#fdba74', name: 'Maya (Head of Risk)', text: 'Agreed. Let us get the AI agents in here to stress-test both options before we decide.' },
     ],
   },
   {
@@ -268,11 +268,11 @@ const HOW_STEPS = [
     border: 'rgba(184,134,11,0.18)',
     label: 'AI Collaboration',
     title: 'Bring AI agents into the debate in real time',
-    body: "Seven specialized agents — Risk Analyst, Devil’s Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor — join the conversation alongside your team. Each agent responds from a completely different angle, challenging both your team’s assumptions and each other. Your team can reply, push back, and steer the debate. This is multiplayer AI — humans and agents debating together in one shared thread.",
-    callout: 'AI Collaboration is where humans and agents debate together — not agents talking at you, but a real-time, multi-perspective conversation.',
+    body: "Seven specialized agents (Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor) join the conversation alongside your team. Each agent responds from a completely different angle, challenging both your team's assumptions and each other. Your team can reply, push back, and steer the debate. This is multiplayer AI: humans and agents debating together in one shared thread.",
+    callout: 'AI Collaboration is where humans and agents debate together: not agents talking at you, but a real-time, multi-perspective conversation.',
     visual: [
-      { abbr: 'RA', bg: '#7c2d12', color: '#fdba74', text: 'Distribution shift risk in EU markets could cause 40–60% prediction errors in year one.' },
-      { abbr: 'FS', bg: '#0c4a6e', color: '#7dd3fc', text: 'EU AI Act requires per-decision explainability — adds 6–9 months to your launch.' },
+      { abbr: 'RA', bg: '#7c2d12', color: '#fdba74', text: 'Distribution shift risk in EU markets could cause 40-60% prediction errors in year one.' },
+      { abbr: 'FS', bg: '#0c4a6e', color: '#7dd3fc', text: 'EU AI Act requires per-decision explainability. Adds 6-9 months to your launch timeline.' },
       { abbr: 'DA', bg: '#14532d', color: '#86efac', text: 'Klarna scaled across 6+ EU markets in under 3 years. Compliance is process, not blocker.' },
     ],
   },
@@ -284,7 +284,7 @@ const HOW_STEPS = [
     border: 'rgba(220,38,38,0.15)',
     label: 'War Room',
     title: 'The intelligence layer that synthesizes everything',
-    body: 'Once the debate is underway, the War Room reads every message — from your team and from the agents — and synthesizes it all. It identifies consensus points, conflict zones, blind spots, and cognitive biases across the entire AI Collaboration. It produces a single strategic recommendation with a Decision Health Score, risk signals, and prioritized action items — all grounded in the actual conversation from your workspace.',
+    body: 'Once the debate is underway, the War Room reads every message from your team and from the agents, and synthesizes it all. It identifies consensus points, conflict zones, blind spots, and cognitive biases across the entire AI Collaboration. It produces a single strategic recommendation with a Decision Health Score, risk signals, and prioritized action items, all grounded in the actual conversation from your workspace.',
     callout: 'The War Room is not a separate conversation. It is the intelligence layer built on top of your AI Collaboration.',
     visual: [
       { label: 'Decision Health Score', value: '68', sub: 'Developing', color: '#f59e0b' },
@@ -307,7 +307,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
             Team Chat starts the debate.<br className="hidden sm:block" /> AI Collaboration widens it. The War Room resolves it.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Three connected features \u2014 not separate tools. Here is exactly how they work together.
+            Three connected features, not separate tools. Here is exactly how they work together.
           </p>
         </RevealSection>
 
@@ -347,7 +347,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                         </div>
                       </div>
 
-                      {/* Right — visual */}
+                      {/* Right, visual */}
                       <div className="lg:w-80 flex-shrink-0">
                         {idx === 0 && step.visual && (
                           <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(170deg,#000000,#0a0a0a)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -387,7 +387,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                                 <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: '#0c4a6e', color: '#7dd3fc' }}>ML</div>
                                 <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(8,145,178,0.12)', border: '1px solid rgba(8,145,178,0.18)' }}>
                                   <p className="text-[10px] font-bold mb-1" style={{ color: '#7dd3fc' }}>Maya (Head of Risk)</p>
-                                  <p className="text-[11px] leading-relaxed text-white">Let\u2019s get the agents in here to stress-test both options.</p>
+                                  <p className="text-[11px] leading-relaxed text-white">Let's get the agents in here to stress-test both options.</p>
                                 </div>
                               </div>
                               {/* Agent responses */}
@@ -422,7 +422,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                               <div className="rounded-xl p-3.5" style={{ background: 'rgba(184,134,11,0.12)', border: '1px solid rgba(184,134,11,0.22)' }}>
                                 <p className="text-[10px] font-black uppercase tracking-wide mb-1.5" style={{ color: '#d4a535' }}>Strategic Recommendation</p>
                                 <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.85)' }}>
-                                  <strong style={{ color: '#e2e8f0' }}>Stage the rollout. Start Germany.</strong> BaFin approval is the hardest, most valuable first stamp. Target Q3 Germany, Q1 next year France & Netherlands.
+                                  <strong style={{ color: '#e2e8f0' }}>Stage the rollout. Start Germany.</strong> BaFin approval is the hardest and most valuable first stamp. Target Q3 Germany, Q1 next year France and Netherlands.
                                 </p>
                               </div>
                             </div>
@@ -477,30 +477,30 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
 const DEMO_MESSAGES = [
   {
     agent: 'RA', bg: '#7c2d12', color: '#fdba74', label: 'Risk Analyst',
-    msg: "AI credit scoring models trained on US or UK data carry severe distribution shift risk in Southern and Eastern European markets. Default rate predictions could be off by 40–60% in the first 12 months. You need local training data before you lend at scale.",
+    msg: "AI credit scoring models trained on US or UK data carry severe distribution shift risk in Southern and Eastern European markets. Default rate predictions could be off by 40-60% in the first 12 months. You need local training data before you lend at scale.",
   },
   {
     agent: 'FS', bg: '#0c4a6e', color: '#7dd3fc', label: 'Financial Strategist',
-    msg: "The EU AI Act classifies AI-driven credit decisions as high-risk. Article 10 requires explainability per decision — not just model-level. Building a compliant audit trail adds 6–9 months to your launch timeline and ongoing cost per decision. Factor that into your unit economics.",
+    msg: "The EU AI Act classifies AI-driven credit decisions as high-risk. Article 10 requires explainability per decision, not just model-level. Building a compliant audit trail adds 6-9 months to your launch timeline and ongoing cost per decision. Factor that into your unit economics.",
   },
   {
     agent: 'DA', bg: '#14532d', color: '#86efac', label: "Devil's Advocate",
-    msg: 'Every incumbent cites compliance complexity as a moat. But Klarna and Monzo scaled across 6+ European jurisdictions in under 3 years. The regtech tooling is genuinely better now. The question is not whether compliance is hard — it is whether your team treats it as a blocker or a process.',
+    msg: 'Every incumbent cites compliance complexity as a moat. But Klarna and Monzo scaled across 6+ European jurisdictions in under 3 years. The regtech tooling is genuinely better now. The question is not whether compliance is hard. It is whether your team treats it as a blocker or a process.',
   },
   {
     agent: 'EL', bg: '#1e1b4b', color: '#a5b4fc', label: 'Execution Lead',
-    msg: "Passport your product through Germany first — strictest regulator, highest trust signal. A BaFin approval with clean model documentation unlocks France, Netherlands, and the Nordics far faster than parallel filings. Sequence this, don't parallelize.",
+    msg: "Passport your product through Germany first: strictest regulator, highest trust signal. A BaFin approval with clean model documentation unlocks France, Netherlands, and the Nordics far faster than parallel filings. Sequence this. Do not parallelize.",
   },
 ];
 
 const DEMO_RISKS = [
-  { label: 'Model Distribution Shift', sev: 'critical', desc: 'AI credit models trained on UK/US data may mispredict EU default rates by 40–60% in year one.' },
-  { label: 'EU AI Act Compliance Gap', sev: 'high', desc: 'Article 10 requires per-decision explainability. Building audit trails adds 6–9 months to launch.' },
+  { label: 'Model Distribution Shift', sev: 'critical', desc: 'AI credit models trained on UK/US data may mispredict EU default rates by 40-60% in year one.' },
+  { label: 'EU AI Act Compliance Gap', sev: 'high', desc: 'Article 10 requires per-decision explainability. Building audit trails adds 6-9 months to launch.' },
   { label: 'Parallel Regulatory Filing', sev: 'high', desc: 'Simultaneous multi-market filings increase rejection risk and slow time-to-revenue.' },
 ];
 
 const DEMO_ACTIONS = [
-  { who: 'Legal', task: 'Commission a BaFin pre-submission explainability review for the credit model — target Q2 submission window.', priority: 'critical' },
+  { who: 'Legal', task: 'Commission a BaFin pre-submission explainability review for the credit model. Target Q2 submission window.', priority: 'critical' },
   { who: 'Engineering', task: 'Build a per-decision audit trail compliant with EU AI Act Article 10 before Germany launch.', priority: 'critical' },
   { who: 'CEO', task: 'Sequence market entry: Germany (Q3), France and Netherlands (Q1 next year). Halt parallel filings.', priority: 'high' },
   { who: 'Risk', task: 'Collect EU-local training data from German open banking sources to reduce model distribution shift by launch.', priority: 'high' },
@@ -572,7 +572,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             Watch the full workflow.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            A fintech team asks: <strong className="text-slate-700">"Should we launch our AI lending product across Europe now?"</strong> Agents debate it — the War Room synthesizes it — the report is ready.
+            A fintech team asks: <strong className="text-slate-700">"Should we launch our AI lending product across Europe now?"</strong> Agents debate it, the War Room synthesizes it, the report is ready.
           </p>
         </div>
 
@@ -690,7 +690,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                   <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(184,134,11,0.2)', color: '#d4a535' }}>Built from your AI Collaboration</span>
                 </div>
                 <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.9)' }}>
-                  <strong style={{ color: '#e2e8f0' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp — it de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year.
+                  <strong style={{ color: '#e2e8f0' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp. It de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year.
                 </p>
               </div>
             )}
@@ -703,7 +703,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                 className="flex-1 h-9 rounded-xl px-3.5 flex items-center gap-2"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
               >
-                <span className="text-xs" style={{ color: 'rgba(100,116,139,0.5)' }}>Ask a follow-up or challenge an agent…</span>
+                <span className="text-xs" style={{ color: 'rgba(100,116,139,0.5)' }}>Ask a follow-up or challenge an agent...</span>
               </div>
               {revealed >= DEMO_MESSAGES.length && (
                 <button
@@ -758,7 +758,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                   </div>
                   <h3 className="text-lg font-bold text-white mb-1">European AI Lending Expansion</h3>
                   <p className="text-xs" style={{ color: 'rgba(148,163,184,0.65)' }}>
-                    Private Workspace · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · 12 messages analysed
+                    Private Workspace · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · 12 messages analyzed
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -779,7 +779,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                 <span className="text-xs font-black uppercase tracking-wider" style={{ color: '#111111' }}>Strategic Recommendation</span>
               </div>
               <p className="text-sm leading-relaxed text-slate-700">
-                <strong className="text-slate-900">Stage the rollout. Start with Germany.</strong> BaFin approval is the hardest and most valuable first stamp — it de-risks France, Netherlands, and the Nordics. Target Germany in Q3 with a compliant audit trail in place. Parallel multi-market filing will cost more time than it saves.
+                <strong className="text-slate-900">Stage the rollout. Start with Germany.</strong> BaFin approval is the hardest and most valuable first stamp. It de-risks France, Netherlands, and the Nordics. Target Germany in Q3 with a compliant audit trail in place. Parallel multi-market filing will cost more time than it saves.
               </p>
             </div>
 
@@ -827,7 +827,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             <div className="px-8 py-4 flex items-center justify-between" style={{ background: '#fafafa' }}>
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-3.5 h-3.5" style={{ color: '#94a3b8' }} />
-                <span className="text-[10px] font-semibold" style={{ color: '#94a3b8' }}>3 conflict zones · 6 open questions · 5 blind spots flagged</span>
+                <span className="text-[10px] font-semibold" style={{ color: '#94a3b8' }}>3 conflict zones. 6 open questions. 5 blind spots flagged.</span>
               </div>
               <button
                 onClick={() => onNavigate('auth')}
@@ -849,19 +849,19 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 
 const TESTIMONIALS = [
   {
-    quote: "We used the War Room before a board presentation. The Devil's Advocate agent surfaced a risk our CFO hadn't considered. We caught it in time.",
+    quote: "We used the War Room before a board presentation. The Devil's Advocate agent surfaced a risk our CFO had not considered. We caught it in time.",
     role: "Head of Strategy · Series B SaaS",
     initial: "S",
     color: '#b8860b',
   },
   {
-    quote: "I didn't realize the PDF came from the War Room until I read the walkthrough. Once I understood the flow, the reports became 10x more useful.",
+    quote: "I did not realize the PDF came from the War Room until I read the walkthrough. Once I understood the flow, the reports became 10x more useful.",
     role: "Founder · FinTech",
     initial: "F",
     color: '#059669',
   },
   {
-    quote: "The AI Collaboration is where the debate happens. The War Room is where decisions get made. That distinction took me a day to learn but now I wouldn't skip it.",
+    quote: "The AI Collaboration is where the debate happens. The War Room is where decisions get made. That distinction took me a day to learn, but now I would not skip it.",
     role: "VP Operations · Scale-up",
     initial: "V",
     color: '#dc2626',
@@ -901,9 +901,9 @@ function SocialProofSection() {
         {/* Feature grid */}
         <div className="grid sm:grid-cols-3 gap-5 mt-10">
           {[
-            { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Scout, People Advisor — each with a different mandate." },
+            { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Scout, People Advisor, each with a different mandate." },
             { icon: Shield, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Your workspace is encrypted and invisible to the public. Invite your team. Nothing leaves your org. SOC 2-aligned infrastructure.' },
-            { icon: FileText, color: '#059669', bg: '#ecfdf5', title: 'Board-ready exports', desc: 'The War Room PDF includes your recommendation, risk signals, action items by owner, and decision health scores — ready to share.' },
+            { icon: FileText, color: '#059669', bg: '#ecfdf5', title: 'Board-ready exports', desc: 'The War Room PDF includes your recommendation, risk signals, action items by owner, and decision health scores, ready to share.' },
           ].map(({ icon: Icon, color, bg, title, desc }, i) => (
             <RevealSection key={title} delay={i * 80}>
               <div
@@ -938,7 +938,7 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             Your next big decision<br />deserves a proper challenge.
           </h2>
           <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: 'rgba(203,213,225,0.75)' }}>
-            Start an AI Collaboration. Run the War Room. Export the report. Free to start, no card required.
+            Start a Team Chat. Bring in the AI agents. Run the War Room. Export the report. Free to start, no card required.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
@@ -975,23 +975,12 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
           </div>
 
-          <div className="flex items-center justify-center gap-5 mt-12 flex-wrap">
-            <a
-              href="https://betalist.com/startups/poddle?utm_campaign=badge-poddle&utm_medium=badge&utm_source=badge-featured"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block transition-transform hover:-translate-y-0.5"
-            >
-              <img alt="Poddle on BetaList" width={156} height={54} style={{ width: '156px', height: '54px' }} src="https://betalist.com/badges/featured?id=152531&theme=color" />
-            </a>
-            <a
-              href="https://www.producthunt.com/products/poddle-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-poddle-2"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block transition-transform hover:-translate-y-0.5"
-            >
-              <img alt="Poddle - Seven agents. Zero yes-men | Product Hunt" width={250} height={54} style={{ width: '250px', height: '54px' }} src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1169789&theme=light&t=1783592423529" />
-            </a>
+          <div className="flex flex-col items-center gap-4 mt-12">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.5)' }}>As seen on</p>
+            <div className="flex items-center justify-center gap-8 flex-wrap">
+              <span className="text-lg font-bold tracking-tight" style={{ color: 'rgba(203,213,225,0.7)' }}>PR Newswire</span>
+              <span className="text-lg font-bold tracking-tight" style={{ color: 'rgba(203,213,225,0.7)' }}>Yahoo! Finance</span>
+            </div>
           </div>
         </RevealSection>
       </div>
