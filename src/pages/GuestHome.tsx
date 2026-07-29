@@ -278,6 +278,13 @@ function AsSeenOnSection() {
           <rect x="0" y="24" width="92" height="2" fill="#2563eb" rx="1" />
         </svg>
       </a>
+      {/* California Business Journal */}
+      <a href="https://calbizjournal.com/latest-tech-news/?rkey=20260729PH13856&filter=26804" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
+        <svg viewBox="0 0 200 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="18" fill="#0f766e" fontSize="13" fontWeight="800" fontFamily="Arial, sans-serif">California</text>
+          <text x="0" y="32" fill="#1e293b" fontSize="13" fontWeight="700" fontFamily="Arial, sans-serif">Business Journal</text>
+        </svg>
+      </a>
     </>
   );
 
