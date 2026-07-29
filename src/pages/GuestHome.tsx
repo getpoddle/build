@@ -98,6 +98,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       )}
 
       <HeroSection onNavigate={onNavigate} />
+      <AsSeenOnSection />
       <HowItWorksSection onNavigate={onNavigate} />
       <LiveDemoSection onNavigate={onNavigate} />
       <SocialProofSection />
@@ -235,6 +236,39 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             <span className="text-xs font-medium group-hover:text-slate-400 transition-colors">See how it works</span>
             <ChevronDown className="w-4 h-4 animate-bounce" />
           </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── As Seen On ────────────────────────────────────────────────────────────────
+
+function AsSeenOnSection() {
+  return (
+    <section style={{ background: '#0a0a0a', borderTop: '1px solid rgba(255,255,255,0.05)' }} className="py-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <p className="text-center text-xs font-bold uppercase tracking-widest mb-6" style={{ color: 'rgba(148,163,184,0.45)' }}>
+          As seen on
+        </p>
+        <div className="flex items-center justify-center gap-12 sm:gap-16 flex-wrap">
+          {/* PR Newswire */}
+          <div className="flex items-center gap-2.5 opacity-60 hover:opacity-90 transition-opacity">
+            <svg viewBox="0 0 120 40" className="h-7 sm:h-8 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="20" r="13" fill="#c8102e" />
+              <text x="16" y="25" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="800" fontFamily="Arial, sans-serif">PR</text>
+              <text x="34" y="18" fill="#e2e8f0" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">PR Newswire</text>
+              <text x="34" y="30" fill="#94a3b8" fontSize="7" fontWeight="600" fontFamily="Arial, sans-serif" letterSpacing="1.5">PRESS RELEASE DISTRIBUTION</text>
+            </svg>
+          </div>
+          {/* Yahoo! Finance */}
+          <div className="flex items-center gap-2.5 opacity-60 hover:opacity-90 transition-opacity">
+            <svg viewBox="0 0 140 40" className="h-7 sm:h-8 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <text x="0" y="20" fill="#6001d2" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif" fontStyle="italic">Yahoo!</text>
+              <text x="62" y="20" fill="#e2e8f0" fontSize="14" fontWeight="700" fontFamily="Arial, sans-serif">Finance</text>
+              <rect x="0" y="26" width="120" height="2" fill="#6001d2" rx="1" />
+            </svg>
+          </div>
         </div>
       </div>
     </section>
@@ -975,13 +1009,7 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-4 mt-12">
-            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.5)' }}>As seen on</p>
-            <div className="flex items-center justify-center gap-8 flex-wrap">
-              <span className="text-lg font-bold tracking-tight" style={{ color: 'rgba(203,213,225,0.7)' }}>PR Newswire</span>
-              <span className="text-lg font-bold tracking-tight" style={{ color: 'rgba(203,213,225,0.7)' }}>Yahoo! Finance</span>
-            </div>
-          </div>
+
         </RevealSection>
       </div>
     </section>
