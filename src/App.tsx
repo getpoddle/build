@@ -377,7 +377,37 @@ function AppContent() {
         const hashPart = redirect.split('#')[1];
         if (hashPart) window.location.hash = hashPart;
       }
-      onboardingCheckedRef.current = true;
+      if (!onboardingCheckedRef.current) {
+        onboardingCheckedRef.current = true;
+        // First sign-in check: if the user has no workspace yet, auto-create
+        // one and redirect to AI Collaboration. Returning users are unaffected.
+        (async () => {
+          if (currentPage === 'admin' || currentPage === 'admin-panel') return;
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            const res = await fetch(`${supabaseUrl}/functions/v1/first-sign-in`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+            });
+            const data = await res.json();
+            if (res.ok && data.firstSignIn && data.workspaceId) {
+              setWorkspaceId(data.workspaceId);
+              setWorkspaceInitialTab('chat');
+              setCurrentPage('workspace-hub');
+              sessionStorage.setItem('currentPage', 'workspace-hub');
+              history.replaceState(null, '', `#workspace/${data.workspaceId}`);
+            }
+          } catch {
+            // Silently fail — user lands on the default page and can create
+            // a workspace manually.
+          }
+        })();
+      }
     } else if (!loading) {
       onboardingCheckedRef.current = false;
     }
