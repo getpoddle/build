@@ -1,65 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { User as UserIcon, Lock, ChevronDown, Clock } from 'lucide-react';
+import { User as UserIcon, Loader2 } from 'lucide-react';
 import PoddleMark from '../components/PoddleMark';
 import { trackProfileCompleted } from '../lib/analytics';
 import { phSyncProfileProperties } from '../lib/posthog';
-import { useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
 
 interface OnboardingProps {
   onComplete: () => void;
 }
 
-const DOMAINS = [
-  { value: 'technology', label: 'Technology' },
-  { value: 'business', label: 'Business Strategy' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'product_development', label: 'Product Development' },
-  { value: 'startup_ops', label: 'Startup Operations' },
-  { value: 'ai_product', label: 'AI & Machine Learning' },
-  { value: 'health', label: 'Health & Life Sciences' },
-  { value: 'science', label: 'Science & Research' },
-  { value: 'entrepreneurship', label: 'Entrepreneurship' },
-  { value: 'general', label: 'General' },
-];
-
-async function callCreateWorkspace(accessToken: string, payload: Record<string, unknown>) {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const res = await fetch(`${supabaseUrl}/functions/v1/create-workspace`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  return res.json();
-}
-
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const { user } = useAuth();
-  const { isPro, loading: tierLoading } = useSubscriptionTier();
-  const { trialExhausted, trialSlotsRemaining, loading: trialLoading } = useTrialInfo();
-
-  // step 0 = name completion (conditional), step 1 = create workspace
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [needsNameUpdate, setNeedsNameUpdate] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Workspace creation state
-  const [workspaceName, setWorkspaceName] = useState('');
-  const [workspaceDescription, setWorkspaceDescription] = useState('');
-  const [workspaceDomain, setWorkspaceDomain] = useState('general');
-  const [creating, setCreating] = useState(false);
-  const [workspaceError, setWorkspaceError] = useState('');
-  const [skipWorkspace, setSkipWorkspace] = useState(false);
-
-  const loadingTrial = tierLoading || trialLoading;
-  const canCreate = isPro || !trialExhausted;
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     const checkProfileCompleteness = async () => {
@@ -78,12 +37,51 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         if (hasIncompleteName) {
           setNeedsNameUpdate(true);
           setStep(0);
+        } else {
+          await redirectToWorkspace();
+          return;
         }
       }
       setIsInitialized(true);
     };
     checkProfileCompleteness();
   }, [user]);
+
+  const markOnboarded = async () => {
+    if (!user) return;
+    await supabase.from('profiles').update({ onboarded: true }).eq('id', user.id);
+    trackProfileCompleted(user.id);
+    phSyncProfileProperties(user.id);
+  };
+
+  const redirectToWorkspace = async () => {
+    if (!user) return;
+    setRedirecting(true);
+
+    try {
+      const { data: workspace } = await supabase
+        .from('workspaces')
+        .select('id')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      await markOnboarded();
+
+      if (workspace) {
+        const hash = `#workspace/${workspace.id}`;
+        window.location.hash = hash;
+        sessionStorage.setItem('currentPage', 'workspace-hub');
+      } else {
+        sessionStorage.setItem('currentPage', 'workspaces');
+      }
+    } catch {
+      sessionStorage.setItem('currentPage', 'workspaces');
+    } finally {
+      onComplete();
+    }
+  };
 
   const handleNameUpdate = async () => {
     if (!user || !firstName.trim() || !lastName.trim()) return;
@@ -95,63 +93,32 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         full_name: `${firstName.trim()} ${lastName.trim()}`,
       }).eq('id', user.id);
       setNeedsNameUpdate(false);
-      setStep(1);
+      await redirectToWorkspace();
     } catch (err) {
       console.error('Error updating name:', err);
-    } finally {
       setLoading(false);
     }
   };
 
-  const markOnboarded = async () => {
-    if (!user) return;
-    await supabase.from('profiles').update({ onboarded: true }).eq('id', user.id);
-    trackProfileCompleted(user.id);
-    phSyncProfileProperties(user.id);
-  };
+  if (!isInitialized && !redirecting) return null;
 
-  const handleCreateWorkspace = async () => {
-    if (!user || !workspaceName.trim()) {
-      setWorkspaceError('Workspace name is required.');
-      return;
-    }
-    setCreating(true);
-    setWorkspaceError('');
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        setWorkspaceError('Session expired. Please sign in again.');
-        return;
-      }
-      const json = await callCreateWorkspace(session.access_token, {
-        name: workspaceName.trim(),
-        description: workspaceDescription.trim(),
-        domain: workspaceDomain,
-        plan: 'pro',
-      });
-      if (json.error) {
-        setWorkspaceError(json.error);
-        return;
-      }
-      await markOnboarded();
-      onComplete();
-    } catch {
-      setWorkspaceError('Something went wrong. Please try again.');
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleSkip = async () => {
-    setSkipWorkspace(true);
-    await markOnboarded();
-    onComplete();
-  };
-
-  if (!isInitialized) return null;
-
-  const totalSteps = needsNameUpdate ? 2 : 1;
-  const currentStepIndex = step === 0 ? 0 : 1;
+  if (redirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--app-bg)' }}>
+        <div className="text-center">
+          <div className="inline-flex items-center gap-3 mb-6 floating">
+            <PoddleMark size={48} />
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight" style={{ color: 'var(--app-text-primary)' }}>Poddle AI</h1>
+          </div>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--signal)' }} />
+            <p className="text-sm font-semibold" style={{ color: 'var(--app-text-secondary)' }}>Setting up your workspace...</p>
+          </div>
+          <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>Your AI Collaboration room is ready</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'var(--app-bg)' }}>
@@ -168,21 +135,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         </div>
 
         <div className="panel-raised p-6 sm:p-10 scale-in" style={{ boxShadow: 'var(--shadow-xl)' }}>
-          {/* Progress bar */}
           <div className="flex gap-2 mb-8">
-            {Array.from({ length: totalSteps }).map((_, i) => (
-              <div
-                key={i}
-                className="h-2 flex-1 transition-all duration-500"
-                style={i <= currentStepIndex
-                  ? { background: 'var(--signal)' }
-                  : { background: 'var(--app-border)' }
-                }
-              />
-            ))}
+            <div className="h-2 flex-1 transition-all duration-500" style={{ background: 'var(--signal)' }} />
           </div>
 
-          {/* Step 0: Name completion (only if needed) */}
           {step === 0 && needsNameUpdate && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-500">
               <div className="flex items-center gap-3 mb-3">
@@ -221,110 +177,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 style={{ padding: '1rem 1.25rem', fontSize: '1rem' }}
               >
                 {loading ? 'Saving...' : 'Continue'}
-              </button>
-            </div>
-          )}
-
-          {/* Step 1: Create first workspace */}
-          {step === 1 && (
-            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-9 h-9 flex items-center justify-center" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
-                  <Lock className="w-4 h-4" style={{ color: 'var(--signal)' }} />
-                </div>
-                <h2 className="display-heading text-2xl">Create your first workspace</h2>
-              </div>
-              <p className="mb-6 text-sm" style={{ color: 'var(--app-text-secondary)' }}>A private space where your team collaborates with AI on decisions. Invite-only and never publicly discoverable.</p>
-
-              {/* Trial banner */}
-              {!loadingTrial && !isPro && !trialExhausted && (
-                <div
-                  className="mb-5 flex items-center gap-2.5 px-4 py-3 text-sm"
-                  style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
-                >
-                  <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--signal)' }} />
-                  <span style={{ color: 'var(--app-text-secondary)' }}>
-                    <span className="font-bold text-signal">Free trial</span> — all Pro features unlocked for 7 days.{' '}
-                    <span style={{ color: 'var(--app-text-muted)' }}>
-                      {trialSlotsRemaining === 1 ? '1 trial slot remaining.' : 'Both trial slots available.'}
-                    </span>
-                  </span>
-                </div>
-              )}
-
-              {workspaceError && (
-                <div className="mb-4 p-3 text-sm font-medium" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)', color: 'var(--negative)' }}>
-                  {workspaceError}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--app-text-primary)' }}>Workspace Name</label>
-                  <input
-                    type="text"
-                    value={workspaceName}
-                    onChange={e => setWorkspaceName(e.target.value)}
-                    placeholder="e.g. Product Roadmap Q3, Series A Strategy"
-                    maxLength={60}
-                    className="input-modern"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--app-text-primary)' }}>
-                    Description <span className="font-normal normal-case" style={{ color: 'var(--app-text-muted)' }}>(optional)</span>
-                  </label>
-                  <textarea
-                    value={workspaceDescription}
-                    onChange={e => setWorkspaceDescription(e.target.value)}
-                    placeholder="What decisions or challenges will this workspace focus on?"
-                    rows={2}
-                    maxLength={500}
-                    className="input-modern"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold mb-1.5 uppercase tracking-wide" style={{ color: 'var(--app-text-primary)' }}>Domain</label>
-                  <div className="relative">
-                    <select
-                      value={workspaceDomain}
-                      onChange={e => setWorkspaceDomain(e.target.value)}
-                      className="input-modern pr-9"
-                    >
-                      {DOMAINS.map(d => (
-                        <option key={d.value} value={d.value}>{d.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--app-text-muted)' }} />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleCreateWorkspace}
-                disabled={creating || !workspaceName.trim() || loadingTrial || skipWorkspace || !canCreate}
-                className="btn-primary w-full mt-6"
-                style={{ padding: '1rem 1.25rem', fontSize: '0.9375rem' }}
-              >
-                {creating ? (
-                  <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--ink-900)', borderTopColor: 'transparent' }} />
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4" />
-                    Create Workspace & Get Started
-                  </>
-                )}
-              </button>
-
-              <button
-                onClick={handleSkip}
-                disabled={creating || skipWorkspace}
-                className="w-full mt-3 py-2.5 text-sm transition-colors"
-                style={{ color: 'var(--app-text-muted)' }}
-              >
-                Skip for now
               </button>
             </div>
           )}
