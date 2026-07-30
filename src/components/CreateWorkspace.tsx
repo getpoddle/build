@@ -145,13 +145,13 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 overflow-y-auto"
       style={{ background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl max-w-lg w-full overflow-hidden animate-scale-in"
-        style={{ boxShadow: '0 32px 80px rgba(15,23,42,0.25)' }}
+        className="bg-white rounded-3xl max-w-lg w-full my-auto overflow-hidden animate-scale-in flex flex-col"
+        style={{ boxShadow: '0 32px 80px rgba(15,23,42,0.25)', maxHeight: 'calc(100vh - 2rem)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -206,7 +206,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
         )}
 
         {/* Form */}
-        <div className="px-8 py-6 space-y-5">
+        <div className="px-8 py-6 space-y-5 overflow-y-auto">
           {error && (
             <div className="p-3 rounded-xl text-sm text-red-700 font-medium" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
               {error}
