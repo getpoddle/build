@@ -46,6 +46,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Insert a notification confirming the account has been restored
+    await anonClient.from("notifications").insert({
+      user_id: user.id,
+      type: "account_restored",
+      title: "Account restored",
+      content: "Welcome back! Your account has been restored and your deletion request has been cancelled.",
+      related_type: "account",
+      actor_id: user.id,
+    });
+
     return new Response(
       JSON.stringify({ success: true, restored: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

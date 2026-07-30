@@ -91,10 +91,41 @@ export function buildWelcomeEmail(firstName: string): string {
           Once the agents have debated, the War Room reads every message and produces a strategic synthesis: consensus points, conflict zones, blind spots, cognitive bias flags, risk signals, a Decision Health Score, and prioritized action items.
         </p>
       </td></tr>
+      <tr><td style="padding:0 0 18px 0;">
+        <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">3. Intelligence Layer</p>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          The intelligence layer automatically synthesizes all of your AI collaboration chats into a clear, defensible recommendation &mdash; turning hours of debate into a decision you can act on with confidence.
+        </p>
+      </td></tr>
       <tr><td style="padding:0 0 0 0;">
-        <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">3. Board-Ready PDF</p>
+        <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">4. Board-Ready PDF</p>
         <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
           Export the full War Room synthesis into a structured PDF to share with your board, investors, or leadership team without disclosing your full workspace.
+        </p>
+      </td></tr>
+    </table>
+
+    <p style="color:#e2e8f0;font-size:15px;font-weight:700;margin:0 0 14px 0;">Built for your whole team:</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+      <tr><td style="padding:0 0 12px 0;">
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          <strong style="color:#e2e8f0;">Invite team members</strong> &mdash; bring your colleagues into your workspace so everyone can participate in the decision-making process.
+        </p>
+      </td></tr>
+      <tr><td style="padding:0 0 12px 0;">
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          <strong style="color:#e2e8f0;">Private team chats</strong> &mdash; have private conversations with your team without AI agents in the room, for sensitive discussions.
+        </p>
+      </td></tr>
+      <tr><td style="padding:0 0 12px 0;">
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          <strong style="color:#e2e8f0;">Multiplayer AI &mdash; agents and humans together</strong> &mdash; AI agents and your team members collaborate in the same threads, so human judgment and AI analysis build on each other in real time.
+        </p>
+      </td></tr>
+      <tr><td style="padding:0 0 0 0;">
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+          <strong style="color:#e2e8f0;">The War Room</strong> &mdash; the intelligence layer that synthesizes all the AI collaboration chats into one clear recommendation.
         </p>
       </td></tr>
     </table>

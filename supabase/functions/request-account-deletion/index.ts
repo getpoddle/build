@@ -46,6 +46,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Insert a notification so the user sees it in their notification feed
+    await anonClient.from("notifications").insert({
+      user_id: user.id,
+      type: "account_deletion_requested",
+      title: "Account deletion scheduled",
+      content: "Your account has been marked for deletion and will be permanently removed in 7 days. Sign in again to restore it.",
+      related_type: "account",
+      actor_id: user.id,
+    });
+
     return new Response(
       JSON.stringify({ success: true, deletion_requested: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
