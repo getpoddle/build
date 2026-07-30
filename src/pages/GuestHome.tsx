@@ -414,79 +414,120 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                       {/* Right, visual */}
                       <div className="lg:w-80 flex-shrink-0">
                         {idx === 0 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(170deg,#000000,#0a0a0a)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                            <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                              <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                                <span className="text-[10px] font-semibold" style={{ color: 'rgba(148,163,184,0.6)' }}>Team Chat · Private Workspace</span>
-                                <Lock className="w-2.5 h-2.5 ml-auto" style={{ color: 'rgba(100,116,139,0.4)' }} />
+                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                              <Users className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
+                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Team Chat</span>
+                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— European Expansion</span>
+                              <div className="ml-auto flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
+                                <span className="text-[10px]" style={{ color: '#5D6B82' }}>Live</span>
                               </div>
                             </div>
-                            <div className="p-4 space-y-3">
+                            <div className="flex-1 p-4 space-y-3" style={{ background: '#FFFFFF' }}>
                               {(step.visual as { abbr: string; bg: string; color: string; name: string; text: string }[]).map((v) => (
                                 <div key={v.abbr} className="flex gap-2.5">
-                                  <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: v.bg, color: v.color }}>{v.abbr}</div>
-                                  <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                                    <p className="text-[10px] font-bold mb-1" style={{ color: v.color }}>{v.name}</p>
-                                    <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.82)' }}>{v.text}</p>
+                                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5" style={{ background: v.bg, color: v.color }}>{v.abbr}</div>
+                                  <div className="flex flex-col max-w-[80%]">
+                                    <div className="flex items-baseline gap-2 mb-0.5">
+                                      <span className="text-[10px] font-semibold" style={{ color: v.color }}>{v.name}</span>
+                                      <span className="text-[9px]" style={{ color: '#9BA6B8' }}>10:24 AM</span>
+                                    </div>
+                                    <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed break-words" style={{ background: '#F7F9FC', color: '#111827', border: '1px solid #D8DDE8', borderBottomLeftRadius: '4px' }}>
+                                      {v.text}
+                                    </div>
                                   </div>
                                 </div>
                               ))}
+                            </div>
+                            <div className="flex-shrink-0 p-3" style={{ borderTop: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                              <div className="flex items-end gap-2">
+                                <div className="flex-1 rounded-xl px-3 py-2 text-[10px]" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', color: '#9BA6B8', minHeight: '36px', display: 'flex', alignItems: 'center' }}>
+                                  Message your team... (use @ to mention)
+                                </div>
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#b8860b', color: '#F0F3F7' }}>
+                                  <MessageSquare className="w-4 h-4" />
+                                </div>
+                              </div>
                             </div>
                           </div>
                         )}
 
                         {idx === 1 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(170deg,#000000,#0a0a0a)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                            <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                              <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                <span className="text-[10px] font-semibold" style={{ color: 'rgba(148,163,184,0.6)' }}>AI Collaboration · Agents + Team</span>
-                                <Lock className="w-2.5 h-2.5 ml-auto" style={{ color: 'rgba(100,116,139,0.4)' }} />
+                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                              <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
+                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>AI Collaboration</span>
+                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— Agents + Team</span>
+                              <div className="ml-auto flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
+                                <span className="text-[10px]" style={{ color: '#5D6B82' }}>Live</span>
                               </div>
                             </div>
-                            <div className="p-4 space-y-3">
+                            <div className="flex-1 p-4 space-y-3" style={{ background: '#FFFFFF' }}>
                               {/* Team member message */}
                               <div className="flex gap-2.5">
-                                <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: '#0c4a6e', color: '#7dd3fc' }}>ML</div>
-                                <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(8,145,178,0.12)', border: '1px solid rgba(8,145,178,0.18)' }}>
-                                  <p className="text-[10px] font-bold mb-1" style={{ color: '#7dd3fc' }}>Maya (Head of Risk)</p>
-                                  <p className="text-[11px] leading-relaxed text-white">Let's get the agents in here to stress-test both options.</p>
+                                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5" style={{ background: 'rgba(8,145,178,0.12)', color: '#0f766e' }}>ML</div>
+                                <div className="flex flex-col max-w-[80%]">
+                                  <div className="flex items-baseline gap-2 mb-0.5">
+                                    <span className="text-[10px] font-semibold" style={{ color: '#0f766e' }}>Maya (Head of Risk)</span>
+                                    <span className="text-[9px]" style={{ color: '#9BA6B8' }}>10:25 AM</span>
+                                  </div>
+                                  <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed" style={{ background: 'rgba(8,145,178,0.12)', color: '#111827', border: '1px solid rgba(8,145,178,0.18)', borderBottomLeftRadius: '4px' }}>
+                                    Let's get the agents in here to stress-test both options.
+                                  </div>
                                 </div>
                               </div>
                               {/* Agent responses */}
                               {(step.visual as { abbr: string; bg: string; color: string; text: string }[]).map((v) => (
                                 <div key={v.abbr} className="flex gap-2.5">
-                                  <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black flex-shrink-0" style={{ background: v.bg, color: v.color }}>{v.abbr}</div>
-                                  <div className="flex-1 rounded-xl p-2.5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                                    <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.82)' }}>{v.text}</p>
+                                  <div className="w-7 h-7 rounded-xl flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5" style={{ background: v.bg, color: v.color, border: `1px solid ${v.color}22` }}>{v.abbr}</div>
+                                  <div className="flex flex-col max-w-[80%]">
+                                    <div className="flex items-baseline gap-2 mb-0.5">
+                                      <span className="text-[10px] font-semibold" style={{ color: v.color }}>{v.abbr === 'RA' ? 'Risk Analyst' : v.abbr === 'FS' ? 'Financial Strategist' : "Devil's Advocate"}</span>
+                                      <span className="text-[9px]" style={{ color: '#9BA6B8' }}>10:26 AM</span>
+                                    </div>
+                                    <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed" style={{ background: v.bg, color: '#111827', border: `1px solid ${v.color}22`, borderBottomLeftRadius: '4px' }}>
+                                      {v.text}
+                                    </div>
                                   </div>
                                 </div>
                               ))}
+                            </div>
+                            <div className="flex-shrink-0 p-3" style={{ borderTop: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                              <div className="flex items-end gap-2">
+                                <div className="flex-1 rounded-xl px-3 py-2 text-[10px]" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', color: '#9BA6B8', minHeight: '36px', display: 'flex', alignItems: 'center' }}>
+                                  Ask a follow-up or challenge an agent...
+                                </div>
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#b8860b', color: '#F0F3F7' }}>
+                                  <Send className="w-4 h-4" />
+                                </div>
+                              </div>
                             </div>
                           </div>
                         )}
 
                         {idx === 2 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg,#000000,#0f0f0f)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-                              <Swords className="w-3 h-3" style={{ color: '#f87171' }} />
-                              <span className="text-[10px] font-bold" style={{ color: 'rgba(148,163,184,0.7)' }}>War Room Synthesis</span>
+                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                              <Swords className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
+                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>War Room</span>
+                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— Synthesis</span>
                             </div>
-                            <div className="p-5">
+                            <div className="flex-1 p-5" style={{ background: '#F0F3F7' }}>
                               <div className="flex justify-around mb-5">
                                 {(step.visual as { label: string; value: string; sub: string; color: string }[]).map((v) => (
                                   <div key={v.label} className="flex flex-col items-center gap-1">
                                     <div className="text-2xl font-black" style={{ color: v.color }}>{v.value}</div>
                                     <div className="text-[9px] font-bold uppercase tracking-wide" style={{ color: v.color }}>{v.sub}</div>
-                                    <div className="text-[9px]" style={{ color: 'rgba(100,116,139,0.6)' }}>{v.label}</div>
+                                    <div className="text-[9px]" style={{ color: '#5D6B82' }}>{v.label}</div>
                                   </div>
                                 ))}
                               </div>
-                              <div className="rounded-xl p-3.5" style={{ background: 'rgba(184,134,11,0.12)', border: '1px solid rgba(184,134,11,0.22)' }}>
-                                <p className="text-[10px] font-black uppercase tracking-wide mb-1.5" style={{ color: '#d4a535' }}>Strategic Recommendation</p>
-                                <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.85)' }}>
-                                  <strong style={{ color: '#e2e8f0' }}>Stage the rollout. Start Germany.</strong> BaFin approval is the hardest and most valuable first stamp. Target Q3 Germany, Q1 next year France and Netherlands.
+                              <div className="rounded-xl p-3.5" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                                <p className="text-[10px] font-black uppercase tracking-wide mb-1.5" style={{ color: '#b8860b' }}>Strategic Recommendation</p>
+                                <p className="text-[11px] leading-relaxed" style={{ color: '#111827' }}>
+                                  <strong style={{ color: '#111827' }}>Stage the rollout. Start Germany.</strong> BaFin approval is the hardest and most valuable first stamp. Target Q3 Germany, Q1 next year France and Netherlands.
                                 </p>
                               </div>
                             </div>
@@ -660,48 +701,58 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         {/* Browser-style demo */}
         <div
           className="rounded-3xl overflow-hidden mx-auto"
-          style={{ maxWidth: 800, background: 'linear-gradient(170deg,#000000,#0a0a0a)', boxShadow: '0 32px 80px rgba(0,0,0,0.32)', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ maxWidth: 800, background: '#FFFFFF', boxShadow: '0 8px 32px rgba(0,0,0,0.10)', border: '1px solid #D8DDE8' }}
         >
           {/* Title bar */}
-          <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }}>
+          <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
             <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
             <div className="w-3 h-3 rounded-full" style={{ background: '#f59e0b' }} />
             <div className="w-3 h-3 rounded-full" style={{ background: '#10b981' }} />
             <div className="flex items-center gap-2 ml-4 flex-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.7)' }}>Private Workspace · European Expansion</span>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
+              <span className="text-xs font-medium" style={{ color: '#5D6B82' }}>Private Workspace · European Expansion</span>
             </div>
-            <Lock className="w-3 h-3" style={{ color: 'rgba(100,116,139,0.5)' }} />
+            <Lock className="w-3 h-3" style={{ color: '#9BA6B8' }} />
+          </div>
+
+          {/* Tab header */}
+          <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+            <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
+            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>AI Collaboration</span>
+            <div className="ml-auto flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
+              <span className="text-[10px]" style={{ color: '#5D6B82' }}>Live</span>
+            </div>
           </div>
 
           {/* User prompt */}
-          <div className="px-5 pt-5 pb-4">
+          <div className="px-5 pt-5 pb-4" style={{ background: '#FFFFFF' }}>
             <div
               className="flex items-start gap-3 rounded-2xl p-4 mb-1"
-              style={{ background: 'rgba(184,134,11,0.15)', border: '1px solid rgba(184,134,11,0.2)' }}
+              style={{ background: '#F7F9FC', border: '1px solid #D8DDE8' }}
             >
               <div
                 className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
-                style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', color: '#fff' }}
+                style={{ background: '#b8860b', color: '#F0F3F7' }}
               >
                 YO
               </div>
               <div>
-                <p className="text-[11px] font-bold mb-1" style={{ color: '#d4a535' }}>You</p>
-                <p className="text-sm leading-relaxed text-white font-medium">We're ready to launch our AI-powered lending product. Should we go multi-market across Europe now, or stage the rollout?</p>
+                <p className="text-[11px] font-bold mb-1" style={{ color: '#b8860b' }}>You</p>
+                <p className="text-sm leading-relaxed font-medium" style={{ color: '#111827' }}>We're ready to launch our AI-powered lending product. Should we go multi-market across Europe now, or stage the rollout?</p>
               </div>
             </div>
 
             {/* Agent tags */}
             <div className="flex items-center gap-2 mt-3 mb-4 flex-wrap">
-              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'rgba(100,116,139,0.6)' }}>Responding:</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9BA6B8' }}>Responding:</span>
               {DEMO_MESSAGES.map((m, i) => (
                 <span
                   key={m.agent}
                   className="text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300"
                   style={i < revealed
                     ? { background: m.bg, color: m.color, opacity: 1 }
-                    : { background: 'rgba(255,255,255,0.05)', color: 'rgba(100,116,139,0.4)' }}
+                    : { background: '#F7F9FC', color: '#9BA6B8' }}
                 >
                   {m.label}
                 </span>
@@ -721,16 +772,16 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                 >
                   <div
                     className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
-                    style={{ background: m.bg, color: m.color }}
+                    style={{ background: m.bg, color: m.color, border: `1px solid ${m.color}22` }}
                   >
                     {m.agent}
                   </div>
                   <div
-                    className="flex-1 rounded-xl p-3.5"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+                    className="flex-1 rounded-2xl p-3.5"
+                    style={{ background: m.bg, border: `1px solid ${m.color}22`, borderBottomLeftRadius: '4px' }}
                   >
                     <p className="text-[11px] font-bold mb-1.5" style={{ color: m.color }}>{m.label}</p>
-                    <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.82)' }}>{m.msg}</p>
+                    <p className="text-[12px] leading-relaxed" style={{ color: '#111827' }}>{m.msg}</p>
                   </div>
                 </div>
               ))}
@@ -741,39 +792,40 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               <div
                 className="mt-4 rounded-2xl p-4 transition-all duration-700"
                 style={{
-                  background: 'linear-gradient(135deg,rgba(184,134,11,0.18),rgba(212,165,53,0.12))',
-                  border: '1px solid rgba(184,134,11,0.3)',
+                  background: '#FFFFFF',
+                  border: '1px solid #D8DDE8',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                   opacity: 1,
                 }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(184,134,11,0.3)' }}>
-                    <Brain className="w-3 h-3" style={{ color: '#d4a535' }} />
+                  <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(184,134,11,0.12)' }}>
+                    <Brain className="w-3 h-3" style={{ color: '#b8860b' }} />
                   </div>
-                  <span className="text-[11px] font-bold" style={{ color: '#d4a535' }}>War Room Synthesis</span>
-                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(184,134,11,0.2)', color: '#d4a535' }}>Built from your AI Collaboration</span>
+                  <span className="text-[11px] font-bold" style={{ color: '#b8860b' }}>War Room Synthesis</span>
+                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(184,134,11,0.12)', color: '#b8860b' }}>Built from your AI Collaboration</span>
                 </div>
-                <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(203,213,225,0.9)' }}>
-                  <strong style={{ color: '#e2e8f0' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp. It de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year.
+                <p className="text-[12px] leading-relaxed" style={{ color: '#111827' }}>
+                  <strong style={{ color: '#111827' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp. It de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year.
                 </p>
               </div>
             )}
           </div>
 
           {/* Bottom bar */}
-          <div className="px-5 py-3.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
+          <div className="px-5 py-3.5" style={{ borderTop: '1px solid #D8DDE8', background: '#F7F9FC' }}>
             <div className="flex items-center gap-3">
               <div
                 className="flex-1 h-9 rounded-xl px-3.5 flex items-center gap-2"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ background: '#FFFFFF', border: '1px solid #D8DDE8' }}
               >
-                <span className="text-xs" style={{ color: 'rgba(100,116,139,0.5)' }}>Ask a follow-up or challenge an agent...</span>
+                <span className="text-xs" style={{ color: '#9BA6B8' }}>Ask a follow-up or challenge an agent...</span>
               </div>
               {revealed >= DEMO_MESSAGES.length && (
                 <button
                   onClick={() => setShowPDF(true)}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)' }}
+                  style={{ background: '#F7F9FC', color: '#5D6B82', border: '1px solid #D8DDE8' }}
                 >
                   <Download className="w-3 h-3" />
                   Export PDF
@@ -781,8 +833,8 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               )}
               <button
                 onClick={() => onNavigate('auth')}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:-translate-y-0.5"
-                style={{ background: 'linear-gradient(135deg,#111111,#b8860b)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5"
+                style={{ background: '#b8860b', color: '#F0F3F7', boxShadow: '0 2px 8px rgba(184,134,11,0.3)' }}
               >
                 <Sparkles className="w-3 h-3" />
                 Try it
