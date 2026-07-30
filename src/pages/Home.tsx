@@ -1,4 +1,4 @@
-import { Bot, Brain, Lock, Sparkles, ArrowRight, Shield, TrendingUp, Users, Zap, ChevronRight } from 'lucide-react';
+import { Bot, Brain, Lock, Sparkles, ArrowRight, Shield, TrendingUp, Users, Zap, ChevronRight, MessageSquare, UsersRound } from 'lucide-react';
 import AskAgentsSidebar from '../components/AskAgentsSidebar';
 
 interface HomeProps {
@@ -122,6 +122,35 @@ export default function Home({ onNavigate }: HomeProps) {
                     </span>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Team Collaboration */}
+            <div className="panel p-4 lg:p-6">
+              <p className="section-label mb-4">Team Collaboration</p>
+              <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
+                    <MessageSquare className="w-4 h-4" style={{ color: 'var(--signal)' }} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>Team Chat</p>
+                    <p className="text-[11px] lg:text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
+                      Real-time messaging built into every workspace — share updates, coordinate decisions, and keep conversations alongside your intelligence.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
+                    <UsersRound className="w-4 h-4" style={{ color: 'var(--signal)' }} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>AI Collaboration — Multiplayer AI</p>
+                    <p className="text-[11px] lg:text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
+                      Team members and AI agents discuss together in real time — pose questions, get multiple agent perspectives, and build collective insight without leaving the thread.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
