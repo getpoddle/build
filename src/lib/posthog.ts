@@ -100,7 +100,7 @@ export async function phSyncProfileProperties(userId: string) {
   if (!profile) return;
 
   const [postCount, workspaceCount, followerCount, followingCount] = await Promise.all([
-    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('user_id', userId).then(r => r.count ?? 0),
+    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', userId).then(r => r.count ?? 0),
     supabase.from('workspace_members').select('workspace_id', { count: 'exact', head: true }).eq('user_id', userId).then(r => r.count ?? 0),
     supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('following_id', userId).then(r => r.count ?? 0),
     supabase.from('followers').select('following_id', { count: 'exact', head: true }).eq('follower_id', userId).then(r => r.count ?? 0),
