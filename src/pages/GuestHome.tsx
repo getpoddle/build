@@ -4,7 +4,7 @@ import {
   Swords, Zap, X,
   Download, AlertTriangle, Target, BarChart3, TrendingUp,
   ChevronRight, Users, MessageSquare, FileText, Shield,
-  ArrowDown, ChevronDown,
+  ArrowDown, ChevronDown, Send,
 } from 'lucide-react';
 import JoinPromptModal from '../components/JoinPromptModal';
 import PoddleMark from '../components/PoddleMark';
