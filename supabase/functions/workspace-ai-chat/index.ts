@@ -830,16 +830,18 @@ This is ROUND 1 of a structured debate — state your position with full analyti
 
     // ── Persist agent responses ──────────────────────────────────────────────
     currentStage = "insert_agent_msgs";
-    const { data: insertedAgentRows } = await service.from("workspace_messages").insert(
-      agentResponses.map(({ agent, content }) => ({
-        workspace_id,
-        user_id: null,
-        role: "assistant",
-        content,
-        agent_name: agent.name,
-        agent_role: agent.role,
-      })).select("id, agent_role")
-    );
+    const { data: insertedAgentRows } = await service.from("workspace_messages")
+      .insert(
+        agentResponses.map(({ agent, content }) => ({
+          workspace_id,
+          user_id: null,
+          role: "assistant",
+          content,
+          agent_name: agent.name,
+          agent_role: agent.role,
+        }))
+      )
+      .select("id, agent_role");
 
     // ── Notify all workspace members that agents have responded ──────────────
     (async () => {
