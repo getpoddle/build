@@ -440,9 +440,10 @@ Deno.serve(async (req: Request) => {
 
     if (isBetaUser) {
       // Beta users: read current usage for display, but do not enforce.
-      const { data: usageRow } = await service.rpc("get_workspace_war_room_usage", {
+      const { data: usageRows } = await service.rpc("get_workspace_war_room_usage", {
         p_workspace_id: workspace_id,
-      }) as { data: ConsumeResult | null; error: { message: string } | null };
+      }) as { data: ConsumeResult[] | null; error: { message: string } | null };
+      const usageRow = Array.isArray(usageRows) ? usageRows[0] : null;
       const wrLimit = resolveWarRoomLimit(wsPlan);
       warRoomUsage = {
         used: usageRow?.session_count ?? 0,
@@ -454,10 +455,11 @@ Deno.serve(async (req: Request) => {
         period_end: usageRow?.period_end ?? null,
       };
     } else {
-      const { data: consumeResult, error: consumeErr } = await service.rpc(
+      const { data: consumeRows, error: consumeErr } = await service.rpc(
         "consume_war_room_session",
         { p_workspace_id: workspace_id, p_plan: wsPlan }
-      ) as { data: ConsumeResult | null; error: { message: string } | null };
+      ) as { data: ConsumeResult[] | null; error: { message: string } | null };
+      const consumeResult = Array.isArray(consumeRows) ? consumeRows[0] : null;
 
       if (consumeErr || !consumeResult) {
         console.error("consume_war_room_session error:", JSON.stringify(consumeErr), "wsPlan:", wsPlan, "workspace_id:", workspace_id);

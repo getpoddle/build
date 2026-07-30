@@ -4,7 +4,7 @@ import { resolveWarRoomLimit, WAR_ROOM_LIMITS } from '../../supabase/functions/_
 describe('warRoomQuota — resolveWarRoomLimit', () => {
   it('returns free limits for "free" plan', () => {
     const l = resolveWarRoomLimit('free');
-    expect(l.cap).toBe(1);
+    expect(l.cap).toBe(10);
     expect(l.included).toBe(0);
     expect(l.overageUnitPrice).toBe(0);
     expect(l.hardBlock).toBe(true);
@@ -33,9 +33,9 @@ describe('warRoomQuota — resolveWarRoomLimit', () => {
   });
 
   it('falls back to free for unknown / null / undefined', () => {
-    expect(resolveWarRoomLimit(null).cap).toBe(1);
-    expect(resolveWarRoomLimit(undefined).cap).toBe(1);
-    expect(resolveWarRoomLimit('nonsense').cap).toBe(1);
+    expect(resolveWarRoomLimit(null).cap).toBe(10);
+    expect(resolveWarRoomLimit(undefined).cap).toBe(10);
+    expect(resolveWarRoomLimit('nonsense').cap).toBe(10);
   });
 
   it('WAR_ROOM_LIMITS has exactly the four tiers', () => {
