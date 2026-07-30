@@ -7,6 +7,7 @@ import { exportChatToPDF } from '../lib/pdfExport';
 import { getDisplayName } from '../lib/displayName';
 import { getAvatarUrl, getInitials } from '../lib/avatarUtils';
 import { blobToMp3File } from '../lib/audioUtils';
+import ConsensusCharts, { type ChartData, type AgentFigures } from './ConsensusCharts';
 
 interface Message {
   id: string;
@@ -16,6 +17,8 @@ interface Message {
   agent_role?: string;
   user_id?: string | null;
   created_at: string;
+  chart_data?: ChartData | null;
+  figures?: AgentFigures | null;
 }
 
 interface MemberProfile {
@@ -457,13 +460,16 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       }
 
       if (json.responses) {
-        const agentMsgs: Message[] = json.responses.map((r: { agent_name: string; agent_role: string; content: string }) => ({
+        const chartData: ChartData | null = json.chart_data ?? null;
+        const agentMsgs: Message[] = json.responses.map((r: { agent_name: string; agent_role: string; content: string; figures?: AgentFigures | null }) => ({
           id: crypto.randomUUID(),
           role: 'assistant' as const,
           content: r.content,
           agent_name: r.agent_name,
           agent_role: r.agent_role,
           created_at: new Date().toISOString(),
+          chart_data: r.agent_role === 'consensus' ? chartData : null,
+          figures: r.figures ?? null,
         }));
         setMessages(prev => [...prev, ...agentMsgs]);
         setTimeout(() => scrollToBottom(), 50);
@@ -1041,6 +1047,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                     </div>
                     <div className="px-4 py-3">
                       <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--app-text-primary)' }}>{msg.content}</p>
+                      {msg.chart_data && <ConsensusCharts data={msg.chart_data} />}
                     </div>
                   </div>
                 </div>
@@ -1070,6 +1077,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--app-text-primary)' }}>{msg.content}</p>
+                      {msg.figures && <ConsensusCharts data={null} figures={msg.figures} />}
                     </div>
                   </div>
                 </div>

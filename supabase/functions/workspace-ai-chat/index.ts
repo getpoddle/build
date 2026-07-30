@@ -3,6 +3,17 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logAiOpenAICall } from "../_shared/posthogLogging.ts";
 import { resolveWarRoomLimit, recordProOverageUsage, type ConsumeResult } from "../_shared/warRoomQuota.ts";
 
+type AgentFigures = {
+  figures: Array<{ label: string; value: number; unit: string }>;
+  categories: Array<{ label: string; value: number; unit: string }>;
+};
+
+type ChartData = {
+  agent_confidence: Array<{ agent_name: string; confidence: number }>;
+  risk_distribution: Array<{ category: string; count: number }>;
+  alignment_scores: Array<{ dimension: string; score: number }>;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -762,7 +773,42 @@ This is ROUND 1 of a structured debate — state your position with full analyti
         const data = await res.json();
         logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
         const content = data.choices?.[0]?.message?.content || "I couldn't generate a response right now.";
-        return { agent, content };
+
+        // Extract figures/categories from this agent's response in parallel
+        // (fire-and-forget) so charts can render beneath the agent's text.
+        const figuresPromise = (async (): Promise<AgentFigures | null> => {
+          try {
+            const fRes = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "gpt-4.1",
+                messages: [
+                  { role: "system", content: "You extract structured numerical figures and category breakdowns from strategic analysis text. Return JSON only." },
+                  { role: "user", content: `Extract every concrete figure, percentage, dollar amount, ratio, or quantified metric from this agent's analysis. Also extract any categorical breakdowns (e.g. risk categories, cost categories, revenue segments).\n\nAGENT: ${agent.name}\nCONTENT:\n${content.slice(0, 3000)}\n\nReturn ONLY valid JSON:\n{"figures":[{"label":"short label","value":number,"unit":"string (e.g. %, $, months, people, x)"}],"categories":[{"label":"category name","value":number,"unit":"count or %"}]}\nIf no figures or categories are present, return empty arrays.` },
+                ],
+                max_completion_tokens: 400,
+                response_format: { type: "json_object" },
+              }),
+            });
+            if (!fRes.ok) return null;
+            const fj = await fRes.json();
+            const raw = fj.choices?.[0]?.message?.content || "{}";
+            const parsed = JSON.parse(raw);
+            const figures: Array<{ label: string; value: number; unit: string }> = Array.isArray(parsed.figures)
+              ? parsed.figures.filter((f: { label?: string; value?: number; unit?: string }) => typeof f.label === "string" && typeof f.value === "number")
+              : [];
+            const categories: Array<{ label: string; value: number; unit: string }> = Array.isArray(parsed.categories)
+              ? parsed.categories.filter((c: { label?: string; value?: number; unit?: string }) => typeof c.label === "string" && typeof c.value === "number")
+              : [];
+            if (figures.length === 0 && categories.length === 0) return null;
+            return { figures, categories };
+          } catch {
+            return null;
+          }
+        })();
+
+        return { agent, content, figuresPromise };
       })
     );
 
@@ -879,13 +925,33 @@ GOOD: "CFO to build three financial scenarios (base/bull/bear) with explicit hea
 Return ONLY valid JSON, no markdown fences:
 {"action_items":[{"text":"string","source_area":"CEO|CFO|HR|Legal|Product|Engineering|Finance|Risk|Strategy|Marketing|Operations|People","priority":"critical|high|medium"}]}`;
 
+    const chartDataPrompt = `You are a data analyst extracting structured chart data from a strategic multi-agent debate.
+
+CENTRAL DECISION: "${workspace?.name || "the workspace decision"}"${workspace?.description ? `\nContext: ${workspace.description}` : ""}
+
+DEBATE (agents responded to: "${safeMessage}"):
+${debateSummary.slice(0, 5000)}
+
+Analyse the full debate and extract data for three charts. Be rigorous and ground every value in what the agents actually said.
+
+1. AGENT CONFIDENCE — For each agent that participated, estimate a confidence score (0-100) reflecting how confident that agent's overall position is in the user's plan/direction. 0 = deeply opposed / certain it fails, 50 = ambivalent / conditional, 100 = fully confident it succeeds.
+
+2. RISK DISTRIBUTION — Count how many distinct risks were raised across all agents, grouped by category: Market, Execution, Financial, Technology, People, Regulatory. Each category gets a count. If no risks in a category, use 0.
+
+3. ALIGNMENT SCORES — Score how aligned the agents are (0-100, higher = more agreement) on each dimension: Strategy, Risk, Execution, Timeline.
+
+Return ONLY valid JSON, no markdown fences:
+{"agent_confidence":[{"agent_name":"string","confidence":number}],"risk_distribution":[{"category":"string","count":number}],"alignment_scores":[{"dimension":"string","score":number}]}`;
+
     const consensusStartedAt = Date.now();
     const actionStartedAt = Date.now();
+    const chartStartedAt = Date.now();
     let consensusContent = "";
     let round3Completed = false;
+    let chartData: ChartData | null = null;
 
-    // Run consensus and action extraction in parallel, each resilient to failure
-    const [consensusResult, actionExtrRes] = await Promise.all([
+    // Run consensus, action extraction, and chart extraction in parallel, each resilient to failure
+    const [consensusResult, actionExtrRes, chartRes] = await Promise.all([
       (async () => {
         try {
           const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -931,11 +997,54 @@ Return ONLY valid JSON, no markdown fences:
           return null;
         }
       })(),
+      (async () => {
+        try {
+          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "gpt-4.1",
+              messages: [
+                { role: "system", content: "You extract structured numerical chart data from strategic debates. Every value must be grounded in what the agents actually said. Return JSON only." },
+                { role: "user", content: chartDataPrompt },
+              ],
+              max_completion_tokens: 800,
+              response_format: { type: "json_object" },
+            }),
+          });
+          return res;
+        } catch (err) {
+          console.error(`Round 3 chart extraction fetch exception:`, String(err).slice(0, 300));
+          return null;
+        }
+      })(),
     ]);
 
     if (consensusResult) {
       consensusContent = consensusResult.choices?.[0]?.message?.content || "";
       round3Completed = consensusContent.trim().length > 20;
+    }
+
+    // Parse chart data only when the full three-round debate completed
+    if (round3Completed && chartRes && chartRes.ok) {
+      try {
+        const cj = await chartRes.json();
+        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "chart_extraction", model: "gpt-4.1", usage: cj.usage, maxCompletionTokens: 800, jsonMode: true, latencyMs: Date.now() - chartStartedAt, status: "succeeded", httpStatus: chartRes.status });
+        const raw = cj.choices?.[0]?.message?.content || "{}";
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.agent_confidence) && Array.isArray(parsed.risk_distribution) && Array.isArray(parsed.alignment_scores)) {
+          chartData = {
+            agent_confidence: parsed.agent_confidence.filter((a: { agent_name?: string; confidence?: number }) => typeof a.agent_name === "string" && typeof a.confidence === "number"),
+            risk_distribution: parsed.risk_distribution.filter((r: { category?: string; count?: number }) => typeof r.category === "string" && typeof r.count === "number"),
+            alignment_scores: parsed.alignment_scores.filter((s: { dimension?: string; score?: number }) => typeof s.dimension === "string" && typeof s.score === "number"),
+          };
+          if (chartData.agent_confidence.length === 0 || chartData.alignment_scores.length === 0) {
+            chartData = null;
+          }
+        }
+      } catch (e) {
+        console.error("Chart data parse failed:", e);
+      }
     }
 
     // Write action items to DB — don't await so it doesn't block the response
@@ -1044,12 +1153,25 @@ Return ONLY valid JSON, no markdown fences:
       }
     })();
 
+    // Resolve per-agent figure extraction (fire-and-forget during rounds 2/3)
+    const agentFiguresMap: Record<string, AgentFigures | null> = {};
+    await Promise.all(
+      agentResponses.map(async ({ agent, figuresPromise }) => {
+        try {
+          agentFiguresMap[agent.role] = await figuresPromise;
+        } catch {
+          agentFiguresMap[agent.role] = null;
+        }
+      })
+    );
+
     // Return all rounds so the client renders the full debate in order
-    const allResponses: Array<{ agent_name: string; agent_role: string; content: string }> = [
+    const allResponses: Array<{ agent_name: string; agent_role: string; content: string; figures?: AgentFigures | null }> = [
       ...agentResponses.map(({ agent, content }) => ({
         agent_name: agent.name,
         agent_role: agent.role,
         content,
+        figures: agentFiguresMap[agent.role] ?? null,
       })),
       ...validChallenges.map(({ agent, content }) => ({
         agent_name: agent.name,
@@ -1058,8 +1180,10 @@ Return ONLY valid JSON, no markdown fences:
       })),
     ];
 
+    let consensusChartData: ChartData | null = null;
     if (consensusContent.trim().length > 20) {
       allResponses.push({ agent_name: "Consensus", agent_role: "consensus", content: consensusContent });
+      consensusChartData = round3Completed ? chartData : null;
     }
 
     const rounds_completed = [
@@ -1069,7 +1193,7 @@ Return ONLY valid JSON, no markdown fences:
     ].filter(Boolean) as string[];
 
     return new Response(
-      JSON.stringify({ responses: allResponses, war_room_usage: warRoomUsage, rounds_completed }),
+      JSON.stringify({ responses: allResponses, war_room_usage: warRoomUsage, rounds_completed, chart_data: consensusChartData }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
