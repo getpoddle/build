@@ -11,6 +11,7 @@ import GuestHome from './pages/GuestHome';
 import Navigation from './components/Navigation';
 import InstallPrompt from './components/InstallPrompt';
 import { ToastContainer, useToast } from './components/Toast';
+import { useUserWorkspaces } from './hooks/useWorkspaceAccess';
 
 const Home = lazy(() => import('./pages/Home'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -47,6 +48,8 @@ function RouteFallback() {
 
 function AppContent() {
   const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation, oauthError } = useAuth();
+  const { workspaces: userWorkspaces, loading: workspacesLoading } = useUserWorkspaces();
+  const hasNoWorkspace = !workspacesLoading && !!user && userWorkspaces.length === 0;
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendSent, setResendSent] = useState(false);
   const [resending, setResending] = useState(false);
@@ -242,12 +245,18 @@ function AppContent() {
 
       // Block dashboard access for first-time users on initial load.
       const fswId = firstSignInRef.current;
-      if (fswId && (hash === '' || hash === 'home')) {
-        history.replaceState(null, '', `#workspace/${fswId}`);
-        setWorkspaceId(fswId);
-        setWorkspaceInitialTab('chat');
-        setCurrentPage('workspace-hub');
-        sessionStorage.setItem('currentPage', 'workspace-hub');
+      if (hasNoWorkspace && (hash === '' || hash === 'home')) {
+        if (fswId) {
+          history.replaceState(null, '', `#workspace/${fswId}`);
+          setWorkspaceId(fswId);
+          setWorkspaceInitialTab('chat');
+          setCurrentPage('workspace-hub');
+          sessionStorage.setItem('currentPage', 'workspace-hub');
+        } else {
+          history.replaceState(null, '', '#workspaces');
+          setCurrentPage('workspaces');
+          sessionStorage.setItem('currentPage', 'workspaces');
+        }
         return;
       }
 
@@ -361,14 +370,20 @@ function AppContent() {
     const handleHashChange = () => {
       // Block dashboard access for first-time users who have no workspace yet.
       const fswId = firstSignInRef.current;
-      if (fswId) {
+      if (hasNoWorkspace) {
         const hash = window.location.hash.substring(1);
         if (hash === '' || hash === 'home') {
-          history.replaceState(null, '', `#workspace/${fswId}`);
-          setWorkspaceId(fswId);
-          setWorkspaceInitialTab('chat');
-          setCurrentPage('workspace-hub');
-          sessionStorage.setItem('currentPage', 'workspace-hub');
+          if (fswId) {
+            history.replaceState(null, '', `#workspace/${fswId}`);
+            setWorkspaceId(fswId);
+            setWorkspaceInitialTab('chat');
+            setCurrentPage('workspace-hub');
+            sessionStorage.setItem('currentPage', 'workspace-hub');
+          } else {
+            history.replaceState(null, '', '#workspaces');
+            setCurrentPage('workspaces');
+            sessionStorage.setItem('currentPage', 'workspaces');
+          }
           return;
         }
       }
@@ -449,12 +464,18 @@ function AppContent() {
 
   const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
     // Block dashboard access for first-time users locked into AI Collaboration.
-    if (page === 'home' && firstSignInWorkspaceId) {
-      setWorkspaceId(firstSignInWorkspaceId);
-      setWorkspaceInitialTab('chat');
-      setCurrentPage('workspace-hub');
-      sessionStorage.setItem('currentPage', 'workspace-hub');
-      history.pushState(null, '', `#workspace/${firstSignInWorkspaceId}`);
+    if (page === 'home' && hasNoWorkspace) {
+      if (firstSignInWorkspaceId) {
+        setWorkspaceId(firstSignInWorkspaceId);
+        setWorkspaceInitialTab('chat');
+        setCurrentPage('workspace-hub');
+        sessionStorage.setItem('currentPage', 'workspace-hub');
+        history.pushState(null, '', `#workspace/${firstSignInWorkspaceId}`);
+      } else {
+        setCurrentPage('workspaces');
+        sessionStorage.setItem('currentPage', 'workspaces');
+        history.pushState(null, '', '#workspaces');
+      }
       return;
     }
     if (page === 'public-post' && postId) {
@@ -703,7 +724,7 @@ function AppContent() {
   if (currentPage === 'admin-panel') return wrap(<AdminPanel />);
   if (currentPage === 'privacy') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={!!firstSignInWorkspaceId} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><PrivacyPolicy /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -712,7 +733,7 @@ function AppContent() {
   );
   if (currentPage === 'terms') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={!!firstSignInWorkspaceId} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><TermsOfService /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -721,7 +742,7 @@ function AppContent() {
   );
   if (currentPage === 'subprocessors') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={!!firstSignInWorkspaceId} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><Subprocessors /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -730,7 +751,7 @@ function AppContent() {
   );
   if (currentPage === 'contact-us') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={!!firstSignInWorkspaceId} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><ContactUs /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -739,7 +760,7 @@ function AppContent() {
   );
   if (currentPage === 'pricing') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={!!firstSignInWorkspaceId} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><Pricing onNavigate={handleNavigate} /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -793,7 +814,7 @@ function AppContent() {
     if (currentPage === 'auth') return <Auth />;
     return (
       <div className="min-h-screen bg-slate-50">
-        <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={!!firstSignInWorkspaceId} />
+        <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
         <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
           <GuestHome onNavigate={handleNavigate} />
         </div>
@@ -804,7 +825,7 @@ function AppContent() {
   if (currentPage === 'admin') {
     return (
       <div className="flex bg-slate-50 min-h-screen">
-        <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={!!firstSignInWorkspaceId} />
+        <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
         <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
           <Suspense fallback={<RouteFallback />}>
             <Admin key="admin" />
@@ -818,7 +839,7 @@ function AppContent() {
 
   return (
     <div className="flex" style={{ height: '100dvh', overflow: 'hidden' }}>
-      <Navigation currentPage={activePage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={!!firstSignInWorkspaceId} />
+      <Navigation currentPage={activePage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
       <main
         className="flex-1 overflow-x-hidden overflow-y-auto min-w-0 xl-sidebar-margin flex flex-col"
         style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
@@ -826,7 +847,7 @@ function AppContent() {
         <div className="flex-1">
           <PageErrorBoundary>
             <Suspense fallback={<RouteFallback />}>
-              {activePage === 'home' && !firstSignInWorkspaceId && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
+              {activePage === 'home' && !hasNoWorkspace && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
               {activePage === 'profile' && <Profile key="profile-settings" onNavigate={handleNavigate} />}
               {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
               {activePage === 'workspace-hub' && workspaceId && (
