@@ -806,272 +806,8 @@ This is ROUND 1 of a structured debate — state your position with full analyti
       })
     );
 
-    // ── ROUND 2: Cross-challenge — each agent challenges another (parallel) ──
-    // Uses gpt-4.1 for speed: challenges are short, structured responses that
-    // build on Round 1's analysis and don't need full reasoning depth.
-    let round2Completed = false;
-    const challengeResponses = await Promise.all(
-      agentResponses.map(async ({ agent, content: myContent }) => {
-        const othersBlock = agentResponses
-          .filter(r => r.agent.role !== agent.role)
-          .map(r => `${r.agent.name} said:\n"${r.content.slice(0, 500)}"`)
-          .join("\n\n");
-
-        const challengePrompt = `${agent.persona}
-
-${workspaceHeader}${topicAnchor}${memoryContext}${synthesisContext}${priorContextBlock}
-
-You have given your initial analysis. The other agents have now responded:
-
-${othersBlock}
-
-CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning AND the user's underlying premise. You must:
-1. Pick the single most problematic or unsupported claim made by one of the other agents. Address them directly by name (e.g. "@Risk Analyst — your claim that X is flawed because..."). Name the specific claim and exactly why it fails, relies on a hidden assumption, or ignores a critical variable.
-2. Identify the single weakest assumption in the USER's original message or plan that the other agents let slide. Name it. Explain why it is load-bearing (the plan fails if it is wrong) and why no one has pressure-tested it yet.
-3. If another agent surfaced something that actually strengthens or complicates your own analysis, acknowledge it honestly in one sentence — intellectual honesty builds better decisions.
-4. End with a sharp direct question addressed to a specific agent that forces them to defend or revise their weakest point — OR a question addressed to the user that exposes the flaw in their premise.
-
-180-220 words. Punchy. No preamble. No restating your prior position. Start with the challenge. Do not agree with the user unless you have first articulated the strongest case against their position.`;
-
-        const r2StartedAt = Date.now();
-        try {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "gpt-4.1",
-              messages: [
-                { role: "system", content: challengePrompt },
-                { role: "user", content: safeMessage },
-              ],
-              max_completion_tokens: 300,
-            }),
-          });
-
-          const data = await res.json();
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `challenge_${agent.role}`, model: "gpt-4.1", usage: data.usage, maxCompletionTokens: 300, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
-          if (!res.ok) {
-            console.error(`Round 2 challenge_${agent.role} failed: HTTP ${res.status}`, JSON.stringify(data?.error || data).slice(0, 500));
-            return { agent, content: "" };
-          }
-          const content = data.choices?.[0]?.message?.content || "";
-          return { agent, content };
-        } catch (err) {
-          console.error(`Round 2 challenge_${agent.role} exception:`, String(err).slice(0, 300));
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `challenge_${agent.role}`, model: "gpt-4.1", maxCompletionTokens: 300, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: "errored" });
-          return { agent, content: "" };
-        }
-      })
-    );
-    round2Completed = challengeResponses.some(r => r.content.trim().length > 20);
-
-    // ── ROUND 3: Consensus + Action Items extraction (parallel) ────────────────
-    // Uses gpt-4.1 for speed: consensus is a structured synthesis task that
-    // builds on the debate output and doesn't need full reasoning depth.
-    const debateSummary = [
-      ...agentResponses.map(r => `${r.agent.name} (initial position):\n${r.content.slice(0, 350)}`),
-      ...challengeResponses.filter(r => r.content).map(r => `${r.agent.name} (challenge):\n${r.content.slice(0, 300)}`),
-    ].join("\n\n---\n\n");
-
-    const consensusPrompt = `You are a Managing Partner-level Consensus Architect — a seasoned strategist who has facilitated hundreds of high-stakes decision debates. Your role is to take the full intellectual output of this multi-agent debate and convert it into the clearest possible signal for the team.
-
-${workspaceHeader}${topicAnchor}${priorContextBlock}
-
-${selectedAgents.length} elite strategic AI agents have just debated the team's question across two rigorous rounds. Here is the complete debate:
-
-${debateSummary}
-
-Synthesise the debate into a decisive, pressure-tested consensus brief. Your job is NOT to make the team feel good about their plan — it is to give them the clearest possible signal, including when that signal is "this plan has unresolved fatal flaws." Do NOT manufacture agreement where none exists. If the agents exposed a genuine weakness in the user's premise, say so directly.
-
-Structure your response with these exact sections:
-
-**Where agents converge** — Identify 2-4 specific conclusions the agents genuinely agree on, with high confidence. These are near-certain signals. State them as declarative facts, not hedged observations. If the agents did NOT genuinely converge on much, say so — false consensus is worse than honest disagreement.
-
-**The unresolved tension** — Name the single most consequential disagreement that survived cross-challenge. Name which agents hold which position. Explain why this tension matters — what is the cost of getting it wrong in each direction?
-
-**The weakest link** — Name the single weakest assumption in the USER's original plan that the debate exposed. State plainly: if this assumption is wrong, the plan fails because [specific mechanism]. Do not soften this. The team needs to know where they are most exposed.
-
-**Strategic signal** — Give the team a decisive directional recommendation that integrates the strongest arguments from all rounds. Be explicit about what to do, what to deprioritise, and what must be resolved before the next major commitment. If the evidence does NOT support proceeding, say so directly — "Do not commit to this direction until X is resolved." No hedging. No false reassurance.
-
-**Concrete next actions** — List 3-5 specific actions the team should take in the next 2 weeks to advance the decision and resolve the remaining tension. Each action: who owns it, what it produces, what decision it unlocks.
-
-**The deadlock-breaker** — Name the single factual question, test, or data point that, if answered, would resolve the remaining disagreement. Frame it as an experiment or research task the team can actually do.
-
-320-400 words. The team must leave this conversation knowing what to do next — and knowing exactly where their plan is most likely to break.`;
-
-    // Action items extraction runs in parallel with consensus — zero added latency.
-    // Fires on every chat turn so the Actions tab fills without waiting for synthesis.
-    const actionExtractionPrompt = `You are a Chief of Staff extracting concrete action items from a strategic debate.
-
-CENTRAL DECISION: "${workspace?.name || "the workspace decision"}"${workspace?.description ? `\nContext: ${workspace.description}` : ""}
-
-DEBATE (agents responded to: "${safeMessage}"):
-${debateSummary.slice(0, 5000)}
-
-Extract 5-8 action items that directly emerged from this debate. Each must:
-- Name a specific owner role responsible for delivering it
-- Describe exactly what must be done — concrete enough to assign today
-- Connect explicitly to the central decision above
-
-BAD: "Conduct financial analysis"
-GOOD: "CFO to build three financial scenarios (base/bull/bear) with explicit headcount and cost assumptions for each option, to quantify the decision's financial risk before the board meeting."
-
-Return ONLY valid JSON, no markdown fences:
-{"action_items":[{"text":"string","source_area":"CEO|CFO|HR|Legal|Product|Engineering|Finance|Risk|Strategy|Marketing|Operations|People","priority":"critical|high|medium"}]}`;
-
-    currentStage = "chart_extraction";
-    const chartDataPrompt = `You are a data analyst extracting structured chart data from a strategic multi-agent debate.
-
-CENTRAL DECISION: "${workspace?.name || "the workspace decision"}"${workspace?.description ? `\nContext: ${workspace.description}` : ""}
-
-DEBATE (agents responded to: "${safeMessage}"):
-${debateSummary.slice(0, 5000)}
-
-Analyse the full debate and extract data for three charts. Be rigorous and ground every value in what the agents actually said.
-
-1. AGENT CONFIDENCE — For each agent that participated, estimate a confidence score (0-100) reflecting how confident that agent's overall position is in the user's plan/direction. 0 = deeply opposed / certain it fails, 50 = ambivalent / conditional, 100 = fully confident it succeeds.
-
-2. RISK DISTRIBUTION — Count how many distinct risks were raised across all agents, grouped by category: Market, Execution, Financial, Technology, People, Regulatory. Each category gets a count. If no risks in a category, use 0.
-
-3. ALIGNMENT SCORES — Score how aligned the agents are (0-100, higher = more agreement) on each dimension: Strategy, Risk, Execution, Timeline.
-
-Return ONLY valid JSON, no markdown fences:
-{"agent_confidence":[{"agent_name":"string","confidence":number}],"risk_distribution":[{"category":"string","count":number}],"alignment_scores":[{"dimension":"string","score":number}]}`;
-
-    const consensusStartedAt = Date.now();
-    const actionStartedAt = Date.now();
-    const chartStartedAt = Date.now();
-    let consensusContent = "";
-    let round3Completed = false;
-    let chartData: ChartData | null = null;
-
-    // Run consensus, action extraction, and chart extraction in parallel, each resilient to failure
-    const [consensusResult, actionExtrRes, chartRes] = await Promise.all([
-      (async () => {
-        try {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "gpt-4.1",
-              messages: [{ role: "user", content: consensusPrompt }],
-              max_completion_tokens: 500,
-            }),
-          });
-          const data = await res.json();
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "consensus", model: "gpt-4.1", usage: data.usage, maxCompletionTokens: 500, jsonMode: false, latencyMs: Date.now() - consensusStartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
-          if (!res.ok) {
-            console.error(`Round 3 consensus failed: HTTP ${res.status}`, JSON.stringify(data?.error || data).slice(0, 500));
-            return null;
-          }
-          return data;
-        } catch (err) {
-          console.error(`Round 3 consensus exception:`, String(err).slice(0, 300));
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "consensus", model: "gpt-4.1", maxCompletionTokens: 500, jsonMode: false, latencyMs: Date.now() - consensusStartedAt, status: "errored" });
-          return null;
-        }
-      })(),
-      (async () => {
-        try {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "gpt-4.1",
-              messages: [
-                { role: "system", content: "You extract specific, owner-assigned, immediately executable action items from strategic debates. Every item must name a responsible role, a concrete deliverable, and connect to the central decision. Generic tasks are unacceptable. Return JSON only." },
-                { role: "user", content: actionExtractionPrompt },
-              ],
-              max_completion_tokens: 1000,
-              response_format: { type: "json_object" },
-            }),
-          });
-          return res;
-        } catch (err) {
-          console.error(`Round 3 action extraction fetch exception:`, String(err).slice(0, 300));
-          return null;
-        }
-      })(),
-      (async () => {
-        try {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "gpt-4.1",
-              messages: [
-                { role: "system", content: "You extract structured numerical chart data from strategic debates. Every value must be grounded in what the agents actually said. Return JSON only." },
-                { role: "user", content: chartDataPrompt },
-              ],
-              max_completion_tokens: 800,
-              response_format: { type: "json_object" },
-            }),
-          });
-          return res;
-        } catch (err) {
-          console.error(`Round 3 chart extraction fetch exception:`, String(err).slice(0, 300));
-          return null;
-        }
-      })(),
-    ]);
-
-    if (consensusResult) {
-      consensusContent = consensusResult.choices?.[0]?.message?.content || "";
-      round3Completed = consensusContent.trim().length > 20;
-    }
-
-    currentStage = "parse_chart";
-    // Parse chart data only when the full three-round debate completed
-    if (round3Completed && chartRes && chartRes.ok) {
-      try {
-        const cj = await chartRes.json();
-        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "chart_extraction", model: "gpt-4.1", usage: cj.usage, maxCompletionTokens: 800, jsonMode: true, latencyMs: Date.now() - chartStartedAt, status: "succeeded", httpStatus: chartRes.status });
-        const raw = cj.choices?.[0]?.message?.content || "{}";
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed.agent_confidence) && Array.isArray(parsed.risk_distribution) && Array.isArray(parsed.alignment_scores)) {
-          chartData = {
-            agent_confidence: parsed.agent_confidence.filter((a: { agent_name?: string; confidence?: number }) => typeof a.agent_name === "string" && typeof a.confidence === "number"),
-            risk_distribution: parsed.risk_distribution.filter((r: { category?: string; count?: number }) => typeof r.category === "string" && typeof r.count === "number"),
-            alignment_scores: parsed.alignment_scores.filter((s: { dimension?: string; score?: number }) => typeof s.dimension === "string" && typeof s.score === "number"),
-          };
-          if (chartData.agent_confidence.length === 0 || chartData.alignment_scores.length === 0) {
-            chartData = null;
-          }
-        }
-      } catch (e) {
-        console.error("Chart data parse failed:", e);
-      }
-    }
-
-    // Write action items to DB — don't await so it doesn't block the response
-    const VALID_SOURCE_AREAS = new Set(["CEO","CFO","HR","Legal","Product","Engineering","Finance","Risk","Strategy","Marketing","Operations","People"]);
-    (async () => {
-      if (!actionExtrRes || !actionExtrRes.ok) return;
-      try {
-        const aj = await actionExtrRes.json();
-        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "action_extraction", model: "gpt-4.1", usage: aj.usage, maxCompletionTokens: 1000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "succeeded", httpStatus: actionExtrRes.status });
-        const raw = aj.choices?.[0]?.message?.content || "{}";
-        const parsed = JSON.parse(raw);
-        const items: Array<{ text?: string; source_area?: string; priority?: string }> = Array.isArray(parsed.action_items) ? parsed.action_items : [];
-        const valid = items.filter(a => typeof a.text === "string" && a.text.trim().length > 15);
-        if (valid.length === 0) { console.log("No action items extracted from chat turn"); return; }
-        const { error } = await service.from("workspace_action_items").insert(
-          valid.map(a => ({
-            workspace_id,
-            text: String(a.text).trim(),
-            source: "ai",
-            priority: ["critical","high","medium"].includes(String(a.priority)) ? String(a.priority) : "high",
-            source_area: VALID_SOURCE_AREAS.has(String(a.source_area)) ? String(a.source_area) : "Strategy",
-            status: "todo",
-            created_by: user.id,
-          }))
-        );
-        if (error) console.error("Action items insert error:", error);
-        else console.log(`Wrote ${valid.length} action items from chat turn`);
-      } catch (e) { console.error("Action items parse/insert failed:", e); }
-    })().catch((e: unknown) => console.error("Action extraction processing error:", e));
-
-    // ── Persist all messages in sequence ────────────────────────────────────
+    // ── Persist user message ────────────────────────────────────────────────
+    currentStage = "insert_user_msg";
     await service.from("workspace_messages").insert({
       workspace_id,
       user_id: user.id,
@@ -1079,12 +815,8 @@ Return ONLY valid JSON, no markdown fences:
       content: safeMessage,
     });
 
-    // Resolve per-agent figure extraction BEFORE inserting so metadata is persisted
-    const agentFiguresMap: Record<string, AgentFigures | null> = {};
-    for (const { agent } of agentResponses) {
-      agentFiguresMap[agent.role] = null;
-    }
-
+    // ── Persist agent responses ──────────────────────────────────────────────
+    currentStage = "insert_agent_msgs";
     const { data: insertedAgentRows } = await service.from("workspace_messages").insert(
       agentResponses.map(({ agent, content }) => ({
         workspace_id,
@@ -1093,45 +825,12 @@ Return ONLY valid JSON, no markdown fences:
         content,
         agent_name: agent.name,
         agent_role: agent.role,
-        metadata: agentFiguresMap[agent.role] ? { figures: agentFiguresMap[agent.role] } : null,
       })).select("id, agent_role")
     );
 
-    const validChallenges = challengeResponses.filter(r => r.content.trim().length > 20);
-    let insertedChallengeRows: Array<{ id: string; agent_role: string }> = [];
-    if (validChallenges.length > 0) {
-      const { data: chRows } = await service.from("workspace_messages").insert(
-        validChallenges.map(({ agent, content }) => ({
-          workspace_id,
-          user_id: null,
-          role: "assistant",
-          content,
-          agent_name: agent.name,
-          agent_role: agent.role,
-        })).select("id, agent_role")
-      );
-      insertedChallengeRows = chRows || [];
-    }
-
-    let consensusDbId: string | null = null;
-    if (consensusContent.trim().length > 20) {
-      const { data: consensusRow } = await service.from("workspace_messages").insert({
-        workspace_id,
-        user_id: null,
-        role: "assistant",
-        content: consensusContent,
-        agent_name: "Consensus",
-        agent_role: "consensus",
-        metadata: round3Completed && chartData ? { chart_data: chartData } : null,
-      }).select("id").single();
-      consensusDbId = consensusRow?.id ?? null;
-    }
-
     // ── Notify all workspace members that agents have responded ──────────────
-    // Runs fire-and-forget so it never delays the response to the user.
     (async () => {
       try {
-        // Get all members of this workspace except the user who sent the message
         const { data: members } = await service
           .from("workspace_members")
           .select("user_id")
@@ -1166,42 +865,17 @@ Return ONLY valid JSON, no markdown fences:
     for (const row of insertedAgentRows || []) {
       agentIdMap.set(row.agent_role, row.id);
     }
-    const challengeIdMap = new Map<string, string>();
-    for (const row of insertedChallengeRows) {
-      challengeIdMap.set(row.agent_role, row.id);
-    }
 
-    // Return all rounds so the client renders the full debate in order
-    const allResponses: Array<{ id: string | null; agent_name: string; agent_role: string; content: string; figures?: AgentFigures | null }> = [
-      ...agentResponses.map(({ agent, content }) => ({
-        id: agentIdMap.get(agent.role) ?? null,
-        agent_name: agent.name,
-        agent_role: agent.role,
-        content,
-        figures: agentFiguresMap[agent.role] ?? null,
-      })),
-      ...validChallenges.map(({ agent, content }, i) => ({
-        id: challengeIdMap.get(agent.role) ?? null,
-        agent_name: agent.name,
-        agent_role: agent.role,
-        content,
-      })),
-    ];
+    const allResponses = agentResponses.map(({ agent, content }) => ({
+      id: agentIdMap.get(agent.role) ?? null,
+      agent_name: agent.name,
+      agent_role: agent.role,
+      content,
+    }));
 
-    let consensusChartData: ChartData | null = null;
-    if (consensusContent.trim().length > 20) {
-      allResponses.push({ id: consensusDbId, agent_name: "Consensus", agent_role: "consensus", content: consensusContent });
-      consensusChartData = round3Completed ? chartData : null;
-    }
-
-    const rounds_completed = [
-      "round1",
-      round2Completed ? "round2" : null,
-      round3Completed ? "round3" : null,
-    ].filter(Boolean) as string[];
-
+    currentStage = "build_response";
     return new Response(
-      JSON.stringify({ responses: allResponses, war_room_usage: warRoomUsage, rounds_completed, chart_data: consensusChartData }),
+      JSON.stringify({ responses: allResponses, war_room_usage: warRoomUsage, rounds_completed: ["round1"] }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
