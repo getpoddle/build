@@ -136,7 +136,7 @@ export default function Home({ onNavigate }: HomeProps) {
                   <div>
                     <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>Team Chat</p>
                     <p className="text-[11px] lg:text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
-                      Real-time messaging built into every workspace — share updates, coordinate decisions, and keep conversations alongside your intelligence.
+                      Real-time messaging built into every workspace. Share updates, coordinate decisions, and keep conversations alongside your intelligence.
                     </p>
                   </div>
                 </div>
@@ -147,7 +147,7 @@ export default function Home({ onNavigate }: HomeProps) {
                   <div>
                     <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>AI Collaboration — Multiplayer AI</p>
                     <p className="text-[11px] lg:text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
-                      Team members and AI agents discuss together in real time — pose questions, get multiple agent perspectives, and build collective insight without leaving the thread.
+                      Team members and AI agents discuss together in real time. Pose questions, get multiple agent perspectives, and build collective insight without leaving the thread.
                     </p>
                   </div>
                 </div>
