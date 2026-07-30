@@ -24,7 +24,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const { user } = useAuth();
   const { workspaces, loading, refetch } = useUserWorkspaces();
   const { isPro } = useSubscriptionTier();
-  const { trialExhausted, trialLimitReached, trialCount, trialSlotsRemaining, trialLimit, loading: trialLoading } = useTrialInfo();
+  const { trialExhausted, trialLimitReached, monthlyLimitReached, trialCount, trialSlotsRemaining, trialLimit, loading: trialLoading } = useTrialInfo();
   const { hasBetaAccess } = useBetaAccess();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
