@@ -318,7 +318,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         >
           {([ 
             { id: 'team' as MainTab, label: 'Team Chat', Icon: Users },
-            { id: 'chat' as MainTab, label: 'AI Collaboration', Icon: MessageSquare },
+            { id: 'chat' as MainTab, label: 'Multiplayer AI', Icon: MessageSquare },
             { id: 'warroom' as MainTab, label: 'War Room', Icon: Activity },
           ] as const).map(({ id, label, Icon }) => {
             const active = mainTab === id;
@@ -413,7 +413,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         {/* ── DESKTOP: Side-by-side panels ── */}
         <div className="hidden lg:flex flex-1 overflow-hidden">
 
-          {/* Left: AI Collaboration or Team Chat (switches based on tab) */}
+          {/* Left: Multiplayer AI or Team Chat (switches based on tab) */}
           <div
             className="flex-1 min-w-0 max-w-[900px] mx-auto w-full flex flex-col overflow-hidden"
             style={{ borderRight: '1px solid var(--app-border)' }}
@@ -425,7 +425,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
             >
               {([
                 { id: 'team' as MainTab, label: 'Team Chat', Icon: Users },
-                { id: 'chat' as MainTab, label: 'AI Collaboration', Icon: MessageSquare },
+                { id: 'chat' as MainTab, label: 'Multiplayer AI', Icon: MessageSquare },
               ] as const).map(({ id, label, Icon }) => {
                 const active = mainTab === id;
                 return (

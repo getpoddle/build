@@ -145,7 +145,7 @@ export default function Home({ onNavigate }: HomeProps) {
                     <UsersRound className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>AI Collaboration — Multiplayer AI</p>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>Multiplayer AI</p>
                     <p className="text-[11px] lg:text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>
                       Team members and AI agents discuss together in real time. Pose questions, get multiple agent perspectives, and build collective insight without leaving the thread.
                     </p>

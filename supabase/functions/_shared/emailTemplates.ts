@@ -80,7 +80,7 @@ export function buildWelcomeEmail(firstName: string): string {
 
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
       <tr><td style="padding:0 0 18px 0;">
-        <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">1. AI Collaboration</p>
+        <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">1. Multiplayer AI</p>
         <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
           Submit any decision you're facing. Seven agents &mdash; Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor &mdash; respond simultaneously, each from a completely different perspective. Your team can join the conversation, challenge the agents, and upload supporting documents to ground the analysis in real data.
         </p>
@@ -94,7 +94,7 @@ export function buildWelcomeEmail(firstName: string): string {
       <tr><td style="padding:0 0 18px 0;">
         <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">3. Intelligence Layer</p>
         <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
-          The intelligence layer automatically synthesizes all of your AI collaboration chats into a clear, defensible recommendation &mdash; turning hours of debate into a decision you can act on with confidence.
+          The intelligence layer automatically synthesizes all of your Multiplayer AI chats into a clear, defensible recommendation &mdash; turning hours of debate into a decision you can act on with confidence.
         </p>
       </td></tr>
       <tr><td style="padding:0 0 0 0;">
@@ -125,7 +125,7 @@ export function buildWelcomeEmail(firstName: string): string {
       </td></tr>
       <tr><td style="padding:0 0 0 0;">
         <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
-          <strong style="color:#e2e8f0;">The War Room</strong> &mdash; the intelligence layer that synthesizes all the AI collaboration chats into one clear recommendation.
+          <strong style="color:#e2e8f0;">The War Room</strong> &mdash; the intelligence layer that synthesizes all the Multiplayer AI chats into one clear recommendation.
         </p>
       </td></tr>
     </table>
@@ -139,7 +139,7 @@ export function buildWelcomeEmail(firstName: string): string {
       </td></tr>
       <tr><td style="padding:0 0 12px 0;">
         <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
-          <strong style="color:#e2e8f0;">Create a workspace</strong> &mdash; name the decision you want to stress-test. This becomes the central topic for your AI Collaboration.
+          <strong style="color:#e2e8f0;">Create a workspace</strong> &mdash; name the decision you want to stress-test. This becomes the central topic for your Multiplayer AI.
         </p>
       </td></tr>
       <tr><td style="padding:0 0 0 0;">
@@ -340,7 +340,7 @@ export function buildInviteAcceptedEmail(
     </p>
     <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 28px 0;">
       <strong style="color:#e2e8f0;">${accepterName}</strong> has accepted your invitation and joined
-      <strong style="color:#e2e8f0;">${workspaceName}</strong>. They can now participate in AI Collaboration sessions and view the War Room synthesis.
+      <strong style="color:#e2e8f0;">${workspaceName}</strong>. They can now participate in Multiplayer AI sessions and view the War Room synthesis.
     </p>
     ${ctaButton("Open Workspace", `${APP_URL}/#workspaces`)}
     ${supportNote()}`;

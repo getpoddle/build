@@ -569,7 +569,7 @@ html.theme-dark {
   .text-shadow    { text-shadow: 0 1px 8px rgba(0,0,0,0.4); }
   .text-shadow-lg { text-shadow: 0 2px 16px rgba(0,0,0,0.5); }
 
-  /* Agent names in AI collaboration chat — ensure visibility in dark mode */
+  /* Agent names in Multiplayer AI chat — ensure visibility in dark mode */
   .agent-name-text {
     color: var(--agent-color, var(--app-text-primary)) !important;
     -webkit-font-smoothing: antialiased;

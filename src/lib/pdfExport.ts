@@ -693,11 +693,11 @@ export function exportChatToPDF(messages: ChatMessageExport[], workspaceName: st
   }).join('');
 
   const html = `<div class="print-root">
-    ${pageChrome('AI Collaboration')}
+    ${pageChrome('Multiplayer AI')}
     <div class="doc-header">
       <div class="doc-header-top">
         <div>
-          <div class="brand">Poddle · AI Collaboration</div>
+          <div class="brand">Poddle · Multiplayer AI</div>
           <div class="title">${escapeHtml(workspaceName)}</div>
           <div class="subtitle">Discussion Transcript</div>
         </div>

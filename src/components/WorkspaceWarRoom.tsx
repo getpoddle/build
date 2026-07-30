@@ -2070,7 +2070,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           style={{ background: 'rgba(37,99,235,0.04)', border: '1px dashed rgba(37,99,235,0.2)' }}>
           <div>
             <p className="text-sm font-bold text-slate-900">Ready to resolve what's outstanding?</p>
-            <p className="text-xs text-slate-500 mt-0.5">Send all unresolved items to AI Collaboration, then re-synthesize for updated intel.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Send all unresolved items to Multiplayer AI, then re-synthesize for updated intel.</p>
           </div>
           <button
             onClick={() => {

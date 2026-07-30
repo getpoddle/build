@@ -346,10 +346,10 @@ const HOW_STEPS = [
     color: '#b8860b',
     bg: 'rgba(184,134,11,0.08)',
     border: 'rgba(184,134,11,0.18)',
-    label: 'AI Collaboration',
+    label: 'Multiplayer AI',
     title: 'Bring AI agents into the debate in real time',
     body: "Seven specialized agents (Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor) join the conversation alongside your team. Each agent responds from a completely different angle, challenging both your team's assumptions and each other. Your team can reply, push back, and steer the debate. This is multiplayer AI: humans and agents debating together in one shared thread.",
-    callout: 'AI Collaboration is where humans and agents debate together: not agents talking at you, but a real-time, multi-perspective conversation.',
+    callout: 'Multiplayer AI is where humans and agents debate together: not agents talking at you, but a real-time, multi-perspective conversation.',
     visual: [
       { abbr: 'RA', avatar: AGENT_AVATARS.RA, bg: 'rgba(124,45,18,0.07)', color: '#7c2d12', text: 'Distribution shift risk in EU markets could cause 40-60% prediction errors in year one.' },
       { abbr: 'FS', avatar: AGENT_AVATARS.FS, bg: 'rgba(12,74,110,0.07)', color: '#0c4a6e', text: 'EU AI Act requires per-decision explainability. Adds 6-9 months to your launch timeline.' },
@@ -364,8 +364,8 @@ const HOW_STEPS = [
     border: 'rgba(220,38,38,0.15)',
     label: 'War Room',
     title: 'The intelligence layer that synthesizes everything',
-    body: 'Once the debate is underway, the War Room reads every message from your team and from the agents, and synthesizes it all. It identifies consensus points, conflict zones, blind spots, and cognitive biases across the entire AI Collaboration. It produces a single strategic recommendation with a Decision Health Score, risk signals, and prioritized action items, all grounded in the actual conversation from your workspace.',
-    callout: 'The War Room is not a separate conversation. It is the intelligence layer built on top of your AI Collaboration.',
+    body: 'Once the debate is underway, the War Room reads every message from your team and from the agents, and synthesizes it all. It identifies consensus points, conflict zones, blind spots, and cognitive biases across the entire Multiplayer AI. It produces a single strategic recommendation with a Decision Health Score, risk signals, and prioritized action items, all grounded in the actual conversation from your workspace.',
+    callout: 'The War Room is not a separate conversation. It is the intelligence layer built on top of your Multiplayer AI.',
     visual: [
       { label: 'Decision Health Score', value: '68', sub: 'Developing', color: '#f59e0b' },
       { label: 'Risk Signals', value: '3', sub: '2 critical', color: '#dc2626' },
@@ -384,7 +384,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
             How Poddle works
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
-            Team Chat starts the debate.<br className="hidden sm:block" /> AI Collaboration widens it. The War Room resolves it.
+            Team Chat starts the debate.<br className="hidden sm:block" /> Multiplayer AI widens it. The War Room resolves it.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
             Three connected features, not separate tools. Here is exactly how they work together.
@@ -473,7 +473,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                           <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                             <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
                               <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
-                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>AI Collaboration</span>
+                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Multiplayer AI</span>
                               <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— Agents + Team</span>
                               <div className="ml-auto flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
@@ -702,7 +702,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           {[
             { step: '1', label: 'Team Chat', color: '#0891b2', bg: 'rgba(8,145,178,0.07)' },
             { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
-            { step: '2', label: 'AI Collaboration', color: '#b8860b', bg: 'rgba(184,134,11,0.08)' },
+            { step: '2', label: 'Multiplayer AI', color: '#b8860b', bg: 'rgba(184,134,11,0.08)' },
             { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
             { step: '3', label: 'War Room Synthesis', color: '#dc2626', bg: 'rgba(220,38,38,0.07)' },
           ].map((item, i) => item.label ? (
@@ -734,7 +734,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           {/* Tab header */}
           <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
             <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
-            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>AI Collaboration</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Multiplayer AI</span>
             <div className="ml-auto flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
               <span className="text-[10px]" style={{ color: '#5D6B82' }}>Live</span>
@@ -819,7 +819,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                     <Brain className="w-3 h-3" style={{ color: '#b8860b' }} />
                   </div>
                   <span className="text-[11px] font-bold" style={{ color: '#b8860b' }}>War Room Synthesis</span>
-                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(184,134,11,0.12)', color: '#b8860b' }}>Built from your AI Collaboration</span>
+                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(184,134,11,0.12)', color: '#b8860b' }}>Built from your Multiplayer AI</span>
                 </div>
                 <p className="text-[12px] leading-relaxed" style={{ color: '#111827' }}>
                   <strong style={{ color: '#111827' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp. It de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year.
@@ -993,7 +993,7 @@ const TESTIMONIALS = [
     color: '#059669',
   },
   {
-    quote: "The AI Collaboration is where the debate happens. The War Room is where decisions get made. That distinction took me a day to learn, but now I would not skip it.",
+    quote: "The Multiplayer AI is where the debate happens. The War Room is where decisions get made. That distinction took me a day to learn, but now I would not skip it.",
     role: "VP Operations · Scale-up",
     initial: "V",
     color: '#dc2626',

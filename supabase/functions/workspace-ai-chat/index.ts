@@ -576,7 +576,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // ── Beta access: beta users get unrestricted AI collaboration — no
+    // ── Beta access: beta users get unrestricted Multiplayer AI — no
     // War Room session cap, no daily message limit. The check mirrors
     // check-beta-access: an active, unexpired row in beta_access_grants.
     const { data: betaGrant } = await service

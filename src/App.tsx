@@ -229,7 +229,7 @@ function AppContent() {
                 if (!otpError) {
                   // Session established — the onAuthStateChange listener
                   // and the first-sign-in effect will handle the rest
-                  // (workspace creation + redirect to AI Collaboration).
+                  // (workspace creation + redirect to Multiplayer AI).
                   setConfirmResult(null);
                   setConfirmingEmail(false);
                   return;
@@ -466,7 +466,7 @@ function AppContent() {
       if (!onboardingCheckedRef.current) {
         onboardingCheckedRef.current = true;
         // First sign-in check: if the user has no workspace yet, auto-create
-        // one and redirect to AI Collaboration. Returning users are unaffected.
+        // one and redirect to Multiplayer AI. Returning users are unaffected.
         (async () => {
           if (currentPage === 'admin' || currentPage === 'admin-panel') return;
           try {
@@ -518,7 +518,7 @@ function AppContent() {
   }, [hasNoWorkspace, firstSignInWorkspaceId, currentPage]);
 
   const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
-    // Block dashboard access for first-time users locked into AI Collaboration.
+    // Block dashboard access for first-time users locked into Multiplayer AI.
     if (page === 'home' && hasNoWorkspace) {
       if (firstSignInWorkspaceId) {
         setWorkspaceId(firstSignInWorkspaceId);

@@ -25,7 +25,7 @@ export interface WarRoomLimit {
 
 export const WAR_ROOM_LIMITS: Record<WarRoomPlan, WarRoomLimit> = {
   // Free: 10 War Room sessions per billing period. Enough for a new user to
-  // meaningfully evaluate the AI collaboration across a full decision cycle.
+  // meaningfully evaluate the Multiplayer AI across a full decision cycle.
   free: {
     cap: 10,
     included: 0,
