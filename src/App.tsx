@@ -446,7 +446,11 @@ function AppContent() {
         if (hashPart) window.location.hash = hashPart;
       }
       if (!onboardingCheckedRef.current) {
-        checkOnboardingStatus();
+        if (currentPage === 'admin' || currentPage === 'admin-panel') {
+          onboardingCheckedRef.current = true;
+        } else {
+          checkOnboardingStatus();
+        }
       }
     } else if (!loading) {
       onboardingCheckedRef.current = false;
