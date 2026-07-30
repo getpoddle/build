@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download, Mic, Square, Paperclip, FileText, X, Shield, AlertCircle, ArrowRight, Target, Database, AlertTriangle as StakesIcon } from 'lucide-react';
+import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download, Mic, Square, Paperclip, FileText, X, Shield, AlertCircle, Lightbulb, TrendingUp, DollarSign, Rocket } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { acquireChannel, releaseChannel, pauseChannel, resumeChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
@@ -144,51 +144,33 @@ function dateKey(ts: string): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-const INTAKE_STEPS = [
+const SUGGESTIONS = [
   {
-    icon: Target,
-    label: 'The decision',
-    question: 'What specific decision are you trying to make?',
-    hint: 'Be precise — "Should we acquire Company X for $4M?" beats "Should we grow?"',
-    placeholder: 'e.g. Should we launch in the EU market before Series B, or wait until we\'ve hit $2M ARR domestically?',
-    skippable: false,
+    icon: Rocket,
+    label: 'Launch a new product',
+    prompt: 'Should we launch our new product now, or wait 3 months to improve it first?',
   },
   {
-    icon: Database,
-    label: 'Your data',
-    question: 'What information or data do you already have?',
-    hint: 'Financial projections, market research, customer feedback, competitor analysis...',
-    placeholder: 'e.g. 18 months of revenue data showing 12% MoM growth, 3 customer interviews, a competitive analysis from last quarter...',
-    skippable: true,
-    skipLabel: 'Working from assumptions',
+    icon: TrendingUp,
+    label: 'Enter a new market',
+    prompt: 'What are the biggest risks and opportunities of expanding into a new market next quarter?',
   },
   {
-    icon: StakesIcon,
-    label: 'The stakes',
-    question: 'What is the cost of getting this wrong?',
-    hint: 'Financial loss, runway consumed, strategic position, competitive risk...',
-    placeholder: 'e.g. A wrong call here burns $800K and 8 months of runway — we can\'t recover before the next raise.',
-    skippable: false,
+    icon: DollarSign,
+    label: 'Pricing strategy',
+    prompt: 'How should we price our offering to maximise growth without losing existing customers?',
+  },
+  {
+    icon: Lightbulb,
+    label: 'Prioritise the roadmap',
+    prompt: 'Which initiative should we prioritise on our roadmap for the next 6 months, and why?',
   },
 ];
-
-function getIntakeStorageKey(workspaceId: string) {
-  return `poddle_intake_done_${workspaceId}`;
-}
 
 export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTopic, initialPrompt, onPromptConsumed, onAgentsReplied, isPro, onUpgrade, onUsageUpdate }: WorkspaceChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberProfile>>({});
-
-  // ── Intake state ─────────────────────────────────────────────────────────────
-  const [intakeStep, setIntakeStep] = useState(0);
-  const [intakeAnswers, setIntakeAnswers] = useState(['', '', '']);
-  const [intakeDone, setIntakeDone] = useState(() =>
-    typeof window !== 'undefined'
-      ? localStorage.getItem(getIntakeStorageKey(workspaceId)) === 'true'
-      : true
-  );
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -486,52 +468,6 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     } finally {
       setLoading(false);
       textareaRef.current?.focus();
-    }
-  }
-
-  function submitIntake() {
-    const [decision, data, stakes] = intakeAnswers;
-    const lines: string[] = ['DECISION BRIEF', ''];
-    lines.push(`Decision to make: ${decision.trim()}`);
-    if (data.trim()) {
-      lines.push('');
-      lines.push(`Available data and context: ${data.trim()}`);
-    }
-    lines.push('');
-    lines.push(`Cost of getting this wrong: ${stakes.trim()}`);
-    const brief = lines.join('\n');
-
-    localStorage.setItem(getIntakeStorageKey(workspaceId), 'true');
-    setIntakeDone(true);
-
-    // If the workspace description is empty or very short, enrich it with the decision
-    if ((!workspaceTopic || workspaceTopic.trim().length < 30) && decision.trim()) {
-      supabase.from('workspaces')
-        .update({ description: decision.trim().slice(0, 500) })
-        .eq('id', workspaceId)
-        .then(() => {/* best-effort */});
-    }
-
-    sendMessage(brief);
-  }
-
-  function intakeAdvance() {
-    const step = INTAKE_STEPS[intakeStep];
-    const answer = intakeAnswers[intakeStep].trim();
-    if (!step.skippable && !answer) return;
-    if (intakeStep < INTAKE_STEPS.length - 1) {
-      setIntakeStep(s => s + 1);
-    } else {
-      submitIntake();
-    }
-  }
-
-  function intakeSkip() {
-    setIntakeAnswers(prev => { const next = [...prev]; next[intakeStep] = ''; return next; });
-    if (intakeStep < INTAKE_STEPS.length - 1) {
-      setIntakeStep(s => s + 1);
-    } else {
-      submitIntake();
     }
   }
 
@@ -908,127 +844,65 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-0.5 lg:pr-1"
       >
         {messages.length === 0 && !loading ? (
-          intakeDone || initialPrompt ? (
-            /* Intake already done or prompt injected externally — show legacy starters */
-            <div className="text-center py-12">
-              <div
-                className="w-14 h-14 flex items-center justify-center mx-auto mb-4"
-                style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
-              >
-                <Sparkles className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-base font-bold mb-1" style={{ color: 'var(--app-text-primary)' }}>Continue the conversation</h3>
-              <p className="text-sm text-slate-500 max-w-xs mx-auto leading-relaxed mb-6">
-                Seven specialist AI advisors will analyse your question across three rigorous debate rounds.
-              </p>
+          <div className="flex flex-col items-center justify-center py-8 px-2">
+            <div
+              className="w-12 h-12 flex items-center justify-center mb-4"
+              style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
+            >
+              <Sparkles className="w-6 h-6 text-white" />
             </div>
-          ) : (
-            /* ── Intake form ─────────────────────────────────────────────── */
-            <div className="flex flex-col items-center justify-center py-8 px-2">
-              {/* Header */}
-              <div
-                className="w-12 h-12 flex items-center justify-center mb-4"
-                style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
-              >
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--app-text-primary)' }}>Submit decision briefing</h3>
-              <p className="text-xs mb-6 max-w-xs text-center leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
-                Three structured inputs. Seven specialist advisors will analyse the decision across independent debate rounds.
-              </p>
+            <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--app-text-primary)' }}>Start your War Room session</h3>
+            <p className="text-xs mb-6 max-w-xs text-center leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
+              Write your own prompt or pick a suggestion. Seven specialist AI advisors will debate your decision.
+            </p>
 
-              {/* Progress dots */}
-              <div className="flex items-center gap-2 mb-6">
-                {INTAKE_STEPS.map((_, i) => (
-                  <div
-                    key={i}
-                    className="rounded-full transition-all"
-                    style={{
-                      width: i === intakeStep ? '20px' : '6px',
-                      height: '4px',
-                      background: i <= intakeStep ? 'var(--signal)' : 'var(--app-border)',
-                      borderRadius: '1px',
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Question card */}
-              <div
-                className="w-full max-w-sm p-5"
-                style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
-              >
-                {(() => {
-                  const step = INTAKE_STEPS[intakeStep];
-                  const StepIcon = step.icon;
-                  return (
-                    <>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div
-                          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
-                        >
-                          <StepIcon className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
-                        </div>
-                        <span className="section-label">{step.label}</span>
-                        <span className="ml-auto text-xs text-slate-400 font-medium">{intakeStep + 1} / {INTAKE_STEPS.length}</span>
-                      </div>
-
-                      <p className="text-sm font-medium mb-1 leading-snug" style={{ color: 'var(--app-text-primary)' }}>{step.question}</p>
-                      <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>{step.hint}</p>
-
-                      <textarea
-                        autoFocus
-                        rows={3}
-                        value={intakeAnswers[intakeStep]}
-                        onChange={e => setIntakeAnswers(prev => { const next = [...prev]; next[intakeStep] = e.target.value; return next; })}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                            e.preventDefault();
-                            intakeAdvance();
-                          }
-                        }}
-                        placeholder={step.placeholder}
-                        className="w-full text-sm resize-none rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 transition-all" style={{ color: 'var(--app-text-primary)' }}
-                        style={{
-                          background: 'rgba(15,23,42,0.03)',
-                          border: '1px solid rgba(15,23,42,0.1)',
-                          focusRingColor: '#2563eb',
-                        }}
-                      />
-
-                      <div className="flex items-center gap-2 mt-3">
-                        {step.skippable && (
-                          <button
-                            onClick={intakeSkip}
-                            className="text-xs text-slate-400 hover:text-slate-600 transition-colors px-2 py-1"
-                          >
-                            {step.skipLabel}
-                          </button>
-                        )}
-                        <button
-                          onClick={intakeAdvance}
-                          disabled={!step.skippable && !intakeAnswers[intakeStep].trim()}
-                          className="btn-primary ml-auto disabled:opacity-40 disabled:cursor-not-allowed"
-                          style={{ padding: '0.4rem 0.875rem', fontSize: '0.8125rem' }}
-                        >
-                          {intakeStep < INTAKE_STEPS.length - 1 ? (
-                            <>Continue <ArrowRight className="w-3.5 h-3.5" /></>
-                          ) : (
-                            <>Brief the agents <Sparkles className="w-3.5 h-3.5" /></>
-                          )}
-                        </button>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-
-              <p className="text-xs text-slate-400 mt-4 text-center">
-                Press <kbd className="bg-slate-100 rounded px-1 py-0.5 text-slate-500 font-mono text-[10px]">Cmd+Enter</kbd> to advance
-              </p>
+            <div className="w-full max-w-sm space-y-2 mb-5">
+              {SUGGESTIONS.map((s) => {
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={s.label}
+                    onClick={() => sendMessage(s.prompt)}
+                    className="w-full flex items-start gap-3 p-3 text-left transition-all hover:scale-[1.02]"
+                    style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}>
+                      <Icon className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--app-text-primary)' }}>{s.label}</p>
+                      <p className="text-xs leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>{s.prompt}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          )
+
+            <div className="w-full max-w-sm">
+              <textarea
+                autoFocus
+                rows={3}
+                value={input}
+                onChange={adjustTextarea}
+                onKeyDown={handleKeyDown}
+                placeholder="Describe the decision you need help with…"
+                className="w-full text-sm resize-none rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  background: 'rgba(15,23,42,0.03)',
+                  border: '1px solid rgba(15,23,42,0.1)',
+                  color: 'var(--app-text-primary)',
+                }}
+              />
+              <button
+                onClick={() => sendMessage()}
+                disabled={!input.trim()}
+                className="btn-primary w-full mt-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ padding: '0.625rem 1rem', fontSize: '0.8125rem' }}
+              >
+                Brief the agents <Sparkles className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
         ) : (
           (() => {
             let lastDateKey = '';
