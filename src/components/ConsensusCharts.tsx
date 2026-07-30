@@ -36,9 +36,9 @@ function AgentConfidenceChart({ data }: { data: Array<{ agent_name: string; conf
   const width = labelWidth + trackWidth + 50;
 
   return (
-    <div>
+    <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Agent Confidence</h4>
-      <svg width={width} height={height} className="overflow-visible">
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" preserveAspectRatio="xMinYMid meet" className="block w-full" style={{ maxWidth: `${width}px` }}>
         {data.map((item, i) => {
           const y = i * (barHeight + gap);
           const barW = Math.max(2, (item.confidence / 100) * trackWidth);
@@ -70,7 +70,7 @@ function RiskDonutChart({ data }: { data: Array<{ category: string; count: numbe
 
   if (total === 0) {
     return (
-      <div>
+      <div className="min-w-0">
         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Risk Distribution</h4>
         <p className="text-sm text-slate-400 italic">No risks identified</p>
       </div>
@@ -93,10 +93,10 @@ function RiskDonutChart({ data }: { data: Array<{ category: string; count: numbe
   });
 
   return (
-    <div>
+    <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Risk Distribution</h4>
-      <div className="flex items-start gap-5">
-        <svg width={size} height={size}>
+      <div className="flex flex-wrap items-start gap-3 sm:gap-5">
+        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="flex-shrink-0" style={{ maxWidth: '100%', height: 'auto' }}>
           {segments.map((seg, i) => (
             <path key={i} d={seg.path} fill="none" stroke={seg.color} strokeWidth={strokeWidth} strokeLinecap="butt" />
           ))}
@@ -107,12 +107,12 @@ function RiskDonutChart({ data }: { data: Array<{ category: string; count: numbe
             risks
           </text>
         </svg>
-        <div className="flex flex-col gap-1.5 pt-1">
+        <div className="flex flex-col gap-1.5 pt-1 min-w-0">
           {segments.map((seg, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: seg.color }} />
-              <span className="text-xs text-slate-600">{seg.category}</span>
-              <span className="text-xs font-semibold text-slate-800">{seg.count}</span>
+              <span className="inline-block w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: seg.color }} />
+              <span className="text-xs text-slate-600 truncate">{seg.category}</span>
+              <span className="text-xs font-semibold text-slate-800 flex-shrink-0">{seg.count}</span>
             </div>
           ))}
         </div>
@@ -129,9 +129,9 @@ function AlignmentHistogram({ data }: { data: Array<{ dimension: string; score: 
   const width = data.length * (barWidth + gap) + 20;
 
   return (
-    <div>
+    <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Agent Alignment</h4>
-      <svg width={width} height={chartHeight + 30} className="overflow-visible">
+      <svg viewBox={`0 0 ${width} ${chartHeight + 30}`} width="100%" preserveAspectRatio="xMinYMid meet" className="block w-full" style={{ maxWidth: `${width}px` }}>
         <line x1={10} y1={baseline} x2={width - 10} y2={baseline} className="stroke-slate-200" strokeWidth={1} />
         {data.map((item, i) => {
           const x = 10 + i * (barWidth + gap);
@@ -165,9 +165,9 @@ function FiguresChart({ data }: { data: Array<{ label: string; value: number; un
   const width = labelWidth + trackWidth + 60;
 
   return (
-    <div>
+    <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Key Figures</h4>
-      <svg width={width} height={height} className="overflow-visible">
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" preserveAspectRatio="xMinYMid meet" className="block w-full" style={{ maxWidth: `${width}px` }}>
         {data.map((item, i) => {
           const y = i * (barHeight + gap);
           const barW = Math.max(2, (Math.abs(item.value) / maxVal) * trackWidth);
@@ -217,20 +217,20 @@ function CategoriesChart({ data }: { data: Array<{ label: string; value: number;
   });
 
   return (
-    <div>
+    <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Breakdown</h4>
-      <div className="flex items-start gap-4">
-        <svg width={size} height={size}>
+      <div className="flex flex-wrap items-start gap-3">
+        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="flex-shrink-0" style={{ maxWidth: '100%', height: 'auto' }}>
           {segments.map((seg, i) => (
             <path key={i} d={seg.path} fill="none" stroke={seg.color} strokeWidth={strokeWidth} strokeLinecap="butt" />
           ))}
         </svg>
-        <div className="flex flex-col gap-1 pt-1">
+        <div className="flex flex-col gap-1 pt-1 min-w-0">
           {segments.map((seg, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: seg.color }} />
-              <span className="text-xs text-slate-600">{seg.label}</span>
-              <span className="text-xs font-semibold text-slate-800">{seg.unit === '%' ? `${seg.value}%` : seg.value}</span>
+              <span className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: seg.color }} />
+              <span className="text-xs text-slate-600 truncate">{seg.label}</span>
+              <span className="text-xs font-semibold text-slate-800 flex-shrink-0">{seg.unit === '%' ? `${seg.value}%` : seg.value}</span>
             </div>
           ))}
         </div>
@@ -249,14 +249,22 @@ export default function ConsensusCharts({ data, figures }: ConsensusChartsProps)
   if (figures && !data) {
     if (!figures.figures?.length && !figures.categories?.length) return null;
     return (
-      <div className="mt-3 pt-3 border-t border-slate-200/70">
+      <div className="mt-3 pt-3 border-t border-slate-200/70 overflow-hidden">
         <div className="flex items-center gap-2 mb-3">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400" />
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Figures & Breakdown</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {figures.figures?.length > 0 && <FiguresChart data={figures.figures} />}
-          {figures.categories?.length > 0 && <CategoriesChart data={figures.categories} />}
+        <div className="flex flex-col gap-4">
+          {figures.figures?.length > 0 && (
+            <div className="overflow-x-auto -mx-1 px-1">
+              <FiguresChart data={figures.figures} />
+            </div>
+          )}
+          {figures.categories?.length > 0 && (
+            <div className="overflow-x-auto -mx-1 px-1">
+              <CategoriesChart data={figures.categories} />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -267,15 +275,27 @@ export default function ConsensusCharts({ data, figures }: ConsensusChartsProps)
   if (!data.agent_confidence?.length && !data.alignment_scores?.length) return null;
 
   return (
-    <div className="mt-4 pt-4 border-t border-slate-200/70">
+    <div className="mt-4 pt-4 border-t border-slate-200/70 overflow-hidden">
       <div className="flex items-center gap-2 mb-4">
         <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400" />
         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Debate Analytics</span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {data.agent_confidence?.length > 0 && <AgentConfidenceChart data={data.agent_confidence} />}
-        {data.risk_distribution?.length > 0 && <RiskDonutChart data={data.risk_distribution} />}
-        {data.alignment_scores?.length > 0 && <AlignmentHistogram data={data.alignment_scores} />}
+      <div className="flex flex-col gap-5 sm:grid sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+        {data.agent_confidence?.length > 0 && (
+          <div className="overflow-x-auto -mx-1 px-1">
+            <AgentConfidenceChart data={data.agent_confidence} />
+          </div>
+        )}
+        {data.risk_distribution?.length > 0 && (
+          <div className="overflow-x-auto -mx-1 px-1">
+            <RiskDonutChart data={data.risk_distribution} />
+          </div>
+        )}
+        {data.alignment_scores?.length > 0 && (
+          <div className="overflow-x-auto -mx-1 px-1">
+            <AlignmentHistogram data={data.alignment_scores} />
+          </div>
+        )}
       </div>
     </div>
   );

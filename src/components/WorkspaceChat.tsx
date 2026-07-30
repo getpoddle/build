@@ -1045,7 +1045,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       <span className="text-xs font-black tracking-wide uppercase agent-name-text" style={{ '--agent-color': '#0f172a' } as React.CSSProperties}>Consensus</span>
                       <span className="text-xs ml-auto" style={{ color: '#64748b' }}>{formatMessageTime(msg.created_at)}</span>
                     </div>
-                    <div className="px-4 py-3">
+                    <div className="px-4 py-3 overflow-hidden">
                       <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--app-text-primary)' }}>{msg.content}</p>
                       {msg.chart_data && <ConsensusCharts data={msg.chart_data} />}
                     </div>
@@ -1073,7 +1073,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       )}
                     </div>
                     <div
-                      className="rounded-2xl rounded-tl-md px-4 py-3"
+                      className="rounded-2xl rounded-tl-md px-4 py-3 overflow-hidden"
                       style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--app-text-primary)' }}>{msg.content}</p>
