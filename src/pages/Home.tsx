@@ -156,7 +156,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
             {/* Security strip */}
             <div className="panel p-4 lg:p-6">
-              <p className="section-label mb-4">Built for enterprise</p>
+              <p className="section-label mb-4">Built for decision-makers</p>
               <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-5">
                 {[
                   { icon: Lock, text: 'End-to-end encrypted', sub: 'All workspace data encrypted at rest and in transit' },
