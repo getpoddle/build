@@ -20,6 +20,7 @@ interface NavigationProps {
   ) => void;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
+  hideDashboard?: boolean;
 }
 
 const NAV_ITEMS_AUTH = [
@@ -32,7 +33,7 @@ const NAV_ITEMS_GUEST = [
   { id: 'ai-feed', label: 'AI Feed', icon: Bot },
 ];
 
-export default function Navigation({ currentPage, onNavigate, collapsed = false, onToggleCollapsed }: NavigationProps) {
+export default function Navigation({ currentPage, onNavigate, collapsed = false, onToggleCollapsed, hideDashboard = false }: NavigationProps) {
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -90,7 +91,9 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
     }
   }, [onNavigate]);
 
-  const navItems = user ? NAV_ITEMS_AUTH : NAV_ITEMS_GUEST;
+  const navItems = user
+    ? (hideDashboard ? NAV_ITEMS_AUTH.filter(i => i.id !== 'home') : NAV_ITEMS_AUTH)
+    : NAV_ITEMS_GUEST;
 
   // Determine active item
   const activeId = (currentPage === 'workspace-hub' || currentPage === 'workspace-settings')
