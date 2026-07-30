@@ -134,8 +134,6 @@ function AppContent() {
   const [publicDiscussionId, setPublicDiscussionId] = useState<string | null>(null);
   const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
   const [highlightDiscussionId, setHighlightDiscussionId] = useState<string | null>(null);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [onboardingChecking, setOnboardingChecking] = useState(false);
   const onboardingCheckedRef = useRef(false);
   const [confirmingEmail, setConfirmingEmail] = useState(false);
   const [confirmResult, setConfirmResult] = useState<'success' | 'error' | 'already' | null>(null);
@@ -192,59 +190,9 @@ function AppContent() {
               return;
             }
 
-            // Auto-sign-in: the edge function exchanged the magic link token
-            // for a real session server-side. We call setSession() to establish
-            // the session client-side. The "Taking you to your workspace..."
-            // screen stays visible while onAuthStateChange propagates the user
-            // state. The redirect effect then clears confirmResult and routes
-            // to the workspace — no flash of the homepage.
-            if (data.accessToken && data.refreshToken) {
-              // Race setSession against a timeout so a slow Supabase Auth
-              // endpoint can never leave the user stuck on the spinner.
-              const sessionPromise = supabase.auth.setSession({
-                access_token: data.accessToken,
-                refresh_token: data.refreshToken,
-              });
-              const timeoutPromise = new Promise<{ error: { message: string } }>((resolve) =>
-                setTimeout(() => resolve({ error: { message: 'timeout' } }), 10000)
-              );
-              const { error: sessionError } = await Promise.race([
-                sessionPromise,
-                timeoutPromise,
-              ]);
-
-              if (!sessionError) {
-                if (data.workspaceId) {
-                  // Navigate directly to the workspace — don't wait for
-                  // onAuthStateChange to propagate. On mobile the async
-                  // chain (onAuthStateChange → setUser → useEffect) can
-                  // take several seconds, leaving the user staring at the
-                  // "Taking you to your workspace…" spinner. Setting the
-                  // page state here makes the workspace appear instantly.
-                  onboardingCheckedRef.current = true;
-                  setNeedsOnboarding(false);
-                  setWorkspaceId(data.workspaceId);
-                  setWorkspaceInitialTab('chat');
-                  setCurrentPage('workspace-hub');
-                  sessionStorage.setItem('currentPage', 'workspace-hub');
-                  history.replaceState(null, '', `#workspace/${data.workspaceId}`);
-                  setConfirmResult(null);
-                  setConfirmingEmail(false);
-                  return;
-                }
-                setConfirmResult('success');
-                setConfirmingEmail(false);
-                return;
-              }
-              // setSession failed or timed out — fall through to the
-              // "confirmed, please sign in" screen so the user is never
-              // stuck. The session may still propagate via onAuthStateChange.
-              console.error('setSession failed:', sessionError.message);
-            }
-
-            // No session tokens returned (or setSession failed) — show the
-            // "Email confirmed" screen with a sign-in prompt. This is the
-            // safe fallback that never leaves the user hanging.
+            // Show the "Email confirmed" screen. The user signs in
+            // manually and then lands on the Workspaces page to create
+            // their first workspace.
             setConfirmResult('success');
           } else {
             setConfirmResult('error');
@@ -418,25 +366,9 @@ function AppContent() {
         sessionStorage.removeItem('pendingInviteToken');
         sessionStorage.removeItem('postLoginRedirect');
         onboardingCheckedRef.current = true;
-        setNeedsOnboarding(false);
         setJoinToken(pendingToken);
         setCurrentPage('join-workspace');
         history.replaceState(null, '', `#join/${pendingToken}`);
-        return;
-      }
-      const confirmWorkspaceId = sessionStorage.getItem('postConfirmWorkspaceId');
-      if (confirmWorkspaceId) {
-        sessionStorage.removeItem('postConfirmWorkspaceId');
-        sessionStorage.removeItem('postLoginRedirect');
-        onboardingCheckedRef.current = true;
-        setNeedsOnboarding(false);
-        setWorkspaceId(confirmWorkspaceId);
-        setWorkspaceInitialTab('chat');
-        setCurrentPage('workspace-hub');
-        sessionStorage.setItem('currentPage', 'workspace-hub');
-        history.replaceState(null, '', `#workspace/${confirmWorkspaceId}`);
-        setConfirmResult(null);
-        setConfirmingEmail(false);
         return;
       }
       const redirect = sessionStorage.getItem('postLoginRedirect');
@@ -445,59 +377,11 @@ function AppContent() {
         const hashPart = redirect.split('#')[1];
         if (hashPart) window.location.hash = hashPart;
       }
-      if (!onboardingCheckedRef.current) {
-        if (currentPage === 'admin' || currentPage === 'admin-panel') {
-          onboardingCheckedRef.current = true;
-        } else {
-          checkOnboardingStatus();
-        }
-      }
+      onboardingCheckedRef.current = true;
     } else if (!loading) {
       onboardingCheckedRef.current = false;
-      setNeedsOnboarding(false);
     }
   }, [user, loading]);
-
-  const checkOnboardingStatus = async () => {
-    if (!user) return;
-    setOnboardingChecking(true);
-    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
-    try {
-      const result = await Promise.race([
-        supabase
-          .from('workspaces')
-          .select('id')
-          .eq('owner_id', user.id)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle(),
-        timeout.then(() => ({ data: null, error: new Error('timeout') }))
-      ]);
-      const { data, error } = result as { data: { id: string } | null; error: Error | null };
-      if (error) { onboardingCheckedRef.current = true; return; }
-      // If the user has a workspace, redirect straight to AI Collaboration.
-      // If not (unconfirmed or trigger failed), they'll land on the workspaces
-      // list page where they can create one.
-      if (data?.id) {
-        setWorkspaceId(data.id);
-        setWorkspaceInitialTab('chat');
-        setCurrentPage('workspace-hub');
-        sessionStorage.setItem('currentPage', 'workspace-hub');
-        history.replaceState(null, '', `#workspace/${data.id}`);
-      } else {
-        setCurrentPage('workspaces');
-        sessionStorage.setItem('currentPage', 'workspaces');
-        history.replaceState(null, '', '#workspaces');
-      }
-      onboardingCheckedRef.current = true;
-      setNeedsOnboarding(false);
-    } catch {
-      onboardingCheckedRef.current = true;
-      setNeedsOnboarding(false);
-    } finally {
-      setOnboardingChecking(false);
-    }
-  };
 
   const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
     if (page === 'public-post' && postId) {
@@ -695,14 +579,11 @@ function AppContent() {
               <>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Email confirmed!</h2>
                 <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                  Taking you to your workspace…
+                  Your email has been confirmed. You can now sign in to your account.
                 </p>
-                <div className="w-full flex items-center justify-center py-3.5">
-                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                </div>
                 <button
                   onClick={() => { setConfirmResult(null); window.location.href = '/'; }}
-                  className="mt-4 w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base"
+                  className="w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base"
                 >
                   Continue to Sign In
                 </button>
@@ -855,22 +736,6 @@ function AppContent() {
           <Suspense fallback={<RouteFallback />}>
             <Admin key="admin" />
           </Suspense>
-        </div>
-      </div>
-    );
-  }
-
-  // Onboarding screen removed — confirmed users are redirected directly
-  // to their workspace's AI Collaboration tab by checkOnboardingStatus.
-
-  // While the onboarding/workspace check is running, show a loading screen
-  // instead of flashing the workspaces list page before the redirect.
-  if (onboardingChecking && user) {
-    return wrap(
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--app-bg)' }}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-[var(--app-border)] border-t-[var(--signal)] rounded-full animate-spin" />
-          <p className="text-sm" style={{ color: 'var(--app-text-muted)' }}>Loading your workspace…</p>
         </div>
       </div>
     );
