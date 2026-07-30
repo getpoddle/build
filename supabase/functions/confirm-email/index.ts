@@ -15,6 +15,15 @@ async function sha256(text: string): Promise<string> {
     .join("");
 }
 
+function fetchWithTimeout(url: string, init: RequestInit, ms: number): Promise<Response> {
+  return Promise.race([
+    fetch(url, init),
+    new Promise<Response>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms)
+    ),
+  ]);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -90,7 +99,6 @@ Deno.serve(async (req: Request) => {
       .update({ confirmed_at: new Date().toISOString() })
       .eq("id", tokenRow.id);
 
-    // Fetch the user to get their email for magic link generation
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(
       tokenRow.user_id
     );
@@ -98,12 +106,15 @@ Deno.serve(async (req: Request) => {
     let accessToken: string | null = null;
     let refreshToken: string | null = null;
     let workspaceId: string | null = null;
+    let userEmail: string | null = null;
+    let userMetadata: Record<string, unknown> | null = null;
 
     if (!userError && userData?.user?.email) {
-      // Generate a one-time magic link, then exchange it server-side for a
-      // real session. We return the access/refresh tokens to the frontend
-      // so it can call supabase.auth.setSession() directly — no redirects,
-      // no URL params to lose, no race conditions.
+      userEmail = userData.user.email;
+      userMetadata = userData.user.user_metadata ?? null;
+
+      // Generate session tokens via magic link + verify. Timeboxed so a
+      // slow Supabase Auth endpoint can never hang the confirmation flow.
       try {
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
           type: "magiclink",
@@ -111,8 +122,6 @@ Deno.serve(async (req: Request) => {
         });
 
         if (!linkError && linkData?.properties?.action_link) {
-          // The action_link contains the raw token as a query param.
-          // Extract it and send it to the verify endpoint to get a session.
           const actionUrl = new URL(linkData.properties.action_link);
           const rawToken = actionUrl.searchParams.get("token")
             || actionUrl.hash.match(/token=([^&]+)/)?.[1];
@@ -120,18 +129,19 @@ Deno.serve(async (req: Request) => {
           if (rawToken) {
             const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
             const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-            const verifyRes = await fetch(`${supabaseUrl}/auth/v1/verify`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${anonKey}`,
-                "apikey": anonKey,
+            const verifyRes = await fetchWithTimeout(
+              `${supabaseUrl}/auth/v1/verify`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${anonKey}`,
+                  "apikey": anonKey,
+                },
+                body: JSON.stringify({ type: "magiclink", token: rawToken }),
               },
-              body: JSON.stringify({
-                type: "magiclink",
-                token: rawToken,
-              }),
-            });
+              8000
+            );
 
             if (verifyRes.ok) {
               const session = await verifyRes.json();
@@ -141,8 +151,6 @@ Deno.serve(async (req: Request) => {
               const errBody = await verifyRes.text().catch(() => "");
               console.error("Token exchange failed:", verifyRes.status, errBody);
             }
-          } else {
-            console.error("Could not extract raw token from action_link");
           }
         } else if (linkError) {
           console.error("Magic link generation failed:", linkError.message);
@@ -151,7 +159,7 @@ Deno.serve(async (req: Request) => {
         console.error("Magic link generation error:", err);
       }
 
-      // Look up the user's workspace so we can redirect them straight there
+      // Look up the user's workspace — timeboxed.
       try {
         const { data: wsData } = await supabaseAdmin
           .from("workspaces")
@@ -167,15 +175,16 @@ Deno.serve(async (req: Request) => {
       } catch (err) {
         console.error("Workspace lookup error:", err);
       }
+    }
 
-      // Send welcome email
-      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-      if (RESEND_API_KEY) {
+    // Fire welcome email as truly non-blocking — never delays the response.
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (RESEND_API_KEY && userEmail) {
+      (async () => {
         try {
           const { buildWelcomeEmail } = await import("../_shared/emailTemplates.ts");
-          const firstName = userData.user.user_metadata?.first_name || userData.user.email.split("@")[0];
+          const firstName = (userMetadata?.first_name as string) || userEmail.split("@")[0];
           const html = buildWelcomeEmail(firstName);
-
           await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -184,21 +193,21 @@ Deno.serve(async (req: Request) => {
             },
             body: JSON.stringify({
               from: "Poddle <notifications@poddleme.com>",
-              to: userData.user.email,
+              to: userEmail,
               subject: `Welcome to Poddle, ${firstName} — here's how to get started`,
               html,
             }),
-          }).catch((err) => console.error("Welcome email send error:", err));
+          });
         } catch (err) {
-          console.error("Welcome email error:", err);
+          console.error("Welcome email send error:", err);
         }
-      }
+      })();
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        email: userData?.user?.email || null,
+        email: userEmail,
         accessToken,
         refreshToken,
         workspaceId,

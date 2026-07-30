@@ -199,10 +199,19 @@ function AppContent() {
             // state. The redirect effect then clears confirmResult and routes
             // to the workspace — no flash of the homepage.
             if (data.accessToken && data.refreshToken) {
-              const { error: sessionError } = await supabase.auth.setSession({
+              // Race setSession against a timeout so a slow Supabase Auth
+              // endpoint can never leave the user stuck on the spinner.
+              const sessionPromise = supabase.auth.setSession({
                 access_token: data.accessToken,
                 refresh_token: data.refreshToken,
               });
+              const timeoutPromise = new Promise<{ error: { message: string } }>((resolve) =>
+                setTimeout(() => resolve({ error: { message: 'timeout' } }), 10000)
+              );
+              const { error: sessionError } = await Promise.race([
+                sessionPromise,
+                timeoutPromise,
+              ]);
 
               if (!sessionError) {
                 if (data.workspaceId) {
@@ -226,10 +235,16 @@ function AppContent() {
                 setConfirmingEmail(false);
                 return;
               }
+              // setSession failed or timed out — fall through to the
+              // "confirmed, please sign in" screen so the user is never
+              // stuck. The session may still propagate via onAuthStateChange.
               console.error('setSession failed:', sessionError.message);
             }
 
-            setConfirmResult(data.alreadyConfirmed ? 'already' : 'success');
+            // No session tokens returned (or setSession failed) — show the
+            // "Email confirmed" screen with a sign-in prompt. This is the
+            // safe fallback that never leaves the user hanging.
+            setConfirmResult('success');
           } else {
             setConfirmResult('error');
           }
@@ -665,6 +680,12 @@ function AppContent() {
                 <div className="w-full flex items-center justify-center py-3.5">
                   <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                 </div>
+                <button
+                  onClick={() => { setConfirmResult(null); window.location.href = '/'; }}
+                  className="mt-4 w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base"
+                >
+                  Continue to Sign In
+                </button>
               </>
             ) : confirmResult === 'already' ? (
               <>
