@@ -14,7 +14,6 @@ import { ToastContainer, useToast } from './components/Toast';
 
 const Home = lazy(() => import('./pages/Home'));
 const Profile = lazy(() => import('./pages/Profile'));
-const Onboarding = lazy(() => import('./pages/Onboarding'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const PublicAssumption = lazy(() => import('./pages/PublicAssumption'));
 const PublicPost = lazy(() => import('./pages/PublicPost'));
@@ -224,6 +223,7 @@ function AppContent() {
                   onboardingCheckedRef.current = true;
                   setNeedsOnboarding(false);
                   setWorkspaceId(data.workspaceId);
+                  setWorkspaceInitialTab('chat');
                   setCurrentPage('workspace-hub');
                   sessionStorage.setItem('currentPage', 'workspace-hub');
                   history.replaceState(null, '', `#workspace/${data.workspaceId}`);
@@ -430,6 +430,7 @@ function AppContent() {
         onboardingCheckedRef.current = true;
         setNeedsOnboarding(false);
         setWorkspaceId(confirmWorkspaceId);
+        setWorkspaceInitialTab('chat');
         setCurrentPage('workspace-hub');
         sessionStorage.setItem('currentPage', 'workspace-hub');
         history.replaceState(null, '', `#workspace/${confirmWorkspaceId}`);
@@ -458,20 +459,35 @@ function AppContent() {
     try {
       const result = await Promise.race([
         supabase
-          .from('profiles')
-          .select('onboarded, first_name, last_name')
-          .eq('id', user.id)
+          .from('workspaces')
+          .select('id')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: true })
+          .limit(1)
           .maybeSingle(),
         timeout.then(() => ({ data: null, error: new Error('timeout') }))
       ]);
-      const { data, error } = result as { data: { onboarded: boolean; first_name: string | null; last_name: string | null } | null; error: Error | null };
+      const { data, error } = result as { data: { id: string } | null; error: Error | null };
       if (error) { onboardingCheckedRef.current = true; return; }
-      const hasIncompleteName = !data?.first_name || !data?.last_name ||
-                                 data.first_name.trim() === '' || data.last_name.trim() === '';
-      setNeedsOnboarding(!data?.onboarded || hasIncompleteName);
+      // If the user has a workspace, redirect straight to AI Collaboration.
+      // If not (unconfirmed or trigger failed), they'll land on the workspaces
+      // list page where they can create one.
+      if (data?.id) {
+        setWorkspaceId(data.id);
+        setWorkspaceInitialTab('chat');
+        setCurrentPage('workspace-hub');
+        sessionStorage.setItem('currentPage', 'workspace-hub');
+        history.replaceState(null, '', `#workspace/${data.id}`);
+      } else {
+        setCurrentPage('workspaces');
+        sessionStorage.setItem('currentPage', 'workspaces');
+        history.replaceState(null, '', '#workspaces');
+      }
       onboardingCheckedRef.current = true;
+      setNeedsOnboarding(false);
     } catch {
       onboardingCheckedRef.current = true;
+      setNeedsOnboarding(false);
     }
   };
 
@@ -545,10 +561,6 @@ function AppContent() {
     sessionStorage.removeItem('selectedUserId');
   };
 
-  const handleOnboardingComplete = () => {
-    onboardingCheckedRef.current = true;
-    setNeedsOnboarding(false);
-  };
 
   if (loading) {
     return (
@@ -840,7 +852,8 @@ function AppContent() {
     );
   }
 
-  if (needsOnboarding) return wrap(<Onboarding onComplete={handleOnboardingComplete} />);
+  // Onboarding screen removed — confirmed users are redirected directly
+  // to their workspace's AI Collaboration tab by checkOnboardingStatus.
 
   const activePage = currentPage === 'auth' ? 'home' : currentPage;
 

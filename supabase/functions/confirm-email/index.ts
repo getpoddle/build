@@ -159,18 +159,24 @@ Deno.serve(async (req: Request) => {
         console.error("Magic link generation error:", err);
       }
 
-      // Look up the user's workspace — timeboxed.
+      // Look up the user's workspace. The on_email_confirmed DB trigger
+      // fires on the updateUserById call above, so the workspace should
+      // already exist. Retry briefly in case of propagation delay.
       try {
-        const { data: wsData } = await supabaseAdmin
-          .from("workspaces")
-          .select("id")
-          .eq("owner_id", tokenRow.user_id)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
+        for (let attempt = 0; attempt < 5 && !workspaceId; attempt++) {
+          const { data: wsData } = await supabaseAdmin
+            .from("workspaces")
+            .select("id")
+            .eq("owner_id", tokenRow.user_id)
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
 
-        if (wsData?.id) {
-          workspaceId = wsData.id;
+          if (wsData?.id) {
+            workspaceId = wsData.id;
+          } else if (attempt < 4) {
+            await new Promise((r) => setTimeout(r, 300));
+          }
         }
       } catch (err) {
         console.error("Workspace lookup error:", err);
