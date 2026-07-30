@@ -186,6 +186,34 @@ function AppContent() {
           });
           const data = await res.json();
           if (res.ok && data.success) {
+            if (data.alreadyConfirmed) {
+              setConfirmResult('already');
+              setConfirmingEmail(false);
+              return;
+            }
+
+            // Auto-sign-in the user using the magic link token returned by
+            // the edge function, then redirect straight to their workspace.
+            if (data.magicToken) {
+              const { error: verifyError } = await supabase.auth.verifyOtp({
+                token_hash: data.magicToken,
+                type: 'magiclink',
+              });
+
+              if (!verifyError) {
+                // Store workspace redirect target so the auth state change
+                // handler picks it up once the session is established.
+                if (data.workspaceId) {
+                  sessionStorage.setItem('postConfirmWorkspaceId', data.workspaceId);
+                }
+                setConfirmResult('success');
+                setConfirmingEmail(false);
+                return;
+              }
+              // If auto sign-in fails, fall back to manual sign-in screen
+              console.error('Auto sign-in failed:', verifyError?.message);
+            }
+
             setConfirmResult(data.alreadyConfirmed ? 'already' : 'success');
           } else {
             setConfirmResult('error');
@@ -363,6 +391,18 @@ function AppContent() {
         setJoinToken(pendingToken);
         setCurrentPage('join-workspace');
         history.replaceState(null, '', `#join/${pendingToken}`);
+        return;
+      }
+      const confirmWorkspaceId = sessionStorage.getItem('postConfirmWorkspaceId');
+      if (confirmWorkspaceId) {
+        sessionStorage.removeItem('postConfirmWorkspaceId');
+        sessionStorage.removeItem('postLoginRedirect');
+        onboardingCheckedRef.current = true;
+        setNeedsOnboarding(false);
+        setWorkspaceId(confirmWorkspaceId);
+        setCurrentPage('workspace-hub');
+        sessionStorage.setItem('currentPage', 'workspace-hub');
+        history.replaceState(null, '', `#workspace/${confirmWorkspaceId}`);
         return;
       }
       const redirect = sessionStorage.getItem('postLoginRedirect');
@@ -603,14 +643,11 @@ function AppContent() {
               <>
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">Email confirmed!</h2>
                 <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                  Your email has been verified. You can now sign in to your Poddle account.
+                  Taking you to your workspace…
                 </p>
-                <button
-                  onClick={() => { setConfirmResult(null); window.location.href = '/'; }}
-                  className="w-full gradient-primary btn-primary py-3.5 text-white font-bold text-base"
-                >
-                  Continue to Sign In
-                </button>
+                <div className="w-full flex items-center justify-center py-3.5">
+                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                </div>
               </>
             ) : confirmResult === 'already' ? (
               <>
