@@ -784,26 +784,30 @@ This is ROUND 1 of a structured debate — state your position with full analyti
               body: JSON.stringify({
                 model: "gpt-4.1",
                 messages: [
-                  { role: "system", content: "You extract structured numerical figures and category breakdowns from strategic analysis text. Return JSON only." },
-                  { role: "user", content: `Extract every concrete figure, percentage, dollar amount, ratio, or quantified metric from this agent's analysis. Also extract any categorical breakdowns (e.g. risk categories, cost categories, revenue segments).\n\nAGENT: ${agent.name}\nCONTENT:\n${content.slice(0, 3000)}\n\nReturn ONLY valid JSON:\n{"figures":[{"label":"short label","value":number,"unit":"string (e.g. %, $, months, people, x)"}],"categories":[{"label":"category name","value":number,"unit":"count or %"}]}\nIf no figures or categories are present, return empty arrays.` },
+                  { role: "system", content: "You are a data extraction specialist. You find EVERY numerical figure, percentage, dollar amount, ratio, quantified metric, and categorical breakdown in strategic analysis text. You must be thorough — even a single mention of a number counts. Return JSON only, no markdown fences." },
+                  { role: "user", content: `Read the following strategic analysis carefully and extract ALL of these:\n\n1. FIGURES — Every concrete number mentioned: percentages (e.g. "30% market share"), dollar amounts (e.g. "$2M runway"), ratios (e.g. "3:1 ratio"), counts (e.g. "15 engineers"), timeframes (e.g. "6 months"), multipliers (e.g. "5x return"), or any other quantified metric. Even rough estimates count.\n\n2. CATEGORIES — Any categorical breakdown the agent discusses: risk types, cost segments, revenue streams, market segments, priority tiers, etc. Each category gets a value (count or percentage).\n\nAGENT: ${agent.name}\nCONTENT:\n${content.slice(0, 4500)}\n\nReturn ONLY valid JSON:\n{"figures":[{"label":"short descriptive label (max 5 words)","value":number,"unit":"unit symbol (% or $ or months or people or x or count)"}],"categories":[{"label":"category name","value":number,"unit":"count or %"}]}\n\nExtract aggressively. If the agent said "30% of users" that is a figure with label "of users", value 30, unit "%". If the agent said "three main risks: market, execution, financial" that is categories with count 1 each. If there are genuinely NO numbers or categories, return empty arrays.` },
                 ],
-                max_completion_tokens: 400,
+                max_completion_tokens: 600,
                 response_format: { type: "json_object" },
               }),
             });
-            if (!fRes.ok) return null;
+            if (!fRes.ok) {
+              console.error(`Figure extraction for ${agent.role} failed: HTTP ${fRes.status}`);
+              return null;
+            }
             const fj = await fRes.json();
             const raw = fj.choices?.[0]?.message?.content || "{}";
             const parsed = JSON.parse(raw);
             const figures: Array<{ label: string; value: number; unit: string }> = Array.isArray(parsed.figures)
-              ? parsed.figures.filter((f: { label?: string; value?: number; unit?: string }) => typeof f.label === "string" && typeof f.value === "number")
+              ? parsed.figures.filter((f: { label?: string; value?: number; unit?: string }) => typeof f.label === "string" && typeof f.value === "number" && !isNaN(f.value))
               : [];
             const categories: Array<{ label: string; value: number; unit: string }> = Array.isArray(parsed.categories)
-              ? parsed.categories.filter((c: { label?: string; value?: number; unit?: string }) => typeof c.label === "string" && typeof c.value === "number")
+              ? parsed.categories.filter((c: { label?: string; value?: number; unit?: string }) => typeof c.label === "string" && typeof c.value === "number" && !isNaN(c.value))
               : [];
             if (figures.length === 0 && categories.length === 0) return null;
             return { figures, categories };
-          } catch {
+          } catch (err) {
+            console.error(`Figure extraction for ${agent.role} exception:`, String(err).slice(0, 200));
             return null;
           }
         })();
