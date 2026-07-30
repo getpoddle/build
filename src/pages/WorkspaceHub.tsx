@@ -317,8 +317,8 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
           style={{ borderTop: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
         >
           {([ 
-            { id: 'chat' as MainTab, label: 'AI Collaboration', Icon: MessageSquare },
             { id: 'team' as MainTab, label: 'Team Chat', Icon: Users },
+            { id: 'chat' as MainTab, label: 'AI Collaboration', Icon: MessageSquare },
             { id: 'warroom' as MainTab, label: 'War Room', Icon: Activity },
           ] as const).map(({ id, label, Icon }) => {
             const active = mainTab === id;
@@ -424,8 +424,8 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
               style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
             >
               {([
-                { id: 'chat' as MainTab, label: 'AI Collaboration', Icon: MessageSquare },
                 { id: 'team' as MainTab, label: 'Team Chat', Icon: Users },
+                { id: 'chat' as MainTab, label: 'AI Collaboration', Icon: MessageSquare },
               ] as const).map(({ id, label, Icon }) => {
                 const active = mainTab === id;
                 return (
