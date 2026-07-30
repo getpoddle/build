@@ -958,7 +958,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                 return (
                   <button
                     key={s.label}
-                    onClick={() => sendMessage(s.prompt)}
+                    onClick={() => { setInput(s.prompt); textareaRef.current?.focus(); }}
                     className="w-full flex items-start gap-3 p-3 text-left transition-all hover:scale-[1.02]"
                     style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
                   >
