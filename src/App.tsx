@@ -143,6 +143,7 @@ function AppContent() {
   const [confirmingEmail, setConfirmingEmail] = useState(false);
   const [confirmResult, setConfirmResult] = useState<'success' | 'error' | 'already' | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [firstSignInInProgress, setFirstSignInInProgress] = useState(false);
 
   const handleRestoreAccount = async () => {
     setRestoring(true);
@@ -469,6 +470,7 @@ function AppContent() {
         // one and redirect to Multiplayer AI. Returning users are unaffected.
         (async () => {
           if (currentPage === 'admin' || currentPage === 'admin-panel') return;
+          setFirstSignInInProgress(true);
           try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.access_token) return;
@@ -494,6 +496,8 @@ function AppContent() {
           } catch {
             // Silently fail — user lands on the default page and can create
             // a workspace manually.
+          } finally {
+            setFirstSignInInProgress(false);
           }
         })();
       }
@@ -502,6 +506,7 @@ function AppContent() {
       sessionStorage.removeItem('firstSignInWorkspaceId');
       firstSignInRef.current = null;
       setFirstSignInWorkspaceId(null);
+      setFirstSignInInProgress(false);
     }
   }, [user, loading]);
 
@@ -510,12 +515,13 @@ function AppContent() {
   // renders nothing. Redirect them to the Workspaces page so they can create
   // one manually instead of staring at a blank screen.
   useEffect(() => {
+    if (firstSignInInProgress) return;
     if (hasNoWorkspace && !firstSignInWorkspaceId && (currentPage === 'home' || currentPage === 'auth')) {
       setCurrentPage('workspaces');
       sessionStorage.setItem('currentPage', 'workspaces');
       history.replaceState(null, '', '#workspaces');
     }
-  }, [hasNoWorkspace, firstSignInWorkspaceId, currentPage]);
+  }, [hasNoWorkspace, firstSignInWorkspaceId, currentPage, firstSignInInProgress]);
 
   const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
     // Block dashboard access for first-time users locked into Multiplayer AI.
