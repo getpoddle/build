@@ -95,20 +95,25 @@ Deno.serve(async (req: Request) => {
       tokenRow.user_id
     );
 
-    let magicToken: string | null = null;
+    let actionLink: string | null = null;
     let workspaceId: string | null = null;
 
     if (!userError && userData?.user?.email) {
-      // Generate a one-time magic link token so the frontend can auto-sign-in
-      // the user without requiring them to manually enter their password.
+      // Generate a one-time magic link. We return the full action_link URL
+      // so the frontend can do a full browser redirect to it — Supabase
+      // verifies the token server-side, establishes the session, and
+      // redirects back to the app. This avoids the client-side verifyOtp
+      // hang that occurs when using the hashed_token directly.
       try {
+        const redirectTo = new URL(Deno.env.get("SUPABASE_URL")!).origin;
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
           type: "magiclink",
           email: userData.user.email,
+          options: { redirectTo },
         });
 
-        if (!linkError && linkData?.properties?.hashed_token) {
-          magicToken = linkData.properties.hashed_token;
+        if (!linkError && linkData?.properties?.action_link) {
+          actionLink = linkData.properties.action_link;
         } else if (linkError) {
           console.error("Magic link generation failed:", linkError.message);
         }
@@ -164,7 +169,7 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         email: userData?.user?.email || null,
-        magicToken,
+        actionLink,
         workspaceId,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

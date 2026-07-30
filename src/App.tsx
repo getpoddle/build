@@ -192,47 +192,18 @@ function AppContent() {
               return;
             }
 
-            // Auto-sign-in the user using the magic link token returned by
-            // the edge function, then redirect straight to their workspace.
-            if (data.magicToken) {
-              // Store the workspace ID BEFORE calling verifyOtp. verifyOtp
-              // triggers onAuthStateChange synchronously, which sets the user
-              // and fires the redirect effect — if we store the workspace ID
-              // after verifyOtp resolves, the redirect effect has already
-              // run and missed it, leaving the user stuck on the spinner.
+            // Auto-sign-in: redirect to the magic link URL. Supabase verifies
+            // the token server-side, establishes a session, and redirects
+            // back to the app. We stash the workspace ID in sessionStorage
+            // so the redirect effect picks it up once the session is active.
+            if (data.actionLink) {
               if (data.workspaceId) {
                 sessionStorage.setItem('postConfirmWorkspaceId', data.workspaceId);
               }
-
-              // Race verifyOtp against a timeout so we never hang indefinitely.
-              const otpPromise = supabase.auth.verifyOtp({
-                token_hash: data.magicToken,
-                type: 'magiclink',
-              });
-              const timeoutPromise = new Promise<{ error: { message: string } }>((resolve) =>
-                setTimeout(() => resolve({ error: { message: 'timeout' } }), 15000)
-              );
-              const { error: verifyError } = await Promise.race([otpPromise, timeoutPromise]);
-
-              if (!verifyError) {
-                setConfirmResult('success');
-                setConfirmingEmail(false);
-
-                // Navigate directly to the workspace instead of waiting for
-                // the auth state change to propagate through the redirect
-                // effect. This makes the transition feel instant.
-                if (data.workspaceId) {
-                  setWorkspaceId(data.workspaceId);
-                  setCurrentPage('workspace-hub');
-                  sessionStorage.setItem('currentPage', 'workspace-hub');
-                  history.replaceState(null, '', `#workspace/${data.workspaceId}`);
-                  sessionStorage.removeItem('postConfirmWorkspaceId');
-                }
-                return;
-              }
-              // If auto sign-in fails, fall back to manual sign-in screen
-              console.error('Auto sign-in failed:', verifyError?.message);
-              sessionStorage.removeItem('postConfirmWorkspaceId');
+              setConfirmResult('success');
+              setConfirmingEmail(false);
+              window.location.href = data.actionLink;
+              return;
             }
 
             setConfirmResult(data.alreadyConfirmed ? 'already' : 'success');
