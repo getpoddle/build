@@ -274,7 +274,7 @@ export function useTrialInfo() {
   return {
     trialLimitReached,
     trialCount: used,
-    trialSlotsRemaining,
+    trialSlotsRemaining: slotsRemaining,
     trialLimit: TRIAL_WORKSPACE_LIMIT,
     loading,
     // legacy aliases kept for backward compatibility
