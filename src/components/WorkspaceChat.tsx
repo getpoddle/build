@@ -429,7 +429,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       const historyForApi = messages.slice(-8).map(m => ({ role: m.role, content: m.content }));
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 120_000);
+      const timeout = setTimeout(() => controller.abort(), 180_000);
 
       let res: Response;
       try {
@@ -462,7 +462,10 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           }
         } else if (res.status === 401) {
           setSendError("Your session has expired. Please refresh the page and try again.");
+        } else if (res.status === 504) {
+          setSendError(json.error || "The AI agents took too long to respond. Please try again.");
         } else {
+          console.error("workspace-ai-chat server error:", res.status, json.detail || json.error);
           setSendError(json.error || "The agents couldn't respond. Please try again in a moment.");
         }
         return;

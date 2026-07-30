@@ -1229,8 +1229,16 @@ Return ONLY valid JSON, no markdown fences:
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal server error", detail: String(err) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const errStr = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    const errStack = err instanceof Error ? err.stack || "" : "";
+    console.error("workspace-ai-chat unhandled error:", errStr, "\n", errStack);
+    const isAbort = err instanceof TypeError && /aborted|network|connection/i.test(err.message);
+    return new Response(JSON.stringify({
+      error: isAbort ? "The AI agents took too long to respond. Please try again." : "Internal server error",
+      detail: errStr,
+      stage: "unhandled",
+    }), {
+      status: isAbort ? 504 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
