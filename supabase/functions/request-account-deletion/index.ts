@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildAccountDeletionEmail } from "../_shared/emailTemplates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,7 +47,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Insert a notification so the user sees it in their notification feed
+    // Insert an in-app notification
     await anonClient.from("notifications").insert({
       user_id: user.id,
       type: "account_deletion_requested",
@@ -55,6 +56,30 @@ Deno.serve(async (req: Request) => {
       related_type: "account",
       actor_id: user.id,
     });
+
+    // Send confirmation email
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (RESEND_API_KEY && user.email) {
+      const firstName = user.user_metadata?.first_name || user.email.split("@")[0];
+      const html = buildAccountDeletionEmail(firstName);
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "Poddle <notifications@poddleme.com>",
+            to: user.email,
+            subject: "Account deletion scheduled — Poddle",
+            html,
+          }),
+        });
+      } catch (emailErr) {
+        console.error("Failed to send deletion email:", String(emailErr));
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, deletion_requested: true }),

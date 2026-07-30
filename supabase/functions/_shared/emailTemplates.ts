@@ -374,3 +374,32 @@ export function buildPasswordResetEmail(firstName: string, resetUrl: string): st
 
   return emailShell(`Reset your password — Poddle`, header, body);
 }
+
+// ─── Account Deletion Requested ──────────────────────────────────────────────
+
+export function buildAccountDeletionEmail(firstName: string): string {
+  const header = `<div style="background:linear-gradient(135deg,#7f1d1d,#dc2626);padding:32px 32px 28px;">
+    <p style="color:rgba(255,255,255,0.65);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px 0;">Account Deletion Scheduled</p>
+    <h1 style="color:#ffffff;font-size:26px;font-weight:800;margin:0;line-height:1.2;">Your account is scheduled for deletion, ${firstName}</h1>
+  </div>`;
+
+  const body = `
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 24px 0;">
+      Hi ${firstName},
+    </p>
+    <p style="color:#94a3b8;font-size:15px;line-height:1.65;margin:0 0 24px 0;">
+      We received a request to delete your Poddle account. Your account has been deactivated and is scheduled to be
+      <strong style="color:#e2e8f0;">permanently deleted in 7 days</strong>, along with all associated data.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0f172a;border-radius:12px;border:1px solid #1e293b;margin-bottom:28px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="color:#64748b;font-size:13px;line-height:1.6;margin:0;">
+          <strong style="color:#94a3b8;">Changed your mind?</strong> Simply sign back in to Poddle within the next 7 days and you'll be given the option to restore your account. After 7 days, all data is permanently erased and cannot be recovered.
+        </p>
+      </td></tr>
+    </table>
+    ${ctaButton("Go to Poddle", APP_URL)}
+    ${supportNote()}`;
+
+  return emailShell(`Account deletion scheduled — Poddle`, header, body);
+}
