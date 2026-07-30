@@ -365,6 +365,14 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
+  let rawBody: string | null = null;
+  try {
+    rawBody = await req.text();
+  } catch (e) {
+    console.error("workspace-ai-chat: failed to read raw body:", e);
+  }
+  console.log("workspace-ai-chat: request received, body length:", rawBody?.length ?? 0);
+
   try {
     let currentStage = "init";
     const authHeader = req.headers.get("Authorization");
@@ -387,12 +395,17 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { workspace_id, message, history, documents } = await req.json() as {
-      workspace_id: string;
-      message: string;
-      history?: Array<{ role: string; content: string }>;
-      documents?: Array<{ filename: string; extractedText: string }>;
-    };
+    let parsedBody: { workspace_id: string; message: string; history?: Array<{ role: string; content: string }>; documents?: Array<{ filename: string; extractedText: string }> };
+    try {
+      parsedBody = rawBody ? JSON.parse(rawBody) : {};
+    } catch (e) {
+      console.error("workspace-ai-chat: JSON parse failed. Raw body:", rawBody?.slice(0, 2000), "Parse error:", e);
+      return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { workspace_id, message, history, documents } = parsedBody;
+    console.log("workspace-ai-chat: parsed request workspace_id:", workspace_id, "message length:", message?.length ?? 0, "history items:", history?.length ?? 0, "documents:", documents?.length ?? 0);
 
     const validDocs = Array.isArray(documents)
       ? documents.filter(d => d?.filename && typeof d.extractedText === "string" && d.extractedText.length > 0).slice(0, 3)
@@ -881,7 +894,16 @@ This is ROUND 1 of a structured debate — state your position with full analyti
   } catch (err) {
     const errStr = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     const errStack = err instanceof Error ? err.stack || "" : "";
-    console.error("workspace-ai-chat unhandled error at stage:", errStr, "\n", errStack);
+    console.error("workspace-ai-chat: UNHANDLED ERROR ============================");
+    console.error("workspace-ai-chat: error name:", err instanceof Error ? err.name : typeof err);
+    console.error("workspace-ai-chat: error message:", err instanceof Error ? err.message : String(err));
+    console.error("workspace-ai-chat: error stack:", errStack);
+    console.error("workspace-ai-chat: error toString:", String(err));
+    if (err && typeof err === "object") {
+      try { console.error("workspace-ai-chat: error JSON:", JSON.stringify(err, Object.getOwnPropertyNames(err))); } catch { console.error("workspace-ai-chat: error (not serializable)"); }
+    }
+    console.error("workspace-ai-chat: raw request body (first 3000 chars):", rawBody?.slice(0, 3000) ?? "<null>");
+    console.error("workspace-ai-chat: END UNHANDLED ERROR ========================");
     const isAbort = err instanceof TypeError && /aborted|network|connection/i.test(err.message);
     return new Response(JSON.stringify({
       error: isAbort ? "The AI agents took too long to respond. Please try again." : "Internal server error",
