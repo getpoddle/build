@@ -38,7 +38,7 @@ function AgentConfidenceChart({ data }: { data: Array<{ agent_name: string; conf
   return (
     <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Agent Confidence</h4>
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" preserveAspectRatio="xMinYMid meet" className="block w-full" style={{ maxWidth: `${width}px` }}>
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="block w-full" style={{ maxWidth: `${width}px`, width: '100%', height: 'auto', aspectRatio: `${width} / ${height}` }}>
         {data.map((item, i) => {
           const y = i * (barHeight + gap);
           const barW = Math.max(2, (item.confidence / 100) * trackWidth);
@@ -96,7 +96,7 @@ function RiskDonutChart({ data }: { data: Array<{ category: string; count: numbe
     <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Risk Distribution</h4>
       <div className="flex flex-wrap items-start gap-3 sm:gap-5">
-        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="flex-shrink-0" style={{ maxWidth: '100%', height: 'auto' }}>
+        <svg viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0" style={{ width: size, maxWidth: '100%', aspectRatio: '1 / 1', height: 'auto' }}>
           {segments.map((seg, i) => (
             <path key={i} d={seg.path} fill="none" stroke={seg.color} strokeWidth={strokeWidth} strokeLinecap="butt" />
           ))}
@@ -131,7 +131,7 @@ function AlignmentHistogram({ data }: { data: Array<{ dimension: string; score: 
   return (
     <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Agent Alignment</h4>
-      <svg viewBox={`0 0 ${width} ${chartHeight + 30}`} width="100%" preserveAspectRatio="xMinYMid meet" className="block w-full" style={{ maxWidth: `${width}px` }}>
+      <svg viewBox={`0 0 ${width} ${chartHeight + 30}`} preserveAspectRatio="xMidYMid meet" className="block w-full" style={{ maxWidth: `${width}px`, width: '100%', height: 'auto', aspectRatio: `${width} / ${chartHeight + 30}` }}>
         <line x1={10} y1={baseline} x2={width - 10} y2={baseline} className="stroke-slate-200" strokeWidth={1} />
         {data.map((item, i) => {
           const x = 10 + i * (barWidth + gap);
@@ -167,7 +167,7 @@ function FiguresChart({ data }: { data: Array<{ label: string; value: number; un
   return (
     <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Key Figures</h4>
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" preserveAspectRatio="xMinYMid meet" className="block w-full" style={{ maxWidth: `${width}px` }}>
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="block w-full" style={{ maxWidth: `${width}px`, width: '100%', height: 'auto', aspectRatio: `${width} / ${height}` }}>
         {data.map((item, i) => {
           const y = i * (barHeight + gap);
           const barW = Math.max(2, (Math.abs(item.value) / maxVal) * trackWidth);
@@ -220,7 +220,7 @@ function CategoriesChart({ data }: { data: Array<{ label: string; value: number;
     <div className="min-w-0">
       <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Breakdown</h4>
       <div className="flex flex-wrap items-start gap-3">
-        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="flex-shrink-0" style={{ maxWidth: '100%', height: 'auto' }}>
+        <svg viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0" style={{ width: size, maxWidth: '100%', aspectRatio: '1 / 1', height: 'auto' }}>
           {segments.map((seg, i) => (
             <path key={i} d={seg.path} fill="none" stroke={seg.color} strokeWidth={strokeWidth} strokeLinecap="butt" />
           ))}
