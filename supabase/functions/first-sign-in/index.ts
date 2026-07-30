@@ -47,114 +47,37 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check if user already has a workspace (as owner or member).
-    const { data: existingMembership } = await service
-      .from("workspace_members")
-      .select("workspace_id")
-      .eq("user_id", user.id)
-      .limit(1);
-
-    if (existingMembership && existingMembership.length > 0) {
-      // Returning user — no first-sign-in onboarding needed.
-      return new Response(
-        JSON.stringify({ firstSignIn: false }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // First sign-in: create a workspace.
     const firstName = (user.user_metadata?.first_name as string | undefined)?.trim();
     const workspaceName = firstName ? `${firstName}'s Workspace` : "My Workspace";
 
-    const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    // Atomic workspace creation via RPC with advisory locking.
+    // This prevents the race condition where two concurrent calls both
+    // pass the "no workspace" check and create duplicate workspaces.
+    const { data: rpcResult, error: rpcError } = await service.rpc(
+      "create_first_signin_workspace",
+      { p_user_id: user.id, p_workspace_name: workspaceName }
+    );
 
-    const { data: ws, error: wsError } = await service
-      .from("workspaces")
-      .insert({
-        name: workspaceName,
-        description: "",
-        domain: "general",
-        owner_id: user.id,
-        plan: "pro",
-        seats: 3,
-        workspace_type: "encrypted",
-        is_encrypted: true,
-        subscription_status: "trialing",
-        trial_workspace_expires_at: trialExpiresAt,
-        source: "app",
-      })
-      .select()
-      .single();
-
-    if (wsError || !ws) {
-      console.error("first-sign-in: workspace creation failed:", wsError?.message);
+    if (rpcError || !rpcResult || rpcResult.length === 0) {
+      console.error("first-sign-in: RPC failed:", rpcError?.message);
       return new Response(JSON.stringify({ error: "Failed to create workspace" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Add user as owner in workspace_members.
-    const { error: memberError } = await service
-      .from("workspace_members")
-      .insert({
-        workspace_id: ws.id,
-        user_id: user.id,
-        role: "owner",
-      });
+    const row = rpcResult[0];
 
-    if (memberError) {
-      console.error("first-sign-in: member insert failed:", memberError.message);
-      // Roll back the workspace
-      await service.from("workspaces").delete().eq("id", ws.id);
-      return new Response(JSON.stringify({ error: "Failed to set workspace owner" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!row.first_signin) {
+      // Returning user — already has a workspace.
+      return new Response(
+        JSON.stringify({ firstSignIn: false }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-
-    // Pick a random seed thread and insert it.
-    const { data: seedThread } = await service
-      .from("workspace_seed_threads")
-      .select("prompt, responses")
-      .order("random()")
-      .limit(1)
-      .maybeSingle();
-
-    if (seedThread) {
-      // Insert the prompt as a user message authored by the new user.
-      await service.from("workspace_messages").insert({
-        workspace_id: ws.id,
-        user_id: user.id,
-        role: "user",
-        content: seedThread.prompt,
-      });
-
-      // Insert each canned agent response as an assistant message.
-      const responses = seedThread.responses as Array<{
-        agent_name: string;
-        agent_role: string;
-        content: string;
-      }>;
-
-      if (Array.isArray(responses)) {
-        const inserts = responses.map((r) => ({
-          workspace_id: ws.id,
-          user_id: null,
-          role: "assistant",
-          content: r.content,
-          agent_name: r.agent_name,
-          agent_role: r.agent_role,
-        }));
-        await service.from("workspace_messages").insert(inserts);
-      }
-    }
-
-    // Mark profile as onboarded.
-    await service.from("profiles").update({ onboarded: true }).eq("id", user.id);
 
     return new Response(
-      JSON.stringify({ firstSignIn: true, workspaceId: ws.id }),
+      JSON.stringify({ firstSignIn: true, workspaceId: row.workspace_id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
