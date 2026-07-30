@@ -135,6 +135,7 @@ function AppContent() {
   const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
   const [highlightDiscussionId, setHighlightDiscussionId] = useState<string | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [onboardingChecking, setOnboardingChecking] = useState(false);
   const onboardingCheckedRef = useRef(false);
   const [confirmingEmail, setConfirmingEmail] = useState(false);
   const [confirmResult, setConfirmResult] = useState<'success' | 'error' | 'already' | null>(null);
@@ -455,6 +456,7 @@ function AppContent() {
 
   const checkOnboardingStatus = async () => {
     if (!user) return;
+    setOnboardingChecking(true);
     const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
     try {
       const result = await Promise.race([
@@ -488,6 +490,8 @@ function AppContent() {
     } catch {
       onboardingCheckedRef.current = true;
       setNeedsOnboarding(false);
+    } finally {
+      setOnboardingChecking(false);
     }
   };
 
@@ -854,6 +858,19 @@ function AppContent() {
 
   // Onboarding screen removed — confirmed users are redirected directly
   // to their workspace's AI Collaboration tab by checkOnboardingStatus.
+
+  // While the onboarding/workspace check is running, show a loading screen
+  // instead of flashing the workspaces list page before the redirect.
+  if (onboardingChecking && user) {
+    return wrap(
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--app-bg)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-[var(--app-border)] border-t-[var(--signal)] rounded-full animate-spin" />
+          <p className="text-sm" style={{ color: 'var(--app-text-muted)' }}>Loading your workspace…</p>
+        </div>
+      </div>
+    );
+  }
 
   const activePage = currentPage === 'auth' ? 'home' : currentPage;
 
