@@ -252,6 +252,26 @@ const MAX_MESSAGE_CHARS = 2000;
 
 // ─── Agent selection via GPT classification ───────────────────────────────────
 
+function selectAgentsLocal(message: string, messageCount: number): string[] {
+  if (messageCount <= 4) {
+    return ["financial_strategist", "risk_analyst", "devils_advocate", "market_analyst"];
+  }
+  const msg = message.toLowerCase();
+  const scored: Array<{ role: string; score: number }> = [];
+  for (const agent of Object.values(AGENT_ROSTER)) {
+    let score = 0;
+    for (const kw of agent.keywords) {
+      if (msg.includes(kw.toLowerCase())) score += 2;
+    }
+    scored.push({ role: agent.role, score });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  const picked = scored.slice(0, 4).map(s => s.role);
+  if (!picked.includes("financial_strategist")) picked.unshift("financial_strategist");
+  if (!picked.includes("devils_advocate")) picked.push("devils_advocate");
+  return picked.slice(0, 5);
+}
+
 async function selectAgents(
   message: string,
   recentHistory: Array<{ role: string; content: string }>,
@@ -346,6 +366,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    let currentStage = "init";
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -557,6 +578,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    currentStage = "fetch_workspace";
     // Fetch workspace context, synthesis, and memory — plus run agent selection — in parallel
     const conversationHistory = (history || []).slice(-12).map((m: { role: string; content: string }) => ({
       role: m.role === "assistant" ? "assistant" : "user",
@@ -589,14 +611,10 @@ Deno.serve(async (req: Request) => {
     const messageCount = msgCountRes.count ?? 0;
     const isNewWorkspace = messageCount <= 4;
 
-    const selectedRoles = await selectAgents(
-      safeMessage,
-      conversationHistory,
-      workspace?.domain,
-      workspace?.description,
-      openAiKey,
-      messageCount,
-    );
+    // Skip the LLM-based agent selection call to reduce latency and avoid
+    // timeouts. Use a fixed, topic-aware selection based on keywords instead.
+    currentStage = "agent_selection";
+    const selectedRoles = selectAgentsLocal(safeMessage, messageCount);
 
     const selectedAgents = selectedRoles
       .filter((r: string) => AGENT_ROSTER[r])
@@ -784,45 +802,7 @@ This is ROUND 1 of a structured debate — state your position with full analyti
           logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-sol", maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
         }
 
-        // Extract figures/categories from this agent's response in parallel
-        // (fire-and-forget) so charts can render beneath the agent's text.
-        const figuresPromise = (async (): Promise<AgentFigures | null> => {
-          try {
-            const fRes = await fetch("https://api.openai.com/v1/chat/completions", {
-              method: "POST",
-              headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: "gpt-4.1",
-                messages: [
-                  { role: "system", content: "You are a data extraction specialist. You find EVERY numerical figure, percentage, dollar amount, ratio, quantified metric, and categorical breakdown in strategic analysis text. You must be thorough — even a single mention of a number counts. Return JSON only, no markdown fences." },
-                  { role: "user", content: `Read the following strategic analysis carefully and extract ALL of these:\n\n1. FIGURES — Every concrete number mentioned: percentages (e.g. "30% market share"), dollar amounts (e.g. "$2M runway"), ratios (e.g. "3:1 ratio"), counts (e.g. "15 engineers"), timeframes (e.g. "6 months"), multipliers (e.g. "5x return"), or any other quantified metric. Even rough estimates count.\n\n2. CATEGORIES — Any categorical breakdown the agent discusses: risk types, cost segments, revenue streams, market segments, priority tiers, etc. Each category gets a value (count or percentage).\n\nAGENT: ${agent.name}\nCONTENT:\n${content.slice(0, 4500)}\n\nReturn ONLY valid JSON:\n{"figures":[{"label":"short descriptive label (max 5 words)","value":number,"unit":"unit symbol (% or $ or months or people or x or count)"}],"categories":[{"label":"category name","value":number,"unit":"count or %"}]}\n\nExtract aggressively. If the agent said "30% of users" that is a figure with label "of users", value 30, unit "%". If the agent said "three main risks: market, execution, financial" that is categories with count 1 each. If there are genuinely NO numbers or categories, return empty arrays.` },
-                ],
-                max_completion_tokens: 600,
-                response_format: { type: "json_object" },
-              }),
-            });
-            if (!fRes.ok) {
-              console.error(`Figure extraction for ${agent.role} failed: HTTP ${fRes.status}`);
-              return null;
-            }
-            const fj = await fRes.json();
-            const raw = fj.choices?.[0]?.message?.content || "{}";
-            const parsed = JSON.parse(raw);
-            const figures: Array<{ label: string; value: number; unit: string }> = Array.isArray(parsed.figures)
-              ? parsed.figures.filter((f: { label?: string; value?: number; unit?: string }) => typeof f.label === "string" && typeof f.value === "number" && !isNaN(f.value))
-              : [];
-            const categories: Array<{ label: string; value: number; unit: string }> = Array.isArray(parsed.categories)
-              ? parsed.categories.filter((c: { label?: string; value?: number; unit?: string }) => typeof c.label === "string" && typeof c.value === "number" && !isNaN(c.value))
-              : [];
-            if (figures.length === 0 && categories.length === 0) return null;
-            return { figures, categories };
-          } catch (err) {
-            console.error(`Figure extraction for ${agent.role} exception:`, String(err).slice(0, 200));
-            return null;
-          }
-        })();
-
-        return { agent, content, figuresPromise };
+        return { agent, content, figuresPromise: Promise.resolve(null) };
       })
     );
 
@@ -939,6 +919,7 @@ GOOD: "CFO to build three financial scenarios (base/bull/bear) with explicit hea
 Return ONLY valid JSON, no markdown fences:
 {"action_items":[{"text":"string","source_area":"CEO|CFO|HR|Legal|Product|Engineering|Finance|Risk|Strategy|Marketing|Operations|People","priority":"critical|high|medium"}]}`;
 
+    currentStage = "chart_extraction";
     const chartDataPrompt = `You are a data analyst extracting structured chart data from a strategic multi-agent debate.
 
 CENTRAL DECISION: "${workspace?.name || "the workspace decision"}"${workspace?.description ? `\nContext: ${workspace.description}` : ""}
@@ -1039,6 +1020,7 @@ Return ONLY valid JSON, no markdown fences:
       round3Completed = consensusContent.trim().length > 20;
     }
 
+    currentStage = "parse_chart";
     // Parse chart data only when the full three-round debate completed
     if (round3Completed && chartRes && chartRes.ok) {
       try {
@@ -1099,15 +1081,9 @@ Return ONLY valid JSON, no markdown fences:
 
     // Resolve per-agent figure extraction BEFORE inserting so metadata is persisted
     const agentFiguresMap: Record<string, AgentFigures | null> = {};
-    await Promise.all(
-      agentResponses.map(async ({ agent, figuresPromise }) => {
-        try {
-          agentFiguresMap[agent.role] = await figuresPromise;
-        } catch {
-          agentFiguresMap[agent.role] = null;
-        }
-      })
-    );
+    for (const { agent } of agentResponses) {
+      agentFiguresMap[agent.role] = null;
+    }
 
     const { data: insertedAgentRows } = await service.from("workspace_messages").insert(
       agentResponses.map(({ agent, content }) => ({
@@ -1170,7 +1146,7 @@ Return ONLY valid JSON, no markdown fences:
 
         const notifications = members.map(m => ({
           user_id: m.user_id,
-          type: "workspace_agents_responded",
+          type: "workspace_ai_activity",
           title: `Agents responded in "${workspaceName}"`,
           content: `${agentNames} have responded to: "${shortMsg}"`,
           related_id: workspace_id,
@@ -1231,12 +1207,12 @@ Return ONLY valid JSON, no markdown fences:
   } catch (err) {
     const errStr = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     const errStack = err instanceof Error ? err.stack || "" : "";
-    console.error("workspace-ai-chat unhandled error:", errStr, "\n", errStack);
+    console.error("workspace-ai-chat unhandled error at stage:", errStr, "\n", errStack);
     const isAbort = err instanceof TypeError && /aborted|network|connection/i.test(err.message);
     return new Response(JSON.stringify({
       error: isAbort ? "The AI agents took too long to respond. Please try again." : "Internal server error",
       detail: errStr,
-      stage: "unhandled",
+      stage: (err as { _stage?: string })._stage || "unhandled",
     }), {
       status: isAbort ? 504 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
