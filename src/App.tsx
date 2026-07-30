@@ -484,6 +484,18 @@ function AppContent() {
     }
   }, [user, loading]);
 
+  // Safety net: if the first-sign-in workspace creation failed (edge function
+  // error, network issue, etc.) the user has no workspace and the home page
+  // renders nothing. Redirect them to the Workspaces page so they can create
+  // one manually instead of staring at a blank screen.
+  useEffect(() => {
+    if (hasNoWorkspace && !firstSignInWorkspaceId && (currentPage === 'home' || currentPage === 'auth')) {
+      setCurrentPage('workspaces');
+      sessionStorage.setItem('currentPage', 'workspaces');
+      history.replaceState(null, '', '#workspaces');
+    }
+  }, [hasNoWorkspace, firstSignInWorkspaceId, currentPage]);
+
   const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
     // Block dashboard access for first-time users locked into AI Collaboration.
     if (page === 'home' && hasNoWorkspace) {
