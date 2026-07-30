@@ -192,18 +192,29 @@ function AppContent() {
               return;
             }
 
-            // Auto-sign-in: redirect to the magic link URL. Supabase verifies
-            // the token server-side, establishes a session, and redirects
-            // back to the app. We stash the workspace ID in sessionStorage
-            // so the redirect effect picks it up once the session is active.
-            if (data.actionLink) {
-              if (data.workspaceId) {
-                sessionStorage.setItem('postConfirmWorkspaceId', data.workspaceId);
+            // Auto-sign-in: the edge function exchanged the magic link token
+            // for a real session server-side. We call setSession() to establish
+            // the session client-side. The "Taking you to your workspace..."
+            // screen stays visible while onAuthStateChange propagates the user
+            // state. The redirect effect then clears confirmResult and routes
+            // to the workspace — no flash of the homepage.
+            if (data.accessToken && data.refreshToken) {
+              const { error: sessionError } = await supabase.auth.setSession({
+                access_token: data.accessToken,
+                refresh_token: data.refreshToken,
+              });
+
+              if (!sessionError) {
+                if (data.workspaceId) {
+                  sessionStorage.setItem('postConfirmWorkspaceId', data.workspaceId);
+                }
+                // Show "Taking you to your workspace..." while the auth
+                // state propagates. The redirect effect will clear this.
+                setConfirmResult('success');
+                setConfirmingEmail(false);
+                return;
               }
-              setConfirmResult('success');
-              setConfirmingEmail(false);
-              window.location.href = data.actionLink;
-              return;
+              console.error('setSession failed:', sessionError.message);
             }
 
             setConfirmResult(data.alreadyConfirmed ? 'already' : 'success');
@@ -395,6 +406,8 @@ function AppContent() {
         setCurrentPage('workspace-hub');
         sessionStorage.setItem('currentPage', 'workspace-hub');
         history.replaceState(null, '', `#workspace/${confirmWorkspaceId}`);
+        setConfirmResult(null);
+        setConfirmingEmail(false);
         return;
       }
       const redirect = sessionStorage.getItem('postLoginRedirect');

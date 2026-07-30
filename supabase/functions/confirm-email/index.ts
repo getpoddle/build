@@ -95,25 +95,55 @@ Deno.serve(async (req: Request) => {
       tokenRow.user_id
     );
 
-    let actionLink: string | null = null;
+    let accessToken: string | null = null;
+    let refreshToken: string | null = null;
     let workspaceId: string | null = null;
 
     if (!userError && userData?.user?.email) {
-      // Generate a one-time magic link. We return the full action_link URL
-      // so the frontend can do a full browser redirect to it — Supabase
-      // verifies the token server-side, establishes the session, and
-      // redirects back to the app. This avoids the client-side verifyOtp
-      // hang that occurs when using the hashed_token directly.
+      // Generate a one-time magic link, then exchange it server-side for a
+      // real session. We return the access/refresh tokens to the frontend
+      // so it can call supabase.auth.setSession() directly — no redirects,
+      // no URL params to lose, no race conditions.
       try {
-        const redirectTo = new URL(Deno.env.get("SUPABASE_URL")!).origin;
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
           type: "magiclink",
           email: userData.user.email,
-          options: { redirectTo },
         });
 
         if (!linkError && linkData?.properties?.action_link) {
-          actionLink = linkData.properties.action_link;
+          // The action_link contains the raw token as a query param.
+          // Extract it and send it to the verify endpoint to get a session.
+          const actionUrl = new URL(linkData.properties.action_link);
+          const rawToken = actionUrl.searchParams.get("token")
+            || actionUrl.hash.match(/token=([^&]+)/)?.[1];
+
+          if (rawToken) {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+            const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+            const verifyRes = await fetch(`${supabaseUrl}/auth/v1/verify`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${anonKey}`,
+                "apikey": anonKey,
+              },
+              body: JSON.stringify({
+                type: "magiclink",
+                token: rawToken,
+              }),
+            });
+
+            if (verifyRes.ok) {
+              const session = await verifyRes.json();
+              accessToken = session.access_token || null;
+              refreshToken = session.refresh_token || null;
+            } else {
+              const errBody = await verifyRes.text().catch(() => "");
+              console.error("Token exchange failed:", verifyRes.status, errBody);
+            }
+          } else {
+            console.error("Could not extract raw token from action_link");
+          }
         } else if (linkError) {
           console.error("Magic link generation failed:", linkError.message);
         }
@@ -169,7 +199,8 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         email: userData?.user?.email || null,
-        actionLink,
+        accessToken,
+        refreshToken,
         workspaceId,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
