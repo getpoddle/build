@@ -413,7 +413,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       const historyForApi = messages.slice(-8).map(m => ({ role: m.role, content: m.content }));
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90_000);
+      const timeout = setTimeout(() => controller.abort(), 120_000);
 
       let res: Response;
       try {
@@ -468,6 +468,14 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         setMessages(prev => [...prev, ...agentMsgs]);
         setTimeout(() => scrollToBottom(), 50);
         onAgentsReplied?.();
+
+        // Surface partial-round feedback so users know when later rounds didn't complete
+        const completed: string[] = Array.isArray(json.rounds_completed) ? json.rounds_completed : [];
+        if (completed.length > 0 && !completed.includes('round2')) {
+          setSendError('The cross-challenge and consensus rounds could not be generated this time. Your initial analyses are shown below.');
+        } else if (completed.length > 0 && completed.includes('round2') && !completed.includes('round3')) {
+          setSendError('The consensus round could not be generated this time. Your initial analyses and cross-challenges are shown below.');
+        }
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {

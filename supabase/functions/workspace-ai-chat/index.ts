@@ -767,6 +767,9 @@ This is ROUND 1 of a structured debate — state your position with full analyti
     );
 
     // ── ROUND 2: Cross-challenge — each agent challenges another (parallel) ──
+    // Uses gpt-4.1 for speed: challenges are short, structured responses that
+    // build on Round 1's analysis and don't need full reasoning depth.
+    let round2Completed = false;
     const challengeResponses = await Promise.all(
       agentResponses.map(async ({ agent, content: myContent }) => {
         const othersBlock = agentResponses
@@ -791,27 +794,40 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
 180-220 words. Punchy. No preamble. No restating your prior position. Start with the challenge. Do not agree with the user unless you have first articulated the strongest case against their position.`;
 
         const r2StartedAt = Date.now();
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "gpt-5.6-sol",
-            messages: [
-              { role: "system", content: challengePrompt },
-              { role: "user", content: safeMessage },
-            ],
-            max_completion_tokens: 450,
-          }),
-        });
+        try {
+          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "gpt-4.1",
+              messages: [
+                { role: "system", content: challengePrompt },
+                { role: "user", content: safeMessage },
+              ],
+              max_completion_tokens: 300,
+            }),
+          });
 
-        const data = await res.json();
-        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `challenge_${agent.role}`, model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: 450, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
-        const content = data.choices?.[0]?.message?.content || "";
-        return { agent, content };
+          const data = await res.json();
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `challenge_${agent.role}`, model: "gpt-4.1", usage: data.usage, maxCompletionTokens: 300, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+          if (!res.ok) {
+            console.error(`Round 2 challenge_${agent.role} failed: HTTP ${res.status}`, JSON.stringify(data?.error || data).slice(0, 500));
+            return { agent, content: "" };
+          }
+          const content = data.choices?.[0]?.message?.content || "";
+          return { agent, content };
+        } catch (err) {
+          console.error(`Round 2 challenge_${agent.role} exception:`, String(err).slice(0, 300));
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `challenge_${agent.role}`, model: "gpt-4.1", maxCompletionTokens: 300, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: "errored" });
+          return { agent, content: "" };
+        }
       })
     );
+    round2Completed = challengeResponses.some(r => r.content.trim().length > 20);
 
     // ── ROUND 3: Consensus + Action Items extraction (parallel) ────────────────
+    // Uses gpt-4.1 for speed: consensus is a structured synthesis task that
+    // builds on the debate output and doesn't need full reasoning depth.
     const debateSummary = [
       ...agentResponses.map(r => `${r.agent.name} (initial position):\n${r.content.slice(0, 350)}`),
       ...challengeResponses.filter(r => r.content).map(r => `${r.agent.name} (challenge):\n${r.content.slice(0, 300)}`),
@@ -865,40 +881,70 @@ Return ONLY valid JSON, no markdown fences:
 
     const consensusStartedAt = Date.now();
     const actionStartedAt = Date.now();
-    const [consensusRes, actionExtrRes] = await Promise.all([
-      fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-5.6-sol",
-          messages: [{ role: "user", content: consensusPrompt }],
-          max_completion_tokens: 600,
-        }),
-      }),
-      fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-5.6-sol",
-          messages: [
-            { role: "system", content: "You extract specific, owner-assigned, immediately executable action items from strategic debates. Every item must name a responsible role, a concrete deliverable, and connect to the central decision. Generic tasks are unacceptable. Return JSON only." },
-            { role: "user", content: actionExtractionPrompt },
-          ],
-          max_completion_tokens: 1200,
-          response_format: { type: "json_object" },
-        }),
-      }),
+    let consensusContent = "";
+    let round3Completed = false;
+
+    // Run consensus and action extraction in parallel, each resilient to failure
+    const [consensusResult, actionExtrRes] = await Promise.all([
+      (async () => {
+        try {
+          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "gpt-4.1",
+              messages: [{ role: "user", content: consensusPrompt }],
+              max_completion_tokens: 500,
+            }),
+          });
+          const data = await res.json();
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "consensus", model: "gpt-4.1", usage: data.usage, maxCompletionTokens: 500, jsonMode: false, latencyMs: Date.now() - consensusStartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+          if (!res.ok) {
+            console.error(`Round 3 consensus failed: HTTP ${res.status}`, JSON.stringify(data?.error || data).slice(0, 500));
+            return null;
+          }
+          return data;
+        } catch (err) {
+          console.error(`Round 3 consensus exception:`, String(err).slice(0, 300));
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "consensus", model: "gpt-4.1", maxCompletionTokens: 500, jsonMode: false, latencyMs: Date.now() - consensusStartedAt, status: "errored" });
+          return null;
+        }
+      })(),
+      (async () => {
+        try {
+          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "gpt-4.1",
+              messages: [
+                { role: "system", content: "You extract specific, owner-assigned, immediately executable action items from strategic debates. Every item must name a responsible role, a concrete deliverable, and connect to the central decision. Generic tasks are unacceptable. Return JSON only." },
+                { role: "user", content: actionExtractionPrompt },
+              ],
+              max_completion_tokens: 1000,
+              response_format: { type: "json_object" },
+            }),
+          });
+          return res;
+        } catch (err) {
+          console.error(`Round 3 action extraction fetch exception:`, String(err).slice(0, 300));
+          return null;
+        }
+      })(),
     ]);
 
-    const consensusData = await consensusRes.json();
-    logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "consensus", model: "gpt-5.6-sol", usage: consensusData.usage, maxCompletionTokens: 600, jsonMode: false, latencyMs: Date.now() - consensusStartedAt, status: consensusRes.ok ? "succeeded" : "errored", httpStatus: consensusRes.status });
-    const consensusContent = consensusData.choices?.[0]?.message?.content || "";
+    if (consensusResult) {
+      consensusContent = consensusResult.choices?.[0]?.message?.content || "";
+      round3Completed = consensusContent.trim().length > 20;
+    }
 
     // Write action items to DB — don't await so it doesn't block the response
     const VALID_SOURCE_AREAS = new Set(["CEO","CFO","HR","Legal","Product","Engineering","Finance","Risk","Strategy","Marketing","Operations","People"]);
-    actionExtrRes.json().then(async (aj) => {
-      logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "action_extraction", model: "gpt-5.6-sol", usage: aj.usage, maxCompletionTokens: 1200, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: actionExtrRes.ok ? "succeeded" : "errored", httpStatus: actionExtrRes.status });
+    (async () => {
+      if (!actionExtrRes || !actionExtrRes.ok) return;
       try {
+        const aj = await actionExtrRes.json();
+        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "action_extraction", model: "gpt-4.1", usage: aj.usage, maxCompletionTokens: 1000, jsonMode: true, latencyMs: Date.now() - actionStartedAt, status: "succeeded", httpStatus: actionExtrRes.status });
         const raw = aj.choices?.[0]?.message?.content || "{}";
         const parsed = JSON.parse(raw);
         const items: Array<{ text?: string; source_area?: string; priority?: string }> = Array.isArray(parsed.action_items) ? parsed.action_items : [];
@@ -918,7 +964,7 @@ Return ONLY valid JSON, no markdown fences:
         if (error) console.error("Action items insert error:", error);
         else console.log(`Wrote ${valid.length} action items from chat turn`);
       } catch (e) { console.error("Action items parse/insert failed:", e); }
-    }).catch((e: unknown) => console.error("Action extraction fetch error:", e));
+    })().catch((e: unknown) => console.error("Action extraction processing error:", e));
 
     // ── Persist all messages in sequence ────────────────────────────────────
     await service.from("workspace_messages").insert({
@@ -1016,8 +1062,14 @@ Return ONLY valid JSON, no markdown fences:
       allResponses.push({ agent_name: "Consensus", agent_role: "consensus", content: consensusContent });
     }
 
+    const rounds_completed = [
+      "round1",
+      round2Completed ? "round2" : null,
+      round3Completed ? "round3" : null,
+    ].filter(Boolean) as string[];
+
     return new Response(
-      JSON.stringify({ responses: allResponses, war_room_usage: warRoomUsage }),
+      JSON.stringify({ responses: allResponses, war_room_usage: warRoomUsage, rounds_completed }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
