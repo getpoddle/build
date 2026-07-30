@@ -283,42 +283,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearOauthError = () => setOauthError(null);
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-          username: username,
-          full_name: `${firstName} ${lastName}`,
-        },
-      },
-    });
-    if (!error && data.user) {
-      trackUserSignup('email');
-      setSignupEmailPending(email);
-
+    try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      fetch(`${supabaseUrl}/functions/v1/send-signup-confirmation`, {
+      const res = await fetch(`${supabaseUrl}/functions/v1/signup-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${anonKey}`,
         },
-        body: JSON.stringify({ userId: data.user.id }),
-      }).catch(() => {});
+        body: JSON.stringify({ email, password, firstName, lastName, username }),
+      });
 
-      // If autoconfirm is enabled, Supabase returns a session immediately.
-      // Sign it out so the user sees the "confirm your email" screen and
-      // must click the confirmation link before accessing the app.
-      if (data.session) {
-        await supabase.auth.signOut();
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        return { error: { message: data.error || 'Sign up failed. Please try again.' } as any };
       }
+
+      trackUserSignup('email');
+      setSignupEmailPending(email);
+      return { error: null };
+    } catch {
+      return { error: { message: 'Unable to reach the signup service. Please try again.' } as any };
     }
-    return { error };
   };
 
   const signIn = async (email: string, password: string) => {
