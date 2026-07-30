@@ -90,8 +90,39 @@ Deno.serve(async (req: Request) => {
       .update({ confirmed_at: new Date().toISOString() })
       .eq("id", tokenRow.id);
 
+    // Generate a one-time magic link token so the frontend can auto-sign-in
+    // the user immediately after confirmation, without requiring a manual
+    // sign-in. If this fails for any reason, we still return success and the
+    // frontend falls back to the manual sign-in screen.
+    let autoSignInToken: string | null = null;
+    let autoSignInEmail: string | null = null;
+    try {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(tokenRow.user_id);
+      autoSignInEmail = userData.user?.email ?? null;
+
+      if (autoSignInEmail) {
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: "magiclink",
+          email: autoSignInEmail,
+        });
+
+        if (linkError) {
+          console.error("confirm-email: generateLink failed:", linkError.message);
+        } else if (linkData?.properties?.action_link) {
+          const url = new URL(linkData.properties.action_link);
+          autoSignInToken = url.searchParams.get("token");
+        }
+      }
+    } catch (linkErr) {
+      console.error("confirm-email: auto-sign-in token generation failed:", linkErr);
+    }
+
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({
+        success: true,
+        autoSignInToken,
+        email: autoSignInEmail,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

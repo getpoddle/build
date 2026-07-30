@@ -195,9 +195,31 @@ function AppContent() {
               return;
             }
 
-            // Show the "Email confirmed" screen. The user signs in
-            // manually and then lands on the Workspaces page to create
-            // their first workspace.
+            // Auto-sign-in: if the backend provided a magic-link token,
+            // verify it to establish a session immediately. On any failure,
+            // fall back to the manual sign-in screen.
+            if (data.autoSignInToken && data.email) {
+              try {
+                const { error: otpError } = await supabase.auth.verifyOtp({
+                  type: 'magiclink',
+                  email: data.email,
+                  token: data.autoSignInToken,
+                });
+                if (!otpError) {
+                  // Session established — the onAuthStateChange listener
+                  // and the first-sign-in effect will handle the rest
+                  // (workspace creation + redirect to AI Collaboration).
+                  setConfirmResult(null);
+                  setConfirmingEmail(false);
+                  return;
+                }
+                console.error('Auto sign-in verifyOtp failed:', otpError.message);
+              } catch (otpErr) {
+                console.error('Auto sign-in exception:', otpErr);
+              }
+            }
+
+            // Fall back to manual sign-in.
             setConfirmResult('success');
           } else {
             setConfirmResult('error');
