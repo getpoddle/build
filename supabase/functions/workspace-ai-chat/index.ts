@@ -1087,7 +1087,19 @@ Return ONLY valid JSON, no markdown fences:
       content: safeMessage,
     });
 
-    await service.from("workspace_messages").insert(
+    // Resolve per-agent figure extraction BEFORE inserting so metadata is persisted
+    const agentFiguresMap: Record<string, AgentFigures | null> = {};
+    await Promise.all(
+      agentResponses.map(async ({ agent, figuresPromise }) => {
+        try {
+          agentFiguresMap[agent.role] = await figuresPromise;
+        } catch {
+          agentFiguresMap[agent.role] = null;
+        }
+      })
+    );
+
+    const { data: insertedAgentRows } = await service.from("workspace_messages").insert(
       agentResponses.map(({ agent, content }) => ({
         workspace_id,
         user_id: null,
@@ -1095,12 +1107,14 @@ Return ONLY valid JSON, no markdown fences:
         content,
         agent_name: agent.name,
         agent_role: agent.role,
-      }))
+        metadata: agentFiguresMap[agent.role] ? { figures: agentFiguresMap[agent.role] } : null,
+      })).select("id, agent_role")
     );
 
     const validChallenges = challengeResponses.filter(r => r.content.trim().length > 20);
+    let insertedChallengeRows: Array<{ id: string; agent_role: string }> = [];
     if (validChallenges.length > 0) {
-      await service.from("workspace_messages").insert(
+      const { data: chRows } = await service.from("workspace_messages").insert(
         validChallenges.map(({ agent, content }) => ({
           workspace_id,
           user_id: null,
@@ -1108,19 +1122,23 @@ Return ONLY valid JSON, no markdown fences:
           content,
           agent_name: agent.name,
           agent_role: agent.role,
-        }))
+        })).select("id, agent_role")
       );
+      insertedChallengeRows = chRows || [];
     }
 
+    let consensusDbId: string | null = null;
     if (consensusContent.trim().length > 20) {
-      await service.from("workspace_messages").insert({
+      const { data: consensusRow } = await service.from("workspace_messages").insert({
         workspace_id,
         user_id: null,
         role: "assistant",
         content: consensusContent,
         agent_name: "Consensus",
         agent_role: "consensus",
-      });
+        metadata: round3Completed && chartData ? { chart_data: chartData } : null,
+      }).select("id").single();
+      consensusDbId = consensusRow?.id ?? null;
     }
 
     // ── Notify all workspace members that agents have responded ──────────────
@@ -1157,27 +1175,27 @@ Return ONLY valid JSON, no markdown fences:
       }
     })();
 
-    // Resolve per-agent figure extraction (fire-and-forget during rounds 2/3)
-    const agentFiguresMap: Record<string, AgentFigures | null> = {};
-    await Promise.all(
-      agentResponses.map(async ({ agent, figuresPromise }) => {
-        try {
-          agentFiguresMap[agent.role] = await figuresPromise;
-        } catch {
-          agentFiguresMap[agent.role] = null;
-        }
-      })
-    );
+    // Build a lookup from agent_role → db id for dedup with realtime
+    const agentIdMap = new Map<string, string>();
+    for (const row of insertedAgentRows || []) {
+      agentIdMap.set(row.agent_role, row.id);
+    }
+    const challengeIdMap = new Map<string, string>();
+    for (const row of insertedChallengeRows) {
+      challengeIdMap.set(row.agent_role, row.id);
+    }
 
     // Return all rounds so the client renders the full debate in order
-    const allResponses: Array<{ agent_name: string; agent_role: string; content: string; figures?: AgentFigures | null }> = [
+    const allResponses: Array<{ id: string | null; agent_name: string; agent_role: string; content: string; figures?: AgentFigures | null }> = [
       ...agentResponses.map(({ agent, content }) => ({
+        id: agentIdMap.get(agent.role) ?? null,
         agent_name: agent.name,
         agent_role: agent.role,
         content,
         figures: agentFiguresMap[agent.role] ?? null,
       })),
-      ...validChallenges.map(({ agent, content }) => ({
+      ...validChallenges.map(({ agent, content }, i) => ({
+        id: challengeIdMap.get(agent.role) ?? null,
         agent_name: agent.name,
         agent_role: agent.role,
         content,
@@ -1186,7 +1204,7 @@ Return ONLY valid JSON, no markdown fences:
 
     let consensusChartData: ChartData | null = null;
     if (consensusContent.trim().length > 20) {
-      allResponses.push({ agent_name: "Consensus", agent_role: "consensus", content: consensusContent });
+      allResponses.push({ id: consensusDbId, agent_name: "Consensus", agent_role: "consensus", content: consensusContent });
       consensusChartData = round3Completed ? chartData : null;
     }
 

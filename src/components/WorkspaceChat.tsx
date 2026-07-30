@@ -250,6 +250,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         (payload) => {
           const newMsg = payload.new as Message;
           if (newMsg.role === 'user' && newMsg.user_id === user?.id) return;
+          // Restore figures/chart_data from metadata so realtime messages show charts
+          const meta = (newMsg as { metadata?: { figures?: AgentFigures | null; chart_data?: ChartData | null } }).metadata;
+          if (meta) {
+            if (meta.figures) (newMsg as Message).figures = meta.figures;
+            if (meta.chart_data) (newMsg as Message).chart_data = meta.chart_data;
+          }
           if (newMsg.role === 'user' && newMsg.user_id && !memberProfilesRef.current[newMsg.user_id]) {
             supabase
               .from('profiles')
@@ -374,11 +380,18 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     setFetching(true);
     const { data } = await supabase
       .from('workspace_messages')
-      .select('id, role, content, agent_name, agent_role, user_id, created_at')
+      .select('id, role, content, agent_name, agent_role, user_id, created_at, metadata')
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: true })
       .limit(120);
-    setMessages(data || []);
+    const mapped = (data || []).map((m: { metadata?: { figures?: AgentFigures | null; chart_data?: ChartData | null } }) => {
+      const meta = m.metadata;
+      if (meta) {
+        return { ...m, figures: meta.figures ?? null, chart_data: meta.chart_data ?? null } as Message;
+      }
+      return m as Message;
+    });
+    setMessages(mapped);
     setFetching(false);
   }
 
@@ -461,8 +474,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
       if (json.responses) {
         const chartData: ChartData | null = json.chart_data ?? null;
-        const agentMsgs: Message[] = json.responses.map((r: { agent_name: string; agent_role: string; content: string; figures?: AgentFigures | null }) => ({
-          id: crypto.randomUUID(),
+        const agentMsgs: Message[] = json.responses.map((r: { id?: string | null; agent_name: string; agent_role: string; content: string; figures?: AgentFigures | null }) => ({
+          id: r.id ?? crypto.randomUUID(),
           role: 'assistant' as const,
           content: r.content,
           agent_name: r.agent_name,
@@ -471,7 +484,11 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           chart_data: r.agent_role === 'consensus' ? chartData : null,
           figures: r.figures ?? null,
         }));
-        setMessages(prev => [...prev, ...agentMsgs]);
+        setMessages(prev => {
+          const existing = new Set(prev.map(m => m.id));
+          const deduped = agentMsgs.filter(m => !existing.has(m.id));
+          return [...prev, ...deduped];
+        });
         setTimeout(() => scrollToBottom(), 50);
         onAgentsReplied?.();
 
