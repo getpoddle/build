@@ -314,7 +314,7 @@ Example output: ["financial_strategist", "devils_advocate", "risk_analyst", "mar
     });
 
     const data = await res.json();
-    logAiOpenAICall({ distinctId: "workspace_agent_select", workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "agent_select", model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - selectStartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+    logAiOpenAICall({ distinctId: "workspace_agent_select", workspaceId: "unknown", functionName: "workspace-ai-chat", callSite: "agent_select", model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - selectStartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
     const raw = data.choices?.[0]?.message?.content?.trim() || "";
 
     const match = raw.match(/\[[\s\S]*\]/);
@@ -770,9 +770,19 @@ This is ROUND 1 of a structured debate — state your position with full analyti
           }),
         });
 
-        const data = await res.json();
-        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
-        const content = data.choices?.[0]?.message?.content || "I couldn't generate a response right now.";
+        let content = "I couldn't generate a response right now.";
+        try {
+          const data = await res.json();
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+          if (!res.ok) {
+            console.error(`Round 1 agent_${agent.role} failed: HTTP ${res.status}`, JSON.stringify(data?.error || data).slice(0, 500));
+          } else {
+            content = data.choices?.[0]?.message?.content || content;
+          }
+        } catch (parseErr) {
+          console.error(`Round 1 agent_${agent.role} response parse error:`, String(parseErr).slice(0, 300));
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-sol", maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
+        }
 
         // Extract figures/categories from this agent's response in parallel
         // (fire-and-forget) so charts can render beneath the agent's text.
