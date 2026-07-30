@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
         source: "lens",
         plan: "pro",
         subscription_status: "trialing",
-        trial_workspace_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        trial_workspace_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         is_public: true,
       })
       .select("id")

@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   deriveAccessState,
   resolveSubscriptionTier,
-  isMonthlyTrialLimitReached,
+  isTrialLimitReached,
+  TRIAL_WORKSPACE_LIMIT,
 } from '../../supabase/functions/_shared/workspaceAccessLogic';
 
 export interface WorkspaceAccess {
@@ -247,7 +248,7 @@ export function useWarRoomUsage(workspaceId: string | null): WarRoomUsage & { re
 
 export function useTrialInfo() {
   const { user } = useAuth();
-  const [freeWorkspaceMonth, setFreeWorkspaceMonth] = useState<string | null>(null);
+  const [trialWorkspaceCount, setTrialWorkspaceCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -255,33 +256,29 @@ export function useTrialInfo() {
 
     supabase
       .from('profiles')
-      .select('free_workspace_month')
+      .select('trial_workspace_count')
       .eq('id', user.id)
       .maybeSingle()
       .then(({ data }) => {
-        setFreeWorkspaceMonth(data?.free_workspace_month ?? null);
+        setTrialWorkspaceCount(data?.trial_workspace_count ?? 0);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [user]);
 
   const now = new Date();
-  const monthlyLimitReached = isMonthlyTrialLimitReached(freeWorkspaceMonth, now);
-
-  const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const resetsOn = nextMonthDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-
-  const endOfMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const expiresOn = endOfMonthDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  const trialLimitReached = isTrialLimitReached(trialWorkspaceCount, now);
+  const used = trialWorkspaceCount ?? 0;
+  const slotsRemaining = Math.max(0, TRIAL_WORKSPACE_LIMIT - used);
 
   return {
-    monthlyLimitReached,
-    resetsOn,
-    expiresOn,
+    trialLimitReached,
+    trialCount: used,
+    trialSlotsRemaining,
+    trialLimit: TRIAL_WORKSPACE_LIMIT,
     loading,
     // legacy aliases kept for backward compatibility
-    trialExhausted: monthlyLimitReached,
-    trialCount: monthlyLimitReached ? 1 : 0,
-    trialSlotsRemaining: monthlyLimitReached ? 0 : 1,
+    trialExhausted: trialLimitReached,
+    monthlyLimitReached: trialLimitReached,
   };
 }

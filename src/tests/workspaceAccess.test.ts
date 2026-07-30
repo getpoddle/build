@@ -4,14 +4,15 @@
  * Covers three pure functions:
  *   - deriveAccessState: role → access flags
  *   - resolveSubscriptionTier: raw profile tier → canonical tier
- *   - isMonthlyTrialLimitReached: free-workspace-per-month dedup
+ *   - isTrialLimitReached: trial workspace count vs cap (3)
  */
 
 import { describe, it, expect } from "vitest";
 import {
   deriveAccessState,
   resolveSubscriptionTier,
-  isMonthlyTrialLimitReached,
+  isTrialLimitReached,
+  TRIAL_WORKSPACE_LIMIT,
 } from "../../supabase/functions/_shared/workspaceAccessLogic";
 
 // ─── deriveAccessState ────────────────────────────────────────────────────────
@@ -142,42 +143,31 @@ describe("resolveSubscriptionTier", () => {
   });
 });
 
-// ─── isMonthlyTrialLimitReached ───────────────────────────────────────────────
+// ─── isTrialLimitReached ─────────────────────────────────────────────────────
 
-describe("isMonthlyTrialLimitReached", () => {
-  const july2026 = new Date(2026, 6, 15); // month is 0-indexed: 6 = July
+describe("isTrialLimitReached", () => {
+  const anyDate = new Date(2026, 6, 15);
 
-  it("returns true when freeWorkspaceMonth matches the current month", () => {
-    expect(isMonthlyTrialLimitReached("2026-07", july2026)).toBe(true);
+  it("returns false when count is below the limit", () => {
+    expect(isTrialLimitReached(0, anyDate)).toBe(false);
+    expect(isTrialLimitReached(1, anyDate)).toBe(false);
+    expect(isTrialLimitReached(2, anyDate)).toBe(false);
   });
 
-  it("returns false when freeWorkspaceMonth is a different month", () => {
-    expect(isMonthlyTrialLimitReached("2026-06", july2026)).toBe(false);
+  it("returns true when count equals the limit", () => {
+    expect(isTrialLimitReached(3, anyDate)).toBe(true);
   });
 
-  it("returns false when freeWorkspaceMonth is null", () => {
-    expect(isMonthlyTrialLimitReached(null, july2026)).toBe(false);
+  it("returns true when count exceeds the limit", () => {
+    expect(isTrialLimitReached(4, anyDate)).toBe(true);
+    expect(isTrialLimitReached(10, anyDate)).toBe(true);
   });
 
-  it("returns false when freeWorkspaceMonth is an empty string", () => {
-    expect(isMonthlyTrialLimitReached("", july2026)).toBe(false);
+  it("returns false when count is null", () => {
+    expect(isTrialLimitReached(null, anyDate)).toBe(false);
   });
 
-  it("handles January boundary correctly", () => {
-    const jan2027 = new Date(2027, 0, 1);
-    expect(isMonthlyTrialLimitReached("2027-01", jan2027)).toBe(true);
-    expect(isMonthlyTrialLimitReached("2026-12", jan2027)).toBe(false);
-  });
-
-  it("handles December boundary correctly", () => {
-    const dec2026 = new Date(2026, 11, 31);
-    expect(isMonthlyTrialLimitReached("2026-12", dec2026)).toBe(true);
-    expect(isMonthlyTrialLimitReached("2027-01", dec2026)).toBe(false);
-  });
-
-  it("pads single-digit months with leading zero", () => {
-    const march2026 = new Date(2026, 2, 10);
-    expect(isMonthlyTrialLimitReached("2026-03", march2026)).toBe(true);
-    expect(isMonthlyTrialLimitReached("2026-3", march2026)).toBe(false);
+  it("TRIAL_WORKSPACE_LIMIT is 3", () => {
+    expect(TRIAL_WORKSPACE_LIMIT).toBe(3);
   });
 });

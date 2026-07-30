@@ -7,16 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-function currentYYYYMM(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
+const TRIAL_DURATION_DAYS = 7;
+const TRIAL_WORKSPACE_LIMIT = 3;
 
-function endOfCurrentMonthISO(): string {
-  const now = new Date();
-  // Day 0 of next month = last day of current month
-  const last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
-  return last.toISOString();
+function trialExpiryISO(): string {
+  return new Date(Date.now() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 }
 
 Deno.serve(async (req: Request) => {
@@ -65,7 +60,7 @@ Deno.serve(async (req: Request) => {
     const [profileRes, paidWsRes, betaRes] = await Promise.all([
       service
         .from("profiles")
-        .select("subscription_tier, free_workspace_month")
+        .select("subscription_tier, trial_workspace_count")
         .eq("id", user.id)
         .maybeSingle(),
       // A "paid" workspace must have an active Stripe subscription.
@@ -85,7 +80,7 @@ Deno.serve(async (req: Request) => {
     ]);
 
     const profileTier = profileRes.data?.subscription_tier;
-    const freeWorkspaceMonth = profileRes.data?.free_workspace_month ?? null;
+    const trialCount = profileRes.data?.trial_workspace_count ?? 0;
 
     const hasPaidProfile = profileTier === "pro" || profileTier === "enterprise";
     const hasPaidWorkspace = (paidWsRes.data?.length ?? 0) > 0;
@@ -96,28 +91,25 @@ Deno.serve(async (req: Request) => {
 
     const isPaid = hasPaidProfile || hasPaidWorkspace || hasBetaAccess;
 
-    // Monthly free workspace gate: 1 free workspace per calendar month.
-    if (!isPaid) {
-      const thisMonth = currentYYYYMM();
-      if (freeWorkspaceMonth === thisMonth) {
-        return new Response(
-          JSON.stringify({
-            error: "You've already created your free workspace this month. Upgrade to Pro for unlimited workspaces.",
-            errorCode: "MONTHLY_LIMIT_REACHED",
-          }),
-          {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
+    // Trial workspace gate: up to 3 trial workspaces per user.
+    if (!isPaid && trialCount >= TRIAL_WORKSPACE_LIMIT) {
+      return new Response(
+        JSON.stringify({
+          error: `You've reached the ${TRIAL_WORKSPACE_LIMIT}-workspace trial limit. Upgrade to Pro for unlimited workspaces.`,
+          errorCode: "TRIAL_LIMIT_REACHED",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Free workspaces expire at end of month; beta users get their grant expiry.
+    // Trial workspaces expire in 7 days; beta users get their grant expiry.
     const trialExpiresAt = hasBetaAccess
       ? betaGrant!.expires_at
       : !isPaid
-        ? endOfCurrentMonthISO()
+        ? trialExpiryISO()
         : null;
 
     // Seats are determined by plan — never trust client-provided value
@@ -165,11 +157,11 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Stamp free_workspace_month so the monthly limit is enforced next time.
+    // Increment trial_workspace_count so the 3-workspace limit is enforced.
     if (!isPaid) {
       await service
         .from("profiles")
-        .update({ free_workspace_month: currentYYYYMM() })
+        .update({ trial_workspace_count: trialCount + 1 })
         .eq("id", user.id);
     }
 

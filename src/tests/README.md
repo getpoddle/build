@@ -16,7 +16,7 @@ npm run test:watch  # re-runs on file change
 | `quota.test.ts` | `shouldBlockQuota` — allow/block decisions under normal conditions and the **fail-closed fix**: a DB error now blocks the request regardless of the recorded count (the old code was fail-open) |
 | `workspaceAccess.test.ts` | `deriveAccessState` — owner / admin / member / null-role access flags; `isReadOnly` true only when `subscription_status` is exactly `'inactive'`; behavior when workspace row is null/undefined |
 | `workspaceAccess.test.ts` | `resolveSubscriptionTier` — known tiers (`free`, `pro`, `enterprise`) pass through; null / undefined / unknown values default to `'free'` |
-| `workspaceAccess.test.ts` | `isMonthlyTrialLimitReached` — same-month match returns true; different month returns false; null `freeWorkspaceMonth` returns false; January / December boundary cases; single-digit month padding |
+| `workspaceAccess.test.ts` | `isTrialLimitReached` — count below limit returns false; count at/above limit returns true; null count returns false; `TRIAL_WORKSPACE_LIMIT` is 3 |
 
 ## What to test next
 

@@ -24,7 +24,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const { user } = useAuth();
   const { workspaces, loading, refetch } = useUserWorkspaces();
   const { isPro } = useSubscriptionTier();
-  const { trialExhausted, monthlyLimitReached, resetsOn, expiresOn, loading: trialLoading } = useTrialInfo();
+  const { trialExhausted, trialLimitReached, trialCount, trialSlotsRemaining, trialLimit, loading: trialLoading } = useTrialInfo();
   const { hasBetaAccess } = useBetaAccess();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -176,8 +176,8 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               >
                 <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--signal)' }} />
                 <p className="text-sm flex-1" style={{ color: 'var(--app-text-secondary)' }}>
-                  <span className="font-semibold text-signal">Free workspace active this month</span>
-                  {' '}— expires {expiresOn}. New slot opens {resetsOn}.
+                  <span className="font-semibold text-signal">Free trial active</span>
+                  {' '}— {trialSlotsRemaining} of {trialLimit} workspaces remaining. Each trial lasts 7 days.
                 </p>
                 <button onClick={() => setShowUpgrade(true)} className="btn-primary flex-shrink-0" style={{ padding: '0.25rem 0.75rem', fontSize: '0.6875rem' }}>
                   Upgrade
@@ -193,7 +193,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                 </div>
                 <h2 className="display-heading text-xl mb-2">No private workspaces yet</h2>
                 <p className="text-sm max-w-sm mx-auto mb-8 leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
-                  1 free workspace every month — no credit card needed. Full Pro features until the end of the month, including encrypted team spaces and AI War Room.
+                  3 free workspaces with a 7-day trial each — no credit card needed. Full Pro features including encrypted team spaces and AI War Room.
                 </p>
                 <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto mb-8">
                   {[
@@ -381,15 +381,15 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               </div>
             )}
 
-            {/* Upgrade banner when monthly limit reached */}
-            {!isLoading && !isPro && monthlyLimitReached && appWorkspaces.length > 0 && view === 'list' && (
+            {/* Upgrade banner when trial limit reached */}
+            {!isLoading && !isPro && trialLimitReached && appWorkspaces.length > 0 && view === 'list' && (
               <div className="panel p-5 flex items-center gap-4" style={{ background: 'var(--signal-bg)' }}>
                 <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--signal)' }}>
                   <Sparkles className="w-5 h-5" style={{ color: 'var(--ink-900)' }} />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>Upgrade for unlimited workspaces</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>Your free workspace resets {resetsOn}, or go Pro now for unlimited.</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>You've used all {trialLimit} trial workspaces. Go Pro for unlimited.</p>
                 </div>
                 <button onClick={() => setShowUpgrade(true)} className="btn-primary flex-shrink-0">
                   Upgrade

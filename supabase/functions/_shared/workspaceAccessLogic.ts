@@ -61,17 +61,17 @@ export function resolveSubscriptionTier(
 }
 
 /**
- * Given the stored month string (YYYY-MM from profiles.free_workspace_month)
- * and a reference date, return whether the user has already used their
- * free workspace for the current month.
+ * Given the user's consumed trial workspace count and the trial limit (3),
+ * return whether the user has exhausted their trial workspace allowance.
  *
- * `now` is accepted as a parameter so tests don't need to mock the clock.
+ * `now` is accepted as a parameter so tests don't need to mock the clock
+ * (kept for API compatibility even though the check is purely count-based).
  */
-export function isMonthlyTrialLimitReached(
-  freeWorkspaceMonth: string | null,
-  now: Date,
+export const TRIAL_WORKSPACE_LIMIT = 3;
+
+export function isTrialLimitReached(
+  trialWorkspaceCount: number | null,
+  _now: Date,
 ): boolean {
-  if (!freeWorkspaceMonth) return false;
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  return freeWorkspaceMonth === currentMonth;
+  return (trialWorkspaceCount ?? 0) >= TRIAL_WORKSPACE_LIMIT;
 }

@@ -66,11 +66,7 @@ Deno.serve(async (req: Request) => {
     const firstName = (user.user_metadata?.first_name as string | undefined)?.trim();
     const workspaceName = firstName ? `${firstName}'s Workspace` : "My Workspace";
 
-    const trialExpiresAt = (() => {
-      const now = new Date();
-      const last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
-      return last.toISOString();
-    })();
+    const trialExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
     const { data: ws, error: wsError } = await service
       .from("workspaces")
