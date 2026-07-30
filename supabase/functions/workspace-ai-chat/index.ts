@@ -460,6 +460,7 @@ Deno.serve(async (req: Request) => {
       ) as { data: ConsumeResult | null; error: { message: string } | null };
 
       if (consumeErr || !consumeResult) {
+        console.error("consume_war_room_session error:", JSON.stringify(consumeErr), "wsPlan:", wsPlan, "workspace_id:", workspace_id);
         return new Response(JSON.stringify({ error: "Failed to verify usage quota. Please try again." }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -467,6 +468,7 @@ Deno.serve(async (req: Request) => {
 
       const wrLimit = resolveWarRoomLimit(wsPlan);
       if (!consumeResult.allowed) {
+        console.error("War Room blocked:", JSON.stringify({ wsPlan, consumeResult, workspace_id }));
         return new Response(JSON.stringify({
           error: "War Room session limit reached for this billing period.",
           quota_exceeded: true,
