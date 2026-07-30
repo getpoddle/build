@@ -203,6 +203,18 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   async function handleDelete() {
     if (!workspace || deleteConfirmText !== workspace.name) return;
     setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      await fetch(`${supabaseUrl}/functions/v1/workspace-synthesize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ workspace_id: workspaceId }),
+      }).catch(() => {});
+    } catch {}
     const { error } = await supabase.from('workspaces').delete().eq('id', workspaceId);
     if (!error) {
       onBack();

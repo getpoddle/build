@@ -552,7 +552,7 @@ Deno.serve(async (req: Request) => {
       content: String(m.content).slice(0, MAX_MESSAGE_CHARS),
     }));
 
-    const [wsRes, synthRes, memoryRes, msgCountRes] = await Promise.all([
+    const [wsRes, synthRes, memoryRes, msgCountRes, priorMemoryRes] = await Promise.all([
       service.from("workspaces").select("name, description, domain").eq("id", workspace_id).maybeSingle(),
       service.from("workspace_synthesis")
         .select("consensus_points, conflict_zones, open_questions, risk_signals, blind_spots, decision_health_score, cognitive_bias_flags")
@@ -565,6 +565,11 @@ Deno.serve(async (req: Request) => {
       service.from("workspace_messages")
         .select("id", { count: "exact", head: true })
         .eq("workspace_id", workspace_id),
+      service.from("user_memory_summaries")
+        .select("summary_text, key_decisions, source_workspace_id, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5),
     ]);
 
     const workspace = wsRes.data;
@@ -657,6 +662,30 @@ Deno.serve(async (req: Request) => {
       synthesisContext = lines.join("\n");
     }
 
+    // ── Cross-workspace prior context ─────────────────────────────────────────
+    // Compact summaries from the user's previous workspaces, injected so agents
+    // can recall decisions, risks, and decision-style patterns from prior sessions.
+    // Capped at ~800 tokens to protect the 150s edge function limit.
+    let priorContextBlock = "";
+    const priorSummaries = (priorMemoryRes.data || []) as { summary_text: string; key_decisions: string[]; created_at: string }[];
+    if (priorSummaries.length > 0) {
+      const pcLines: string[] = [
+        "\n\n=== PRIOR WORKSPACE CONTEXT (from your previous sessions) ===",
+        "The user has worked on prior decisions in other workspaces. Use this context to recall their decision style, prior conclusions, and recurring patterns. Reference naturally — do not force connections.",
+        "",
+      ];
+      let tokenBudget = 800;
+      for (const ps of priorSummaries) {
+        const entry = `--- Prior workspace (${new Date(ps.created_at).toLocaleDateString()}) ---\n${ps.summary_text}${ps.key_decisions?.length > 0 ? `\nKey decisions: ${ps.key_decisions.join("; ")}` : ""}`;
+        const approxTokens = Math.ceil(entry.length / 4);
+        if (tokenBudget - approxTokens < 0) break;
+        pcLines.push(entry);
+        tokenBudget -= approxTokens;
+      }
+      pcLines.push("\n=== END PRIOR WORKSPACE CONTEXT ===");
+      priorContextBlock = pcLines.join("\n");
+    }
+
     const workspaceHeader = `You are participating in a private team workspace called "${workspace?.name || "Private Workspace"}"${workspace?.description ? ` focused on: ${workspace.description}` : ""}${workspace?.domain ? ` (domain: ${workspace.domain})` : ""}.`;
 
     // ── Topic anchor — prevents session drift ───────────────────────────────
@@ -702,7 +731,7 @@ Every section of your response must answer: how does this analysis change what t
 
         const systemPrompt = `${agent.persona}
 
-${workspaceHeader}${topicAnchor}${documentBlock}${memoryContext}${synthesisContext}${intakeInstruction}
+${workspaceHeader}${topicAnchor}${documentBlock}${memoryContext}${synthesisContext}${priorContextBlock}${intakeInstruction}
 
 Respond in 400-500 words. Go deep. Be specific — cite mechanisms, name concrete risks, quote numbers, identify real companies or analogues. Take a definitive position. Apply your full analytical framework to this question, not just the surface layer. Reference prior decisions and open threads when relevant. Never be vague. No platitudes. No hedging.
 
@@ -747,7 +776,7 @@ This is ROUND 1 of a structured debate — state your position with full analyti
 
         const challengePrompt = `${agent.persona}
 
-${workspaceHeader}${topicAnchor}${memoryContext}${synthesisContext}
+${workspaceHeader}${topicAnchor}${memoryContext}${synthesisContext}${priorContextBlock}
 
 You have given your initial analysis. The other agents have now responded:
 
@@ -790,7 +819,7 @@ CROSS-CHALLENGE ROUND — your job is to stress-test the other agents' reasoning
 
     const consensusPrompt = `You are a Managing Partner-level Consensus Architect — a seasoned strategist who has facilitated hundreds of high-stakes decision debates. Your role is to take the full intellectual output of this multi-agent debate and convert it into the clearest possible signal for the team.
 
-${workspaceHeader}${topicAnchor}
+${workspaceHeader}${topicAnchor}${priorContextBlock}
 
 ${selectedAgents.length} elite strategic AI agents have just debated the team's question across two rigorous rounds. Here is the complete debate:
 

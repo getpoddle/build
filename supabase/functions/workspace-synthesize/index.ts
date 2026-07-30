@@ -65,14 +65,20 @@ Deno.serve(async (req: Request) => {
       if (!member) return new Response(JSON.stringify({ error: "Not a member" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Fetch workspace, messages, and the previous synthesis in parallel
-    const [wsRes, msgsRes, prevSynthRes] = await Promise.all([
+    // Fetch workspace, messages, the previous synthesis, and the user's prior
+    // workspace memory summaries in parallel
+    const [wsRes, msgsRes, prevSynthRes, priorMemoryRes] = await Promise.all([
       service.from("workspaces").select("name, topic, description").eq("id", workspace_id).maybeSingle(),
       service.from("workspace_messages").select("role, content, agent_name, agent_role, created_at").eq("workspace_id", workspace_id).order("created_at", { ascending: true }).limit(200),
       service.from("workspace_synthesis")
         .select("open_questions, conflict_zones, blind_spots, action_items, generated_at")
         .eq("workspace_id", workspace_id)
         .maybeSingle(),
+      service.from("user_memory_summaries")
+        .select("summary_text, key_decisions, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5),
     ]);
 
     const workspace = wsRes.data;
@@ -471,6 +477,26 @@ Every field must be populated to the maximum. Thin, generic, or vague outputs ar
 
 WORKSPACE CONTEXT:
 ${workspaceContext}
+${(() => {
+  const priorSummaries = (priorMemoryRes.data || []) as { summary_text: string; key_decisions: string[]; created_at: string }[];
+  if (priorSummaries.length === 0) return "";
+  const pcLines: string[] = [
+    "",
+    "=== PRIOR WORKSPACE CONTEXT (from the user's previous sessions) ===",
+    "The user has worked on prior decisions in other workspaces. Use this context to inform your synthesis — reference their decision style, prior conclusions, and recurring patterns where relevant. Do not force connections.",
+    "",
+  ];
+  let tokenBudget = 800;
+  for (const ps of priorSummaries) {
+    const entry = `--- Prior workspace (${new Date(ps.created_at).toLocaleDateString()}) ---\n${ps.summary_text}${ps.key_decisions?.length > 0 ? `\nKey decisions: ${ps.key_decisions.join("; ")}` : ""}`;
+    const approxTokens = Math.ceil(entry.length / 4);
+    if (tokenBudget - approxTokens < 0) break;
+    pcLines.push(entry);
+    tokenBudget -= approxTokens;
+  }
+  pcLines.push("=== END PRIOR WORKSPACE CONTEXT ===");
+  return "\n" + pcLines.join("\n");
+})()}
 
 === TOPIC ANCHOR — READ THIS FIRST AND OBEY IT IN EVERY SECTION ===
 THE CENTRAL DECISION BEING EVALUATED IS: "${workspace?.name || "the workspace decision"}"
@@ -1548,6 +1574,72 @@ RULES:
       }
     })();
     EdgeRuntime.waitUntil(patternPromise);
+
+    // ── Cross-workspace memory summary generation ────────────────────────────────
+    // Produce a compact (300-500 token) summary of this workspace's AI
+    // Collaboration chat and store it in user_memory_summaries. This is the
+    // data that gets injected into future workspaces' system prompts so agents
+    // can recall context from a user's prior decisions.
+    const memoryPromise = (async () => {
+      try {
+        const memoryPrompt = `You are a decision intelligence archivist. Summarize the following War Room debate into a compact memory record that will help AI advisors in a FUTURE workspace understand this user's decision style, prior conclusions, and recurring patterns.
+
+WORKSPACE: "${workspace?.name || "Untitled"}"
+${workspace?.description ? `Context: ${workspace.description}` : ""}
+
+DEBATE TRANSCRIPT (excerpt):
+${transcript.slice(0, 8000)}
+
+Produce a JSON object with EXACTLY these fields:
+{
+  "summary_text": "A 300-500 token narrative covering: what was decided, the key risks flagged, and the user's demonstrated decision style/bias patterns. Write in third person about 'the user'. Be specific — reference concrete decisions, not generic themes.",
+  "key_decisions": ["3-7 short bullet strings, each naming a specific decision reached or pivotal insight from this workspace"]
+}
+
+Return ONLY valid JSON. No markdown fences.`;
+
+        const memStartedAt = Date.now();
+        const memRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+          signal: AbortSignal.timeout(60_000),
+          body: JSON.stringify({
+            model: "gpt-4.1",
+            messages: [
+              { role: "system", content: "You are a decision intelligence archivist. You produce compact JSON memory summaries grounded in the transcript. Be specific and concrete — future AI advisors will use this to recall context." },
+              { role: "user", content: memoryPrompt },
+            ],
+            max_tokens: 800,
+            response_format: { type: "json_object" },
+          }),
+        });
+
+        if (!memRes.ok) {
+          logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "memory_summary", model: "gpt-4.1", maxCompletionTokens: 800, jsonMode: true, latencyMs: Date.now() - memStartedAt, status: "errored", httpStatus: memRes.status });
+          return;
+        }
+        const memJson = await memRes.json();
+        logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "memory_summary", model: "gpt-4.1", usage: memJson.usage, maxCompletionTokens: 800, jsonMode: true, latencyMs: Date.now() - memStartedAt, status: "succeeded", httpStatus: memRes.status });
+        const memRaw = memJson.choices?.[0]?.message?.content || "{}";
+        const memParsed = JSON.parse(memRaw);
+        const summaryText = typeof memParsed.summary_text === "string" ? memParsed.summary_text.trim() : "";
+        if (summaryText.length < 20) return;
+
+        const keyDecisions = Array.isArray(memParsed.key_decisions)
+          ? memParsed.key_decisions.filter((d: unknown) => typeof d === "string" && d.trim().length > 3).map((d: string) => d.trim()).slice(0, 7)
+          : [];
+
+        await service.from("user_memory_summaries").insert({
+          user_id: user.id,
+          source_workspace_id: workspace_id,
+          summary_text: summaryText,
+          key_decisions: keyDecisions,
+        });
+      } catch (e) {
+        console.error("Memory summary generation failed:", e);
+      }
+    })();
+    EdgeRuntime.waitUntil(memoryPromise);
 
     // Mark the queue entry as done so the cron won't re-process it
     await service

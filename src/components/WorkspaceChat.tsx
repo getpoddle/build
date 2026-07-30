@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download, Mic, Square, Paperclip, FileText, X, Shield, AlertCircle, Lightbulb, TrendingUp, DollarSign, Rocket } from 'lucide-react';
+import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download, Mic, Square, Paperclip, FileText, X, Shield, AlertCircle, Lightbulb, TrendingUp, DollarSign, Rocket, History } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { acquireChannel, releaseChannel, pauseChannel, resumeChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
@@ -176,6 +176,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const [sendError, setSendError] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [priorContextCount, setPriorContextCount] = useState(0);
+  const [showPriorContext, setShowPriorContext] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -224,6 +226,14 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   useEffect(() => {
     loadMessages();
     loadMemberProfiles();
+
+    if (user?.id) {
+      supabase
+        .from('user_memory_summaries')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .then(({ count }) => setPriorContextCount(count ?? 0));
+    }
 
     const msgName = `workspace-messages-${workspaceId}`;
     const presenceName = `workspace-presence-${workspaceId}`;
@@ -843,6 +853,44 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         onScroll={handleScroll}
         className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-0.5 lg:pr-1"
       >
+        {priorContextCount > 0 && messages.length <= 4 && (
+          <div
+            className="rounded-xl border text-xs overflow-hidden transition-all"
+            style={{
+              background: 'var(--app-surface-raised)',
+              borderColor: 'var(--app-border)',
+            }}
+          >
+            <button
+              onClick={() => setShowPriorContext(s => !s)}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-black/[0.02]"
+              style={{ color: 'var(--app-text-primary)' }}
+            >
+              <History className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--signal)' }} />
+              <span className="font-semibold flex-1">
+                Continuing from your last workspace
+              </span>
+              <span className="text-[11px] font-normal" style={{ color: 'var(--app-text-muted)' }}>
+                {priorContextCount} prior {priorContextCount === 1 ? 'summary' : 'summaries'}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform ${showPriorContext ? 'rotate-180' : ''}`}
+                style={{ color: 'var(--app-text-secondary)' }}
+              />
+            </button>
+            {showPriorContext && (
+              <div
+                className="px-3 pb-3 pt-1 leading-relaxed"
+                style={{ color: 'var(--app-text-secondary)' }}
+              >
+                AI advisors in this workspace have been given a compact summary of
+                decisions, risks, and patterns from your previous workspaces. They may
+                reference this context — even things you haven't said here — so you can
+                pick up where you left off.
+              </div>
+            )}
+          </div>
+        )}
         {messages.length === 0 && !loading ? (
           <div className="flex flex-col items-center justify-center py-8 px-2">
             <div
