@@ -21,6 +21,7 @@ export default function Auth() {
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [resetCooldownUntil, setResetCooldownUntil] = useState(0);
+  const [signupCooldownUntil, setSignupCooldownUntil] = useState(0);
 
   useEffect(() => {
     if (oauthError) {
@@ -106,6 +107,14 @@ export default function Auth() {
           setSuccessMessage('If an account exists for that email, a reset link has been sent. Check your inbox.');
         }
       } else if (view === 'signup') {
+        const now = Date.now();
+        if (now < signupCooldownUntil) {
+          const secsLeft = Math.ceil((signupCooldownUntil - now) / 1000);
+          setError(`Please wait ${secsLeft} seconds before trying to sign up again.`);
+          setLoading(false);
+          return;
+        }
+
         if (!username) {
           setError('Username is required');
           setLoading(false);
@@ -125,7 +134,15 @@ export default function Auth() {
         const { error } = await signUp(email, password, firstName, lastName, username);
 
         if (error) {
-          setError(error.message);
+          const msg = error.message || '';
+          if (msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('too many')) {
+            setSignupCooldownUntil(Date.now() + 60_000);
+            setError('Too many signup attempts. Please wait a minute before trying again.');
+          } else {
+            setError(msg);
+          }
+        } else {
+          setSignupCooldownUntil(Date.now() + 30_000);
         }
       } else {
         const { error } = await signIn(email, password);
