@@ -206,10 +206,22 @@ function AppContent() {
 
               if (!sessionError) {
                 if (data.workspaceId) {
-                  sessionStorage.setItem('postConfirmWorkspaceId', data.workspaceId);
+                  // Navigate directly to the workspace — don't wait for
+                  // onAuthStateChange to propagate. On mobile the async
+                  // chain (onAuthStateChange → setUser → useEffect) can
+                  // take several seconds, leaving the user staring at the
+                  // "Taking you to your workspace…" spinner. Setting the
+                  // page state here makes the workspace appear instantly.
+                  onboardingCheckedRef.current = true;
+                  setNeedsOnboarding(false);
+                  setWorkspaceId(data.workspaceId);
+                  setCurrentPage('workspace-hub');
+                  sessionStorage.setItem('currentPage', 'workspace-hub');
+                  history.replaceState(null, '', `#workspace/${data.workspaceId}`);
+                  setConfirmResult(null);
+                  setConfirmingEmail(false);
+                  return;
                 }
-                // Show "Taking you to your workspace..." while the auth
-                // state propagates. The redirect effect will clear this.
                 setConfirmResult('success');
                 setConfirmingEmail(false);
                 return;
