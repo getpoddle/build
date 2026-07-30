@@ -209,22 +209,22 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         <div className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-1">
             {[
-              { abbr: 'RA', bg: '#7c2d12', color: '#fdba74', label: 'Risk Analyst' },
-              { abbr: 'DA', bg: '#14532d', color: '#86efac', label: "Devil's Advocate" },
-              { abbr: 'FS', bg: '#0c4a6e', color: '#7dd3fc', label: 'Financial Strategist' },
-              { abbr: 'MA', bg: '#4c1d95', color: '#c4b5fd', label: 'Market Analyst' },
-              { abbr: 'EL', bg: '#1e1b4b', color: '#a5b4fc', label: 'Execution Lead' },
-              { abbr: 'IS', bg: '#064e3b', color: '#6ee7b7', label: 'Innovation Scout' },
-              { abbr: 'PA', bg: '#831843', color: '#f9a8d4', label: 'People Advisor' },
+              { abbr: 'RA', label: 'Risk Analyst' },
+              { abbr: 'DA', label: "Devil's Advocate" },
+              { abbr: 'FS', label: 'Financial Strategist' },
+              { abbr: 'MA', label: 'Market Analyst' },
+              { abbr: 'EL', label: 'Execution Lead' },
+              { abbr: 'IS', label: 'Innovation Scout' },
+              { abbr: 'PA', label: 'People Advisor' },
             ].map((a, i) => (
-              <div
+              <img
                 key={a.abbr}
+                src={AGENT_AVATARS[a.abbr]}
+                alt={a.label}
                 title={a.label}
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-black ring-2 transition-transform hover:-translate-y-1 cursor-default"
-                style={{ background: a.bg, color: a.color, ringColor: 'rgba(0,0,0,0.6)', zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0 }}
-              >
-                {a.abbr}
-              </div>
+                className="w-9 h-9 rounded-xl object-cover transition-transform hover:-translate-y-1 cursor-default"
+                style={{ zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0, boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
+              />
             ))}
           </div>
           <p className="text-xs font-medium" style={{ color: 'rgba(100,116,139,0.7)' }}>7 specialized agents · each with a different mandate</p>
@@ -307,6 +307,22 @@ function AsSeenOnSection() {
 
 // ─── How It Works ─────────────────────────────────────────────────────────────
 
+const AGENT_AVATARS: Record<string, string> = {
+  RA: 'https://images.pexels.com/photos/8312669/pexels-photo-8312669.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+  DA: 'https://images.pexels.com/photos/5308640/pexels-photo-5308640.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+  FS: 'https://images.pexels.com/photos/25651531/pexels-photo-25651531.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+  MA: 'https://images.pexels.com/photos/26150470/pexels-photo-26150470.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+  EL: 'https://images.pexels.com/photos/35490803/pexels-photo-35490803.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+  IS: 'https://images.pexels.com/photos/7752788/pexels-photo-7752788.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+  PA: 'https://images.pexels.com/photos/33148747/pexels-photo-33148747.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+};
+
+const TEAM_AVATARS: Record<string, string> = {
+  SK: 'https://images.pexels.com/photos/7860654/pexels-photo-7860654.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+  JT: 'https://images.pexels.com/photos/28442318/pexels-photo-28442318.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+  ML: 'https://images.pexels.com/photos/38453638/pexels-photo-38453638.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
+};
+
 const HOW_STEPS = [
   {
     number: '01',
@@ -319,9 +335,9 @@ const HOW_STEPS = [
     body: "Invite your team into a private, encrypted workspace where everyone can post their perspective, share context, and challenge each other's thinking. Upload supporting documents (PDF, DOCX, Excel) to ground the discussion in real data. The team chat is where the human debate happens before any AI ever speaks.",
     callout: "Team Chat is the human layer: your team's own debate, in your own words, inside a secure workspace.",
     visual: [
-      { abbr: 'SK', bg: '#0c4a6e', color: '#7dd3fc', name: 'Sarah (CFO)', text: 'Our burn rate gives us 8 months. We cannot afford a slow rollout, we need revenue fast.' },
-      { abbr: 'JT', bg: '#14532d', color: '#86efac', name: 'James (COO)', text: 'But rushing into 6 markets simultaneously is how we lost the APAC launch. Sequencing matters.' },
-      { abbr: 'ML', bg: '#7c2d12', color: '#fdba74', name: 'Maya (Head of Risk)', text: 'Agreed. Let us get the AI agents in here to stress-test both options before we decide.' },
+      { abbr: 'SK', avatar: TEAM_AVATARS.SK, color: '#0c4a6e', name: 'Sarah (CFO)', text: 'Our burn rate gives us 8 months. We cannot afford a slow rollout, we need revenue fast.' },
+      { abbr: 'JT', avatar: TEAM_AVATARS.JT, color: '#14532d', name: 'James (COO)', text: 'But rushing into 6 markets simultaneously is how we lost the APAC launch. Sequencing matters.' },
+      { abbr: 'ML', avatar: TEAM_AVATARS.ML, color: '#7c2d12', name: 'Maya (Head of Risk)', text: 'Agreed. Let us get the AI agents in here to stress-test both options before we decide.' },
     ],
   },
   {
@@ -335,9 +351,9 @@ const HOW_STEPS = [
     body: "Seven specialized agents (Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor) join the conversation alongside your team. Each agent responds from a completely different angle, challenging both your team's assumptions and each other. Your team can reply, push back, and steer the debate. This is multiplayer AI: humans and agents debating together in one shared thread.",
     callout: 'AI Collaboration is where humans and agents debate together: not agents talking at you, but a real-time, multi-perspective conversation.',
     visual: [
-      { abbr: 'RA', bg: '#7c2d12', color: '#fdba74', text: 'Distribution shift risk in EU markets could cause 40-60% prediction errors in year one.' },
-      { abbr: 'FS', bg: '#0c4a6e', color: '#7dd3fc', text: 'EU AI Act requires per-decision explainability. Adds 6-9 months to your launch timeline.' },
-      { abbr: 'DA', bg: '#14532d', color: '#86efac', text: 'Klarna scaled across 6+ EU markets in under 3 years. Compliance is process, not blocker.' },
+      { abbr: 'RA', avatar: AGENT_AVATARS.RA, bg: 'rgba(124,45,18,0.07)', color: '#7c2d12', text: 'Distribution shift risk in EU markets could cause 40-60% prediction errors in year one.' },
+      { abbr: 'FS', avatar: AGENT_AVATARS.FS, bg: 'rgba(12,74,110,0.07)', color: '#0c4a6e', text: 'EU AI Act requires per-decision explainability. Adds 6-9 months to your launch timeline.' },
+      { abbr: 'DA', avatar: AGENT_AVATARS.DA, bg: 'rgba(20,83,45,0.07)', color: '#14532d', text: 'Klarna scaled across 6+ EU markets in under 3 years. Compliance is process, not blocker.' },
     ],
   },
   {
@@ -425,9 +441,9 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                               </div>
                             </div>
                             <div className="flex-1 p-4 space-y-3" style={{ background: '#FFFFFF' }}>
-                              {(step.visual as { abbr: string; bg: string; color: string; name: string; text: string }[]).map((v) => (
+                              {(step.visual as { abbr: string; avatar: string; color: string; name: string; text: string }[]).map((v) => (
                                 <div key={v.abbr} className="flex gap-2.5">
-                                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5" style={{ background: v.bg, color: v.color }}>{v.abbr}</div>
+                                  <img src={v.avatar} alt={v.name} className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
                                   <div className="flex flex-col max-w-[80%]">
                                     <div className="flex items-baseline gap-2 mb-0.5">
                                       <span className="text-[10px] font-semibold" style={{ color: v.color }}>{v.name}</span>
@@ -467,7 +483,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                             <div className="flex-1 p-4 space-y-3" style={{ background: '#FFFFFF' }}>
                               {/* Team member message */}
                               <div className="flex gap-2.5">
-                                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5" style={{ background: 'rgba(8,145,178,0.12)', color: '#0f766e' }}>ML</div>
+                                <img src={TEAM_AVATARS.ML} alt="Maya (Head of Risk)" className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
                                 <div className="flex flex-col max-w-[80%]">
                                   <div className="flex items-baseline gap-2 mb-0.5">
                                     <span className="text-[10px] font-semibold" style={{ color: '#0f766e' }}>Maya (Head of Risk)</span>
@@ -479,9 +495,9 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                                 </div>
                               </div>
                               {/* Agent responses */}
-                              {(step.visual as { abbr: string; bg: string; color: string; text: string }[]).map((v) => (
+                              {(step.visual as { abbr: string; avatar: string; bg: string; color: string; text: string }[]).map((v) => (
                                 <div key={v.abbr} className="flex gap-2.5">
-                                  <div className="w-7 h-7 rounded-xl flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5" style={{ background: v.bg, color: v.color, border: `1px solid ${v.color}22` }}>{v.abbr}</div>
+                                  <img src={v.avatar} alt={v.abbr} className="w-7 h-7 rounded-xl object-cover flex-shrink-0 mt-0.5" style={{ border: `1px solid ${v.color}22` }} />
                                   <div className="flex flex-col max-w-[80%]">
                                     <div className="flex items-baseline gap-2 mb-0.5">
                                       <span className="text-[10px] font-semibold" style={{ color: v.color }}>{v.abbr === 'RA' ? 'Risk Analyst' : v.abbr === 'FS' ? 'Financial Strategist' : "Devil's Advocate"}</span>
@@ -581,19 +597,19 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
 
 const DEMO_MESSAGES = [
   {
-    agent: 'RA', bg: '#7c2d12', color: '#fdba74', label: 'Risk Analyst',
+    agent: 'RA', avatar: AGENT_AVATARS.RA, bg: 'rgba(124,45,18,0.07)', color: '#7c2d12', label: 'Risk Analyst',
     msg: "AI credit scoring models trained on US or UK data carry severe distribution shift risk in Southern and Eastern European markets. Default rate predictions could be off by 40-60% in the first 12 months. You need local training data before you lend at scale.",
   },
   {
-    agent: 'FS', bg: '#0c4a6e', color: '#7dd3fc', label: 'Financial Strategist',
+    agent: 'FS', avatar: AGENT_AVATARS.FS, bg: 'rgba(12,74,110,0.07)', color: '#0c4a6e', label: 'Financial Strategist',
     msg: "The EU AI Act classifies AI-driven credit decisions as high-risk. Article 10 requires explainability per decision, not just model-level. Building a compliant audit trail adds 6-9 months to your launch timeline and ongoing cost per decision. Factor that into your unit economics.",
   },
   {
-    agent: 'DA', bg: '#14532d', color: '#86efac', label: "Devil's Advocate",
+    agent: 'DA', avatar: AGENT_AVATARS.DA, bg: 'rgba(20,83,45,0.07)', color: '#14532d', label: "Devil's Advocate",
     msg: 'Every incumbent cites compliance complexity as a moat. But Klarna and Monzo scaled across 6+ European jurisdictions in under 3 years. The regtech tooling is genuinely better now. The question is not whether compliance is hard. It is whether your team treats it as a blocker or a process.',
   },
   {
-    agent: 'EL', bg: '#1e1b4b', color: '#a5b4fc', label: 'Execution Lead',
+    agent: 'EL', avatar: AGENT_AVATARS.EL, bg: 'rgba(30,27,75,0.07)', color: '#1e1b4b', label: 'Execution Lead',
     msg: "Passport your product through Germany first: strictest regulator, highest trust signal. A BaFin approval with clean model documentation unlocks France, Netherlands, and the Nordics far faster than parallel filings. Sequence this. Do not parallelize.",
   },
 ];
@@ -770,12 +786,12 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                     transform: i < revealed ? 'translateY(0)' : 'translateY(10px)',
                   }}
                 >
-                  <div
-                    className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
-                    style={{ background: m.bg, color: m.color, border: `1px solid ${m.color}22` }}
-                  >
-                    {m.agent}
-                  </div>
+                  <img
+                    src={m.avatar}
+                    alt={m.label}
+                    className="w-7 h-7 rounded-xl object-cover flex-shrink-0 mt-0.5"
+                    style={{ border: `1px solid ${m.color}22` }}
+                  />
                   <div
                     className="flex-1 rounded-2xl p-3.5"
                     style={{ background: m.bg, border: `1px solid ${m.color}22`, borderBottomLeftRadius: '4px' }}
