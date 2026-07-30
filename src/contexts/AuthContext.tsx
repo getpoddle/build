@@ -19,6 +19,8 @@ interface AuthContextType {
   clearSignupEmailPending: () => void;
   oauthError: string | null;
   clearOauthError: () => void;
+  pendingDeletion: boolean;
+  clearPendingDeletion: () => void;
   signUp: (email: string, password: string, firstName: string, lastName: string, username: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signInWithGoogle: () => Promise<{ error: AuthError | null }>;
@@ -35,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(isInitialPasswordRecovery);
   const [signupEmailPending, setSignupEmailPending] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
+  const [pendingDeletion, setPendingDeletion] = useState(false);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAdminRef = useRef(false);
   const isLoggedInRef = useRef(false);
@@ -133,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!session?.user) {
             isAdminRef.current = false;
             clearIdleTimer();
+            setPendingDeletion(false);
           }
 
           if (event === 'USER_UPDATED' && session?.user?.email_confirmed_at) {
@@ -146,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
 
             // Run admin check and profile fetch in parallel
-            let profile: { id: string; first_name: string | null; last_name: string | null; username: string | null } | null = null;
+            let profile: { id: string; first_name: string | null; last_name: string | null; username: string | null; deletion_requested_at: string | null } | null = null;
             try {
               const [adminRes, profileRes] = await Promise.all([
                 withTimeout(
@@ -154,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   5000
                 ).catch(() => ({ data: null })),
                 withTimeout(
-                  supabase.from('profiles').select('id, first_name, last_name, username').eq('id', session.user.id).maybeSingle(),
+                  supabase.from('profiles').select('id, first_name, last_name, username, deletion_requested_at').eq('id', session.user.id).maybeSingle(),
                   5000
                 ),
               ]);
@@ -165,6 +169,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.error('Profile fetch timed out');
               return;
             }
+
+            // Check if the user has a pending account deletion
+            setPendingDeletion(!!profile?.deletion_requested_at);
 
             if (!profile) {
               // Guard against deleted accounts: if the auth account is older than
@@ -373,6 +380,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSignupEmailPending,
     oauthError,
     clearOauthError,
+    pendingDeletion,
+    clearPendingDeletion: () => setPendingDeletion(false),
     signUp,
     signIn,
     signInWithGoogle,

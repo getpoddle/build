@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense, type ReactNode } from 'react';
-import { CheckCircle, Mail, RefreshCw } from 'lucide-react';
+import { CheckCircle, Mail, RefreshCw, AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary, { PageErrorBoundary } from './components/ErrorBoundary';
@@ -47,7 +47,7 @@ function RouteFallback() {
 }
 
 function AppContent() {
-  const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation, oauthError } = useAuth();
+  const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation, oauthError, pendingDeletion, clearPendingDeletion, signOut } = useAuth();
   const { workspaces: userWorkspaces, loading: workspacesLoading } = useUserWorkspaces();
   const hasNoWorkspace = !workspacesLoading && !!user && userWorkspaces.length === 0;
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -142,6 +142,27 @@ function AppContent() {
   const firstSignInRef = useRef<string | null>(sessionStorage.getItem('firstSignInWorkspaceId'));
   const [confirmingEmail, setConfirmingEmail] = useState(false);
   const [confirmResult, setConfirmResult] = useState<'success' | 'error' | 'already' | null>(null);
+  const [restoring, setRestoring] = useState(false);
+
+  const handleRestoreAccount = async () => {
+    setRestoring(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setRestoring(false); return; }
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/restore-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.error) { setRestoring(false); return; }
+      clearPendingDeletion();
+    } catch { setRestoring(false); }
+  };
+
+  const handleContinueDeletion = async () => {
+    await signOut();
+  };
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceInitialTab, setWorkspaceInitialTab] = useState<string | undefined>(undefined);
   const [joinToken, setJoinToken] = useState<string | null>(null);
@@ -749,6 +770,11 @@ function AppContent() {
     );
   }
 
+  // ── Account deletion pending: show restore prompt ──
+  if (user && pendingDeletion) {
+    return <RestoreAccountPrompt onRestore={handleRestoreAccount} onContinueDeletion={handleContinueDeletion} restoring={restoring} />;
+  }
+
   const wrap = (node: ReactNode) => (
     <Suspense fallback={<RouteFallback />}>{node}</Suspense>
   );
@@ -928,6 +954,46 @@ function AppContent() {
       </main>
       <InstallPrompt />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+    </div>
+  );
+}
+
+function RestoreAccountPrompt({ onRestore, onContinueDeletion, restoring }: { onRestore: () => void; onContinueDeletion: () => void; restoring: boolean }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--app-bg)' }}>
+      <div className="max-w-md w-full panel-raised p-6" style={{ boxShadow: 'var(--shadow-xl)' }}>
+        <div className="flex items-start gap-3 mb-5">
+          <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <AlertTriangle className="w-5 h-5" style={{ color: '#b45309' }} />
+          </div>
+          <div>
+            <h2 className="display-heading text-lg mb-1.5">Account Deletion Pending</h2>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
+              You previously requested to delete your account. Would you like to restore it,
+              or continue with deletion?
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={onRestore}
+            disabled={restoring}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+            style={{ background: 'var(--signal)', color: 'var(--ink-950)' }}
+          >
+            {restoring ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+            {restoring ? 'Restoring…' : 'Restore My Account'}
+          </button>
+          <button
+            onClick={onContinueDeletion}
+            disabled={restoring}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+            style={{ background: 'transparent', color: 'var(--app-text-muted)', border: '1px solid var(--app-border)' }}
+          >
+            Continue with Deletion
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

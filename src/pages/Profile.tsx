@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, MapPin, LogOut, Linkedin, CreditCard, Loader2, CheckCircle, ExternalLink, Sparkles } from 'lucide-react';
+import { Save, MapPin, LogOut, Linkedin, CreditCard, Loader2, CheckCircle, ExternalLink, Sparkles, Trash2, AlertTriangle } from 'lucide-react';
 import { countries, getLocationsForCountry } from '../lib/locations';
 import { Database } from '../lib/database.types';
 import ProfilePictureUpload from '../components/ProfilePictureUpload';
@@ -26,6 +26,9 @@ export default function Profile({ onNavigate }: ProfileProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [portalError, setPortalError] = useState('');
 
   const [editedName, setEditedName] = useState('');
@@ -93,6 +96,35 @@ export default function Profile({ onNavigate }: ProfileProps) {
     if (isSigningOut) return;
     setIsSigningOut(true);
     try { await signOut(); } finally { setIsSigningOut(false); setShowLogoutConfirm(false); }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user || deleting) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setDeleteError('No active session. Please sign in again.');
+        return;
+      }
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/request-account-deletion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.error) {
+        setDeleteError(json.error || 'Failed to schedule account deletion. Please try again.');
+        return;
+      }
+      setShowDeleteConfirm(false);
+      await signOut();
+    } catch {
+      setDeleteError('Something went wrong. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleBillingPortal = async () => {
@@ -336,6 +368,67 @@ export default function Profile({ onNavigate }: ProfileProps) {
                 style={{ background: 'var(--negative)', borderColor: 'var(--negative)', color: 'var(--ink-900)' }}
               >
                 {isSigningOut ? 'Signing out…' : 'Sign Out'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account section */}
+      <div className="panel-base p-5 mt-6" style={{ borderColor: 'rgba(220,38,38,0.2)' }}>
+        <h2 className="text-sm font-semibold mb-1" style={{ color: '#dc2626' }}>Delete Account</h2>
+        <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
+          Permanently delete your account and all associated data. Your account will be deactivated
+          immediately and permanently deleted after a 7-day grace period. If you sign in during that
+          window, you can restore your account.
+        </p>
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all"
+          style={{ background: 'rgba(220,38,38,0.06)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.2)' }}
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete Account
+        </button>
+      </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="max-w-md w-full panel-raised p-6" style={{ boxShadow: 'var(--shadow-xl)' }}>
+            <div className="flex items-start gap-3 mb-5">
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)' }}>
+                <AlertTriangle className="w-5 h-5" style={{ color: '#dc2626' }} />
+              </div>
+              <div>
+                <h3 className="display-heading text-lg mb-1">Delete Account</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
+                  Are you sure? Your account and data will be permanently deleted after 7 days.
+                  You'll be signed out immediately. If you change your mind, sign back in within
+                  7 days to restore your account.
+                </p>
+              </div>
+            </div>
+            {deleteError && (
+              <div className="mb-4 p-3 text-sm rounded-lg" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)', color: 'var(--negative)' }}>
+                {deleteError}
+              </div>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+                disabled={deleting}
+                className="btn-ghost text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+                style={{ background: '#dc2626', color: 'white' }}
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {deleting ? 'Processing…' : 'Yes, Delete My Account'}
               </button>
             </div>
           </div>
