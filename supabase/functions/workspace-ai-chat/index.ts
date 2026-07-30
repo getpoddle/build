@@ -229,6 +229,133 @@ Voice: Warm but precise. You see people clearly without romanticising them. Huma
 
 const DAILY_MESSAGE_LIMIT = 100;
 
+// ─── Figure extraction ────────────────────────────────────────────────────────
+// Parses structured figures from agent text. Agents are prompted to end their
+// responses with a JSON block so we can render charts. If parsing fails we
+// silently skip — the text response still shows.
+function parseFiguresFromContent(content: string): AgentFigures | null {
+  try {
+    // Look for a fenced or bare JSON block near the end of the response
+    const fenceMatch = content.match(/```json\s*([\s\S]*?)```/);
+    const rawJson = fenceMatch ? fenceMatch[1] : null;
+    if (!rawJson) return null;
+    const parsed = JSON.parse(rawJson.trim());
+    if (!parsed || typeof parsed !== "object") return null;
+    const figures = Array.isArray(parsed.figures) ? parsed.figures.filter((f: unknown) =>
+      f && typeof (f as { label: string }).label === "string" &&
+      typeof (f as { value: number }).value === "number" &&
+      typeof (f as { unit: string }).unit === "string"
+    ).map((f: { label: string; value: number; unit: string }) => ({
+      label: String(f.label).slice(0, 60),
+      value: Number(f.value),
+      unit: String(f.unit).slice(0, 8),
+    })) : [];
+    const categories = Array.isArray(parsed.categories) ? parsed.categories.filter((c: unknown) =>
+      c && typeof (c as { label: string }).label === "string" &&
+      typeof (c as { value: number }).value === "number" &&
+      typeof (c as { unit: string }).unit === "string"
+    ).map((c: { label: string; value: number; unit: string }) => ({
+      label: String(c.label).slice(0, 60),
+      value: Number(c.value),
+      unit: String(c.unit).slice(0, 8),
+    })) : [];
+    if (figures.length === 0 && categories.length === 0) return null;
+    return { figures, categories };
+  } catch {
+    return null;
+  }
+}
+
+// Strip the JSON figure block from the display text so users don't see raw JSON
+function stripFiguresBlock(content: string): string {
+  return content.replace(/\s*```json\s*[\s\S]*?```\s*/g, "").trimEnd();
+}
+
+// ─── Debate analytics chart generation ─────────────────────────────────────────
+// Builds ChartData from agent responses by asking the LLM to extract structured
+// confidence, risk, and alignment data.
+async function generateDebateCharts(
+  agentResponses: Array<{ agent: { name: string; role: string }; content: string }>,
+  openAiKey: string,
+  user: { id: string },
+  workspace_id: string,
+): Promise<ChartData | null> {
+  const agentSummaries = agentResponses.map(r =>
+    `### ${r.agent.name} (${r.agent.role})\n${r.content.slice(0, 800)}`
+  ).join("\n\n---\n\n");
+
+  const chartPrompt = `You are a debate analytics engine. Below are responses from multiple AI agents analyzing a strategic decision. Extract structured data for visualization.
+
+Agent responses:
+${agentSummaries}
+
+Return ONLY a JSON object with this exact shape (no markdown, no explanation):
+{
+  "agent_confidence": [
+    { "agent_name": "Risk Analyst", "confidence": 75 }
+  ],
+  "risk_distribution": [
+    { "category": "Market", "count": 3 }
+  ],
+  "alignment_scores": [
+    { "dimension": "Strategy", "score": 72 }
+  ]
+}
+
+Rules:
+- agent_confidence: one entry per agent. confidence is 0-100 based on how confident the agent's analysis is.
+- risk_distribution: count risks by category. Valid categories: "Market", "Execution", "Financial", "Technology", "People", "Regulatory".
+- alignment_scores: score how aligned agents are across dimensions: "Strategy", "Risk", "Financial", "Execution", "People". Each score 0-100.`;
+
+  const startedAt = Date.now();
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-5.6-sol",
+        messages: [{ role: "user", content: chartPrompt }],
+        max_completion_tokens: 500,
+        response_format: { type: "json_object" },
+      }),
+    });
+    const data = await res.json();
+    logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "debate_charts", model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: 500, jsonMode: true, latencyMs: Date.now() - startedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+    if (!res.ok) return null;
+    const raw = data.choices?.[0]?.message?.content?.trim() || "";
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const agent_confidence = Array.isArray(parsed.agent_confidence)
+      ? parsed.agent_confidence.filter((a: unknown) => a && typeof (a as { agent_name: string }).agent_name === "string" && typeof (a as { confidence: number }).confidence === "number")
+          .map((a: { agent_name: string; confidence: number }) => ({
+            agent_name: String(a.agent_name).slice(0, 30),
+            confidence: Math.max(0, Math.min(100, Math.round(a.confidence))),
+          }))
+      : [];
+    const risk_distribution = Array.isArray(parsed.risk_distribution)
+      ? parsed.risk_distribution.filter((r: unknown) => r && typeof (r as { category: string }).category === "string" && typeof (r as { count: number }).count === "number")
+          .map((r: { category: string; count: number }) => ({
+            category: String(r.category).slice(0, 20),
+            count: Math.max(0, Math.round(r.count)),
+          }))
+      : [];
+    const alignment_scores = Array.isArray(parsed.alignment_scores)
+      ? parsed.alignment_scores.filter((s: unknown) => s && typeof (s as { dimension: string }).dimension === "string" && typeof (s as { score: number }).score === "number")
+          .map((s: { dimension: string; score: number }) => ({
+            dimension: String(s.dimension).slice(0, 20),
+            score: Math.max(0, Math.min(100, Math.round(s.score))),
+          }))
+      : [];
+
+    if (agent_confidence.length === 0 && risk_distribution.length === 0 && alignment_scores.length === 0) return null;
+    return { agent_confidence, risk_distribution, alignment_scores };
+  } catch (e) {
+    console.error("generateDebateCharts error:", String(e).slice(0, 300));
+    return null;
+  }
+}
+
 const JAILBREAK_PATTERNS = [
   /ignore\s+(all\s+)?(previous|prior|above|your)\s+(instructions?|prompt|rules?|system)/i,
   /you\s+are\s+now\s+(a\s+)?(?!the\s+skeptic|risk\s+analyst|market\s+analyst|financial|execution|people|devil|innovation)/i,
@@ -784,7 +911,11 @@ PRESSURE-TEST MANDATE — NON-NEGOTIABLE:
 - Never end a section with agreement. End with the sharpest unresolved question your analysis surfaces. Comfort is not your job; clarity is.
 
 CRITICAL: Ground every section of your response in the DECISION ANCHOR above. If the user asked about a sub-topic, connect it explicitly back to the central decision.
-This is ROUND 1 of a structured debate — state your position with full analytical depth so other agents can challenge it.`;
+This is ROUND 1 of a structured debate — state your position with full analytical depth so other agents can challenge it.
+
+FIGURES BLOCK — MANDATORY: End your response with a fenced JSON block containing the key quantitative figures and categorical breakdowns from your analysis. This will be extracted and rendered as charts. Format (three backticks then json, then the JSON, then three backticks):
+{"figures": [{"label": "CAC estimate", "value": 4500, "unit": "$"}, {"label": "Payback period", "value": 14, "unit": "months"}], "categories": [{"label": "Market risk", "value": 40, "unit": "%"}, {"label": "Execution risk", "value": 35, "unit": "%"}, {"label": "Financial risk", "value": 25, "unit": "%"}]}
+Include 2-5 figures (quantitative values from your analysis) and 2-6 categories (breakdown of risks, opportunities, or priorities as percentages). Use "$" for currency, "%" for percentages, "months"/"years" for time, or "" for unitless counts. Only include numbers you actually derived in your analysis — do not fabricate.`;
 
         const r1StartedAt = Date.now();
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -815,9 +946,69 @@ This is ROUND 1 of a structured debate — state your position with full analyti
           logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-sol", maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
         }
 
-        return { agent, content, figuresPromise: Promise.resolve(null) };
+        const figures = parseFiguresFromContent(content);
+        const displayContent = figures ? stripFiguresBlock(content) : content;
+        return { agent, content: displayContent, figures, rawContent: content };
       })
     );
+
+    // ── ROUND 2: Cross-challenge (each agent challenges the others) ──────────
+    const round2Responses = await Promise.all(
+      selectedAgents.map(async (agent) => {
+        const otherResponses = agentResponses
+          .filter(r => r.agent.role !== agent.role)
+          .map(r => `### ${r.agent.name} (${r.agent.role})
+${r.content.slice(0, 1000)}`)
+          .join("\n\n---\n\n");
+
+        const r2SystemPrompt = `${agent.persona}
+
+${workspaceHeader}${topicAnchor}
+
+You are now in ROUND 2 of a structured debate: CROSS-CHALLENGE. Your fellow AI agents have given their initial analyses. Your job is to directly challenge their reasoning, identify their blind spots, and pressure-test their conclusions.
+
+Here are the other agents' Round 1 analyses:
+${otherResponses}
+
+MANDATORY — challenge at least 2 other agents specifically:
+1. @AgentName: Quote their specific claim. State why it's wrong, incomplete, or dangerously oversimplified. Provide the counter-evidence or the missing variable they ignored.
+2. @AgentName: Identify their weakest assumption and explain what happens to the plan if it's wrong.
+
+Then end with: What is the one thing the team should do differently based on these challenges?
+
+Respond in 250-350 words. Be direct and specific. No hedging. Reference agents by name using @.`;
+
+        const r2StartedAt = Date.now();
+        try {
+          const r2Res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "gpt-5.6-sol",
+              messages: [
+                { role: "system", content: r2SystemPrompt },
+                { role: "user", content: safeMessage },
+              ],
+              max_completion_tokens: 800,
+            }),
+          });
+          const r2Data = await r2Res.json();
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `round2_${agent.role}`, model: "gpt-5.6-sol", usage: r2Data.usage, maxCompletionTokens: 800, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: r2Res.ok ? "succeeded" : "errored", httpStatus: r2Res.status });
+          if (!r2Res.ok) {
+            console.error(`Round 2 agent_${agent.role} failed: HTTP ${r2Res.status}`, JSON.stringify(r2Data?.error || r2Data).slice(0, 500));
+            return { agent, content: "" };
+          }
+          return { agent, content: r2Data.choices?.[0]?.message?.content || "" };
+        } catch (e) {
+          console.error(`Round 2 agent_${agent.role} error:`, String(e).slice(0, 300));
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `round2_${agent.role}`, model: "gpt-5.6-sol", maxCompletionTokens: 800, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: "errored" });
+          return { agent, content: "" };
+        }
+      })
+    );
+
+    // ── Generate debate analytics charts ─────────────────────────────────────
+    const chartData = await generateDebateCharts(agentResponses, openAiKey, user, workspace_id);
 
     // ── Persist user message ────────────────────────────────────────────────
     currentStage = "insert_user_msg";
@@ -828,19 +1019,33 @@ This is ROUND 1 of a structured debate — state your position with full analyti
       content: safeMessage,
     });
 
-    // ── Persist agent responses ──────────────────────────────────────────────
+    // ── Persist agent responses (Round 1 + Round 2) ─────────────────────────
     currentStage = "insert_agent_msgs";
-    const { data: insertedAgentRows } = await service.from("workspace_messages")
-      .insert(
-        agentResponses.map(({ agent, content }) => ({
+    const allMessagesToInsert = [
+      ...agentResponses.map(({ agent, content, figures }) => ({
+        workspace_id,
+        user_id: null,
+        role: "assistant" as const,
+        content,
+        agent_name: agent.name,
+        agent_role: agent.role,
+        metadata: figures ? { figures } : null,
+      })),
+      ...round2Responses
+        .filter(r => r.content.length > 0)
+        .map(({ agent, content }) => ({
           workspace_id,
           user_id: null,
-          role: "assistant",
+          role: "assistant" as const,
           content,
           agent_name: agent.name,
-          agent_role: agent.role,
-        }))
-      )
+          agent_role: `${agent.role}_challenge`,
+          metadata: null,
+        })),
+    ];
+
+    const { data: insertedAgentRows } = await service.from("workspace_messages")
+      .insert(allMessagesToInsert)
       .select("id, agent_role");
 
     // ── Notify all workspace members that agents have responded ──────────────
@@ -881,16 +1086,33 @@ This is ROUND 1 of a structured debate — state your position with full analyti
       agentIdMap.set(row.agent_role, row.id);
     }
 
-    const allResponses = agentResponses.map(({ agent, content }) => ({
-      id: agentIdMap.get(agent.role) ?? null,
-      agent_name: agent.name,
-      agent_role: agent.role,
-      content,
-    }));
+    const allResponses = [
+      ...agentResponses.map(({ agent, content, figures }) => ({
+        id: agentIdMap.get(agent.role) ?? null,
+        agent_name: agent.name,
+        agent_role: agent.role,
+        content,
+        figures: figures ?? null,
+      })),
+      ...round2Responses
+        .filter(r => r.content.length > 0)
+        .map(({ agent, content }) => ({
+          id: agentIdMap.get(`${agent.role}_challenge`) ?? null,
+          agent_name: agent.name,
+          agent_role: `${agent.role}_challenge`,
+          content,
+          figures: null,
+        })),
+    ];
 
     currentStage = "build_response";
     return new Response(
-      JSON.stringify({ responses: allResponses, war_room_usage: warRoomUsage, rounds_completed: ["round1"] }),
+      JSON.stringify({
+        responses: allResponses,
+        war_room_usage: warRoomUsage,
+        rounds_completed: ["round1", "round2"],
+        chart_data: chartData,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

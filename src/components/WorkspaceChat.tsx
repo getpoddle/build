@@ -82,6 +82,14 @@ const AGENT_COLORS: Record<string, { bg: string; text: string; border: string }>
   execution_lead:     { bg: 'rgba(100,116,139,0.07)',  text: '#334155', border: 'rgba(100,116,139,0.15)' },
   people_advisor:     { bg: 'rgba(168,85,247,0.07)',   text: '#7e22ce', border: 'rgba(168,85,247,0.15)' },
   consensus:          { bg: 'rgba(15,23,42,0.04)',     text: '#0f172a', border: 'rgba(15,23,42,0.12)' },
+  strategic_analyst_challenge:    { bg: 'rgba(37,99,235,0.05)',   text: '#1d4ed8', border: 'rgba(37,99,235,0.12)' },
+  devils_advocate_challenge:      { bg: 'rgba(220,38,38,0.05)',   text: '#b91c1c', border: 'rgba(220,38,38,0.12)' },
+  innovation_scout_challenge:     { bg: 'rgba(16,185,129,0.05)',  text: '#065f46', border: 'rgba(16,185,129,0.12)' },
+  risk_analyst_challenge:        { bg: 'rgba(234,88,12,0.05)',   text: '#c2410c', border: 'rgba(234,88,12,0.12)' },
+  market_analyst_challenge:       { bg: 'rgba(37,99,235,0.05)',   text: '#1d4ed8', border: 'rgba(37,99,235,0.12)' },
+  financial_strategist_challenge: { bg: 'rgba(5,150,105,0.05)',  text: '#065f46', border: 'rgba(5,150,105,0.12)' },
+  execution_lead_challenge:      { bg: 'rgba(100,116,139,0.05)', text: '#334155', border: 'rgba(100,116,139,0.12)' },
+  people_advisor_challenge:      { bg: 'rgba(168,85,247,0.05)',  text: '#7e22ce', border: 'rgba(168,85,247,0.12)' },
 };
 
 const AGENT_ABBR: Record<string, string> = {
@@ -94,6 +102,14 @@ const AGENT_ABBR: Record<string, string> = {
   execution_lead:       'EL',
   people_advisor:       'PA',
   consensus:            'C',
+  strategic_analyst_challenge:    'SA',
+  devils_advocate_challenge:      'DA',
+  innovation_scout_challenge:     'IS',
+  risk_analyst_challenge:         'RA',
+  market_analyst_challenge:       'MA',
+  financial_strategist_challenge:  'FS',
+  execution_lead_challenge:       'EL',
+  people_advisor_challenge:       'PA',
 };
 
 
@@ -498,9 +514,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         // Surface partial-round feedback so users know when later rounds didn't complete
         const completed: string[] = Array.isArray(json.rounds_completed) ? json.rounds_completed : [];
         if (completed.length > 0 && !completed.includes('round2')) {
-          setSendError('The cross-challenge and consensus rounds could not be generated this time. Your initial analyses are shown below.');
-        } else if (completed.length > 0 && completed.includes('round2') && !completed.includes('round3')) {
-          setSendError('The consensus round could not be generated this time. Your initial analyses and cross-challenges are shown below.');
+          setSendError('The cross-challenge round could not be generated this time. Your initial analyses are shown below.');
         }
       }
     } catch (err) {
@@ -1048,10 +1062,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             }
 
             const role = msg.agent_role || '';
-            const colors = AGENT_COLORS[role] ?? { bg: 'rgba(15,23,42,0.05)', text: '#475569', border: 'rgba(15,23,42,0.1)' };
-            const abbr = AGENT_ABBR[role] ?? role.slice(0, 2).toUpperCase();
+            const isChallengeRole = role.endsWith('_challenge');
+            const baseRole = isChallengeRole ? role.replace(/_challenge$/, '') : role;
+            const colors = AGENT_COLORS[role] ?? AGENT_COLORS[baseRole] ?? { bg: 'rgba(15,23,42,0.05)', text: '#475569', border: 'rgba(15,23,42,0.1)' };
+            const abbr = AGENT_ABBR[role] ?? AGENT_ABBR[baseRole] ?? baseRole.slice(0, 2).toUpperCase();
             const isConsensus = role === 'consensus';
-            const phase = isConsensus ? 'consensus' : detectPhase(msg.content);
+            const phase = isConsensus ? 'consensus' : isChallengeRole ? 'challenge' : detectPhase(msg.content);
 
             if (isConsensus) {
               return (
@@ -1122,13 +1138,13 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                 <span className="text-xs font-semibold text-slate-500">War Room in session</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {(['R1: Independent analysis', 'R2: Cross-challenge', 'R3: Consensus']).map((phase, i) => (
+                {(['R1: Independent analysis', 'R2: Cross-challenge']).map((phase, i) => (
                   <span
                     key={phase}
                     className="text-xs px-2 py-0.5 rounded-full font-medium"
                     style={{
-                      background: i === 0 ? 'rgba(37,99,235,0.08)' : i === 1 ? 'rgba(220,38,38,0.07)' : 'rgba(5,150,105,0.08)',
-                      color: i === 0 ? '#1d4ed8' : i === 1 ? '#b91c1c' : '#065f46',
+                      background: i === 0 ? 'rgba(37,99,235,0.08)' : 'rgba(220,38,38,0.07)',
+                      color: i === 0 ? '#1d4ed8' : '#b91c1c',
                     }}
                   >
                     {phase}
