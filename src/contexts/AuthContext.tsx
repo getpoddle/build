@@ -172,8 +172,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               profile = profileRes.data;
               deletionRequested = !!sensitiveRes.data?.deletion_requested_at;
             } catch {
-              console.error('Profile fetch timed out');
-              return;
+              // Profile fetch timed out — don't abort the sign-in flow.
+              // The session is still valid; profile/deletion status will
+              // be retried on the next auth state change or page load.
+              console.error('Profile fetch timed out during sign-in');
+              resetIdleTimer();
             }
 
             // Check if the user has a pending account deletion
