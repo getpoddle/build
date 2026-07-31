@@ -313,6 +313,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
     // Pause channels when the tab is hidden; resume when visible again.
     // This cuts server broadcast load to zero while the user isn't looking.
+    // On refocus, backfill from the database — any messages inserted during
+    // the pause were missed because the realtime subscription was unsubscribed.
     function handleVisibilityChange() {
       if (document.visibilityState === 'hidden') {
         pauseChannel(msgName);
@@ -320,6 +322,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       } else {
         resumeChannel(msgName);
         resumeChannel(presenceName);
+        loadMessages();
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
