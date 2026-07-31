@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { ChartData, AgentFigures } from '../components/ConsensusCharts';
 
 const AGENT_DISPLAY_NAMES: Record<string, string> = {
   risk_analyst: 'Risk Analyst',
@@ -31,6 +32,8 @@ export interface ChatMessageExport {
   agent_name?: string;
   agent_role?: string;
   created_at: string;
+  chart_data?: ChartData | null;
+  figures?: AgentFigures | null;
 }
 
 export interface KeyDecision {
@@ -158,6 +161,146 @@ function svgConsensusBar(confidence: number, color: string): string {
       <rect x="0" y="0" width="${totalW}" height="${h}" rx="${r}" fill="#1f2535"/>
       <rect x="0" y="0" width="${fillW.toFixed(1)}" height="${h}" rx="${r}" fill="${color}"/>
     </svg>`;
+}
+
+// ─── Chat Chart SVG Generators (mirror ConsensusCharts component) ───────────────
+
+const CHART_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+const RISK_COLORS_PDF: Record<string, string> = {
+  Market: '#0ea5e9', Execution: '#f59e0b', Financial: '#ef4444',
+  Technology: '#8b5cf6', People: '#10b981', Regulatory: '#64748b',
+};
+const CONFIDENCE_COLOR_PDF = (v: number) => v >= 70 ? '#10b981' : v >= 40 ? '#f59e0b' : '#ef4444';
+const ALIGNMENT_COLOR_PDF = (v: number) => v >= 70 ? '#10b981' : v >= 40 ? '#f59e0b' : '#ef4444';
+const FIGURE_COLOR_PDF = '#0ea5e9';
+const CATEGORY_COLORS_PDF = ['#0ea5e9', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#64748b', '#ec4899', '#14b8a6'];
+
+function svgAgentConfidence(data: ChartData['agent_confidence']): string {
+  if (!data?.length) return '';
+  const barHeight = 28, gap = 10, labelWidth = 120, trackWidth = 180;
+  const height = data.length * (barHeight + gap) + 20;
+  const width = labelWidth + trackWidth + 50;
+  let bars = '';
+  data.forEach((item, i) => {
+    const y = i * (barHeight + gap);
+    const barW = Math.max(2, (item.confidence / 100) * trackWidth);
+    const name = item.agent_name.length > 16 ? item.agent_name.slice(0, 15) + '…' : item.agent_name;
+    bars += `<text x="0" y="${y + barHeight / 2 + 4}" font-family="${CHART_FONT}" font-size="12" font-weight="500" fill="#475569">${escapeHtml(name)}</text>`;
+    bars += `<rect x="${labelWidth}" y="${y}" width="${trackWidth}" height="${barHeight}" rx="4" fill="#f1f5f9"/>`;
+    bars += `<rect x="${labelWidth}" y="${y}" width="${barW.toFixed(1)}" height="${barHeight}" rx="4" fill="${CONFIDENCE_COLOR_PDF(item.confidence)}"/>`;
+    bars += `<text x="${labelWidth + trackWidth + 8}" y="${y + barHeight / 2 + 4}" font-family="${CHART_FONT}" font-size="12" font-weight="bold" fill="#334155">${Math.round(item.confidence)}%</text>`;
+  });
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%;">${bars}</svg>`;
+}
+
+function svgRiskDonut(data: ChartData['risk_distribution']): string {
+  if (!data?.length) return '';
+  const total = data.reduce((s, d) => s + d.count, 0);
+  if (total === 0) return '';
+  const size = 180, radius = 70, cx = size / 2, cy = size / 2, sw = 28;
+  let cumulative = 0;
+  let paths = '';
+  let legend = '';
+  data.filter(d => d.count > 0).forEach((d, i) => {
+    const fraction = d.count / total;
+    const startAngle = (cumulative / total) * 2 * Math.PI - Math.PI / 2;
+    cumulative += d.count;
+    const endAngle = (cumulative / total) * 2 * Math.PI - Math.PI / 2;
+    const x1 = cx + radius * Math.cos(startAngle);
+    const y1 = cy + radius * Math.sin(startAngle);
+    const x2 = cx + radius * Math.cos(endAngle);
+    const y2 = cy + radius * Math.sin(endAngle);
+    const largeArc = fraction > 0.5 ? 1 : 0;
+    const path = `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${radius} ${radius} 0 ${largeArc} 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+    const color = RISK_COLORS_PDF[d.category] || '#94a3b8';
+    paths += `<path d="${path}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="butt"/>`;
+    legend += `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:${color};flex-shrink:0;"></span><span style="font-size:9pt;color:#475569;">${escapeHtml(d.category)}</span><span style="font-size:9pt;font-weight:700;color:#1e293b;margin-left:auto;">${d.count}</span></div>`;
+  });
+  const centerText = `<text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="${CHART_FONT}" font-size="28" font-weight="bold" fill="#1e293b">${total}</text><text x="${cx}" y="${cy + 16}" text-anchor="middle" font-family="${CHART_FONT}" font-size="11" fill="#94a3b8">risks</text>`;
+  return `<div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px;">
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">${paths}${centerText}</svg>
+    <div style="display:flex;flex-direction:column;gap:1px;padding-top:4px;min-width:100px;">${legend}</div>
+  </div>`;
+}
+
+function svgAlignmentHistogram(data: ChartData['alignment_scores']): string {
+  if (!data?.length) return '';
+  const barWidth = 36, gap = 16, chartHeight = 120, baseline = chartHeight - 20;
+  const width = data.length * (barWidth + gap) + 20;
+  let bars = `<line x1="10" y1="${baseline}" x2="${width - 10}" y2="${baseline}" stroke="#e2e8f0" stroke-width="1"/>`;
+  data.forEach((item, i) => {
+    const x = 10 + i * (barWidth + gap);
+    const barH = (item.score / 100) * (baseline - 10);
+    const y = baseline - barH;
+    bars += `<rect x="${x}" y="${y.toFixed(1)}" width="${barWidth}" height="${barH.toFixed(1)}" rx="3" fill="${ALIGNMENT_COLOR_PDF(item.score)}"/>`;
+    bars += `<text x="${x + barWidth / 2}" y="${baseline + 16}" text-anchor="middle" font-family="${CHART_FONT}" font-size="11" fill="#64748b">${escapeHtml(item.dimension)}</text>`;
+    bars += `<text x="${x + barWidth / 2}" y="${y - 5}" text-anchor="middle" font-family="${CHART_FONT}" font-size="11" font-weight="bold" fill="#334155">${Math.round(item.score)}</text>`;
+  });
+  return `<svg width="${width}" height="${chartHeight + 30}" viewBox="0 0 ${width} ${chartHeight + 30}" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%;">${bars}</svg>`;
+}
+
+function svgFiguresChart(data: AgentFigures['figures']): string {
+  if (!data?.length) return '';
+  const barHeight = 22, gap = 8, labelWidth = 140, trackWidth = 140;
+  const maxVal = Math.max(...data.map(d => Math.abs(d.value)), 1);
+  const height = data.length * (barHeight + gap) + 20;
+  const width = labelWidth + trackWidth + 60;
+  let bars = '';
+  data.forEach((item, i) => {
+    const y = i * (barHeight + gap);
+    const barW = Math.max(2, (Math.abs(item.value) / maxVal) * trackWidth);
+    const label = item.label.length > 18 ? item.label.slice(0, 17) + '…' : item.label;
+    const displayVal = item.unit === '$' ? `$${item.value.toLocaleString()}` : `${item.value}${item.unit || ''}`;
+    bars += `<text x="0" y="${y + barHeight / 2 + 4}" font-family="${CHART_FONT}" font-size="11" font-weight="500" fill="#475569">${escapeHtml(label)}</text>`;
+    bars += `<rect x="${labelWidth}" y="${y}" width="${trackWidth}" height="${barHeight}" rx="3" fill="#f1f5f9"/>`;
+    bars += `<rect x="${labelWidth}" y="${y}" width="${barW.toFixed(1)}" height="${barHeight}" rx="3" fill="${FIGURE_COLOR_PDF}"/>`;
+    bars += `<text x="${labelWidth + trackWidth + 8}" y="${y + barHeight / 2 + 4}" font-family="${CHART_FONT}" font-size="11" font-weight="bold" fill="#334155">${escapeHtml(displayVal)}</text>`;
+  });
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%;">${bars}</svg>`;
+}
+
+function svgCategoriesChart(data: AgentFigures['categories']): string {
+  if (!data?.length) return '';
+  const total = data.reduce((s, d) => s + Math.abs(d.value), 0);
+  if (total === 0) return '';
+  const size = 150, radius = 58, cx = size / 2, cy = size / 2, sw = 24;
+  let cumulative = 0;
+  let paths = '';
+  let legend = '';
+  data.forEach((d, i) => {
+    const fraction = Math.abs(d.value) / total;
+    const startAngle = (cumulative / total) * 2 * Math.PI - Math.PI / 2;
+    cumulative += Math.abs(d.value);
+    const endAngle = (cumulative / total) * 2 * Math.PI - Math.PI / 2;
+    const x1 = cx + radius * Math.cos(startAngle);
+    const y1 = cy + radius * Math.sin(startAngle);
+    const x2 = cx + radius * Math.cos(endAngle);
+    const y2 = cy + radius * Math.sin(endAngle);
+    const largeArc = fraction > 0.5 ? 1 : 0;
+    const path = `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${radius} ${radius} 0 ${largeArc} 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+    const color = CATEGORY_COLORS_PDF[i % CATEGORY_COLORS_PDF.length];
+    paths += `<path d="${path}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="butt"/>`;
+    const val = d.unit === '%' ? `${d.value}%` : String(d.value);
+    legend += `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0;"></span><span style="font-size:9pt;color:#475569;">${escapeHtml(d.label)}</span><span style="font-size:9pt;font-weight:700;color:#1e293b;margin-left:auto;">${escapeHtml(val)}</span></div>`;
+  });
+  return `<div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px;"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">${paths}</svg><div style="display:flex;flex-direction:column;gap:1px;padding-top:4px;min-width:80px;">${legend}</div></div>`;
+}
+
+function svgConsensusCharts(data: ChartData): string {
+  const parts: string[] = [];
+  if (data.agent_confidence?.length) parts.push(svgAgentConfidence(data.agent_confidence));
+  if (data.risk_distribution?.length) parts.push(svgRiskDonut(data.risk_distribution));
+  if (data.alignment_scores?.length) parts.push(svgAlignmentHistogram(data.alignment_scores));
+  if (!parts.length) return '';
+  return `<div style="margin-top:10px;padding-top:8px;border-top:1px solid #e2e8f0;"><div style="font-size:7.5pt;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Debate Analytics</div><div style="display:flex;flex-wrap:wrap;gap:16px;">${parts.map(p => `<div style="min-width:0;">${p}</div>`).join('')}</div></div>`;
+}
+
+function svgAgentFigures(figures: AgentFigures): string {
+  const parts: string[] = [];
+  if (figures.figures?.length) parts.push(svgFiguresChart(figures.figures));
+  if (figures.categories?.length) parts.push(svgCategoriesChart(figures.categories));
+  if (!parts.length) return '';
+  return `<div style="margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;"><div style="font-size:7.5pt;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Figures &amp; Breakdown</div><div style="display:flex;flex-direction:column;gap:12px;">${parts.join('')}</div></div>`;
 }
 
 function svgTensionBar(level: number): string {
@@ -682,12 +825,15 @@ export function exportChatToPDF(messages: ChatMessageExport[], workspaceName: st
         <div class="meta">${formatDate(m.created_at)}</div>
       </div></div>`;
     const role = m.agent_role || 'other';
+    const charts = m.chart_data ? svgConsensusCharts(m.chart_data) : '';
+    const figures = m.figures ? svgAgentFigures(m.figures) : '';
     return `
       <div class="msg"><div class="msg-agent role-${role}">
         <div class="agent-icon">${ICONS[role] || '&#x1F916;'}</div>
         <div>
           <div class="agent-name">${escapeHtml(m.agent_name || 'AI Agent')}</div>
           <div class="agent-bubble">${escapeHtml(m.content)}</div>
+          ${charts}${figures}
         </div>
       </div></div>`;
   }).join('');
