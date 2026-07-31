@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { Sentry } from '../lib/sentry';
 import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Download, Globe, Bot, Play, RefreshCw, Sparkles, ChevronDown, BookOpen, Database } from 'lucide-react';
 import { getAvatarUrl } from '../lib/avatarUtils';
 import VerificationBadge from '../components/VerificationBadge';
@@ -61,6 +62,7 @@ export default function AdminDashboard() {
   const [adminView, setAdminView] = useState<AdminView>('users');
   const [users, setUsers] = useState<UserStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -119,10 +121,14 @@ export default function AdminDashboard() {
           .order('quality_score', { ascending: false })
           .limit(50),
       ]);
-      if (statsRes.data) setDatasetStats(statsRes.data);
-      if (pairsRes.data) setDatasetPairs(pairsRes.data);
-    } catch (e) {
+      if (statsRes.error) throw statsRes.error;
+      if (pairsRes.error) throw pairsRes.error;
+      setDatasetStats(statsRes.data);
+      setDatasetPairs(pairsRes.data || []);
+    } catch (e: any) {
       console.error('Error loading dataset:', e);
+      Sentry.captureException(e);
+      alert(e.message || 'Failed to load dataset.');
     } finally {
       setLoadingDataset(false);
     }
@@ -141,10 +147,14 @@ export default function AdminDashboard() {
           .select('id, user_id, granted_at, expires_at, status, invite_code_id, profiles(full_name)')
           .order('granted_at', { ascending: false }),
       ]);
-      if (codesRes.data) setBetaCodes(codesRes.data);
-      if (grantsRes.data) setBetaGrants(grantsRes.data);
-    } catch (e) {
+      if (codesRes.error) throw codesRes.error;
+      if (grantsRes.error) throw grantsRes.error;
+      setBetaCodes(codesRes.data || []);
+      setBetaGrants(grantsRes.data || []);
+    } catch (e: any) {
       console.error('Error loading beta codes:', e);
+      Sentry.captureException(e);
+      alert(e.message || 'Failed to load beta codes.');
     } finally {
       setLoadingBetaCodes(false);
     }
@@ -181,18 +191,72 @@ export default function AdminDashboard() {
   };
 
   const loadUsers = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
-      setLoading(true);
+      // Step 1: fetch base user list using only publicly-granted columns.
+      const { data: baseRows, error: baseError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, verified, created_at, onboarded, referral_tier, referral_points')
+        .order('created_at', { ascending: false })
+        .limit(2000);
 
-      const { data, error } = await supabase.rpc('get_admin_all_users');
+      if (baseError) throw baseError;
+      if (!baseRows || baseRows.length === 0) {
+        setUsers([]);
+        return;
+      }
 
-      if (error) throw error;
+      // Step 2: batch-fetch sensitive columns via admin-only RPC.
+      const userIds = baseRows.map(r => r.id);
+      const { data: sensitiveRows, error: sensitiveError } = await supabase
+        .rpc('get_profiles_sensitive_admin', { target_user_ids: userIds });
 
-      const rows = (data || []) as UserStats[];
-      setUsers(rows.map(r => ({ ...r, pods_joined_count: 0 })));
-    } catch (error) {
+      if (sensitiveError) throw sensitiveError;
+
+      // Step 3: fetch workspace usage stats via the existing admin RPC.
+      const { data: statsRows, error: statsError } = await supabase.rpc('get_admin_all_users');
+
+      if (statsError) throw statsError;
+
+      // Step 4: merge all three sources by id.
+      const sensitiveMap = new Map<string, any>();
+      (sensitiveRows || []).forEach((r: any) => sensitiveMap.set(r.id, r));
+      const statsMap = new Map<string, any>();
+      (statsRows || []).forEach((r: any) => statsMap.set(r.id, r));
+
+      const merged: UserStats[] = baseRows.map(r => {
+        const s = sensitiveMap.get(r.id) || {};
+        const st = statsMap.get(r.id) || {};
+        return {
+          id: r.id,
+          full_name: r.full_name,
+          email: s.email || '',
+          username: r.username,
+          avatar_url: r.avatar_url,
+          verified: r.verified,
+          created_at: r.created_at,
+          workspaces_created: st.workspaces_created ?? 0,
+          workspaces_opened: st.workspaces_opened ?? 0,
+          workspaces_created_alltime: st.workspaces_created_alltime ?? 0,
+          pdfs_exported: st.pdfs_exported ?? 0,
+          pods_joined_count: 0,
+          account_status: st.account_status ?? 'active',
+          reason: st.reason,
+          suspended_until: st.suspended_until,
+          total_reports_against: st.total_reports_against ?? 0,
+          pending_reports_against: st.pending_reports_against ?? 0,
+          referral_code: st.referral_code,
+          total_referrals: st.total_referrals ?? 0,
+          recent_referrals: st.recent_referrals ?? 0,
+        };
+      });
+
+      setUsers(merged);
+    } catch (error: any) {
       console.error('Error loading users:', error);
-      alert('Failed to load users. Check console for details.');
+      Sentry.captureException(error);
+      setLoadError(error.message || 'Failed to load users. Check browser console for details.');
     } finally {
       setLoading(false);
     }
@@ -210,7 +274,6 @@ export default function AdminDashboard() {
         throw error;
       }
 
-      console.log('Verification updated successfully:', data);
 
       setUsers(users.map(user =>
         user.id === userId ? { ...user, verified: !currentStatus } : user
@@ -350,10 +413,17 @@ export default function AdminDashboard() {
     setUserWorkspaces([]);
     setLoadingContributions(true);
 
-    const { data, error } = await supabase.rpc('get_admin_user_workspaces', { target_user_id: user.id });
-    if (error) console.error('Error loading user workspaces:', error);
-    setUserWorkspaces(data || []);
-    setLoadingContributions(false);
+    try {
+      const { data, error } = await supabase.rpc('get_admin_user_workspaces', { target_user_id: user.id });
+      if (error) throw error;
+      setUserWorkspaces(data || []);
+    } catch (err: any) {
+      console.error('Error loading user workspaces:', err);
+      Sentry.captureException(err);
+      alert(err.message || 'Failed to load user workspaces.');
+    } finally {
+      setLoadingContributions(false);
+    }
   };
 
   const deleteContentItem = async (_itemId: string, _deleteFunc: string, _itemType: string) => {};
@@ -416,10 +486,13 @@ export default function AdminDashboard() {
       const { data, error } = await supabase.rpc('get_admin_all_workspaces');
       if (error) throw error;
       setAdminWorkspaces(data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading workspaces:', err);
+      Sentry.captureException(err);
+      alert(err.message || 'Failed to load workspaces.');
+    } finally {
+      setLoadingAdminWorkspaces(false);
     }
-    setLoadingAdminWorkspaces(false);
   };
 
   const loadUpgradeRequests = async (filter = upgradeFilter) => {
@@ -430,10 +503,16 @@ export default function AdminDashboard() {
       const res = await fetch(`${supabaseUrl}/functions/v1/admin-upgrade-requests?status=${filter}`, {
         headers: { 'Authorization': `Bearer ${session?.access_token}` },
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setUpgradeRequests(json.requests || []);
-    } catch {}
-    setLoadingUpgrades(false);
+    } catch (e: any) {
+      console.error('Error loading upgrade requests:', e);
+      Sentry.captureException(e);
+      alert(e.message || 'Failed to load upgrade requests.');
+    } finally {
+      setLoadingUpgrades(false);
+    }
   };
 
   const handleUpgradeAction = async (requestId: string, action: 'approve' | 'reject') => {
@@ -449,23 +528,32 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify({ request_id: requestId, action, admin_notes: upgradeAdminNote[requestId] || '' }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (json.success) loadUpgradeRequests(upgradeFilter);
-    } catch {}
-    setProcessingUpgrade(null);
+    } catch (e: any) {
+      console.error('Error processing upgrade action:', e);
+      Sentry.captureException(e);
+      alert(e.message || 'Failed to process upgrade action.');
+    } finally {
+      setProcessingUpgrade(null);
+    }
   };
 
   const loadDiscussions = async () => {
     setLoadingDiscussions(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('ai_agent_discussions')
         .select('*, agent_topics(title, domain)')
         .order('created_at', { ascending: false })
         .limit(20);
+      if (error) throw error;
       setDiscussions(data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading discussions:', err);
+      Sentry.captureException(err);
+      alert(err.message || 'Failed to load discussions.');
     } finally {
       setLoadingDiscussions(false);
     }
@@ -1010,6 +1098,24 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {loadError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-red-900">Failed to load user data</p>
+                <p className="text-sm text-red-700 mt-1">{loadError}</p>
+                <button
+                  onClick={() => loadUsers()}
+                  className="mt-2 px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {users.length === 2000 && (
           <div className="mb-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
