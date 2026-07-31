@@ -58,6 +58,25 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Idempotency: if this event was already processed (or is being processed
+    // concurrently), the unique constraint on event_id rejects the insert.
+    // We insert BEFORE processing so a race between two near-simultaneous
+    // deliveries can't both pass — only one wins the insert.
+    const { error: insertError } = await supabase
+      .from("processed_stripe_events")
+      .insert({ event_id: event.id });
+
+    if (insertError) {
+      // Unique violation (23505) = already processed (or concurrent insert lost)
+      if (insertError.code === "23505") {
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Unexpected error — log but continue processing (fail-open)
+      console.error("Idempotency check failed:", insertError.message);
+    }
+
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY")!;
 
     if (event.type === "checkout.session.completed") {
