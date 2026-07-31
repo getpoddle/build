@@ -17,9 +17,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
   useEffect(() => {
     if (!user) { setCurrentTier('free'); return; }
     supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
+      .rpc('get_own_profile_sensitive')
       .maybeSingle()
       .then(({ data }) => {
         const tier = (data?.subscription_tier as 'free' | 'pro' | 'team' | 'enterprise') || 'free';

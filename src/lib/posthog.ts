@@ -91,13 +91,20 @@ export async function phFireActivation(
 export async function phSyncProfileProperties(userId: string) {
   if (!isPostHogReady()) return;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, username, first_name, last_name, country, location, verified, is_admin, referral_tier, referral_points, onboarded, created_at, theme_preference')
-    .eq('id', userId)
-    .maybeSingle();
+  const [profileRes, sensitiveRes] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, username, first_name, last_name, country, location, verified, referral_tier, referral_points, onboarded, created_at, theme_preference')
+      .eq('id', userId)
+      .maybeSingle(),
+    supabase
+      .rpc('get_own_profile_sensitive')
+      .maybeSingle(),
+  ]);
 
+  const profile = profileRes.data;
   if (!profile) return;
+  const is_admin = !!sensitiveRes.data?.is_admin;
 
   const [postCount, workspaceCount, followerCount, followingCount] = await Promise.all([
     supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', userId).then(r => r.count ?? 0),
@@ -117,7 +124,7 @@ export async function phSyncProfileProperties(userId: string) {
     country: profile.country ?? null,
     location: profile.location ?? null,
     verified: !!profile.verified,
-    is_admin: !!profile.is_admin,
+    is_admin,
     referral_tier: profile.referral_tier ?? null,
     referral_points: profile.referral_points ?? 0,
     onboarded: !!profile.onboarded,

@@ -184,13 +184,11 @@ export function useSubscriptionTier() {
       // Profile tier is the authoritative source.
       // subscription_tier='pro'/'enterprise' is only ever set by the Stripe webhook
       // or an admin — never by client-side code — so it's safe to trust directly.
-      const profileRes = await supabase
-        .from('profiles')
-        .select('subscription_tier')
-        .eq('id', user!.id)
+      const sensitiveRes = await supabase
+        .rpc('get_own_profile_sensitive')
         .maybeSingle();
 
-      const resolvedTier = resolveSubscriptionTier(profileRes.data?.subscription_tier);
+      const resolvedTier = resolveSubscriptionTier(sensitiveRes.data?.subscription_tier);
       setTier(resolvedTier);
       setLoading(false);
     }
@@ -255,9 +253,7 @@ export function useTrialInfo() {
     if (!user) { setLoading(false); return; }
 
     supabase
-      .from('profiles')
-      .select('trial_workspace_count')
-      .eq('id', user.id)
+      .rpc('get_own_profile_sensitive')
       .maybeSingle()
       .then(({ data }) => {
         setTrialWorkspaceCount(data?.trial_workspace_count ?? 0);

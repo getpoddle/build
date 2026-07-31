@@ -150,28 +150,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
 
             // Run admin check and profile fetch in parallel
-            let profile: { id: string; first_name: string | null; last_name: string | null; username: string | null; deletion_requested_at: string | null } | null = null;
+            let profile: { id: string; first_name: string | null; last_name: string | null; username: string | null } | null = null;
+            let deletionRequested = false;
             try {
-              const [adminRes, profileRes] = await Promise.all([
+              const [adminRes, profileRes, sensitiveRes] = await Promise.all([
                 withTimeout(
                   supabase.from('admins').select('id').eq('id', session.user.id).maybeSingle(),
                   5000
                 ).catch(() => ({ data: null })),
                 withTimeout(
-                  supabase.from('profiles').select('id, first_name, last_name, username, deletion_requested_at').eq('id', session.user.id).maybeSingle(),
+                  supabase.from('profiles').select('id, first_name, last_name, username').eq('id', session.user.id).maybeSingle(),
                   5000
                 ),
+                withTimeout(
+                  supabase.rpc('get_own_profile_sensitive').maybeSingle(),
+                  5000
+                ).catch(() => ({ data: null })),
               ]);
               isAdminRef.current = !!adminRes.data;
               resetIdleTimer();
               profile = profileRes.data;
+              deletionRequested = !!sensitiveRes.data?.deletion_requested_at;
             } catch {
               console.error('Profile fetch timed out');
               return;
             }
 
             // Check if the user has a pending account deletion
-            setPendingDeletion(!!profile?.deletion_requested_at);
+            setPendingDeletion(deletionRequested);
 
             if (!profile) {
               // Guard against deleted accounts: if the auth account is older than

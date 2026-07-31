@@ -47,9 +47,14 @@ export default function Profile({ onNavigate }: ProfileProps) {
     if (!user) return;
     setLoading(true);
     try {
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      const [profileRes, sensitiveRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+        supabase.rpc('get_own_profile_sensitive').maybeSingle(),
+      ]);
+      const data = profileRes.data;
       if (data) {
-        setProfile(data);
+        const merged = { ...data, subscription_tier: sensitiveRes.data?.subscription_tier ?? null };
+        setProfile(merged as Profile);
         setEditedName(data.full_name || '');
         setEditedBio(data.bio || '');
         setEditedJobTitle(data.job_title || '');

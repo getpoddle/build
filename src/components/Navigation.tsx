@@ -50,16 +50,17 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); setUserProfile(null); return; }
-    supabase
-      .from('profiles')
-      .select('is_admin, full_name')
-      .eq('id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setIsAdmin(data?.is_admin || false);
-        setUserProfile({ full_name: data?.full_name || null, email: user.email });
-      })
-      .catch(() => setIsAdmin(false));
+    Promise.all([
+      supabase.rpc('get_own_profile_sensitive').maybeSingle(),
+      supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .maybeSingle(),
+    ]).then(([sensitiveRes, profileRes]) => {
+      setIsAdmin(sensitiveRes.data?.is_admin || false);
+      setUserProfile({ full_name: profileRes.data?.full_name || null, email: user.email });
+    }).catch(() => setIsAdmin(false));
   }, [user]);
 
   useEffect(() => {

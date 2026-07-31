@@ -17,7 +17,6 @@ interface Member {
   joined_at: string;
   profile: {
     full_name: string | null;
-    email: string;
     avatar_url: string | null;
     username: string | null;
   };
@@ -90,7 +89,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
       supabase.from('workspaces').select('*').eq('id', workspaceId).maybeSingle(),
       supabase
         .from('workspace_members')
-        .select('id, user_id, role, joined_at, profiles(full_name, email, avatar_url, username)')
+        .select('id, user_id, role, joined_at, profiles(full_name, avatar_url, username)')
         .eq('workspace_id', workspaceId)
         .order('joined_at'),
       supabase
@@ -389,12 +388,12 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
               return (
                 <div key={m.id} className="flex items-center gap-3 p-3" style={{ background: 'var(--app-border-subtle)' }}>
                   <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold" style={{ background: 'var(--app-surface-raised)', color: 'var(--signal)', border: '1px solid var(--app-border)' }}>
-                    {(m.profile?.full_name || m.profile?.email || '?').charAt(0).toUpperCase()}
+                    {(m.profile?.full_name || m.profile?.username || '?').charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-semibold truncate" style={{ color: 'var(--app-text-primary)' }}>
-                        {m.profile?.full_name || m.profile?.email}
+                        {m.profile?.full_name || m.profile?.username || 'Member'}
                       </span>
                       {isCurrentUser && (
                         <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>(you)</span>

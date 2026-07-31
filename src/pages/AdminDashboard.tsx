@@ -138,7 +138,7 @@ export default function AdminDashboard() {
           .order('created_at', { ascending: false }),
         supabase
           .from('beta_access_grants')
-          .select('id, user_id, granted_at, expires_at, status, invite_code_id, profiles(full_name, email)')
+          .select('id, user_id, granted_at, expires_at, status, invite_code_id, profiles(full_name)')
           .order('granted_at', { ascending: false }),
       ]);
       if (codesRes.data) setBetaCodes(codesRes.data);
@@ -775,13 +775,13 @@ export default function AdminDashboard() {
                       <div key={req.id} className="rounded-xl p-4" style={{ border: '1px solid rgba(15,23,42,0.08)', background: isPending ? 'rgba(245,158,11,0.03)' : '#fafafa' }}>
                         <div className="flex items-start gap-4">
                           <img
-                            src={getAvatarUrl(profile?.avatar_url || null, profile?.full_name || profile?.email || 'U')}
+                            src={getAvatarUrl(profile?.avatar_url || null, profile?.full_name || 'U')}
                             alt=""
                             className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <span className="font-bold text-slate-900 text-sm">{profile?.full_name || profile?.email}</span>
+                              <span className="font-bold text-slate-900 text-sm">{profile?.full_name || 'User'}</span>
                               {profile?.username && <span className="text-xs text-slate-400">@{profile.username}</span>}
                               <span className="text-xs px-2 py-0.5 rounded-full font-bold capitalize"
                                 style={{
@@ -1542,7 +1542,7 @@ export default function AdminDashboard() {
                           <tr key={g.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                             <td className="px-4 py-2.5">
                               <p className="text-xs font-semibold text-slate-800">{profile?.full_name || '—'}</p>
-                              <p className="text-[11px] text-slate-400">{profile?.email || g.user_id.slice(0, 8) + '…'}</p>
+                              <p className="text-[11px] text-slate-400">{g.user_id.slice(0, 8) + '…'}</p>
                             </td>
                             <td className="px-4 py-2.5">
                               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full capitalize" style={{
