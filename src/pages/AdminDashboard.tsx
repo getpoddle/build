@@ -200,11 +200,10 @@ export default function AdminDashboard() {
 
   const toggleVerification = async (userId: string, currentStatus: boolean) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({ verified: !currentStatus })
-        .eq('id', userId)
-        .select();
+        .eq('id', userId);
 
       if (error) {
         console.error('Verification error details:', error);

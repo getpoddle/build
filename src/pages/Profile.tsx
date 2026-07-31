@@ -48,7 +48,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
     setLoading(true);
     try {
       const [profileRes, sensitiveRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('id, full_name, first_name, last_name, username, avatar_url, bio, about_me, job_title, country, location, linkedin_url, education, certifications, job_experience, referral_points, referral_tier, onboarded, created_at, updated_at, verified, verification_requested_at, verified_at, theme_preference, email_notifications_enabled').eq('id', user.id).maybeSingle(),
         supabase.rpc('get_own_profile_sensitive').maybeSingle(),
       ]);
       const data = profileRes.data;
