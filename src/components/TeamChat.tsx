@@ -567,9 +567,9 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
               // Delay to allow click on dropdown to register
               setTimeout(() => setMentionQuery(null), 150);
             }}
-            placeholder="Message your team... (use @ to mention)"
+            placeholder="Message… (use @ to mention)"
             rows={1}
-            className="flex-1 resize-none rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors"
+            className="flex-1 resize-none rounded-xl px-3 py-2 text-sm xs:text-[13px] outline-none transition-colors"
             style={{
               background: 'var(--app-surface-raised)',
               border: '1px solid var(--app-border)',
