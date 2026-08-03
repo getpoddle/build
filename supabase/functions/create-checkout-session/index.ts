@@ -7,11 +7,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const PRICE_IDS: Record<string, string> = {
-  pro:       "price_1U0R8YFKEEYiEgTrjn5zEL7m",
-  team:      "price_1U0R9RFKEEYiEgTrWR6cUt3g",
-  business:  "price_1U0RAeFKEEYiEgTrMMbnoLA8",
+const PRODUCT_IDS: Record<string, string> = {
+  pro:       "prod_NEW_PRO",
+  team:      "prod_NEW_TEAM",
+  business:  "prod_NEW_BUSINESS",
 };
+
+async function getActivePriceId(stripeSecretKey: string, productId: string): Promise<string | null> {
+  const res = await fetch(
+    `https://api.stripe.com/v1/prices?product=${productId}&active=true&limit=1`,
+    { headers: { "Authorization": `Bearer ${stripeSecretKey}` } }
+  );
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data?.[0]?.id ?? null;
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -64,9 +74,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const priceId = PRICE_IDS[plan];
-    if (!priceId) {
+    const productId = PRODUCT_IDS[plan];
+    if (!productId) {
       return new Response(JSON.stringify({ error: `Unknown plan: ${plan}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const priceId = await getActivePriceId(stripeSecretKey, productId);
+    if (!priceId) {
+      return new Response(JSON.stringify({ error: "No active price found for this plan. Please contact support." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
