@@ -1,70 +1,52 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { STRIPE_PRODUCTS } from '../stripe-config';
+import { getProductByPriceId } from '../stripe-config';
 
 export interface SubscriptionInfo {
-  isActive: boolean;
-  planName: string | null;
-  priceId: string | null;
   status: string | null;
+  priceId: string | null;
+  planName: string | null;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd: number | null;
+  loading: boolean;
 }
 
-const DEFAULT: SubscriptionInfo = {
-  isActive: false,
-  planName: null,
-  priceId: null,
-  status: null,
-  cancelAtPeriodEnd: false,
-  currentPeriodEnd: null,
-};
-
-export function useSubscription() {
-  const [subscription, setSubscription] = useState<SubscriptionInfo>(DEFAULT);
-  const [loading, setLoading] = useState(true);
+export function useSubscription(userId: string | undefined): SubscriptionInfo {
+  const [info, setInfo] = useState<SubscriptionInfo>({
+    status: null,
+    priceId: null,
+    planName: null,
+    cancelAtPeriodEnd: false,
+    currentPeriodEnd: null,
+    loading: true,
+  });
 
   useEffect(() => {
-    let active = true;
-
-    async function load() {
-      try {
-        const { data, error } = await supabase
-          .from('stripe_user_subscriptions')
-          .select('*')
-          .maybeSingle();
-
-        if (!active) return;
-
-        if (error || !data) {
-          setSubscription(DEFAULT);
-          return;
-        }
-
-        const isActive =
-          data.subscription_status === 'active' ||
-          data.subscription_status === 'trialing';
-
-        const product = STRIPE_PRODUCTS.find(p => p.priceId === data.price_id);
-
-        setSubscription({
-          isActive,
-          planName: product?.name ?? null,
-          priceId: data.price_id ?? null,
-          status: data.subscription_status ?? null,
-          cancelAtPeriodEnd: data.cancel_at_period_end ?? false,
-          currentPeriodEnd: data.current_period_end ?? null,
-        });
-      } catch {
-        if (active) setSubscription(DEFAULT);
-      } finally {
-        if (active) setLoading(false);
-      }
+    if (!userId) {
+      setInfo(prev => ({ ...prev, loading: false }));
+      return;
     }
 
-    load();
-    return () => { active = false; };
-  }, []);
+    supabase
+      .from('stripe_user_subscriptions')
+      .select('subscription_status, price_id, cancel_at_period_end, current_period_end')
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          const product = data.price_id ? getProductByPriceId(data.price_id) : null;
+          setInfo({
+            status: data.subscription_status,
+            priceId: data.price_id,
+            planName: product?.name ?? null,
+            cancelAtPeriodEnd: data.cancel_at_period_end ?? false,
+            currentPeriodEnd: data.current_period_end ?? null,
+            loading: false,
+          });
+        } else {
+          setInfo({ status: null, priceId: null, planName: null, cancelAtPeriodEnd: false, currentPeriodEnd: null, loading: false });
+        }
+      });
+  }, [userId]);
 
-  return { subscription, loading };
+  return info;
 }
