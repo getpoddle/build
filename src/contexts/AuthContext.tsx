@@ -152,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Run admin check and profile fetch in parallel
             let profile: { id: string; first_name: string | null; last_name: string | null; username: string | null } | null = null;
             let deletionRequested = false;
+            let profileQueryErrored = false;
             try {
               const [adminRes, profileRes, sensitiveRes] = await Promise.all([
                 withTimeout(
@@ -161,7 +162,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 withTimeout(
                   supabase.from('profiles').select('id, first_name, last_name, username').eq('id', session.user.id).maybeSingle(),
                   5000
-                ),
+                ).catch((err: unknown) => {
+                  console.error('Profile query failed during sign-in:', err);
+                  profileQueryErrored = true;
+                  return { data: null };
+                }),
                 withTimeout(
                   supabase.rpc('get_own_profile_sensitive').maybeSingle(),
                   5000
@@ -172,20 +177,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               profile = profileRes.data;
               deletionRequested = !!sensitiveRes.data?.deletion_requested_at;
             } catch {
-              // Profile fetch timed out — don't abort the sign-in flow.
-              // The session is still valid; profile/deletion status will
-              // be retried on the next auth state change or page load.
-              console.error('Profile fetch timed out during sign-in');
+              console.error('Sign-in profile fetch failed');
+              profileQueryErrored = true;
               resetIdleTimer();
             }
 
-            // Check if the user has a pending account deletion
             setPendingDeletion(deletionRequested);
 
-            if (!profile) {
-              // Guard against deleted accounts: if the auth account is older than
-              // 10 minutes but has no profile, the user was deleted by an admin.
-              // Sign them out immediately instead of recreating their profile.
+            if (!profile && !profileQueryErrored) {
               const accountAgeMs = Date.now() - new Date(session.user.created_at).getTime();
               if (accountAgeMs > 10 * 60 * 1000) {
                 await supabase.auth.signOut({ scope: 'local' });
