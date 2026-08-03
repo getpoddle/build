@@ -62,7 +62,6 @@ export default function Pricing({ onNavigate }: PricingProps) {
       onNavigate('auth');
       return;
     }
-    if (currentTier !== 'free') return;
     setLoadingPlan(plan);
     setError('');
     try {
