@@ -10,7 +10,7 @@ interface HomeProps {
 const STATS = [
   { label: 'AI Agents', value: '7', sub: 'Always available', icon: Bot },
   { label: 'Encryption', value: 'E2E', sub: 'End-to-end secure', icon: Shield },
-  { label: 'Workspace seats', value: '10', sub: 'Team plan', icon: Users },
+  { label: 'Workspace seats', value: '1–10', sub: 'Team plan', icon: Users },
   { label: 'Synthesis speed', value: '<60s', sub: 'AI War Room', icon: Zap },
 ];
 

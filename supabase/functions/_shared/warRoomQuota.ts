@@ -10,7 +10,7 @@
  * tuning knob, not a permanent spec.
  */
 
-export type WarRoomPlan = "free" | "pro" | "team" | "enterprise";
+export type WarRoomPlan = "free" | "pro" | "team" | "business" | "enterprise";
 
 export interface WarRoomLimit {
   /** Hard cap on sessions per billing period. `null` = uncapped. */
@@ -24,30 +24,35 @@ export interface WarRoomLimit {
 }
 
 export const WAR_ROOM_LIMITS: Record<WarRoomPlan, WarRoomLimit> = {
-  // Free: 10 War Room sessions per billing period. Enough for a new user to
-  // meaningfully evaluate the Multiplayer AI across a full decision cycle.
+  // Free: 1 War Room session per billing period. Lead generation tier.
   free: {
-    cap: 10,
+    cap: 1,
     included: 0,
     overageUnitPrice: 0,
     hardBlock: true,
   },
-  // Pro: 15 sessions included, then metered overage at $0.50-$1.00/session.
-  // LAUNCH ESTIMATE — revisit once real cost data exists; target ~75-80% margin.
+  // Pro Individual: unlimited War Room sessions. $39/mo.
   pro: {
-    cap: null, // uncapped — overage is metered, not blocked
-    included: 15,
-    overageUnitPrice: 0.75,
-    hardBlock: false,
-  },
-  // Team: soft abuse guard at 200. Does NOT monetize — allows past the cap.
-  team: {
-    cap: 200,
-    included: 200,
+    cap: null,
+    included: 1000000,
     overageUnitPrice: 0,
     hardBlock: false,
   },
-  // Enterprise: effectively uncapped.
+  // Team Workspace: unlimited, soft abuse guard at 500. $249/mo.
+  team: {
+    cap: 500,
+    included: 500,
+    overageUnitPrice: 0,
+    hardBlock: false,
+  },
+  // Business: unlimited, soft abuse guard at 2000. $999/mo.
+  business: {
+    cap: 2000,
+    included: 2000,
+    overageUnitPrice: 0,
+    hardBlock: false,
+  },
+  // Enterprise: effectively uncapped. Starting $2,500/mo.
   enterprise: {
     cap: null,
     included: 1000000,

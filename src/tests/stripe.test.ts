@@ -59,16 +59,34 @@ describe("verifyStripeSignature", () => {
 // ─── planFromProductId ────────────────────────────────────────────────────────
 
 describe("planFromProductId", () => {
-  it("maps the enterprise product to enterprise plan with 25 seats", () => {
+  // Legacy product IDs (kept for existing subscribers on old pricing)
+  it("maps the legacy enterprise product to enterprise plan with 25 seats", () => {
     expect(planFromProductId("prod_UXcclPSycEN5dN")).toEqual({ plan: "enterprise", seats: 25 });
   });
 
-  it("maps the team product to team plan with 10 seats", () => {
+  it("maps the legacy team product to team plan with 10 seats", () => {
     expect(planFromProductId("prod_UYhkfi8tsa4NJu")).toEqual({ plan: "team", seats: 10 });
   });
 
-  it("maps the pro product to pro plan with 3 seats", () => {
+  it("maps the legacy pro product to pro plan with 3 seats", () => {
     expect(planFromProductId("prod_UXcbO4NuuJRE5A")).toEqual({ plan: "pro", seats: 3 });
+  });
+
+  // New 5-tier product IDs
+  it("maps the new pro product to pro plan with 1 seat", () => {
+    expect(planFromProductId("prod_NEW_PRO")).toEqual({ plan: "pro", seats: 1 });
+  });
+
+  it("maps the new team product to team plan with 10 seats", () => {
+    expect(planFromProductId("prod_NEW_TEAM")).toEqual({ plan: "team", seats: 10 });
+  });
+
+  it("maps the new business product to business plan with 25 seats", () => {
+    expect(planFromProductId("prod_NEW_BUSINESS")).toEqual({ plan: "business", seats: 25 });
+  });
+
+  it("maps the new enterprise product to enterprise plan with 200 seats", () => {
+    expect(planFromProductId("prod_NEW_ENTERPRISE")).toEqual({ plan: "enterprise", seats: 200 });
   });
 
   it("returns null for an unknown product ID (does not throw)", () => {

@@ -174,7 +174,7 @@ export function useUserWorkspaces() {
 
 export function useSubscriptionTier() {
   const { user } = useAuth();
-  const [tier, setTier] = useState<'free' | 'pro' | 'team' | 'enterprise'>('free');
+  const [tier, setTier] = useState<'free' | 'pro' | 'team' | 'business' | 'enterprise'>('free');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -196,7 +196,7 @@ export function useSubscriptionTier() {
     load().catch(() => setLoading(false));
   }, [user]);
 
-  return { tier, loading, isPro: tier === 'pro' || tier === 'team' || tier === 'enterprise' };
+  return { tier, loading, isPro: tier === 'pro' || tier === 'team' || tier === 'business' || tier === 'enterprise' };
 }
 
 export interface WarRoomUsage {

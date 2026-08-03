@@ -53,8 +53,8 @@ export function deriveAccessState(
  */
 export function resolveSubscriptionTier(
   profileTier: string | null | undefined,
-): 'free' | 'pro' | 'team' | 'enterprise' {
-  if (profileTier === 'pro' || profileTier === 'team' || profileTier === 'enterprise') {
+): 'free' | 'pro' | 'team' | 'business' | 'enterprise' {
+  if (profileTier === 'pro' || profileTier === 'team' || profileTier === 'business' || profileTier === 'enterprise') {
     return profileTier;
   }
   return 'free';

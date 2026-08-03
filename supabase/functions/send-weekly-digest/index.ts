@@ -132,14 +132,14 @@ function buildNoWorkspaceEmail(recipientName: string): string {
           <tr>
             <td style="padding:0 12px 0 0;">
               <div style="text-align:center;padding:14px 0;border-radius:8px;border:1px solid #334155;">
-                <div style="color:#f8fafc;font-size:16px;font-weight:800;line-height:1;">$19</div>
+                <div style="color:#f8fafc;font-size:16px;font-weight:800;line-height:1;">$39</div>
                 <div style="color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Pro Individual / mo</div>
               </div>
             </td>
             <td>
               <div style="text-align:center;padding:14px 0;border-radius:8px;border:1px solid #334155;">
-                <div style="color:#f8fafc;font-size:16px;font-weight:800;line-height:1;">$79</div>
-                <div style="color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Teams / mo</div>
+                <div style="color:#f8fafc;font-size:16px;font-weight:800;line-height:1;">$249</div>
+                <div style="color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Team Workspace / mo</div>
               </div>
             </td>
           </tr>

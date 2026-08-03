@@ -38,7 +38,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
   const { canAccess, isAdmin, isReadOnly, plan, subscriptionStatus, trialExpiresAt, loading: accessLoading } = useWorkspaceAccess(workspaceId);
   const { hasBetaAccess } = useBetaAccess();
   const workspaceIsPro = hasBetaAccess || (
-    (plan === 'pro' || plan === 'enterprise') &&
+    (plan === 'pro' || plan === 'team' || plan === 'business' || plan === 'enterprise') &&
     (subscriptionStatus === 'active' || subscriptionStatus === 'trialing')
   );
 
@@ -188,7 +188,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
     );
   }
 
-  const planLabel = plan === 'enterprise' ? 'ENTERPRISE' : 'PRO';
+  const planLabel = plan === 'enterprise' ? 'ENTERPRISE' : plan === 'business' ? 'BUSINESS' : plan === 'team' ? 'TEAM' : 'PRO';
 
   return (
     <div

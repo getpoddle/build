@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, Sparkles, Zap, Users, BarChart2, Shield, Bot, Lock, X, Loader2, CreditCard, Mail, ExternalLink } from 'lucide-react';
+import { CheckCircle, Sparkles, Zap, Users, BarChart2, Shield, Bot, Lock, X, Loader2, CreditCard, Mail, ExternalLink, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -7,11 +7,13 @@ interface PricingProps {
   onNavigate: (page: string) => void;
 }
 
+type Tier = 'free' | 'pro' | 'team' | 'business' | 'enterprise';
+
 export default function Pricing({ onNavigate }: PricingProps) {
   const { user } = useAuth();
-  const [loadingPlan, setLoadingPlan] = useState<'pro' | 'team' | 'enterprise' | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<Tier | null>(null);
   const [error, setError] = useState('');
-  const [currentTier, setCurrentTier] = useState<'free' | 'pro' | 'team' | 'enterprise'>('free');
+  const [currentTier, setCurrentTier] = useState<Tier>('free');
   const [loadingPortal, setLoadingPortal] = useState(false);
 
   useEffect(() => {
@@ -20,7 +22,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
       .rpc('get_own_profile_sensitive')
       .maybeSingle()
       .then(({ data }) => {
-        const tier = (data?.subscription_tier as 'free' | 'pro' | 'team' | 'enterprise') || 'free';
+        const tier = (data?.subscription_tier as Tier) || 'free';
         setCurrentTier(tier);
       });
   }, [user]);
@@ -55,7 +57,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
     }
   }
 
-  async function handleCheckout(plan: 'pro' | 'team') {
+  async function handleCheckout(plan: 'pro' | 'team' | 'business') {
     if (!user) {
       onNavigate('auth');
       return;
@@ -76,7 +78,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         },
         body: JSON.stringify({
           plan,
-          seats: plan === 'team' ? 10 : 3,
+          seats: plan === 'business' ? 25 : plan === 'team' ? 10 : 1,
           success_url: `${origin}/?payment_success=1&plan=${plan}`,
           cancel_url: `${origin}/#pricing`,
         }),
@@ -100,45 +102,120 @@ export default function Pricing({ onNavigate }: PricingProps) {
   }
 
   const freeBenefits = [
-    '1 free private workspace per month',
-    'Up to 3 workspace members',
-    'AI War Room (limited queries)',
+    '1 War Room session per month',
+    'Board Brief PDF export (trial)',
     'AI agent analysis on workspace content',
     'Workspace memory & pattern tracking',
-    'PDF export (3 per month)',
   ];
 
   const proBenefits = [
     'Everything in Free',
-    'Unlimited private workspaces',
-    'Unlimited AI War Room queries',
-    'Advanced workspace synthesis',
-    'Full PDF export history',
+    'Unlimited War Room sessions',
+    'Poddle Voice',
+    'Board Brief PDF export',
+    'Document upload',
     'Priority AI analysis',
     'Early access to new features',
   ];
 
   const teamBenefits = [
     'Everything in Pro Individual',
-    'Up to 10 workspace members',
-    'Ideal for startups & product teams',
+    '1–10 seats included',
+    'Multiplayer War Rooms',
+    'Shared decision history',
     'Team-wide AI synthesis',
-    'Collaborative War Room sessions',
     'Priority support',
   ];
 
+  const businessBenefits = [
+    'Everything in Team Workspace',
+    '25–100 seats',
+    'SSO authentication',
+    'Workspace governance & analytics',
+    'Dedicated support channel',
+  ];
+
   const enterpriseBenefits = [
-    'Everything in Poddle Team',
-    'Unlimited workspace members',
-    'Custom AI agent personas',
-    'Dedicated account manager',
-    'SLA guarantee',
-    'Custom onboarding',
+    'Everything in Business',
+    'Custom agent orchestration',
+    'Pattern Intelligence',
+    'Full audit trails',
+    'Dedicated SLAs',
+    'Custom onboarding & training',
+  ];
+
+  const tiers: {
+    id: Tier;
+    name: string;
+    price: string;
+    period: string;
+    audience: string;
+    benefits: string[];
+    featured?: boolean;
+    badge?: string;
+    badgeClass?: string;
+    cta: 'checkout' | 'enterprise' | 'none';
+    checkoutPlan?: 'pro' | 'team' | 'business';
+  }[] = [
+    {
+      id: 'free',
+      name: 'Free',
+      price: '$0',
+      period: '/ month',
+      audience: 'For individuals getting started',
+      benefits: freeBenefits,
+      cta: 'none',
+    },
+    {
+      id: 'pro',
+      name: 'Pro Individual',
+      price: '$39',
+      period: '/ month',
+      audience: 'For individual founders & strategists',
+      benefits: proBenefits,
+      featured: true,
+      badge: 'Most popular',
+      cta: 'checkout',
+      checkoutPlan: 'pro',
+    },
+    {
+      id: 'team',
+      name: 'Team Workspace',
+      price: '$249',
+      period: '/ month',
+      audience: 'For pods and small teams',
+      benefits: teamBenefits,
+      badge: 'For teams',
+      badgeClass: 'badge-amber',
+      cta: 'checkout',
+      checkoutPlan: 'team',
+    },
+    {
+      id: 'business',
+      name: 'Business',
+      price: '$999',
+      period: '/ month',
+      audience: 'For mid-market departments',
+      benefits: businessBenefits,
+      badge: 'For departments',
+      badgeClass: 'badge-amber',
+      cta: 'checkout',
+      checkoutPlan: 'business',
+    },
+    {
+      id: 'enterprise',
+      name: 'Enterprise',
+      price: 'Starting at $2,500',
+      period: '/ month',
+      audience: 'For large organizations (200+ seats)',
+      benefits: enterpriseBenefits,
+      cta: 'enterprise',
+    },
   ];
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 
         <div className="text-center mb-14">
           <div
@@ -161,165 +238,101 @@ export default function Pricing({ onNavigate }: PricingProps) {
           </div>
         )}
 
-        <div className="grid md:grid-cols-4 gap-5 mb-16">
+        {/* Tier cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-5 mb-16">
+          {tiers.map(tier => {
+            const isCurrent = currentTier === tier.id;
+            const isFeatured = tier.featured;
 
-          {/* Free */}
-          <div
-            className="panel p-6 flex flex-col relative"
-            style={currentTier === 'free' ? { borderColor: 'var(--app-text-muted)' } : undefined}
-          >
-            {currentTier === 'free' && user && (
-              <div className="absolute top-4 right-4 badge badge-slate">Current plan</div>
-            )}
-            <div className="mb-5">
-              <p className="section-label mb-2">Free</p>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="stat-card-value">$0</span>
-                <span className="text-sm mb-1.5" style={{ color: 'var(--app-text-muted)' }}>/ month</span>
-              </div>
-              <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>For individuals getting started</p>
-            </div>
-            <ul className="space-y-2.5 flex-1 mb-6">
-              {freeBenefits.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--app-text-primary)' }}>
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-positive" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => !user && onNavigate('auth')}
-              disabled={!!user}
-              className="btn-secondary w-full"
-            >
-              {user ? 'Free plan' : 'Get started free'}
-            </button>
-          </div>
-
-          {/* Pro Individual — featured */}
-          <div
-            className="relative overflow-hidden p-6 flex flex-col"
-            style={{ background: '#0e1117', border: '1px solid var(--signal)', boxShadow: 'var(--shadow-signal)' }}
-          >
-            <div className="absolute top-4 right-4 badge" style={{ background: 'var(--signal)', color: 'var(--ink-900)' }}>
-              {currentTier === 'pro' ? 'Current plan' : 'Most popular'}
-            </div>
-            <div className="mb-5">
-              <p className="mono-xs font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--signal)' }}>Pro Individual</p>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="stat-card-value" style={{ color: '#ffffff' }}>$19</span>
-                <span className="text-sm mb-1.5" style={{ color: 'rgba(255,255,255,0.7)' }}>/ month</span>
-              </div>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>For founders &amp; professionals</p>
-            </div>
-            <ul className="space-y-2.5 flex-1 mb-6">
-              {proBenefits.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--signal)' }} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            {currentTier === 'pro' ? (
-              <button
-                onClick={handleBillingPortal}
-                disabled={loadingPortal}
-                className="btn-primary w-full"
+            return (
+              <div
+                key={tier.id}
+                className="relative overflow-hidden p-6 flex flex-col"
+                style={isFeatured
+                  ? { background: '#0e1117', border: '1px solid var(--signal)', boxShadow: 'var(--shadow-signal)' }
+                  : isCurrent
+                    ? { borderColor: 'var(--app-text-muted)' }
+                    : undefined
+                }
               >
-                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-                Manage subscription
-              </button>
-            ) : (
-              <button
-                onClick={() => handleCheckout('pro')}
-                disabled={loadingPlan === 'pro' || currentTier !== 'free'}
-                className="btn-primary w-full"
-              >
-                {loadingPlan === 'pro' ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <CreditCard className="w-4 h-4" />
-                    {user ? 'Subscribe' : 'Get started'}
-                  </>
+                {/* Badge */}
+                {tier.badge && (
+                  <div className="absolute top-4 right-4">
+                    {isCurrent ? (
+                      <div className="badge badge-slate">Current plan</div>
+                    ) : (
+                      <div className={`badge ${tier.badgeClass ?? ''}`} style={isFeatured ? { background: 'var(--signal)', color: 'var(--ink-900)' } : undefined}>
+                        {tier.badge}
+                      </div>
+                    )}
+                  </div>
                 )}
-              </button>
-            )}
-          </div>
-
-          {/* Poddle Team */}
-          <div
-            className="panel p-6 flex flex-col relative"
-            style={currentTier === 'team' ? { borderColor: 'var(--signal)' } : undefined}
-          >
-            <div className="absolute top-4 right-4 badge badge-amber">
-              {currentTier === 'team' ? 'Current plan' : 'For teams'}
-            </div>
-            <div className="mb-5">
-              <p className="mono-xs font-bold uppercase tracking-widest mb-2 text-signal">Poddle Team</p>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="stat-card-value">$79</span>
-                <span className="text-sm mb-1.5" style={{ color: 'var(--app-text-muted)' }}>/ month</span>
-              </div>
-              <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>For startups, agencies &amp; product teams</p>
-            </div>
-            <ul className="space-y-2.5 flex-1 mb-6">
-              {teamBenefits.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--app-text-primary)' }}>
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-positive" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            {currentTier === 'team' ? (
-              <button
-                onClick={handleBillingPortal}
-                disabled={loadingPortal}
-                className="btn-primary w-full"
-              >
-                {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-                Manage subscription
-              </button>
-            ) : (
-              <button
-                onClick={() => handleCheckout('team')}
-                disabled={loadingPlan === 'team' || currentTier !== 'free'}
-                className="btn-primary w-full"
-              >
-                {loadingPlan === 'team' ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Users className="w-4 h-4" />
-                    {user ? 'Subscribe' : 'Get started'}
-                  </>
+                {isCurrent && !tier.badge && (
+                  <div className="absolute top-4 right-4 badge badge-slate">Current plan</div>
                 )}
-              </button>
-            )}
-          </div>
 
-          {/* Enterprise */}
-          <div className="panel p-6 flex flex-col">
-            <div className="mb-5">
-              <p className="section-label mb-2">Enterprise</p>
-              <div className="flex items-end gap-1 mb-1">
-                <span className="text-2xl font-bold leading-tight pt-1" style={{ color: 'var(--app-text-primary)' }}>Contact sales</span>
+                <div className="mb-5">
+                  <p className={`mono-xs font-bold uppercase tracking-widest mb-2 ${isFeatured ? '' : 'text-signal'}`} style={isFeatured ? { color: 'var(--signal)' } : undefined}>
+                    {tier.name}
+                  </p>
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="stat-card-value" style={isFeatured ? { color: '#ffffff' } : undefined}>{tier.price}</span>
+                    <span className="text-sm mb-1.5" style={isFeatured ? { color: 'rgba(255,255,255,0.7)' } : { color: 'var(--app-text-muted)' }}>{tier.period}</span>
+                  </div>
+                  <p className="text-sm" style={isFeatured ? { color: 'rgba(255,255,255,0.8)' } : { color: 'var(--app-text-secondary)' }}>{tier.audience}</p>
+                </div>
+
+                <ul className="space-y-2.5 flex-1 mb-6">
+                  {tier.benefits.map(item => (
+                    <li key={item} className="flex items-start gap-2.5 text-sm" style={isFeatured ? { color: 'rgba(255,255,255,0.85)' } : { color: 'var(--app-text-primary)' }}>
+                      <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={isFeatured ? { color: 'var(--signal)' } : undefined} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                {isCurrent ? (
+                  <button
+                    onClick={handleBillingPortal}
+                    disabled={loadingPortal}
+                    className="btn-primary w-full"
+                  >
+                    {loadingPortal ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+                    Manage subscription
+                  </button>
+                ) : tier.cta === 'checkout' && tier.checkoutPlan ? (
+                  <button
+                    onClick={() => handleCheckout(tier.checkoutPlan)}
+                    disabled={loadingPlan === tier.id || currentTier !== 'free'}
+                    className="btn-primary w-full"
+                  >
+                    {loadingPlan === tier.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <CreditCard className="w-4 h-4" />
+                        {user ? 'Subscribe' : 'Get started'}
+                      </>
+                    )}
+                  </button>
+                ) : tier.cta === 'enterprise' ? (
+                  <button onClick={handleEnterprise} className="btn-secondary w-full">
+                    <Mail className="w-4 h-4" />
+                    Contact sales
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => !user && onNavigate('auth')}
+                    disabled={!!user}
+                    className="btn-secondary w-full"
+                  >
+                    {user ? 'Free plan' : 'Get started free'}
+                  </button>
+                )}
               </div>
-              <p className="text-sm mt-1" style={{ color: 'var(--app-text-secondary)' }}>For large teams &amp; organizations</p>
-            </div>
-            <ul className="space-y-2.5 flex-1 mb-6">
-              {enterpriseBenefits.map(item => (
-                <li key={item} className="flex items-start gap-2.5 text-sm" style={{ color: 'var(--app-text-primary)' }}>
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-positive" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <button onClick={handleEnterprise} className="btn-secondary w-full">
-              <Mail className="w-4 h-4" />
-              Contact sales
-            </button>
-          </div>
+            );
+          })}
         </div>
 
         {/* Feature highlights */}
@@ -330,7 +343,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
               { icon: Lock, title: 'Private Workspaces', desc: 'Encrypted, invite-only spaces for founders and teams to structure decisions with AI — never publicly discoverable.', badge: null },
               { icon: Bot, title: 'AI War Room', desc: 'Bring a decision to the War Room and 7 specialized AI agents debate it — surfacing risks, blind spots, and alternative paths.', badge: null },
               { icon: BarChart2, title: 'Workspace Synthesis', desc: 'AI periodically synthesizes everything in your workspace — surfacing patterns, contradictions, and strategic signals you might miss.', badge: null },
-              { icon: Users, title: 'Team Collaboration', desc: 'Free supports up to 3 members. Poddle Team supports 10. AI agents challenge all your assumptions collectively.', badge: 'Team+' },
+              { icon: Users, title: 'Team Collaboration', desc: 'Free supports 1 member. Team supports 10. Business supports 100. AI agents challenge all your assumptions collectively.', badge: 'Team+' },
               { icon: Shield, title: 'Workspace Memory', desc: 'Every insight, decision, and War Room session builds a persistent memory layer that makes future AI analysis sharper over time.', badge: null },
               { icon: Zap, title: 'PDF Export', desc: 'Export your workspace decisions, War Room sessions, and AI synthesis into clean, shareable PDFs for stakeholders.', badge: null },
             ].map(({ icon: Icon, title, desc, badge }) => (
@@ -352,7 +365,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         <div className="grid sm:grid-cols-3 gap-6 mb-16">
           {[
             { q: 'Can I cancel anytime?', a: 'Absolutely. All plans are monthly subscriptions with no lock-in. Cancel anytime from your workspace billing settings and you keep access until the end of the billing period.' },
-            { q: 'What is Poddle Team for?', a: "Fast-moving startups, small agencies, and product teams who need to collaborate with AI agents on proprietary ideas. Up to 10 members, full War Room access, and team-wide AI synthesis." },
+            { q: 'What is Team Workspace for?', a: "Fast-moving pods and small teams who need to collaborate with AI agents on proprietary ideas. 1–10 seats, multiplayer War Rooms, and shared decision history." },
             { q: 'What happens to my data if I cancel?', a: 'Your workspace data is retained for 30 days after cancellation. You can export your decisions and War Room intelligence before downgrading. Nothing is deleted without notice.' },
           ].map(({ q, a }) => (
             <div key={q} className="panel p-5">
@@ -380,7 +393,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
             ) : (
               <button onClick={() => handleCheckout('pro')} disabled={loadingPlan === 'pro'} className="btn-primary">
                 {loadingPlan === 'pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                Get Pro — $19/mo
+                Get Pro — $39/mo
               </button>
             )}
             <button onClick={handleEnterprise} className="btn-secondary" style={{ background: 'transparent', color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)' }}>

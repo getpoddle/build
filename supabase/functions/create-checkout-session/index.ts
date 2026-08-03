@@ -7,10 +7,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+// New 5-tier product IDs. These are placeholders — replace with real Stripe
+// product IDs after creating new products in the Stripe dashboard.
+// Legacy product IDs are kept in stripeLogic.ts for webhook handling.
 const PRODUCT_IDS: Record<string, string> = {
-  enterprise: "prod_UXcclPSycEN5dN",
-  team:       "prod_UYhkfi8tsa4NJu",
-  pro:        "prod_UXcbO4NuuJRE5A",
+  enterprise: "prod_NEW_ENTERPRISE",
+  business:  "prod_NEW_BUSINESS",
+  team:      "prod_NEW_TEAM",
+  pro:       "prod_NEW_PRO",
 };
 
 async function fetchPriceForProduct(productId: string, stripeKey: string): Promise<string | null> {
@@ -72,8 +76,13 @@ Deno.serve(async (req: Request) => {
     let priceId: string | null = null;
 
     if (plan === "enterprise") {
-      priceId = Deno.env.get("STRIPE_ENTERPRISE_PRICE_ID") || null;
-      if (!priceId) priceId = await fetchPriceForProduct(PRODUCT_IDS.enterprise, stripeSecretKey);
+      // Enterprise is a contact-sales flow, not self-serve checkout.
+      return new Response(JSON.stringify({ error: "Enterprise requires a custom quote. Please contact sales." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } else if (plan === "business") {
+      priceId = Deno.env.get("STRIPE_BUSINESS_PRICE_ID") || null;
+      if (!priceId) priceId = await fetchPriceForProduct(PRODUCT_IDS.business, stripeSecretKey);
     } else if (plan === "team") {
       priceId = Deno.env.get("STRIPE_TEAM_PRICE_ID") || null;
       if (!priceId) priceId = await fetchPriceForProduct(PRODUCT_IDS.team, stripeSecretKey);
@@ -97,7 +106,7 @@ Deno.serve(async (req: Request) => {
       .eq("id", user.id)
       .maybeSingle();
 
-    const defaultSeats = plan === "enterprise" ? 25 : plan === "team" ? 10 : 3;
+    const defaultSeats = plan === "business" ? 25 : plan === "team" ? 10 : 1;
 
     const checkoutBody = new URLSearchParams({
       "mode": "subscription",

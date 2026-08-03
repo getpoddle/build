@@ -128,6 +128,10 @@ describe("resolveSubscriptionTier", () => {
     expect(resolveSubscriptionTier("team")).toBe("team");
   });
 
+  it("passes 'business' through unchanged (real Stripe plan, not collapsed to free)", () => {
+    expect(resolveSubscriptionTier("business")).toBe("business");
+  });
+
   it("defaults to 'free' for null", () => {
     expect(resolveSubscriptionTier(null)).toBe("free");
   });

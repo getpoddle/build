@@ -21,10 +21,10 @@ export default function UpgradePrompt({ onClose, onUpgrade, context = 'generic',
     },
     generic: {
       headline: 'Upgrade to Pro',
-      sub: 'Unlock private workspaces, invite your team, and debate proprietary ideas with AI agents in a secure, encrypted space.',
+      sub: 'Unlock unlimited War Room sessions, private workspaces, and AI agent intelligence — starting at $39/mo.',
     },
     trial_exhausted: {
-      headline: "You've used both free trial workspaces",
+      headline: "You've used your free trial workspace",
       sub: 'Upgrade to Pro to create unlimited workspaces and keep all your data — your trial content is safe and will carry over.',
     },
   };
