@@ -7,25 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// New 5-tier product IDs. These are placeholders — replace with real Stripe
-// product IDs after creating new products in the Stripe dashboard.
-// Legacy product IDs are kept in stripeLogic.ts for webhook handling.
-const PRODUCT_IDS: Record<string, string> = {
-  enterprise: "prod_NEW_ENTERPRISE",
-  business:  "prod_NEW_BUSINESS",
-  team:      "prod_NEW_TEAM",
-  pro:       "prod_NEW_PRO",
+const PRICE_IDS: Record<string, string> = {
+  pro:       "price_1U0R8YFKEEYiEgTrjn5zEL7m",
+  team:      "price_1U0R9RFKEEYiEgTrWR6cUt3g",
+  business:  "price_1U0RAeFKEEYiEgTrMMbnoLA8",
 };
-
-async function fetchPriceForProduct(productId: string, stripeKey: string): Promise<string | null> {
-  const res = await fetch(
-    `https://api.stripe.com/v1/prices?product=${productId}&active=true&limit=1`,
-    { headers: { "Authorization": `Bearer ${stripeKey}` } }
-  );
-  if (!res.ok) return null;
-  const json = await res.json();
-  return json.data?.[0]?.id ?? null;
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -72,31 +58,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Resolve price ID: env var → dynamic product lookup → error
-    let priceId: string | null = null;
-
     if (plan === "enterprise") {
-      // Enterprise is a contact-sales flow, not self-serve checkout.
       return new Response(JSON.stringify({ error: "Enterprise requires a custom quote. Please contact sales." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    } else if (plan === "business") {
-      priceId = Deno.env.get("STRIPE_BUSINESS_PRICE_ID") || null;
-      if (!priceId) priceId = await fetchPriceForProduct(PRODUCT_IDS.business, stripeSecretKey);
-    } else if (plan === "team") {
-      priceId = Deno.env.get("STRIPE_TEAM_PRICE_ID") || null;
-      if (!priceId) priceId = await fetchPriceForProduct(PRODUCT_IDS.team, stripeSecretKey);
-    } else {
-      // pro individual
-      priceId = Deno.env.get("STRIPE_PRO_PRICE_ID") || null;
-      if (!priceId) priceId = await fetchPriceForProduct(PRODUCT_IDS.pro, stripeSecretKey);
     }
 
+    const priceId = PRICE_IDS[plan];
     if (!priceId) {
-      console.error(`No active price found for plan: ${plan}`);
-      return new Response(JSON.stringify({ error: "No active price found for this plan. Please contact support." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: `Unknown plan: ${plan}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 

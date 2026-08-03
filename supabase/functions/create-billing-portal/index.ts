@@ -90,6 +90,24 @@ Deno.serve(async (req: Request) => {
     // Email-based Stripe customer search removed: it could match a Stripe
     // customer record belonging to a different account with the same email.
 
+    // 3. Fallback: check stripe_customers table (used by stripe-checkout flow)
+    if (!stripeCustomerId) {
+      const adminSupabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: customerRow } = await adminSupabase
+        .from("stripe_customers")
+        .select("customer_id")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .maybeSingle();
+
+      if (customerRow?.customer_id) {
+        stripeCustomerId = customerRow.customer_id;
+      }
+    }
+
     if (!stripeCustomerId) {
       return new Response(JSON.stringify({ error: "No Stripe billing account found. Please contact support." }), {
         status: 404,
