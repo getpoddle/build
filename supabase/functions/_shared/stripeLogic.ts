@@ -15,7 +15,7 @@
 export const PRODUCT_TO_PLAN: Record<string, { plan: string; seats: number }> = {
   "prod_UXcbO4NuuJRE5A": { plan: "pro",       seats: 1 },   // Pro Individual — $39/mo
   "prod_UYgnADbpMs1fyz": { plan: "team",      seats: 10 },  // Team Workspace — $249/mo (1–10 seats)
-  "prod_UYhkfi8tsa4NJu": { plan: "business",  seats: 25 },  // Business — $999/mo (25–100 seats)
+  "prod_UYhkfi8tsa4NJu": { plan: "business",  seats: 100 }, // Business — $999/mo (up to 100 seats)
   "prod_UXcclPSycEN5dN": { plan: "enterprise", seats: 25 }, // Legacy enterprise
 };
 

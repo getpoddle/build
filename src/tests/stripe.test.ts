@@ -68,8 +68,8 @@ describe("planFromProductId", () => {
     expect(planFromProductId("prod_UYgnADbpMs1fyz")).toEqual({ plan: "team", seats: 10 });
   });
 
-  it("maps the business product to business plan with 25 seats", () => {
-    expect(planFromProductId("prod_UYhkfi8tsa4NJu")).toEqual({ plan: "business", seats: 25 });
+  it("maps the business product to business plan with 100 seats", () => {
+    expect(planFromProductId("prod_UYhkfi8tsa4NJu")).toEqual({ plan: "business", seats: 100 });
   });
 
   // Legacy product IDs (kept for existing subscribers on old pricing)

@@ -77,7 +77,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         },
         body: JSON.stringify({
           plan,
-          seats: plan === 'business' ? 25 : plan === 'team' ? 10 : 1,
+          seats: plan === 'business' ? 100 : plan === 'team' ? 10 : 1,
           success_url: `${origin}/?payment_success=1&plan=${plan}`,
           cancel_url: `${origin}/#pricing`,
         }),
@@ -128,7 +128,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
 
   const businessBenefits = [
     'Everything in Team Workspace',
-    '25–100 seats',
+    'Up to 100 seats',
     'SSO authentication',
     'Workspace governance & analytics',
     'Dedicated support channel',

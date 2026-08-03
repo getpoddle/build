@@ -36,7 +36,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
   ],
   Business: [
     'Everything in Team',
-    '25–100 seats',
+    'Up to 100 seats',
     'Single Sign-On (SSO)',
     'Workspace governance',
     'Analytics dashboard',

@@ -31,7 +31,7 @@ export const STRIPE_PRODUCTS: StripeProduct[] = [
     id: 'prod_UYhkfi8tsa4NJu',
     priceId: 'price_1U0RAeFKEEYiEgTrMMbnoLA8',
     name: 'Business',
-    description: '25–100 seats, SSO, workspace governance & analytics',
+    description: 'Up to 100 seats, SSO, workspace governance & analytics',
     price: 999.00,
     currency: '$',
     mode: 'subscription',
