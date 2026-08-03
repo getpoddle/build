@@ -20,7 +20,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const productIds = ["prod_NEW_PRO", "prod_NEW_TEAM", "prod_NEW_BUSINESS"];
+    const productIds = ["prod_UXcbO4NuuJRE5A", "prod_UYgnADbpMs1fyz", "prod_UYhkfi8tsa4NJu"];
     const results: Record<string, unknown> = {};
 
     for (const productId of productIds) {

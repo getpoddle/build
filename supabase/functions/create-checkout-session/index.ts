@@ -8,9 +8,9 @@ const corsHeaders = {
 };
 
 const PRODUCT_IDS: Record<string, string> = {
-  pro:       "prod_NEW_PRO",
-  team:      "prod_NEW_TEAM",
-  business:  "prod_NEW_BUSINESS",
+  pro:       "prod_UXcbO4NuuJRE5A",
+  team:      "prod_UYgnADbpMs1fyz",
+  business:  "prod_UYhkfi8tsa4NJu",
 };
 
 async function getActivePriceId(stripeSecretKey: string, productId: string): Promise<string | null> {

@@ -5,7 +5,7 @@ export async function createCheckoutSession(priceId: string): Promise<string> {
   if (!session?.access_token) throw new Error('Not authenticated');
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const res = await fetch(`${supabaseUrl}/functions/v1/create-checkout`, {
+  const res = await fetch(`${supabaseUrl}/functions/v1/stripe-checkout`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${session.access_token}`,
