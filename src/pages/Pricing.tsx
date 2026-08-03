@@ -304,7 +304,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
                 ) : tier.cta === 'checkout' && tier.checkoutPlan ? (
                   <button
                     onClick={() => handleCheckout(tier.checkoutPlan)}
-                    disabled={loadingPlan === tier.id || currentTier !== 'free'}
+                    disabled={loadingPlan === tier.id || isCurrent}
                     className="btn-primary w-full"
                   >
                     {loadingPlan === tier.id ? (

@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import Stripe from 'npm:stripe@17.7.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
+import { PRODUCT_TO_PLAN } from '../_shared/stripeLogic.ts';
 
 const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')!;
 const stripeWebhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!;
@@ -184,6 +185,54 @@ async function syncCustomerFromStripe(customerId: string) {
       throw new Error('Failed to sync subscription in database');
     }
     console.info(`Successfully synced subscription for customer: ${customerId}`);
+
+    // Update profiles.subscription_tier based on the product/price on the subscription
+    const priceId = subscription.items.data[0].price.id;
+    const productId = subscription.items.data[0].price.product as string;
+    const planConfig = PRODUCT_TO_PLAN[productId];
+    const tier = planConfig?.plan ?? 'free';
+
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
+      const { data: customerRow } = await supabase
+        .from('stripe_customers')
+        .select('user_id')
+        .eq('customer_id', customerId)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (customerRow?.user_id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ subscription_tier: tier })
+          .eq('id', customerRow.user_id);
+
+        if (profileError) {
+          console.error(`Failed to update subscription_tier for user ${customerRow.user_id}:`, profileError);
+        } else {
+          console.info(`Updated subscription_tier to '${tier}' for user ${customerRow.user_id}`);
+        }
+      }
+    } else if (subscription.status === 'canceled' || subscription.status === 'unpaid' || subscription.status === 'incomplete_expired') {
+      const { data: customerRow } = await supabase
+        .from('stripe_customers')
+        .select('user_id')
+        .eq('customer_id', customerId)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (customerRow?.user_id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ subscription_tier: 'free' })
+          .eq('id', customerRow.user_id);
+
+        if (profileError) {
+          console.error(`Failed to downgrade subscription_tier for user ${customerRow.user_id}:`, profileError);
+        } else {
+          console.info(`Downgraded subscription_tier to 'free' for user ${customerRow.user_id}`);
+        }
+      }
+    }
   } catch (error) {
     console.error(`Failed to sync subscription for customer ${customerId}:`, error);
     throw error;
