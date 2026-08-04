@@ -1,5 +1,4 @@
 import { Bot, Brain, Lock, Sparkles, ArrowRight, Shield, TrendingUp, Users, Zap, ChevronRight, MessageSquare, UsersRound } from 'lucide-react';
-import AskAgentsSidebar from '../components/AskAgentsSidebar';
 
 interface HomeProps {
   onNavigate: (page: string, podId?: string, userId?: string, editMode?: boolean, initialTab?: string, threadId?: string, initialAssumptionId?: string) => void;
@@ -50,7 +49,7 @@ export default function Home({ onNavigate }: HomeProps) {
           ))}
         </div>
 
-        <div className="grid xl:grid-cols-[1fr_300px] 2xl:grid-cols-[1fr_340px] gap-5 lg:gap-8">
+        <div className="space-y-4 lg:space-y-6">
           {/* Main content */}
           <div className="min-w-0 space-y-4 lg:space-y-6">
 
@@ -174,13 +173,6 @@ export default function Home({ onNavigate }: HomeProps) {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-
-          {/* Right sidebar — desktop only */}
-          <div className="hidden xl:block">
-            <div className="sticky top-[4.5rem]">
-              <AskAgentsSidebar />
             </div>
           </div>
         </div>
