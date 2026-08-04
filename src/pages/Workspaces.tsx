@@ -68,7 +68,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   return (
     <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
       <div
-        className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 max-w-[1400px] mx-auto"
+        className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 mx-auto"
         style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
 
@@ -95,7 +95,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
           ))}
         </div>
 
-        <div className="grid xl:grid-cols-[1fr_300px] 2xl:grid-cols-[1fr_340px] gap-5 lg:gap-8">
+        <div className="space-y-4 lg:space-y-6">
           {/* Main content */}
           <div className="min-w-0 space-y-4 lg:space-y-6">
 

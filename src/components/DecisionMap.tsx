@@ -755,7 +755,6 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
                   background: isDropTarget ? s.activeBg : s.bg,
                   border: isDropTarget ? `2px solid ${s.color}60` : `1px solid ${s.border}`,
                   minWidth: '240px',
-                  maxWidth: '340px',
                   transform: isDropTarget ? 'scale(1.01)' : 'scale(1)',
                   boxShadow: isDropTarget ? `0 0 0 4px ${s.color}14` : 'none',
                 }}

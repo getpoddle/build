@@ -23,7 +23,7 @@ export default function Home({ onNavigate }: HomeProps) {
   return (
     <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
       <div
-        className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 max-w-[1400px] mx-auto"
+        className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 mx-auto"
         style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
 
