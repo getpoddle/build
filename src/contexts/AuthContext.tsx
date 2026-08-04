@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase, isInitialPasswordRecovery } from '../lib/supabase';
+import { supabase, isInitialPasswordRecovery, oauthRedirectCode } from '../lib/supabase';
 import { getDisplayName } from '../lib/displayName';
 import { setUserProperties, trackUserLogin, trackUserSignup } from '../lib/analytics';
 import { phIdentify, phSetPersonProperties, phReset, phCapture, phSyncProfileProperties } from '../lib/posthog';
@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAdminRef = useRef(false);
   const isLoggedInRef = useRef(false);
+  const signInProcessedRef = useRef(false);
 
   const clearIdleTimer = () => {
     if (idleTimerRef.current) {
@@ -135,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (!session?.user) {
             isAdminRef.current = false;
+            signInProcessedRef.current = false;
             clearIdleTimer();
             setPendingDeletion(false);
           }
@@ -143,7 +145,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSignupEmailPending(null);
           }
 
-          if (event === 'SIGNED_IN' && session?.user) {
+          // Clean OAuth redirect code from the URL once the session is
+          // established, so it doesn't linger in the address bar or get
+          // captured by hash-based routing.
+          if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user && oauthRedirectCode) {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('code');
+            window.history.replaceState(window.history.state, '', url.toString());
+          }
+
+          // INITIAL_SESSION fires when onAuthStateChange is registered and a
+          // session already exists (e.g. the PKCE exchange completed during
+          // _initialize() before the listener was attached). Treat it the
+          // same as SIGNED_IN for profile creation and signup tracking.
+          if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+            if (signInProcessedRef.current) return;
+            signInProcessedRef.current = true;
             phIdentify(session.user.id, {
               email: session.user.email,
               signup_at: session.user.created_at,
@@ -264,7 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               }
 
-              trackUserSignup('google');
+              trackUserSignup(session.user.app_metadata?.provider === 'google' ? 'google' : 'email');
             } else {
               trackUserLogin('email');
               setUserProperties({
@@ -362,6 +379,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       isAdminRef.current = false;
+      signInProcessedRef.current = false;
       clearIdleTimer();
       phCapture('user_logout');
       phReset();

@@ -23,6 +23,14 @@ export const isInitialPasswordRecovery =
   window.location.pathname === '/reset-password' ||
   new URLSearchParams(window.location.hash.substring(1)).get('type') === 'recovery';
 
+// Capture the OAuth redirect code before any React effect can strip the URL
+// (e.g. App.tsx's mount-time history.replaceState for hash-based routing).
+// The Supabase client's _initialize() reads the URL synchronously at module
+// load, so this is belt-and-suspenders — we also expose it so AuthContext can
+// detect that an OAuth flow is in progress and avoid premature redirects.
+const _urlParams = new URLSearchParams(window.location.search);
+export const oauthRedirectCode: string | null = _urlParams.get('code');
+
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     flowType: 'pkce',

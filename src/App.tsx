@@ -3,7 +3,7 @@ import { CheckCircle, Mail, RefreshCw, AlertTriangle, Loader2, RotateCcw } from 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ErrorBoundary, { PageErrorBoundary } from './components/ErrorBoundary';
-import { supabase } from './lib/supabase';
+import { supabase, oauthRedirectCode } from './lib/supabase';
 import { updatePageSEO, injectNoIndex } from './lib/seo';
 import { pageview } from './lib/analytics';
 import Auth from './pages/Auth';
@@ -409,7 +409,12 @@ function AppContent() {
 
     };
 
-    checkForSpecialRoutes();
+    // Skip hash-based routing redirects when an OAuth code is present in
+    // the URL — the Supabase client is exchanging it for a session and
+    // replacing the URL here would strip the code parameter.
+    if (!oauthRedirectCode) {
+      checkForSpecialRoutes();
+    }
 
     const handleHashChange = () => {
       // Block dashboard access for first-time users who have no workspace yet.
