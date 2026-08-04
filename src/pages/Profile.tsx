@@ -7,6 +7,7 @@ import { Database } from '../lib/database.types';
 import ProfilePictureUpload from '../components/ProfilePictureUpload';
 import { useBetaAccess } from '../hooks/useBetaAccess';
 import InviteCodeEntry from '../components/InviteCodeEntry';
+import { useSubscription } from '../hooks/useSubscription';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -19,6 +20,11 @@ interface ProfileProps {
 export default function Profile({ onNavigate }: ProfileProps) {
   const { user, signOut } = useAuth();
   const { hasBetaAccess, daysRemaining, expiresAt, refetch: refetchBeta } = useBetaAccess();
+  const subscription = useSubscription(user?.id);
+
+  const cancelDate = subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd
+    ? new Date(subscription.currentPeriodEnd * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -280,6 +286,11 @@ export default function Profile({ onNavigate }: ProfileProps) {
           </p>
           {portalError && (
             <p className="text-xs mb-3" style={{ color: 'var(--negative)' }}>{portalError}</p>
+          )}
+          {subscription.cancelAtPeriodEnd && cancelDate && (
+            <p className="text-xs mb-3" style={{ color: 'var(--caution)' }}>
+              Your subscription is scheduled to cancel on {cancelDate}. You'll keep full access until then.
+            </p>
           )}
           <div className="flex flex-wrap gap-2">
             {profile?.subscription_tier && profile.subscription_tier !== 'free' ? (

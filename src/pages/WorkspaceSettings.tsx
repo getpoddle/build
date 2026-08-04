@@ -3,6 +3,7 @@ import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalL
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface WorkspaceSettingsProps {
   workspaceId: string;
@@ -55,6 +56,11 @@ const ROLE_COLORS = { owner: 'var(--signal)', admin: 'var(--agent-fin)', member:
 export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: WorkspaceSettingsProps) {
   const { user } = useAuth();
   const { isAdmin, isOwner, seatsUsed, seatsTotal, loading: accessLoading } = useWorkspaceAccess(workspaceId);
+  const subscription = useSubscription(user?.id);
+
+  const cancelDate = subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd
+    ? new Date(subscription.currentPeriodEnd * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -517,7 +523,11 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                       </span>
                     </div>
                     <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>{workspace.seats} seats included</p>
-                    {workspace.subscription_status === 'cancelled' && (
+                    {subscription.cancelAtPeriodEnd && cancelDate ? (
+                      <p className="text-xs mt-1.5" style={{ color: 'var(--app-text-muted)' }}>
+                        Your subscription is scheduled to cancel on {cancelDate}. You'll keep full access until then.
+                      </p>
+                    ) : workspace.subscription_status === 'cancelled' && (
                       <p className="text-xs mt-1.5" style={{ color: 'var(--app-text-muted)' }}>
                         Your workspace stays active until the end of the current billing period.
                       </p>
@@ -538,7 +548,11 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                   <div className="flex items-center justify-between p-4" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)' }}>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>Cancel subscription</p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>You'll keep full access until the end of your billing period.</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
+                        {subscription.cancelAtPeriodEnd && cancelDate
+                          ? `Scheduled to cancel on ${cancelDate}. You can resubscribe at any time.`
+                          : 'You\'ll keep full access until the end of your billing period.'}
+                      </p>
                     </div>
                     <button
                       onClick={() => setShowCancelConfirm(true)}
