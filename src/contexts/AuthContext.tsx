@@ -264,9 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               }
 
-              // Welcome email is sent from signUp() — the handle_new_user()
-              // DB trigger creates the profile at signup time, so this block
-              // only runs when the profile insert fails or the user was deleted.
+              trackUserSignup('google');
             } else {
               trackUserLogin('email');
               setUserProperties({
