@@ -38,11 +38,11 @@ interface DecisionMapProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUSES = [
-  { key: 'exploring',   label: 'Exploring',   color: '#64748b', bg: 'rgba(100,116,139,0.08)', border: 'rgba(100,116,139,0.18)', activeBg: 'rgba(100,116,139,0.16)' },
-  { key: 'in_debate',   label: 'In Debate',   color: '#2563eb', bg: 'rgba(37,99,235,0.06)',   border: 'rgba(37,99,235,0.15)',  activeBg: 'rgba(37,99,235,0.14)'  },
-  { key: 'committed',   label: 'Committed',   color: '#7c3aed', bg: 'rgba(124,58,237,0.06)',  border: 'rgba(124,58,237,0.15)', activeBg: 'rgba(124,58,237,0.14)' },
-  { key: 'implemented', label: 'Implemented', color: '#059669', bg: 'rgba(5,150,105,0.06)',   border: 'rgba(5,150,105,0.15)',  activeBg: 'rgba(5,150,105,0.14)'  },
-  { key: 'reviewed',    label: 'Reviewed',    color: '#b45309', bg: 'rgba(180,83,9,0.06)',    border: 'rgba(180,83,9,0.15)',   activeBg: 'rgba(180,83,9,0.14)'   },
+  { key: 'exploring',   label: 'Exploring',   color: '#475569', bg: 'rgba(100,116,139,0.10)', border: 'rgba(100,116,139,0.22)', activeBg: 'rgba(100,116,139,0.18)' },
+  { key: 'in_debate',   label: 'In Debate',   color: '#1d4ed8', bg: 'rgba(37,99,235,0.09)',   border: 'rgba(37,99,235,0.22)',  activeBg: 'rgba(37,99,235,0.16)'  },
+  { key: 'committed',   label: 'Committed',   color: '#6d28d9', bg: 'rgba(124,58,237,0.09)',  border: 'rgba(124,58,237,0.22)', activeBg: 'rgba(124,58,237,0.16)' },
+  { key: 'implemented', label: 'Implemented', color: '#047857', bg: 'rgba(5,150,105,0.09)',   border: 'rgba(5,150,105,0.22)',  activeBg: 'rgba(5,150,105,0.16)'  },
+  { key: 'reviewed',    label: 'Reviewed',    color: '#92400e', bg: 'rgba(180,83,9,0.09)',    border: 'rgba(180,83,9,0.22)',   activeBg: 'rgba(180,83,9,0.16)'   },
 ] as const;
 
 const CATEGORIES = [
@@ -750,12 +750,12 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
               <div
                 key={s.key}
                 ref={el => { if (el) columnRefs.current.set(s.key, el); else columnRefs.current.delete(s.key); }}
-                className="flex-1 rounded-2xl p-3 space-y-3 transition-all duration-150"
+                className="flex-1 rounded-2xl p-3 space-y-4 transition-all duration-150"
                 style={{
                   background: isDropTarget ? s.activeBg : s.bg,
                   border: isDropTarget ? `2px solid ${s.color}60` : `1px solid ${s.border}`,
-                  minWidth: '200px',
-                  maxWidth: '320px',
+                  minWidth: '240px',
+                  maxWidth: '340px',
                   transform: isDropTarget ? 'scale(1.01)' : 'scale(1)',
                   boxShadow: isDropTarget ? `0 0 0 4px ${s.color}14` : 'none',
                 }}
@@ -910,7 +910,7 @@ function MobileStatusSection({ status: s, workspaces: col, healthScores, memberC
       </button>
 
       {open && (
-        <div className="px-3 pb-3 space-y-3">
+        <div className="px-3 pb-3 space-y-4">
           {col.length === 0 ? (
             <div className="rounded-xl py-5 text-center" style={{ border: `1.5px dashed ${s.border}`, background: 'rgba(255,255,255,0.5)' }}>
               <p className="text-[10px] text-slate-400">No decisions here</p>
@@ -976,11 +976,15 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
 
   return (
     <div
-      className="relative group rounded-2xl transition-all duration-150"
+      className={`relative group rounded-2xl transition-all duration-150 border shadow-sm ${
+        isDragging
+          ? '!border-transparent !shadow-none'
+          : isMobile
+            ? 'border-slate-200 active:scale-[0.98] active:bg-slate-50 active:border-slate-300'
+            : 'border-slate-200 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300'
+      }`}
       style={{
         background: '#fff',
-        border: '1px solid rgba(15,23,42,0.08)',
-        boxShadow: isDragging ? 'none' : '0 1px 4px rgba(15,23,42,0.05)',
         opacity: isDragging ? 0.35 : isExpired ? 0.65 : 1,
         cursor: isMobile ? 'default' : isDragging ? 'grabbing' : 'grab',
         touchAction: isMobile ? 'auto' : 'none',
@@ -990,7 +994,7 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
       <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl" style={{ background: healthScore !== null ? healthColor(healthScore) : 'transparent' }} />
 
       <div
-        className="p-4"
+        className="p-4 min-h-[52px]"
         onPointerDown={e => {
           if ((e.target as HTMLElement).closest('button')) return;
           onDragStart(e, ws);
@@ -1006,7 +1010,7 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
 
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-bold leading-snug ${isExpired ? 'text-slate-400' : 'text-slate-800'}`}>{ws.name}</p>
-            {ws.description && <p className="text-xs text-slate-500 leading-snug mt-0.5 line-clamp-2">{ws.description}</p>}
+            {ws.description && <p className="text-xs text-slate-600 leading-snug mt-0.5 line-clamp-2">{ws.description}</p>}
           </div>
 
           {isOwnerOrAdmin && !isSlack && (
@@ -1014,8 +1018,13 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
               <button
                 ref={linkBtnRef}
                 onClick={e => { e.stopPropagation(); setLinking(v => !v); setEditing(false); }}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'}`}
-                style={{ color: linking ? '#2563eb' : '#94a3b8' }}
+                className={`flex items-center justify-center rounded-lg transition-colors ${
+                  isMobile
+                    ? 'w-9 h-9 opacity-70 active:bg-slate-100'
+                    : 'w-7 h-7 opacity-0 group-hover:opacity-100 hover:bg-slate-100'
+                }`
+                }
+                style={{ color: linking ? '#1d4ed8' : '#64748b' }}
                 title="Connect to another decision"
               >
                 <Link2 className="w-3.5 h-3.5" />
@@ -1035,7 +1044,11 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
               <button
                 ref={editBtnRef}
                 onClick={e => { e.stopPropagation(); setEditing(v => !v); setLinking(false); }}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors ${isMobile ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'}`}
+                className={`flex items-center justify-center rounded-lg transition-colors ${
+                  isMobile
+                    ? 'w-9 h-9 opacity-70 active:bg-slate-100 text-slate-500'
+                    : 'w-7 h-7 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                }`}
               >
                 <Pencil className="w-3.5 h-3.5" />
               </button>
@@ -1054,18 +1067,25 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
         </div>
 
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: cat.bg, color: cat.color }}>{cat.label}</span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border" style={{ background: cat.bg, color: cat.color, borderColor: `${cat.color}35` }}>{cat.label}</span>
           {isExpired && <span className="text-[10px] font-semibold text-red-500 flex items-center gap-1"><AlertTriangle className="w-2.5 h-2.5" />Expired</span>}
         </div>
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5" title={healthLabel(healthScore)}>
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: healthColor(healthScore) }} />
-            <span className="text-[10px] text-slate-400">{healthScore !== null ? `${healthScore}` : '—'}</span>
+            <span
+              className="inline-flex items-center justify-center min-w-[26px] h-5 px-1.5 rounded-md text-[10px] font-bold"
+              style={{
+                background: healthScore !== null ? `${healthColor(healthScore)}18` : 'rgba(15,23,42,0.06)',
+                color: healthScore !== null ? healthColor(healthScore) : '#64748b',
+              }}
+            >
+              {healthScore !== null ? healthScore : '—'}
+            </span>
           </div>
-          <div className="flex items-center gap-1 text-slate-400">
+          <div className="flex items-center gap-1 text-slate-600">
             <Users className="w-3 h-3" />
-            <span className="text-[10px]">{memberCount}</span>
+            <span className="text-[10px] font-semibold">{memberCount}</span>
           </div>
           {linkCount > 0 && (
             <div
