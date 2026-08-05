@@ -5,6 +5,7 @@ import {
   Download, AlertTriangle, Target, BarChart3, TrendingUp,
   ChevronRight, Users, MessageSquare, FileText, Shield,
   ArrowDown, ChevronDown, Send,
+  Play, Pause,
 } from 'lucide-react';
 import JoinPromptModal from '../components/JoinPromptModal';
 import PoddleMark from '../components/PoddleMark';
@@ -100,6 +101,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       <HeroSection onNavigate={onNavigate} />
       <AsSeenOnSection />
       <HowItWorksSection onNavigate={onNavigate} />
+      <DemoVideoSection />
       <LiveDemoSection onNavigate={onNavigate} />
       <SocialProofSection />
       <FinalCTA onNavigate={onNavigate} />
@@ -656,6 +658,84 @@ function ScoreArc({ score, label, color }: { score: number; label: string; color
       </div>
       <span className="text-[10px] font-semibold text-center leading-tight" style={{ color: '#64748b', maxWidth: 56 }}>{label}</span>
     </div>
+  );
+}
+
+function DemoVideoSection() {
+  const { ref, visible } = useScrollReveal();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showControls, setShowControls] = useState(false);
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setIsPlaying(true); } else { v.pause(); setIsPlaying(false); }
+  };
+
+  return (
+    <section ref={ref} className="py-24" style={{ background: '#FFFFFF' }}>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(8,145,178,0.07)', color: '#0891b2', border: '1px solid rgba(8,145,178,0.12)' }}>
+            Product Tour
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
+            See it in action.
+          </h2>
+          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
+            Watch a full walkthrough — from posing a question to getting a synthesized, exportable decision report.
+          </p>
+        </div>
+
+        <div
+          className="relative rounded-3xl overflow-hidden mx-auto group"
+          style={{ maxWidth: 880, boxShadow: '0 12px 48px rgba(0,0,0,0.12)', border: '1px solid #D8DDE8', background: '#000' }}
+          onMouseEnter={() => setShowControls(true)}
+          onMouseLeave={() => setShowControls(false)}
+        >
+          <video
+            ref={videoRef}
+            className="w-full block"
+            style={{ aspectRatio: '16 / 9', objectFit: 'contain', background: '#000' }}
+            onClick={togglePlay}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            playsInline
+            preload="metadata"
+          >
+            <source src="/demo-video.mp4" type="video/mp4" />
+          </video>
+
+          {/* Play overlay */}
+          {!isPlaying && (
+            <button
+              onClick={togglePlay}
+              className="absolute inset-0 flex items-center justify-center transition-opacity duration-300"
+              style={{ background: 'rgba(0,0,0,0.35)' }}
+              aria-label="Play demo video"
+            >
+              <div className="w-20 h-20 rounded-full flex items-center justify-center transition-transform duration-300 hover:scale-110" style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
+                <Play className="w-8 h-8 ml-1" style={{ color: '#0f172a' }} fill="currentColor" />
+              </div>
+            </button>
+          )}
+
+          {/* Custom controls bar */}
+          {isPlaying && (
+            <div
+              className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-center gap-3 transition-opacity duration-300"
+              style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.6))', opacity: showControls ? 1 : 0 }}
+            >
+              <button onClick={togglePlay} className="text-white hover:opacity-80 transition-opacity" aria-label="Pause">
+                <Pause className="w-5 h-5" fill="currentColor" />
+              </button>
+              <span className="text-xs text-white/80 font-medium">Demo video</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
