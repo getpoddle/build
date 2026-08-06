@@ -79,6 +79,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [loadingBilling, setLoadingBilling] = useState(false);
@@ -208,25 +209,23 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   async function handleDelete() {
     if (!workspace || deleteConfirmText !== workspace.name) return;
     setDeleting(true);
+    setDeleteError('');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      await fetch(`${supabaseUrl}/functions/v1/workspace-synthesize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ workspace_id: workspaceId }),
-      }).catch(() => {});
-    } catch {}
-    const { error } = await supabase.from('workspaces').delete().eq('id', workspaceId);
-    if (!error) {
+      await Promise.all([
+        supabase.from('workspace_messages').delete().eq('workspace_id', workspaceId),
+        supabase.from('workspace_invites').delete().eq('workspace_id', workspaceId),
+        supabase.from('workspace_members').delete().eq('workspace_id', workspaceId),
+        supabase.from('workspace_synthesis').delete().eq('workspace_id', workspaceId),
+        supabase.from('workspace_chat_threads').delete().eq('workspace_id', workspaceId),
+        supabase.from('workspace_decision_links').delete().eq('workspace_id', workspaceId),
+        supabase.from('slack_workspaces').delete().eq('poddle_workspace_id', workspaceId),
+      ]);
+      const { error } = await supabase.from('workspaces').delete().eq('id', workspaceId);
+      if (error) throw error;
       onBack();
-    } else {
+    } catch {
       setDeleting(false);
-      setDeleteConfirmText('');
-      setShowDeleteConfirm(false);
+      setDeleteError('Failed to delete workspace. Please try again.');
     }
   }
 
@@ -724,6 +723,9 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
               </div>
             ) : (
               <div className="space-y-3">
+                {deleteError && (
+                  <p className="text-xs font-medium" style={{ color: 'var(--negative)' }}>{deleteError}</p>
+                )}
                 <p className="text-sm" style={{ color: 'var(--app-text-primary)' }}>
                   Type <strong>{workspace.name}</strong> to confirm. This cannot be undone.
                 </p>
