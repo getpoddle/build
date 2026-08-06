@@ -1,4 +1,5 @@
 import { Sentry } from './sentry';
+import { debugLog } from './debugLog';
 
 export type TabValue = 'chat' | 'warroom' | 'team';
 export type RealtimeSource = 'WorkspaceChat' | 'TeamChat';
@@ -48,6 +49,8 @@ export function logTabChange(
     extra: data,
     tags: { workspaceId, from: from ?? 'null', to, trigger },
   });
+
+  debugLog('tab_change', { from: from ?? 'null', to, trigger }, workspaceId);
 }
 
 export function logRealtimeEvent(
@@ -90,6 +93,8 @@ export function logBoundaryCatch(
     tags: { boundary },
     extra: { componentStack, seq, timestamp: ts() },
   });
+
+  debugLog('boundary_catch', { boundary, message: error.message, stack: error.stack ?? null, componentStack: componentStack ?? null });
 }
 
 export function logGlobalError(
@@ -108,4 +113,6 @@ export function logGlobalError(
     level: 'error',
     extra: { stack, seq, timestamp: ts() },
   });
+
+  debugLog('global_error', { kind, message, stack: stack ?? null });
 }

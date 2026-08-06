@@ -13,6 +13,7 @@ import TeamChat from '../components/TeamChat';
 import UpgradePrompt from '../components/UpgradePrompt';
 import { PageErrorBoundary } from '../components/ErrorBoundary';
 import { logTabChange, type TabValue } from '../lib/tabDiagnostics';
+import { debugLog } from '../lib/debugLog';
 
 type MainTab = 'chat' | 'warroom' | 'team';
 
@@ -60,6 +61,22 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
     const from = mainTabRef.current;
     console.log('[WorkspaceHub] setMainTab:', from, '→', tab, '(' + trigger + ')');
     logTabChange(from, tab as TabValue, trigger, workspaceId);
+
+    // Fire-and-forget: count messages in this workspace at the time of the tab switch.
+    // This correlates with the bug only appearing in workspaces with chat history.
+    supabase
+      .from('workspace_chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', workspaceId)
+      .then(({ count }) => {
+        debugLog('tab_change_msg_count', {
+          from: from as string,
+          to: tab as string,
+          trigger,
+          message_count: count ?? null,
+        }, workspaceId);
+      }, () => {});
+
     mainTabRef.current = tab;
     setMainTab(tab);
   }, [workspaceId]);
