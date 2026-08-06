@@ -64,10 +64,16 @@ interface PageBoundaryState {
   errorMessage: string;
 }
 
-export class PageErrorBoundary extends Component<{ children: ReactNode }, PageBoundaryState> {
-  constructor(props: { children: ReactNode }) {
+export class PageErrorBoundary extends Component<{ children: ReactNode; resetKey?: string }, PageBoundaryState> {
+  constructor(props: { children: ReactNode; resetKey?: string }) {
     super(props);
     this.state = { hasError: false, errorMessage: '' };
+  }
+
+  componentDidUpdate(prevProps: { children: ReactNode; resetKey?: string }) {
+    if (this.props.resetKey && prevProps.resetKey && this.props.resetKey !== prevProps.resetKey && this.state.hasError) {
+      this.setState({ hasError: false, errorMessage: '' });
+    }
   }
 
   static getDerivedStateFromError(error: Error): PageBoundaryState {

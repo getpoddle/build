@@ -227,6 +227,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const typingExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordingExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const mountedRef = useRef(true);
+
   const scrollToBottom = useCallback((smooth = true) => {
     bottomRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
   }, []);
@@ -386,6 +388,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     }, 8000);
 
     return () => {
+      mountedRef.current = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(pollInterval);
       releaseChannel(msgName);
@@ -464,6 +467,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: true })
       .limit(120);
+    if (!mountedRef.current) return;
     const mapped = (data || []).map((m: { metadata?: { figures?: AgentFigures | null; chart_data?: ChartData | null } }) => {
       const meta = m.metadata;
       if (meta) {

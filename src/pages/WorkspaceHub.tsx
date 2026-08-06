@@ -11,6 +11,7 @@ import WorkspaceChat from '../components/WorkspaceChat';
 import WorkspaceWarRoom, { WarRoomLockedState } from '../components/WorkspaceWarRoom';
 import TeamChat from '../components/TeamChat';
 import UpgradePrompt from '../components/UpgradePrompt';
+import { PageErrorBoundary } from '../components/ErrorBoundary';
 
 type MainTab = 'chat' | 'warroom' | 'team';
 
@@ -350,6 +351,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         {/* ── MOBILE: Chat tab ── */}
         {mainTab === 'chat' && (
           <div className="lg:hidden flex-1 overflow-hidden p-2">
+            <PageErrorBoundary resetKey={`m-chat-${workspaceId}`}>
             <div
               className="h-full overflow-hidden relative"
               style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
@@ -368,12 +370,14 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 />
               </div>
             </div>
+            </PageErrorBoundary>
           </div>
         )}
 
         {/* ── MOBILE: Team Chat tab ── */}
         {mainTab === 'team' && (
           <div className="lg:hidden flex-1 overflow-hidden p-2">
+            <PageErrorBoundary resetKey={`m-team-${workspaceId}`}>
             <div
               className="h-full overflow-hidden relative"
               style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
@@ -386,12 +390,14 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 />
               </div>
             </div>
+            </PageErrorBoundary>
           </div>
         )}
 
         {/* ── MOBILE: War Room tab ── */}
         {mainTab === 'warroom' && (
           <div className="lg:hidden flex-1 overflow-y-auto" style={{ paddingBottom: '1rem' }}>
+            <PageErrorBoundary resetKey={`m-war-${workspaceId}`}>
             {workspaceIsPro ? (
               <WorkspaceWarRoom
                 key={warRoomKey}
@@ -407,6 +413,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 <WarRoomLockedState onUpgrade={() => setShowUpgrade(true)} />
               </div>
             )}
+            </PageErrorBoundary>
           </div>
         )}
 
@@ -454,12 +461,14 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
             </div>
 
             {mainTab === 'team' ? (
+              <PageErrorBoundary resetKey={`d-team-${workspaceId}`}>
               <TeamChat
                 workspaceId={workspaceId}
                 workspaceName={workspace?.name || 'Workspace'}
               />
+              </PageErrorBoundary>
             ) : (
-              <>
+              <PageErrorBoundary resetKey={`d-chat-${workspaceId}`}>
               <div className="flex-1 min-h-0 relative" style={{ background: 'var(--app-surface-raised)' }}>
                 {isReadOnly && <ReadOnlyOverlay />}
                 <div className="h-full p-5">
@@ -475,7 +484,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                   />
                 </div>
               </div>
-              </>
+              </PageErrorBoundary>
             )}
           </div>
 

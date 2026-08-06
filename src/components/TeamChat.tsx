@@ -168,6 +168,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     bottomRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
   }, []);
 
+  const mountedRef = useRef(true);
   const loadMessages = useCallback(async () => {
     const { data } = await supabase
       .from('workspace_chat_messages')
@@ -176,9 +177,10 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       .order('created_at', { ascending: true })
       .limit(200);
 
+    if (!mountedRef.current) return;
     setMessages(data || []);
     setLoading(false);
-    setTimeout(() => scrollToBottom(false), 100);
+    setTimeout(() => { if (mountedRef.current) scrollToBottom(false); }, 100);
   }, [workspaceId, scrollToBottom]);
 
   const loadMemberProfiles = useCallback(async () => {
@@ -314,6 +316,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     }, 8000);
 
     return () => {
+      mountedRef.current = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(pollInterval);
       releaseChannel(channelName);

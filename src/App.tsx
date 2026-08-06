@@ -916,7 +916,7 @@ function AppContent() {
         style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
       >
         <div className="flex-1">
-          <PageErrorBoundary>
+          <PageErrorBoundary resetKey={`${activePage}-${workspaceId}-${workspaceInitialTab}`}>
             <Suspense fallback={<RouteFallback />}>
               {activePage === 'home' && !hasNoWorkspace && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
               {activePage === 'profile' && <Profile key="profile-settings" onNavigate={handleNavigate} />}
