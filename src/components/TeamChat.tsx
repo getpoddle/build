@@ -187,8 +187,8 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       didChange = true;
       return [...prev, ...newMsgs];
     });
+    setLoading(false);
     if (didChange) {
-      setLoading(false);
       setTimeout(() => { if (mountedRef.current) scrollToBottom(false); }, 100);
     }
   }, [workspaceId, scrollToBottom]);

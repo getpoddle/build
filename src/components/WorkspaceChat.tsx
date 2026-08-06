@@ -489,8 +489,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       didChange = true;
       return [...prev, ...newMsgs];
     });
+    setInitialLoad(false);
     if (didChange) {
-      setInitialLoad(false);
+      setTimeout(() => scrollToBottom(false), 50);
     }
   }
 

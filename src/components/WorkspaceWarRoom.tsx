@@ -943,7 +943,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [synthRes, countRes, histRes, actRes, membRes, commitRes] = await Promise.all([
+      const results = await Promise.allSettled([
         supabase.from('workspace_synthesis')
           .select('consensus_points,conflict_zones,open_questions,risk_signals,blind_spots,action_items,financial_metrics,operational_metrics,non_financial_metrics,opportunity_signals,cognitive_bias_flags,decision_health_score,financial_score,operational_score,alignment_score,decision_velocity,confidence_trajectory,health_rationale,recommendation,key_decisions,generated_at,message_count_at_generation')
           .eq('workspace_id', workspaceId).maybeSingle(),
@@ -963,14 +963,21 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           .eq('workspace_id', workspaceId),
       ]);
 
-      if (synthRes.data) {
+      const synthRes = results[0].status === 'fulfilled' ? results[0].value : null;
+      const countRes = results[1].status === 'fulfilled' ? results[1].value : null;
+      const histRes  = results[2].status === 'fulfilled' ? results[2].value : null;
+      const actRes  = results[3].status === 'fulfilled' ? results[3].value : null;
+      const membRes = results[4].status === 'fulfilled' ? results[4].value : null;
+      const commitRes = results[5].status === 'fulfilled' ? results[5].value : null;
+
+      if (synthRes?.data) {
         setSynthesis(sanitizeSynthesis({ ...synthRes.data, message_count: synthRes.data.message_count_at_generation }));
       }
-      setMessageCount(countRes.count ?? 0);
-      setHistory((histRes.data as HistoryRow[]) || []);
-      setActionItems((actRes.data as ActionItem[]) || []);
-      setCommits((commitRes.data as ConflictCommit[]) || []);
-      if (membRes.data) {
+      setMessageCount(countRes?.count ?? 0);
+      setHistory((histRes?.data as HistoryRow[]) || []);
+      setActionItems((actRes?.data as ActionItem[]) || []);
+      setCommits((commitRes?.data as ConflictCommit[]) || []);
+      if (membRes?.data) {
         const profiles = membRes.data.map(m => m.profiles as MemberProfile | null).filter(Boolean) as MemberProfile[];
         setMembers(profiles);
       }
