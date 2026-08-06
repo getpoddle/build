@@ -304,6 +304,13 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
     const broadcastCh = acquireChannel(broadcastName, ch =>
       ch
+        .on('broadcast', { event: 'new_message' }, (payload: { payload: { user_id: string } }) => {
+          // Dual-delivery: a peer is signalling that new messages were inserted.
+          // The postgres_changes channel may be silently dead on this client, so
+          // use this broadcast as a trigger to fetch the latest messages.
+          if (payload.payload.user_id === user?.id) return;
+          loadMessages();
+        })
         .on('broadcast', { event: 'typing' }, (payload: { payload: { user_id: string; name: string; isTyping: boolean } }) => {
           console.log('[WorkspaceChat] BROADCAST typing received:', payload.payload);
           const data = payload.payload;
@@ -370,8 +377,17 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Polling safety net: if both postgres_changes and broadcast fail (e.g. the
+    // WebSocket is silently dead), poll the database every 8s so messages still
+    // appear within a few seconds. This is cheap (indexed query, limit 120) and
+    // only runs while the component is mounted.
+    const pollInterval = setInterval(() => {
+      loadMessages();
+    }, 8000);
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(pollInterval);
       releaseChannel(msgName);
       releaseChannel(broadcastName);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -558,6 +574,14 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         });
         setTimeout(() => scrollToBottom(), 50);
         onAgentsReplied?.();
+
+        // Dual-delivery: tell all peers to fetch the new agent messages. This
+        // works even when their postgres_changes subscription is silently dead.
+        broadcastChannelRef.current?.send({
+          type: 'broadcast',
+          event: 'new_message',
+          payload: { user_id: user.id },
+        });
 
         // Surface partial-round feedback so users know when later rounds didn't complete
         const completed: string[] = Array.isArray(json.rounds_completed) ? json.rounds_completed : [];
