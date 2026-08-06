@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Users, Loader2, AtSign } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { acquireChannel, releaseChannel } from '../lib/realtimeRegistry';
+import { acquireChannel, releaseChannel, pauseChannel, resumeChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayName } from '../lib/displayName';
 import { getAvatarUrl, getInitials } from '../lib/avatarUtils';
@@ -149,6 +149,9 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const memberProfilesRef = useRef<Record<string, MemberProfile>>({});
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
 
   // @mention picker state
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -210,6 +213,8 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     loadMemberProfiles();
 
     const channelName = `workspace-team-chat-${workspaceId}`;
+    const presenceName = `workspace-team-presence-${workspaceId}`;
+
     acquireChannel(channelName, ch =>
       ch.on(
         'postgres_changes',
@@ -240,8 +245,37 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       ),
     );
 
+    const presenceCh = acquireChannel(presenceName, ch =>
+      ch.on('presence', { event: 'sync' }, () => {
+        const channel = ch as ReturnType<typeof supabase.channel>;
+        const state = channel.presenceState<{ user_id: string; name: string; isTyping: boolean }>();
+        const next = new Map<string, string>();
+        for (const [, presences] of Object.entries(state)) {
+          for (const p of presences) {
+            if (p.user_id !== user?.id && p.isTyping) next.set(p.user_id, p.name);
+          }
+        }
+        setTypingUsers(next);
+      }),
+    );
+    presenceChannelRef.current = presenceCh as ReturnType<typeof supabase.channel> | null;
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        pauseChannel(channelName);
+        pauseChannel(presenceName);
+      } else {
+        resumeChannel(channelName);
+        resumeChannel(presenceName);
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseChannel(channelName);
+      releaseChannel(presenceName);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, [workspaceId, loadMessages, loadMemberProfiles, scrollToBottom]);
 
@@ -267,6 +301,14 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+
+    if (val.trim()) {
+      broadcastTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => broadcastTyping(false), 2500);
+    } else {
+      broadcastTyping(false);
     }
 
     // Detect @mention
@@ -312,6 +354,13 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     }
   }
 
+  function broadcastTyping(isTyping: boolean) {
+    if (!presenceChannelRef.current || !user) return;
+    const profile = memberProfilesRef.current[user.id];
+    const name = profile ? getDisplayName(profile) : 'Team member';
+    presenceChannelRef.current.track({ user_id: user.id, name, isTyping });
+  }
+
   const filteredMembers = mentionQuery !== null
     ? otherMembers.filter(m => {
         const name = getDisplayName(m) || '';
@@ -346,6 +395,8 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     setInput('');
     setMentionQuery(null);
     setSendError(null);
+    broadcastTyping(false);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -555,6 +606,18 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
           <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg text-xs" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>
             <span>{sendError}</span>
             <button onClick={() => setSendError(null)} className="ml-auto font-semibold">Dismiss</button>
+          </div>
+        )}
+        {typingUsers.size > 0 && (
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <span className="text-xs text-slate-500">
+              {Array.from(typingUsers.values()).join(', ')} {typingUsers.size === 1 ? 'is' : 'are'} typing…
+            </span>
           </div>
         )}
         <div className="flex items-end gap-2">

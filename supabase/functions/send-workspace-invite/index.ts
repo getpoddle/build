@@ -182,7 +182,7 @@ Deno.serve(async (req: Request) => {
                     <strong style="color: #0f172a;">${workspace.name}</strong> — a private, encrypted workspace on Poddle
                     where teams debate ideas with AI agents.
                   </p>
-                  <a href="${inviteUrl}" style="display: inline-block; background: linear-gradient(135deg,#1e3a5f,#0f2040); color: #fff; text-decoration: none; padding: 14px 28px; border-radius: 10px; font-weight: 700; font-size: 14px; margin-bottom: 24px;">
+                  <a href="${inviteUrl}" style="display: inline-block; background-color: #1e3a5f; color: #ffffff; text-decoration: none; padding: 16px 32px; border-radius: 10px; font-weight: 700; font-size: 15px; margin-bottom: 24px; border: 2px solid #1e3a5f; line-height: 1.2; letter-spacing: 0.2px;">
                     Accept invitation
                   </a>
                   <p style="color: #94a3b8; font-size: 12px; margin: 0;">
