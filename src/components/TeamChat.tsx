@@ -150,8 +150,9 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const memberProfilesRef = useRef<Record<string, MemberProfile>>({});
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const broadcastChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
+  const typingExpiryTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // @mention picker state
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -213,7 +214,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     loadMemberProfiles();
 
     const channelName = `workspace-team-chat-${workspaceId}`;
-    const presenceName = `workspace-team-presence-${workspaceId}`;
+    const broadcastName = `workspace-team-broadcast-${workspaceId}`;
 
     acquireChannel(channelName, ch =>
       ch.on(
@@ -246,28 +247,44 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       ),
     );
 
-    const presenceCh = acquireChannel(presenceName, ch =>
-      ch.on('presence', { event: 'sync' }, () => {
-        const channel = ch as ReturnType<typeof supabase.channel>;
-        const state = channel.presenceState<{ user_id: string; name: string; isTyping: boolean }>();
-        const next = new Map<string, string>();
-        for (const [, presences] of Object.entries(state)) {
-          for (const p of presences) {
-            if (p.user_id !== user?.id && p.isTyping) next.set(p.user_id, p.name);
+    const broadcastCh = acquireChannel(broadcastName, ch =>
+      ch.on('broadcast', { event: 'typing' }, (payload: { payload: { user_id: string; name: string; isTyping: boolean } }) => {
+        const data = payload.payload;
+        if (data.user_id === user?.id) return;
+        setTypingUsers(prev => {
+          const next = new Map(prev);
+          if (data.isTyping) {
+            next.set(data.user_id, data.name);
+          } else {
+            next.delete(data.user_id);
           }
+          return next;
+        });
+        // Auto-clear after 4s in case the "stopped typing" broadcast is missed
+        if (data.isTyping) {
+          const existing = typingExpiryTimers.current.get(data.user_id);
+          if (existing) clearTimeout(existing);
+          const timer = setTimeout(() => {
+            setTypingUsers(prev => {
+              const next = new Map(prev);
+              next.delete(data.user_id);
+              return next;
+            });
+            typingExpiryTimers.current.delete(data.user_id);
+          }, 4000);
+          typingExpiryTimers.current.set(data.user_id, timer);
         }
-        setTypingUsers(next);
       }),
     );
-    presenceChannelRef.current = presenceCh as ReturnType<typeof supabase.channel> | null;
+    broadcastChannelRef.current = broadcastCh as ReturnType<typeof supabase.channel> | null;
 
     function handleVisibilityChange() {
       if (document.visibilityState === 'hidden') {
         pauseChannel(channelName);
-        pauseChannel(presenceName);
+        pauseChannel(broadcastName);
       } else {
         resumeChannel(channelName);
-        resumeChannel(presenceName);
+        resumeChannel(broadcastName);
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -275,8 +292,10 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseChannel(channelName);
-      releaseChannel(presenceName);
+      releaseChannel(broadcastName);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingExpiryTimers.current.forEach(t => clearTimeout(t));
+      typingExpiryTimers.current.clear();
     };
   }, [workspaceId, loadMessages, loadMemberProfiles, scrollToBottom]);
 
@@ -356,10 +375,14 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
   }
 
   function broadcastTyping(isTyping: boolean) {
-    if (!presenceChannelRef.current || !user) return;
+    if (!broadcastChannelRef.current || !user) return;
     const profile = memberProfilesRef.current[user.id];
     const name = profile ? getDisplayName(profile) : 'Team member';
-    presenceChannelRef.current.track({ user_id: user.id, name, isTyping });
+    broadcastChannelRef.current.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { user_id: user.id, name, isTyping },
+    });
   }
 
   const filteredMembers = mentionQuery !== null

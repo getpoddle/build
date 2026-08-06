@@ -223,7 +223,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const [fallbackBars, setFallbackBars] = useState<number[]>([]);
   const fallbackTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const broadcastChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordingExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrollToBottom = useCallback((smooth = true) => {
     bottomRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
@@ -256,7 +258,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     }
 
     const msgName = `workspace-messages-${workspaceId}`;
-    const presenceName = `workspace-presence-${workspaceId}`;
+    const broadcastName = `workspace-broadcast-${workspaceId}`;
 
     // Acquire via singleton registry — reuses an existing channel if another
     // component or tab has already opened it, preventing duplicate WebSocket slots.
@@ -297,25 +299,57 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       ),
     );
 
-    const presenceCh = acquireChannel(presenceName, ch =>
-      ch.on('presence', { event: 'sync' }, () => {
-        const channel = ch as ReturnType<typeof supabase.channel>;
-        const state = channel.presenceState<{ user_id: string; name: string; isTyping: boolean; isRecording: boolean }>();
-        const nextTyping = new Map<string, string>();
-        const nextRecording = new Map<string, string>();
-        for (const [, presences] of Object.entries(state)) {
-          for (const p of presences) {
-            if (p.user_id !== user?.id) {
-              if (p.isTyping) nextTyping.set(p.user_id, p.name);
-              if (p.isRecording) nextRecording.set(p.user_id, p.name);
+    const broadcastCh = acquireChannel(broadcastName, ch =>
+      ch
+        .on('broadcast', { event: 'typing' }, (payload: { payload: { user_id: string; name: string; isTyping: boolean } }) => {
+          const data = payload.payload;
+          if (data.user_id === user?.id) return;
+          setTypingUsers(prev => {
+            const next = new Map(prev);
+            if (data.isTyping) {
+              next.set(data.user_id, data.name);
+            } else {
+              next.delete(data.user_id);
             }
+            return next;
+          });
+          // Auto-clear after 4s in case the "stopped typing" broadcast is missed
+          if (data.isTyping) {
+            if (typingExpiryRef.current) clearTimeout(typingExpiryRef.current);
+            typingExpiryRef.current = setTimeout(() => {
+              setTypingUsers(prev => {
+                const next = new Map(prev);
+                next.delete(data.user_id);
+                return next;
+              });
+            }, 4000);
           }
-        }
-        setTypingUsers(nextTyping);
-        setRecordingUsers(nextRecording);
-      }),
+        })
+        .on('broadcast', { event: 'recording' }, (payload: { payload: { user_id: string; name: string; isRecording: boolean } }) => {
+          const data = payload.payload;
+          if (data.user_id === user?.id) return;
+          setRecordingUsers(prev => {
+            const next = new Map(prev);
+            if (data.isRecording) {
+              next.set(data.user_id, data.name);
+            } else {
+              next.delete(data.user_id);
+            }
+            return next;
+          });
+          if (data.isRecording) {
+            if (recordingExpiryRef.current) clearTimeout(recordingExpiryRef.current);
+            recordingExpiryRef.current = setTimeout(() => {
+              setRecordingUsers(prev => {
+                const next = new Map(prev);
+                next.delete(data.user_id);
+                return next;
+              });
+            }, 10000);
+          }
+        }),
     );
-    presenceChannelRef.current = presenceCh as ReturnType<typeof supabase.channel> | null;
+    broadcastChannelRef.current = broadcastCh as ReturnType<typeof supabase.channel> | null;
 
     // Pause channels when the tab is hidden; resume when visible again.
     // This cuts server broadcast load to zero while the user isn't looking.
@@ -324,10 +358,10 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     function handleVisibilityChange() {
       if (document.visibilityState === 'hidden') {
         pauseChannel(msgName);
-        pauseChannel(presenceName);
+        pauseChannel(broadcastName);
       } else {
         resumeChannel(msgName);
-        resumeChannel(presenceName);
+        resumeChannel(broadcastName);
         loadMessages();
       }
     }
@@ -336,8 +370,10 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseChannel(msgName);
-      releaseChannel(presenceName);
+      releaseChannel(broadcastName);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (typingExpiryRef.current) clearTimeout(typingExpiryRef.current);
+      if (recordingExpiryRef.current) clearTimeout(recordingExpiryRef.current);
       // Clean up any active recording on unmount
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       if (fallbackTimerRef.current) clearInterval(fallbackTimerRef.current);
@@ -546,17 +582,25 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   };
 
   function broadcastTyping(isTyping: boolean) {
-    if (!presenceChannelRef.current || !user) return;
+    if (!broadcastChannelRef.current || !user) return;
     const profile = memberProfilesRef.current[user.id];
     const name = profile ? getDisplayName(profile) : 'Team member';
-    presenceChannelRef.current.track({ user_id: user.id, name, isTyping, isRecording });
+    broadcastChannelRef.current.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { user_id: user.id, name, isTyping },
+    });
   }
 
   function broadcastRecording(isRecording: boolean) {
-    if (!presenceChannelRef.current || !user) return;
+    if (!broadcastChannelRef.current || !user) return;
     const profile = memberProfilesRef.current[user.id];
     const name = profile ? getDisplayName(profile) : 'Team member';
-    presenceChannelRef.current.track({ user_id: user.id, name, isTyping: false, isRecording });
+    broadcastChannelRef.current.send({
+      type: 'broadcast',
+      event: 'recording',
+      payload: { user_id: user.id, name, isRecording },
+    });
   }
 
   const adjustTextarea = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
