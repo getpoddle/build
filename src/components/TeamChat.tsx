@@ -221,6 +221,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
         { event: 'INSERT', schema: 'public', table: 'workspace_chat_messages', filter: `workspace_id=eq.${workspaceId}` },
         (payload) => {
           const newMsg = payload.new as ChatMessage;
+          if (newMsg.user_id === user?.id) return;
           if (newMsg.user_id && !memberProfilesRef.current[newMsg.user_id]) {
             supabase
               .from('profiles')
@@ -402,6 +403,17 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       textareaRef.current.style.height = 'auto';
     }
 
+    const optimisticMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      workspace_id: workspaceId,
+      user_id: user.id,
+      content: trimmed,
+      created_at: new Date().toISOString(),
+      mentioned_user_ids: mentionedIds.length > 0 ? mentionedIds : null,
+    } as ChatMessage;
+    setMessages(prev => [...prev, optimisticMsg]);
+    setTimeout(() => scrollToBottom(), 50);
+
     try {
       const { error } = await supabase
         .from('workspace_chat_messages')
@@ -413,11 +425,10 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
         });
 
       if (error) throw error;
-
-      setTimeout(() => scrollToBottom(), 100);
     } catch (err: any) {
       console.error('Failed to send team chat message:', err);
       setSendError(err?.message || 'Failed to send message');
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
       setInput(trimmed);
     } finally {
       setSending(false);

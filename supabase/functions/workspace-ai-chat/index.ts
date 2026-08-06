@@ -891,6 +891,17 @@ Every section of your response must answer: how does this analysis change what t
       documentBlock = docLines.join("\n");
     }
 
+    // ── Persist user message BEFORE AI processing ────────────────────────────
+    // Inserting early means other workspace members see the human message over
+    // realtime immediately, rather than waiting 30-60s for the full AI pipeline.
+    currentStage = "insert_user_msg";
+    await service.from("workspace_messages").insert({
+      workspace_id,
+      user_id: user.id,
+      role: "user",
+      content: safeMessage,
+    });
+
     // ── ROUND 1: Independent initial responses (parallel) ───────────────────
     const agentResponses = await Promise.all(
       selectedAgents.map(async (agent) => {
@@ -1009,15 +1020,6 @@ Respond in 250-350 words. Be direct and specific. No hedging. Reference agents b
 
     // ── Generate debate analytics charts ─────────────────────────────────────
     const chartData = await generateDebateCharts(agentResponses, openAiKey, user, workspace_id);
-
-    // ── Persist user message ────────────────────────────────────────────────
-    currentStage = "insert_user_msg";
-    await service.from("workspace_messages").insert({
-      workspace_id,
-      user_id: user.id,
-      role: "user",
-      content: safeMessage,
-    });
 
     // ── Persist agent responses (Round 1 + Round 2) ─────────────────────────
     currentStage = "insert_agent_msgs";

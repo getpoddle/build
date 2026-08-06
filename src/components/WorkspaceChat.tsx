@@ -198,6 +198,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const [priorContextCount, setPriorContextCount] = useState(0);
   const [showPriorContext, setShowPriorContext] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
+  const [recordingUsers, setRecordingUsers] = useState<Map<string, string>>(new Map());
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordingError, setRecordingError] = useState<string | null>(null);
@@ -299,14 +300,19 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     const presenceCh = acquireChannel(presenceName, ch =>
       ch.on('presence', { event: 'sync' }, () => {
         const channel = ch as ReturnType<typeof supabase.channel>;
-        const state = channel.presenceState<{ user_id: string; name: string; isTyping: boolean }>();
-        const next = new Map<string, string>();
+        const state = channel.presenceState<{ user_id: string; name: string; isTyping: boolean; isRecording: boolean }>();
+        const nextTyping = new Map<string, string>();
+        const nextRecording = new Map<string, string>();
         for (const [, presences] of Object.entries(state)) {
           for (const p of presences) {
-            if (p.user_id !== user?.id && p.isTyping) next.set(p.user_id, p.name);
+            if (p.user_id !== user?.id) {
+              if (p.isTyping) nextTyping.set(p.user_id, p.name);
+              if (p.isRecording) nextRecording.set(p.user_id, p.name);
+            }
           }
         }
-        setTypingUsers(next);
+        setTypingUsers(nextTyping);
+        setRecordingUsers(nextRecording);
       }),
     );
     presenceChannelRef.current = presenceCh as ReturnType<typeof supabase.channel> | null;
@@ -543,7 +549,14 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     if (!presenceChannelRef.current || !user) return;
     const profile = memberProfilesRef.current[user.id];
     const name = profile ? getDisplayName(profile) : 'Team member';
-    presenceChannelRef.current.track({ user_id: user.id, name, isTyping });
+    presenceChannelRef.current.track({ user_id: user.id, name, isTyping, isRecording });
+  }
+
+  function broadcastRecording(isRecording: boolean) {
+    if (!presenceChannelRef.current || !user) return;
+    const profile = memberProfilesRef.current[user.id];
+    const name = profile ? getDisplayName(profile) : 'Team member';
+    presenceChannelRef.current.track({ user_id: user.id, name, isTyping: false, isRecording });
   }
 
   const adjustTextarea = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -707,15 +720,18 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       const blob = new Blob(audioChunksRef.current, { type: effectiveMime });
       if (blob.size < 500) {
         setIsRecording(false);
+        broadcastRecording(false);
         return;
       }
       setIsRecording(false);
+      broadcastRecording(false);
       await uploadAndTranscribe(blob);
     };
 
     // Use a 250ms timeslice on iOS to ensure ondataavailable fires reliably
     recorder.start(250);
     setIsRecording(true);
+    broadcastRecording(true);
 
     // Start the appropriate waveform visualisation
     if (analyserRef.current) {
@@ -1172,17 +1188,29 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         </button>
       )}
 
-      {/* Typing indicator */}
-      {typingUsers.size > 0 && (
-        <div className="flex items-center gap-2 mt-2 mb-1 px-1">
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-          <span className="text-xs text-slate-500">
-            {Array.from(typingUsers.values()).join(', ')} {typingUsers.size === 1 ? 'is' : 'are'} typing…
-          </span>
+      {/* Typing & recording indicators */}
+      {(typingUsers.size > 0 || recordingUsers.size > 0) && (
+        <div className="flex flex-col gap-1 mt-2 mb-1 px-1">
+          {recordingUsers.size > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-xs text-slate-500">
+                {Array.from(recordingUsers.values()).join(', ')} {recordingUsers.size === 1 ? 'is' : 'are'} recording a voice note…
+              </span>
+            </div>
+          )}
+          {typingUsers.size > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <span className="text-xs text-slate-500">
+                {Array.from(typingUsers.values()).join(', ')} {typingUsers.size === 1 ? 'is' : 'are'} typing…
+              </span>
+            </div>
+          )}
         </div>
       )}
 
