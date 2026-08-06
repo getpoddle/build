@@ -8,6 +8,7 @@ import { getDisplayName } from '../lib/displayName';
 import { getAvatarUrl, getInitials } from '../lib/avatarUtils';
 import { blobToMp3File } from '../lib/audioUtils';
 import ConsensusCharts, { type ChartData, type AgentFigures } from './ConsensusCharts';
+import { logRealtimeEvent } from '../lib/tabDiagnostics';
 
 interface Message {
   id: string;
@@ -270,6 +271,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         { event: 'INSERT', schema: 'public', table: 'workspace_messages', filter: `workspace_id=eq.${workspaceId}` },
         (payload) => {
           console.log('[WorkspaceChat] REALTIME postgres_changes INSERT received:', { id: (payload.new as Message).id, role: (payload.new as Message).role, user_id: (payload.new as Message).user_id });
+          logRealtimeEvent('WorkspaceChat', 'postgres_insert', workspaceId, { id: (payload.new as Message).id, role: (payload.new as Message).role });
           const newMsg = payload.new as Message;
           if (newMsg.role === 'user' && newMsg.user_id === user?.id) { console.log('[WorkspaceChat] skipping own message'); return; }
           // Restore figures/chart_data from metadata so realtime messages show charts
@@ -303,18 +305,18 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       ),
     );
     console.log('[WorkspaceChat] acquireChannel result for messages:', { name: msgName, channel: msgCh ? 'OK' : 'NULL' });
+    logRealtimeEvent('WorkspaceChat', 'channel_acquired', workspaceId, { channel: 'messages', ok: !!msgCh });
 
     const broadcastCh = acquireChannel(broadcastName, ch =>
       ch
         .on('broadcast', { event: 'new_message' }, (payload: { payload: { user_id: string } }) => {
-          // Dual-delivery: a peer is signalling that new messages were inserted.
-          // The postgres_changes channel may be silently dead on this client, so
-          // use this broadcast as a trigger to fetch the latest messages.
+          logRealtimeEvent('WorkspaceChat', 'broadcast_new_message', workspaceId, { user_id: payload.payload.user_id });
           if (payload.payload.user_id === user?.id) return;
           loadMessages();
         })
         .on('broadcast', { event: 'typing' }, (payload: { payload: { user_id: string; name: string; isTyping: boolean } }) => {
           console.log('[WorkspaceChat] BROADCAST typing received:', payload.payload);
+          logRealtimeEvent('WorkspaceChat', 'broadcast_typing', workspaceId, { user_id: payload.payload.user_id, isTyping: payload.payload.isTyping });
           const data = payload.payload;
           if (data.user_id === user?.id) { console.log('[WorkspaceChat] skipping own typing broadcast'); return; }
           setTypingUsers(prev => {
@@ -341,6 +343,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         })
         .on('broadcast', { event: 'recording' }, (payload: { payload: { user_id: string; name: string; isRecording: boolean } }) => {
           console.log('[WorkspaceChat] BROADCAST recording received:', payload.payload);
+          logRealtimeEvent('WorkspaceChat', 'broadcast_recording', workspaceId, { user_id: payload.payload.user_id, isRecording: payload.payload.isRecording });
           const data = payload.payload;
           if (data.user_id === user?.id) { console.log('[WorkspaceChat] skipping own recording broadcast'); return; }
           setRecordingUsers(prev => {
@@ -367,6 +370,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     );
     broadcastChannelRef.current = broadcastCh as ReturnType<typeof supabase.channel> | null;
     console.log('[WorkspaceChat] acquireChannel result for broadcast:', { name: broadcastName, channel: broadcastCh ? 'OK' : 'NULL', ref: broadcastChannelRef.current ? 'SET' : 'NULL' });
+    logRealtimeEvent('WorkspaceChat', 'channel_acquired', workspaceId, { channel: 'broadcast', ok: !!broadcastCh });
 
     // Keep channels alive when the tab is hidden — pausing/unsubscribing can
     // leave the channel in a dead state on mobile browsers that aggressively
@@ -384,6 +388,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     // appear within a few seconds. This is cheap (indexed query, limit 120) and
     // only runs while the component is mounted.
     const pollInterval = setInterval(() => {
+      logRealtimeEvent('WorkspaceChat', 'poll_fallback', workspaceId);
       loadMessages();
     }, 8000);
 
@@ -391,7 +396,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       mountedRef.current = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(pollInterval);
+      logRealtimeEvent('WorkspaceChat', 'channel_released', workspaceId, { channel: 'messages' });
       releaseChannel(msgName);
+      logRealtimeEvent('WorkspaceChat', 'channel_released', workspaceId, { channel: 'broadcast' });
       releaseChannel(broadcastName);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       if (typingExpiryRef.current) clearTimeout(typingExpiryRef.current);

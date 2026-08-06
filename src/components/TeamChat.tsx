@@ -5,6 +5,7 @@ import { acquireChannel, releaseChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayName } from '../lib/displayName';
 import { getAvatarUrl, getInitials } from '../lib/avatarUtils';
+import { logRealtimeEvent } from '../lib/tabDiagnostics';
 
 interface ChatMessage {
   id: string;
@@ -225,6 +226,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
         (payload) => {
           const newMsg = payload.new as ChatMessage;
           console.log('[TeamChat] REALTIME postgres_changes INSERT received:', { id: newMsg.id, user_id: newMsg.user_id, content: newMsg.content?.slice(0, 30) });
+          logRealtimeEvent('TeamChat', 'postgres_insert', workspaceId, { id: newMsg.id, user_id: newMsg.user_id });
           if (newMsg.user_id === user?.id) { console.log('[TeamChat] skipping own message'); return; }
           if (newMsg.user_id && !memberProfilesRef.current[newMsg.user_id]) {
             supabase
@@ -251,20 +253,18 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       ),
     );
     console.log('[TeamChat] acquireChannel result for messages:', { name: channelName, channel: teamMsgCh ? 'OK' : 'NULL' });
+    logRealtimeEvent('TeamChat', 'channel_acquired', workspaceId, { channel: 'messages', ok: !!teamMsgCh });
 
     const broadcastCh = acquireChannel(broadcastName, ch =>
       ch
       .on('broadcast', { event: 'new_message' }, (payload: { payload: { id: string; user_id: string } }) => {
-        // Dual-delivery: a peer is signalling that they just inserted a message.
-        // The postgres_changes channel may be silently dead on this client, so
-        // use this broadcast as a trigger to fetch the latest messages from the
-        // database. This guarantees messages appear even if the WS subscription
-        // has dropped.
+        logRealtimeEvent('TeamChat', 'broadcast_new_message', workspaceId, { user_id: payload.payload.user_id });
         if (payload.payload.user_id === user?.id) return;
         loadMessages();
       })
       .on('broadcast', { event: 'typing' }, (payload: { payload: { user_id: string; name: string; isTyping: boolean } }) => {
         console.log('[TeamChat] BROADCAST typing received:', payload.payload);
+        logRealtimeEvent('TeamChat', 'broadcast_typing', workspaceId, { user_id: payload.payload.user_id, isTyping: payload.payload.isTyping });
         const data = payload.payload;
         if (data.user_id === user?.id) { console.log('[TeamChat] skipping own typing broadcast'); return; }
         setTypingUsers(prev => {
@@ -295,6 +295,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     );
     broadcastChannelRef.current = broadcastCh as ReturnType<typeof supabase.channel> | null;
     console.log('[TeamChat] acquireChannel result for broadcast:', { name: broadcastName, channel: broadcastCh ? 'OK' : 'NULL', ref: broadcastChannelRef.current ? 'SET' : 'NULL' });
+    logRealtimeEvent('TeamChat', 'channel_acquired', workspaceId, { channel: 'broadcast', ok: !!broadcastCh });
 
     // Keep channels alive when the tab is hidden — pausing/unsubscribing can
     // leave the channel in a dead state on mobile browsers that aggressively
@@ -312,6 +313,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     // appear within a few seconds. This is cheap (indexed query, limit 200) and
     // only runs while the component is mounted.
     const pollInterval = setInterval(() => {
+      logRealtimeEvent('TeamChat', 'poll_fallback', workspaceId);
       loadMessages();
     }, 8000);
 
@@ -319,7 +321,9 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       mountedRef.current = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(pollInterval);
+      logRealtimeEvent('TeamChat', 'channel_released', workspaceId, { channel: 'messages' });
       releaseChannel(channelName);
+      logRealtimeEvent('TeamChat', 'channel_released', workspaceId, { channel: 'broadcast' });
       releaseChannel(broadcastName);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingExpiryTimers.current.forEach(t => clearTimeout(t));

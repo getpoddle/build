@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Lock, Settings, ArrowLeft,
   MessageSquare, Activity, RefreshCw, Loader2, AlertTriangle, Cpu, Clock, Users
@@ -12,6 +12,7 @@ import WorkspaceWarRoom, { WarRoomLockedState } from '../components/WorkspaceWar
 import TeamChat from '../components/TeamChat';
 import UpgradePrompt from '../components/UpgradePrompt';
 import { PageErrorBoundary } from '../components/ErrorBoundary';
+import { logTabChange, type TabValue } from '../lib/tabDiagnostics';
 
 type MainTab = 'chat' | 'warroom' | 'team';
 
@@ -54,16 +55,14 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
     initialTab === 'team' ? 'team' : initialTab === 'warroom' ? 'warroom' : 'chat'
   );
 
-  // DEBUG: log every mainTab change so we can trace the disappearing-tab bug
-  useEffect(() => {
-    console.log('[WorkspaceHub] mainTab =', mainTab, 'workspaceId =', workspaceId);
-  }, [mainTab, workspaceId]);
-
-  const _origSetMainTab = setMainTab;
-  const setMainTabLogged = (tab: MainTab) => {
-    console.log('[WorkspaceHub] setMainTab called:', tab, 'from', mainTab, '— stack:', new Error().stack?.split('\n').slice(1, 4).join(' | '));
-    _origSetMainTab(tab);
-  };
+  const mainTabRef = useRef<MainTab>(mainTab);
+  const setMainTabLogged = useCallback((tab: MainTab, trigger: string) => {
+    const from = mainTabRef.current;
+    console.log('[WorkspaceHub] setMainTab:', from, '→', tab, '(' + trigger + ')');
+    logTabChange(from, tab as TabValue, trigger, workspaceId);
+    mainTabRef.current = tab;
+    setMainTab(tab);
+  }, [workspaceId]);
   const [pendingPrompt, setPendingPrompt] = useState<string | undefined>(undefined);
   const [resyncing, setResyncing] = useState(false);
   const [warRoomKey, setWarRoomKey] = useState(0);
@@ -72,7 +71,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
   function handleDiscuss(prompt: string) {
     setPendingPrompt(prompt);
-    setMainTabLogged('chat');
+    setMainTabLogged('chat', 'pendingPrompt');
   }
 
   async function handleResynthesis() {
@@ -337,7 +336,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
             return (
               <button
                 key={id}
-                onClick={() => setMainTabLogged(id)}
+                onClick={() => setMainTabLogged(id, 'desktop-tab-click')}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-colors relative"
                 style={{
                   color: active ? 'var(--signal)' : 'var(--app-text-muted)',
@@ -415,7 +414,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 workspaceId={workspaceId}
                 workspaceName={workspace?.name || 'Workspace'}
                 workspaceTopic={workspace?.description}
-                onDiscuss={p => { handleDiscuss(p); setMainTabLogged('chat'); }}
+                onDiscuss={p => { handleDiscuss(p); setMainTabLogged('chat', 'discuss'); }}
                 discussedKeys={discussedKeys}
                 onDiscussed={key => setDiscussedKeys(prev => new Set([...prev, key]))}
               />
@@ -449,7 +448,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 return (
                   <button
                     key={id}
-                    onClick={() => setMainTabLogged(id)}
+                    onClick={() => setMainTabLogged(id, 'desktop-tab-click')}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-semibold transition-colors relative"
                     style={{
                       color: active ? 'var(--signal)' : 'var(--app-text-muted)',
