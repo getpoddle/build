@@ -117,6 +117,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
         try {
+          // Keep the Realtime WebSocket authenticated with the latest JWT.
+          // supabase-js auto-refreshes the access token, but the Realtime layer
+          // maintains its own connection and does not automatically pick up the
+          // new token. Without this, channels silently stop delivering events
+          // after the first JWT expires (~5-10 min), until the page is reloaded.
+          if (session?.access_token) {
+            supabase.realtime.setAuth(session.access_token);
+          }
+
           if (event === 'PASSWORD_RECOVERY') {
             setSession(session);
             setUser(session?.user ?? null);

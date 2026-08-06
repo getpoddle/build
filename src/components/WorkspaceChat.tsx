@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download, Mic, Square, Paperclip, FileText, X, Shield, AlertCircle, Lightbulb, TrendingUp, DollarSign, Rocket, History } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { acquireChannel, releaseChannel, pauseChannel, resumeChannel } from '../lib/realtimeRegistry';
+import { acquireChannel, releaseChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
 import { exportChatToPDF } from '../lib/pdfExport';
 import { getDisplayName } from '../lib/displayName';
@@ -359,17 +359,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     broadcastChannelRef.current = broadcastCh as ReturnType<typeof supabase.channel> | null;
     console.log('[WorkspaceChat] acquireChannel result for broadcast:', { name: broadcastName, channel: broadcastCh ? 'OK' : 'NULL', ref: broadcastChannelRef.current ? 'SET' : 'NULL' });
 
-    // Pause channels when the tab is hidden; resume when visible again.
-    // This cuts server broadcast load to zero while the user isn't looking.
-    // On refocus, backfill from the database — any messages inserted during
-    // the pause were missed because the realtime subscription was unsubscribed.
+    // Keep channels alive when the tab is hidden — pausing/unsubscribing can
+    // leave the channel in a dead state on mobile browsers that aggressively
+    // suspend WebSocket connections. Instead, just backfill from the database
+    // on refocus to pick up any messages missed while the tab was inactive.
     function handleVisibilityChange() {
-      if (document.visibilityState === 'hidden') {
-        pauseChannel(msgName);
-        pauseChannel(broadcastName);
-      } else {
-        resumeChannel(msgName);
-        resumeChannel(broadcastName);
+      if (document.visibilityState === 'visible') {
         loadMessages();
       }
     }

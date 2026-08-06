@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Users, Loader2, AtSign } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { acquireChannel, releaseChannel, pauseChannel, resumeChannel } from '../lib/realtimeRegistry';
+import { acquireChannel, releaseChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
 import { getDisplayName } from '../lib/displayName';
 import { getAvatarUrl, getInitials } from '../lib/avatarUtils';
@@ -284,13 +284,13 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     broadcastChannelRef.current = broadcastCh as ReturnType<typeof supabase.channel> | null;
     console.log('[TeamChat] acquireChannel result for broadcast:', { name: broadcastName, channel: broadcastCh ? 'OK' : 'NULL', ref: broadcastChannelRef.current ? 'SET' : 'NULL' });
 
+    // Keep channels alive when the tab is hidden — pausing/unsubscribing can
+    // leave the channel in a dead state on mobile browsers that aggressively
+    // suspend WebSocket connections. Instead, just backfill from the database
+    // on refocus to pick up any messages missed while the tab was inactive.
     function handleVisibilityChange() {
-      if (document.visibilityState === 'hidden') {
-        pauseChannel(channelName);
-        pauseChannel(broadcastName);
-      } else {
-        resumeChannel(channelName);
-        resumeChannel(broadcastName);
+      if (document.visibilityState === 'visible') {
+        loadMessages();
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
