@@ -216,13 +216,14 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     const channelName = `workspace-team-chat-${workspaceId}`;
     const broadcastName = `workspace-team-broadcast-${workspaceId}`;
 
-    acquireChannel(channelName, ch =>
+    const teamMsgCh = acquireChannel(channelName, ch =>
       ch.on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'workspace_chat_messages', filter: `workspace_id=eq.${workspaceId}` },
         (payload) => {
           const newMsg = payload.new as ChatMessage;
-          if (newMsg.user_id === user?.id) return;
+          console.log('[TeamChat] REALTIME postgres_changes INSERT received:', { id: newMsg.id, user_id: newMsg.user_id, content: newMsg.content?.slice(0, 30) });
+          if (newMsg.user_id === user?.id) { console.log('[TeamChat] skipping own message'); return; }
           if (newMsg.user_id && !memberProfilesRef.current[newMsg.user_id]) {
             supabase
               .from('profiles')
@@ -240,17 +241,20 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
           }
           setMessages(prev => {
             if (prev.some(m => m.id === newMsg.id)) return prev;
+            console.log('[TeamChat] adding new realtime message to state:', { id: newMsg.id });
             return [...prev, newMsg];
           });
           setTimeout(() => scrollToBottom(), 50);
         },
       ),
     );
+    console.log('[TeamChat] acquireChannel result for messages:', { name: channelName, channel: teamMsgCh ? 'OK' : 'NULL' });
 
     const broadcastCh = acquireChannel(broadcastName, ch =>
       ch.on('broadcast', { event: 'typing' }, (payload: { payload: { user_id: string; name: string; isTyping: boolean } }) => {
+        console.log('[TeamChat] BROADCAST typing received:', payload.payload);
         const data = payload.payload;
-        if (data.user_id === user?.id) return;
+        if (data.user_id === user?.id) { console.log('[TeamChat] skipping own typing broadcast'); return; }
         setTypingUsers(prev => {
           const next = new Map(prev);
           if (data.isTyping) {
@@ -258,6 +262,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
           } else {
             next.delete(data.user_id);
           }
+          console.log('[TeamChat] typingUsers state updated:', { size: next.size, users: Array.from(next.entries()) });
           return next;
         });
         // Auto-clear after 4s in case the "stopped typing" broadcast is missed
@@ -277,6 +282,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       }),
     );
     broadcastChannelRef.current = broadcastCh as ReturnType<typeof supabase.channel> | null;
+    console.log('[TeamChat] acquireChannel result for broadcast:', { name: broadcastName, channel: broadcastCh ? 'OK' : 'NULL', ref: broadcastChannelRef.current ? 'SET' : 'NULL' });
 
     function handleVisibilityChange() {
       if (document.visibilityState === 'hidden') {
@@ -375,6 +381,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
   }
 
   function broadcastTyping(isTyping: boolean) {
+    console.log('[TeamChat] broadcastTyping called:', { isTyping, hasChannel: !!broadcastChannelRef.current, hasUser: !!user });
     if (!broadcastChannelRef.current || !user) return;
     const profile = memberProfilesRef.current[user.id];
     const name = profile ? getDisplayName(profile) : 'Team member';
@@ -383,6 +390,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       event: 'typing',
       payload: { user_id: user.id, name, isTyping },
     });
+    console.log('[TeamChat] broadcastTyping sent:', { event: 'typing', user_id: user.id, name, isTyping });
   }
 
   const filteredMembers = mentionQuery !== null

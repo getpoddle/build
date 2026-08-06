@@ -262,13 +262,14 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
     // Acquire via singleton registry — reuses an existing channel if another
     // component or tab has already opened it, preventing duplicate WebSocket slots.
-    acquireChannel(msgName, ch =>
+    const msgCh = acquireChannel(msgName, ch =>
       ch.on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'workspace_messages', filter: `workspace_id=eq.${workspaceId}` },
         (payload) => {
+          console.log('[WorkspaceChat] REALTIME postgres_changes INSERT received:', { id: (payload.new as Message).id, role: (payload.new as Message).role, user_id: (payload.new as Message).user_id });
           const newMsg = payload.new as Message;
-          if (newMsg.role === 'user' && newMsg.user_id === user?.id) return;
+          if (newMsg.role === 'user' && newMsg.user_id === user?.id) { console.log('[WorkspaceChat] skipping own message'); return; }
           // Restore figures/chart_data from metadata so realtime messages show charts
           const meta = (newMsg as { metadata?: { figures?: AgentFigures | null; chart_data?: ChartData | null } }).metadata;
           if (meta) {
@@ -292,18 +293,21 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           }
           setMessages(prev => {
             if (prev.some(m => m.id === newMsg.id)) return prev;
+            console.log('[WorkspaceChat] adding new realtime message to state:', { id: newMsg.id, role: newMsg.role });
             return [...prev, newMsg];
           });
           setTimeout(() => scrollToBottom(), 50);
         },
       ),
     );
+    console.log('[WorkspaceChat] acquireChannel result for messages:', { name: msgName, channel: msgCh ? 'OK' : 'NULL' });
 
     const broadcastCh = acquireChannel(broadcastName, ch =>
       ch
         .on('broadcast', { event: 'typing' }, (payload: { payload: { user_id: string; name: string; isTyping: boolean } }) => {
+          console.log('[WorkspaceChat] BROADCAST typing received:', payload.payload);
           const data = payload.payload;
-          if (data.user_id === user?.id) return;
+          if (data.user_id === user?.id) { console.log('[WorkspaceChat] skipping own typing broadcast'); return; }
           setTypingUsers(prev => {
             const next = new Map(prev);
             if (data.isTyping) {
@@ -311,6 +315,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             } else {
               next.delete(data.user_id);
             }
+            console.log('[WorkspaceChat] typingUsers state updated:', { size: next.size, users: Array.from(next.entries()) });
             return next;
           });
           // Auto-clear after 4s in case the "stopped typing" broadcast is missed
@@ -326,8 +331,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           }
         })
         .on('broadcast', { event: 'recording' }, (payload: { payload: { user_id: string; name: string; isRecording: boolean } }) => {
+          console.log('[WorkspaceChat] BROADCAST recording received:', payload.payload);
           const data = payload.payload;
-          if (data.user_id === user?.id) return;
+          if (data.user_id === user?.id) { console.log('[WorkspaceChat] skipping own recording broadcast'); return; }
           setRecordingUsers(prev => {
             const next = new Map(prev);
             if (data.isRecording) {
@@ -335,6 +341,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             } else {
               next.delete(data.user_id);
             }
+            console.log('[WorkspaceChat] recordingUsers state updated:', { size: next.size, users: Array.from(next.entries()) });
             return next;
           });
           if (data.isRecording) {
@@ -350,6 +357,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         }),
     );
     broadcastChannelRef.current = broadcastCh as ReturnType<typeof supabase.channel> | null;
+    console.log('[WorkspaceChat] acquireChannel result for broadcast:', { name: broadcastName, channel: broadcastCh ? 'OK' : 'NULL', ref: broadcastChannelRef.current ? 'SET' : 'NULL' });
 
     // Pause channels when the tab is hidden; resume when visible again.
     // This cuts server broadcast load to zero while the user isn't looking.
@@ -582,6 +590,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   };
 
   function broadcastTyping(isTyping: boolean) {
+    console.log('[WorkspaceChat] broadcastTyping called:', { isTyping, hasChannel: !!broadcastChannelRef.current, hasUser: !!user });
     if (!broadcastChannelRef.current || !user) return;
     const profile = memberProfilesRef.current[user.id];
     const name = profile ? getDisplayName(profile) : 'Team member';
@@ -590,9 +599,11 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       event: 'typing',
       payload: { user_id: user.id, name, isTyping },
     });
+    console.log('[WorkspaceChat] broadcastTyping sent:', { event: 'typing', user_id: user.id, name, isTyping });
   }
 
   function broadcastRecording(isRecording: boolean) {
+    console.log('[WorkspaceChat] broadcastRecording called:', { isRecording, hasChannel: !!broadcastChannelRef.current, hasUser: !!user });
     if (!broadcastChannelRef.current || !user) return;
     const profile = memberProfilesRef.current[user.id];
     const name = profile ? getDisplayName(profile) : 'Team member';
@@ -601,6 +612,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       event: 'recording',
       payload: { user_id: user.id, name, isRecording },
     });
+    console.log('[WorkspaceChat] broadcastRecording sent:', { event: 'recording', user_id: user.id, name, isRecording });
   }
 
   const adjustTextarea = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
