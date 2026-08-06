@@ -53,6 +53,17 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
   const [mainTab, setMainTab] = useState<MainTab>(
     initialTab === 'team' ? 'team' : initialTab === 'warroom' ? 'warroom' : 'chat'
   );
+
+  // DEBUG: log every mainTab change so we can trace the disappearing-tab bug
+  useEffect(() => {
+    console.log('[WorkspaceHub] mainTab =', mainTab, 'workspaceId =', workspaceId);
+  }, [mainTab, workspaceId]);
+
+  const _origSetMainTab = setMainTab;
+  const setMainTabLogged = (tab: MainTab) => {
+    console.log('[WorkspaceHub] setMainTab called:', tab, 'from', mainTab, '— stack:', new Error().stack?.split('\n').slice(1, 4).join(' | '));
+    _origSetMainTab(tab);
+  };
   const [pendingPrompt, setPendingPrompt] = useState<string | undefined>(undefined);
   const [resyncing, setResyncing] = useState(false);
   const [warRoomKey, setWarRoomKey] = useState(0);
@@ -61,7 +72,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
   function handleDiscuss(prompt: string) {
     setPendingPrompt(prompt);
-    setMainTab('chat');
+    setMainTabLogged('chat');
   }
 
   async function handleResynthesis() {
@@ -326,7 +337,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
             return (
               <button
                 key={id}
-                onClick={() => setMainTab(id)}
+                onClick={() => setMainTabLogged(id)}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-colors relative"
                 style={{
                   color: active ? 'var(--signal)' : 'var(--app-text-muted)',
@@ -404,7 +415,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 workspaceId={workspaceId}
                 workspaceName={workspace?.name || 'Workspace'}
                 workspaceTopic={workspace?.description}
-                onDiscuss={p => { handleDiscuss(p); setMainTab('chat'); }}
+                onDiscuss={p => { handleDiscuss(p); setMainTabLogged('chat'); }}
                 discussedKeys={discussedKeys}
                 onDiscussed={key => setDiscussedKeys(prev => new Set([...prev, key]))}
               />
@@ -438,7 +449,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 return (
                   <button
                     key={id}
-                    onClick={() => setMainTab(id)}
+                    onClick={() => setMainTabLogged(id)}
                     className="flex items-center gap-2 px-3 py-2 text-xs font-semibold transition-colors relative"
                     style={{
                       color: active ? 'var(--signal)' : 'var(--app-text-muted)',
