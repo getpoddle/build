@@ -223,7 +223,6 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
       className="flex flex-col overflow-hidden lg:!h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))]"
       style={{
         height: 'calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px))',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         background: 'var(--app-bg)',
       }}
     >
@@ -378,25 +377,20 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
         {/* ── MOBILE: Chat tab ── */}
         {mainTab === 'chat' && (
-          <div className="lg:hidden flex-1 overflow-hidden p-2" style={{ marginBottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }}>
+          <div className="lg:hidden flex-1 overflow-hidden" style={{ marginBottom: '3.5rem' }}>
             <PageErrorBoundary resetKey={`m-chat-${workspaceId}`}>
-            <div
-              className="h-full overflow-hidden relative"
-              style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
-            >
+            <div className="h-full overflow-hidden relative flex flex-col" style={{ background: 'var(--app-surface-raised)' }}>
               {isReadOnly && <ReadOnlyOverlay />}
-              <div className="h-full p-3">
-                <WorkspaceChat
-                  workspaceId={workspaceId}
-                  workspaceName={workspace?.name || 'Workspace'}
-                  workspaceTopic={workspace?.description}
-                  initialPrompt={pendingPrompt}
-                  onPromptConsumed={() => setPendingPrompt(undefined)}
-                  onAgentsReplied={() => {}}
-                  isPro={workspaceIsPro}
-                  onUpgrade={() => setShowUpgrade(true)}
-                />
-              </div>
+              <WorkspaceChat
+                workspaceId={workspaceId}
+                workspaceName={workspace?.name || 'Workspace'}
+                workspaceTopic={workspace?.description}
+                initialPrompt={pendingPrompt}
+                onPromptConsumed={() => setPendingPrompt(undefined)}
+                onAgentsReplied={() => {}}
+                isPro={workspaceIsPro}
+                onUpgrade={() => setShowUpgrade(true)}
+              />
             </div>
             </PageErrorBoundary>
           </div>
@@ -404,19 +398,14 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
         {/* ── MOBILE: Team Chat tab ── */}
         {mainTab === 'team' && (
-          <div className="lg:hidden flex-1 overflow-hidden p-2" style={{ marginBottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }}>
+          <div className="lg:hidden flex-1 overflow-hidden" style={{ marginBottom: '3.5rem' }}>
             <PageErrorBoundary resetKey={`m-team-${workspaceId}`}>
-            <div
-              className="h-full overflow-hidden relative"
-              style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
-            >
+            <div className="h-full overflow-hidden relative flex flex-col" style={{ background: 'var(--app-surface-raised)' }}>
               {isReadOnly && <ReadOnlyOverlay />}
-              <div className="h-full">
-                <TeamChat
-                  workspaceId={workspaceId}
-                  workspaceName={workspace?.name || 'Workspace'}
-                />
-              </div>
+              <TeamChat
+                workspaceId={workspaceId}
+                workspaceName={workspace?.name || 'Workspace'}
+              />
             </div>
             </PageErrorBoundary>
           </div>
@@ -424,7 +413,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
         {/* ── MOBILE: War Room tab ── */}
         {mainTab === 'warroom' && (
-          <div className="lg:hidden flex-1 overflow-y-auto" style={{ marginBottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))', paddingBottom: '1rem' }}>
+          <div className="lg:hidden flex-1 overflow-y-auto" style={{ marginBottom: '3.5rem', paddingBottom: '1.5rem' }}>
             <PageErrorBoundary resetKey={`m-war-${workspaceId}`}>
             {workspaceIsPro ? (
               <WorkspaceWarRoom

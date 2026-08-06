@@ -630,7 +630,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
 
       {/* Input */}
       <div
-        className="flex-shrink-0 p-3 relative"
+        className="flex-shrink-0 px-3 py-2.5 relative"
         style={{ borderTop: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
       >
         {/* Mention dropdown */}

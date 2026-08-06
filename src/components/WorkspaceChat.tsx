@@ -989,7 +989,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   return (
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 mb-3">
+      <div className="flex items-center justify-end gap-2 mb-2 lg:mb-3">
         {messages.length > 0 && (
           <button
             onClick={() => exportChatToPDF(messages, workspaceName, workspaceTopic)}
@@ -1374,8 +1374,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
       {/* Input area */}
       <div
-        className="mt-2 p-2.5 sm:p-3 flex items-end gap-2 sm:gap-3"
-        style={{ background: 'var(--app-surface-raised)', border: `1.5px solid ${isRecording ? 'var(--negative)' : 'var(--app-border)'}`, boxShadow: 'var(--shadow-sm)', transition: 'border-color 0.2s' }}
+        className="flex-shrink-0 px-3 py-2.5 sm:px-3 sm:py-3 flex items-end gap-2 sm:gap-3"
+        style={{ background: 'var(--app-surface-raised)', borderTop: `1px solid ${isRecording ? 'var(--negative)' : 'var(--app-border)'}`, transition: 'border-color 0.2s' }}
       >
         {isTranscribing ? (
           /* Transcribing overlay */
@@ -1527,9 +1527,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       )}
 
       {!micBlocked && recordingError && recordingError !== 'blocked' ? (
-        <p className="text-center text-xs text-red-500 mt-2">{recordingError}</p>
+        <p className="text-center text-xs text-red-500 mt-1.5">{recordingError}</p>
       ) : !micBlocked && (
-        <p className="text-center text-xs text-slate-400 mt-2">
+        <p className="hidden lg:block text-center text-xs text-slate-400 mt-1.5">
           {isRecording ? 'Recording… tap the stop button when done' : 'Press Enter to send · Shift+Enter for new line'}
         </p>
       )}
