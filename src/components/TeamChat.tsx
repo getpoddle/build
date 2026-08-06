@@ -179,7 +179,14 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       .limit(200);
 
     if (!mountedRef.current) return;
-    setMessages(data || []);
+    setMessages(prev => {
+      const existing = new Set(prev.map(m => m.id));
+      const merged = [...prev];
+      for (const m of (data || [])) {
+        if (!existing.has(m.id)) merged.push(m);
+      }
+      return merged;
+    });
     setLoading(false);
     setTimeout(() => { if (mountedRef.current) scrollToBottom(false); }, 100);
   }, [workspaceId, scrollToBottom]);

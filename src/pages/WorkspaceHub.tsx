@@ -205,7 +205,8 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
     <div
       className="flex flex-col overflow-hidden lg:!h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))]"
       style={{
-        height: 'calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px) - 5.5rem - env(safe-area-inset-bottom, 0px))',
+        height: 'calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px))',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         background: 'var(--app-bg)',
       }}
     >
@@ -360,7 +361,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
         {/* ── MOBILE: Chat tab ── */}
         {mainTab === 'chat' && (
-          <div className="lg:hidden flex-1 overflow-hidden p-2">
+          <div className="lg:hidden flex-1 overflow-hidden p-2" style={{ paddingBottom: 'calc(0.5rem + 3.5rem + env(safe-area-inset-bottom, 0px))' }}>
             <PageErrorBoundary resetKey={`m-chat-${workspaceId}`}>
             <div
               className="h-full overflow-hidden relative"
@@ -386,7 +387,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
         {/* ── MOBILE: Team Chat tab ── */}
         {mainTab === 'team' && (
-          <div className="lg:hidden flex-1 overflow-hidden p-2">
+          <div className="lg:hidden flex-1 overflow-hidden p-2" style={{ paddingBottom: 'calc(0.5rem + 3.5rem + env(safe-area-inset-bottom, 0px))' }}>
             <PageErrorBoundary resetKey={`m-team-${workspaceId}`}>
             <div
               className="h-full overflow-hidden relative"
@@ -406,7 +407,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
         {/* ── MOBILE: War Room tab ── */}
         {mainTab === 'warroom' && (
-          <div className="lg:hidden flex-1 overflow-y-auto" style={{ paddingBottom: '1rem' }}>
+          <div className="lg:hidden flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(1rem + 3.5rem + env(safe-area-inset-bottom, 0px))' }}>
             <PageErrorBoundary resetKey={`m-war-${workspaceId}`}>
             {workspaceIsPro ? (
               <WorkspaceWarRoom

@@ -194,7 +194,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [fetching, setFetching] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [priorContextCount, setPriorContextCount] = useState(0);
   const [showPriorContext, setShowPriorContext] = useState(false);
@@ -415,12 +415,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   }, [workspaceId]);
 
   useEffect(() => {
-    if (!fetching) scrollToBottom(false);
-  }, [fetching, scrollToBottom]);
+    if (!initialLoad) scrollToBottom(false);
+  }, [initialLoad, scrollToBottom]);
 
   // When an initialPrompt arrives after chat is loaded, pre-fill and auto-send
   useEffect(() => {
-    if (!initialPrompt || fetching) return;
+    if (!initialPrompt || initialLoad) return;
     pendingPromptRef.current = initialPrompt;
     setInput(initialPrompt);
     if (textareaRef.current) {
@@ -434,7 +434,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     }, 300);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPrompt, fetching]);
+  }, [initialPrompt, initialLoad]);
 
   async function loadMemberProfiles() {
     const { data: members } = await supabase
@@ -467,7 +467,6 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   }
 
   async function loadMessages() {
-    setFetching(true);
     const { data } = await supabase
       .from('workspace_messages')
       .select('id, role, content, agent_name, agent_role, user_id, created_at, metadata')
@@ -482,8 +481,15 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       }
       return m as Message;
     });
-    setMessages(mapped);
-    setFetching(false);
+    setMessages(prev => {
+      const existing = new Set(prev.map(m => m.id));
+      const merged = [...prev];
+      for (const m of mapped) {
+        if (!existing.has(m.id)) merged.push(m);
+      }
+      return merged;
+    });
+    setInitialLoad(false);
   }
 
   const handleScroll = () => {
@@ -969,7 +975,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     return profile ? getDisplayName(profile) : 'Team member';
   }
 
-  if (fetching) {
+  if (initialLoad) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
