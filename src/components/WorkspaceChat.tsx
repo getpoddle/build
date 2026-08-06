@@ -481,15 +481,17 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       }
       return m as Message;
     });
+    let didChange = false;
     setMessages(prev => {
       const existing = new Set(prev.map(m => m.id));
-      const merged = [...prev];
-      for (const m of mapped) {
-        if (!existing.has(m.id)) merged.push(m);
-      }
-      return merged;
+      const newMsgs = mapped.filter(m => !existing.has(m.id));
+      if (newMsgs.length === 0) return prev;
+      didChange = true;
+      return [...prev, ...newMsgs];
     });
-    setInitialLoad(false);
+    if (didChange) {
+      setInitialLoad(false);
+    }
   }
 
   const handleScroll = () => {

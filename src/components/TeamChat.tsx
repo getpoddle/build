@@ -179,16 +179,18 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
       .limit(200);
 
     if (!mountedRef.current) return;
+    let didChange = false;
     setMessages(prev => {
       const existing = new Set(prev.map(m => m.id));
-      const merged = [...prev];
-      for (const m of (data || [])) {
-        if (!existing.has(m.id)) merged.push(m);
-      }
-      return merged;
+      const newMsgs = (data || []).filter(m => !existing.has(m.id));
+      if (newMsgs.length === 0) return prev;
+      didChange = true;
+      return [...prev, ...newMsgs];
     });
-    setLoading(false);
-    setTimeout(() => { if (mountedRef.current) scrollToBottom(false); }, 100);
+    if (didChange) {
+      setLoading(false);
+      setTimeout(() => { if (mountedRef.current) scrollToBottom(false); }, 100);
+    }
   }, [workspaceId, scrollToBottom]);
 
   const loadMemberProfiles = useCallback(async () => {
