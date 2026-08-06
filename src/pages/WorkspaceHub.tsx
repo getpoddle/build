@@ -361,7 +361,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
         {/* ── MOBILE: Chat tab ── */}
         {mainTab === 'chat' && (
-          <div className="lg:hidden flex-1 overflow-hidden p-2" style={{ paddingBottom: 'calc(0.5rem + 3.5rem + env(safe-area-inset-bottom, 0px))' }}>
+          <div className="lg:hidden flex-1 overflow-hidden p-2" style={{ marginBottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }}>
             <PageErrorBoundary resetKey={`m-chat-${workspaceId}`}>
             <div
               className="h-full overflow-hidden relative"
@@ -387,7 +387,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
         {/* ── MOBILE: Team Chat tab ── */}
         {mainTab === 'team' && (
-          <div className="lg:hidden flex-1 overflow-hidden p-2" style={{ paddingBottom: 'calc(0.5rem + 3.5rem + env(safe-area-inset-bottom, 0px))' }}>
+          <div className="lg:hidden flex-1 overflow-hidden p-2" style={{ marginBottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }}>
             <PageErrorBoundary resetKey={`m-team-${workspaceId}`}>
             <div
               className="h-full overflow-hidden relative"
@@ -407,7 +407,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
 
         {/* ── MOBILE: War Room tab ── */}
         {mainTab === 'warroom' && (
-          <div className="lg:hidden flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(1rem + 3.5rem + env(safe-area-inset-bottom, 0px))' }}>
+          <div className="lg:hidden flex-1 overflow-y-auto" style={{ marginBottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))', paddingBottom: '1rem' }}>
             <PageErrorBoundary resetKey={`m-war-${workspaceId}`}>
             {workspaceIsPro ? (
               <WorkspaceWarRoom
