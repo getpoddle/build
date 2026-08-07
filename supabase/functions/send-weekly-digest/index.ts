@@ -34,6 +34,14 @@ function phCaptureServer(event: string, distinctId: string, properties?: Record<
 
 const APP_URL = Deno.env.get("APP_URL") || "https://poddleme.com";
 
+interface WeeklyArticle {
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  reading_time_minutes: number;
+}
+
 function emailBase(content: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -81,94 +89,49 @@ function emailBase(content: string): string {
 </html>`;
 }
 
-// Scenario C — user has never created a workspace
-function buildNoWorkspaceEmail(recipientName: string): string {
-  const agents = [
-    { name: "The Skeptic", color: "#f87171", description: "finds the fatal flaw in your thinking" },
-    { name: "Risk Analyst", color: "#fbbf24", description: "puts numbers on what could go wrong" },
-    { name: "The Optimist", color: "#34d399", description: "finds the upside you might be undervaluing" },
-    { name: "Data Detective", color: "#60a5fa", description: "challenges assumptions that lack evidence" },
-    { name: "Market Analyst", color: "#a78bfa", description: "maps competitive timing and market fit" },
-    { name: "Systems Thinker", color: "#fb923c", description: "traces second and third-order consequences" },
-    { name: "The Pragmatist", color: "#94a3b8", description: "tells you what can realistically ship" },
-  ];
+function buildEditorialEmail(recipientName: string, article: WeeklyArticle): string {
+  const articleUrl = `${APP_URL}/blog/${article.slug}`;
 
-  const agentRows = agents.map((a) => `
-    <tr>
-      <td style="padding:8px 0;border-bottom:1px solid #334155;">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td style="width:14px;vertical-align:middle;">
-              <span style="display:inline-block;width:8px;height:8px;background:${a.color};border-radius:50%;"></span>
-            </td>
-            <td style="padding-left:10px;">
-              <span style="color:#f8fafc;font-size:13px;font-weight:600;">${a.name}</span>
-              <span style="color:#64748b;font-size:13px;"> — ${a.description}</span>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>`).join("");
+  // Extract the first <h2> as the lesson heading and first <p> as the hook
+  const hookMatch = article.content.match(/<p[^>]*>([\s\S]*?)<\/p>/);
+  const hook = hookMatch ? hookMatch[1].replace(/<[^>]*>/g, "") : article.excerpt;
+
+  // Extract the persona spotlight quote
+  const quoteMatch = article.content.match(/font-style:italic[^>]*>([\s\S]*?)<\/p>/);
+  const quote = quoteMatch ? quoteMatch[1].replace(/<[^>]*>/g, "") : "";
+
+  // Extract the "Try this" section
+  const tryThisMatch = article.content.match(/<em[^>]*>([\s\S]*?)<\/em>/);
+  const tryThis = tryThisMatch ? tryThisMatch[1].replace(/<[^>]*>/g, "") : "";
 
   return emailBase(`
     <div style="padding:32px;">
-      <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px 0;">From the Poddle Team</p>
-      <h1 style="color:#f8fafc;font-size:24px;font-weight:700;margin:0 0 16px 0;line-height:1.3;">Hi ${recipientName}, you haven't tried the best part of Poddle yet.</h1>
-      <p style="color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 24px 0;">Most people sign up, look around, and miss the feature that makes it actually useful.</p>
+      <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px 0;">This Week on Poddle</p>
+      <h1 style="color:#f8fafc;font-size:24px;font-weight:700;margin:0 0 16px 0;line-height:1.3;">${article.title}</h1>
+      <p style="color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 24px 0;">${hook}</p>
 
       <div style="background:#0f172a;border-radius:12px;border:1px solid #334155;padding:20px 24px;margin-bottom:28px;">
-        <p style="color:#f8fafc;font-size:15px;font-weight:700;margin:0 0 6px 0;">Private workspaces</p>
-        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">You bring a decision — a hire, a pricing call, a product pivot — and seven AI agents debate it from completely different angles. Then AI synthesizes the debate into a clear recommendation, with dissenting views kept in so you see the full picture, not just a conclusion.</p>
+        <p style="color:#f8fafc;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 12px 0;">The Decision-Intelligence Lesson</p>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">${article.excerpt}</p>
       </div>
 
-      <h2 style="color:#f8fafc;font-size:15px;font-weight:700;margin:0 0 4px 0;">Your panel of seven agents</h2>
-      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
-        ${agentRows}
-      </table>
+      ${quote ? `
+      <div style="background:#0f172a;border-radius:12px;border-left:4px solid #2563eb;padding:20px 24px;margin-bottom:28px;">
+        <p style="font-style:italic;color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 8px 0;">"${quote}"</p>
+        <p style="color:#64748b;font-size:13px;margin:0;">— A Poddle user</p>
+      </div>
+      ` : ""}
 
+      ${tryThis ? `
       <div style="background:#0f172a;border-radius:12px;border:1px solid #334155;padding:20px 24px;margin-bottom:28px;">
-        <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:0 0 12px 0;">Two minutes to set up. Fully private and encrypted. Nothing inside your workspace is visible outside your team.</p>
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td style="padding:0 12px 0 0;">
-              <div style="text-align:center;padding:14px 0;border-radius:8px;border:1px solid #334155;">
-                <div style="color:#f8fafc;font-size:16px;font-weight:800;line-height:1;">$39</div>
-                <div style="color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Pro Individual / mo</div>
-              </div>
-            </td>
-            <td>
-              <div style="text-align:center;padding:14px 0;border-radius:8px;border:1px solid #334155;">
-                <div style="color:#f8fafc;font-size:16px;font-weight:800;line-height:1;">$249</div>
-                <div style="color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin-top:4px;">Team Workspace / mo</div>
-              </div>
-            </td>
-          </tr>
-        </table>
+        <p style="color:#f8fafc;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 12px 0;">Try This</p>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;font-style:italic;">${tryThis}</p>
       </div>
+      ` : ""}
 
-      <p style="color:#64748b;font-size:13px;margin:0 0 20px 0;">Free trial available — no card required.</p>
+      <p style="color:#64748b;font-size:13px;line-height:1.6;margin:0 0 24px 0;">Read the full article below, or open it on Poddle.</p>
 
-      <a href="${APP_URL}/workspaces" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Create my workspace</a>
-    </div>
-  `);
-}
-
-// Scenario A — user has an active workspace
-function buildActiveWorkspaceEmail(recipientName: string, workspaceName: string, workspaceId: string): string {
-  return emailBase(`
-    <div style="padding:32px;">
-      <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 16px 0;">Weekly recap</p>
-      <h1 style="color:#f8fafc;font-size:24px;font-weight:700;margin:0 0 8px 0;line-height:1.3;">Hi ${recipientName}, your workspace is ready.</h1>
-      <p style="color:#94a3b8;font-size:15px;line-height:1.6;margin:0 0 28px 0;">Your AI panel in <strong style="color:#e2e8f0;">${workspaceName}</strong> is ready to take on your next decision. Bring a problem, a pivot, or a question you haven't been able to resolve — and let seven agents debate it from every angle.</p>
-
-      <div style="background:#0f172a;border-radius:12px;border:1px solid #334155;padding:20px 24px;margin-bottom:28px;">
-        <p style="color:#94a3b8;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;margin:0 0 12px 0;">Try this week</p>
-        <p style="color:#e2e8f0;font-size:15px;font-style:italic;line-height:1.6;margin:0;">"What is the single assumption in our current plan that would hurt most if it turned out to be wrong?"</p>
-      </div>
-
-      <p style="color:#64748b;font-size:13px;line-height:1.6;margin:0 0 24px 0;">Put that question to your War Room. The Skeptic, Risk Analyst, and the rest of your panel will each attack it from a different direction. You'll have a synthesis in minutes.</p>
-
-      <a href="${APP_URL}/workspaces/${workspaceId}" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Open my workspace</a>
+      <a href="${articleUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Read the full article</a>
     </div>
   `);
 }
@@ -202,6 +165,14 @@ async function sendEmail(
   console.log(`Sent digest: ${result.id} → ${to}`);
 }
 
+function getCurrentWeekNumber(): number {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const days = Math.floor((now.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+  const week = Math.ceil((days + start.getDay() + 1) / 7);
+  return ((week - 1) % 12) + 1;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -222,54 +193,44 @@ Deno.serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // Determine current week number (1-12, cycling)
+    const weekNumber = getCurrentWeekNumber();
+    console.log(`Weekly digest: looking up article for week ${weekNumber}`);
+
+    // Fetch the article for this week
+    const { data: article, error: articleError } = await supabase
+      .from("blog_posts")
+      .select("slug, title, excerpt, content, reading_time_minutes")
+      .eq("week_number", weekNumber)
+      .eq("is_published", true)
+      .single();
+
+    if (articleError || !article) {
+      throw new Error(`Failed to fetch article for week ${weekNumber}: ${articleError?.message || "not found"}`);
+    }
+
+    console.log(`Weekly article: ${article.title} (slug: ${article.slug})`);
+
     // Fetch all real users with email notifications enabled
     const { data: realUsers, error: recipientsError } = await supabase.rpc("get_digest_recipients");
     if (recipientsError) {
       throw new Error(`Failed to fetch recipients: ${recipientsError.message}`);
     }
 
-    // Fetch all workspaces (owner_id + workspace id + name) in one query
-    const { data: allWorkspaces } = await supabase
-      .from("workspaces")
-      .select("id, name, owner_id")
-      .order("created_at", { ascending: true });
-
-    // Build a map: user_id → first workspace they own
-    const workspaceByOwner: Record<string, { id: string; name: string }> = {};
-    for (const ws of allWorkspaces || []) {
-      if (!workspaceByOwner[ws.owner_id]) {
-        workspaceByOwner[ws.owner_id] = { id: ws.id, name: ws.name };
-      }
-    }
-
-    const results: { email: string; status: string; template?: string; error?: string }[] = [];
+    const subject = `${article.title} — This Week on Poddle`;
+    const results: { email: string; status: string; error?: string }[] = [];
 
     for (const user of realUsers) {
       try {
         const name = user.first_name || user.full_name?.split(" ")[0] || "there";
-        const workspace = workspaceByOwner[user.user_id];
-
-        let subject: string;
-        let html: string;
-        let template: string;
-
-        if (!workspace) {
-          // Scenario C: no workspace — activation email
-          subject = "You haven't tried the best part of Poddle yet";
-          html = buildNoWorkspaceEmail(name);
-          template = "no_workspace";
-        } else {
-          // Scenario A: has a workspace — weekly prompt
-          subject = `Your Poddle workspace is ready, ${name}`;
-          html = buildActiveWorkspaceEmail(name, workspace.name, workspace.id);
-          template = "active_workspace";
-        }
+        const html = buildEditorialEmail(name, article as WeeklyArticle);
 
         await sendEmail(user.email, subject, html, RESEND_API_KEY);
-        results.push({ email: user.email, status: "sent", template });
-        phCaptureServer("weekly_digest_sent", user.user_id ?? user.email, {
-          template,
-          has_workspace: !!workspace,
+        results.push({ email: user.email, status: "sent" });
+        phCaptureServer("weekly_article_sent", user.user_id ?? user.email, {
+          article_slug: article.slug,
+          article_title: article.title,
+          week_number: weekNumber,
         });
 
         // Small delay to avoid Resend rate limits
@@ -283,19 +244,18 @@ Deno.serve(async (req: Request) => {
 
     const sent = results.filter((r) => r.status === "sent").length;
     const failed = results.filter((r) => r.status === "failed").length;
-    const noWorkspace = results.filter((r) => r.template === "no_workspace").length;
-    const activeWorkspace = results.filter((r) => r.template === "active_workspace").length;
 
-    console.log(`Weekly digest complete: ${sent} sent (${noWorkspace} activation, ${activeWorkspace} workspace recap), ${failed} failed`);
+    console.log(`Weekly digest complete: ${sent} sent, ${failed} failed (article: ${article.slug})`);
     phCaptureServer("weekly_digest_run_completed", "system", {
       sent,
       failed,
-      no_workspace: noWorkspace,
-      active_workspace: activeWorkspace,
+      article_slug: article.slug,
+      article_title: article.title,
+      week_number: weekNumber,
     });
 
     return new Response(
-      JSON.stringify({ success: true, sent, failed, no_workspace: noWorkspace, active_workspace: activeWorkspace, results }),
+      JSON.stringify({ success: true, sent, failed, article: article.slug, week_number: weekNumber, results }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
