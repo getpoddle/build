@@ -5,7 +5,7 @@ import {
   Loader2, Lock, Sparkles, Target, GitBranch, ArrowRight, Download,
   Users, Bot, Plus, X, Clipboard, Sword, Flame, DollarSign,
   Settings, BarChart3, Lightbulb, AlertCircle, TrendingDown, Minus,
-  ThumbsUp, ThumbsDown, RotateCcw, XCircle, Clock,
+  ThumbsUp, ThumbsDown, RotateCcw, XCircle, Clock, User, Calendar,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -1956,7 +1956,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                           <span className="text-xs font-black uppercase tracking-wide" style={{ color: col.color }}>{col.label}</span>
                           <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(15,23,42,0.08)', color: '#64748b' }}>{items.length}</span>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           {items.map(item => {
                             const pc = URGENCY_COLORS[item.priority?.toLowerCase()] || URGENCY_COLORS.low;
                             const assignee = members.find(m => m.id === item.assignee_user_id);
@@ -1966,9 +1966,10 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                             return (
                               <div
                                 key={item.id}
-                                className="bg-white rounded-xl p-3 shadow-sm transition-all"
+                                className="bg-white rounded-xl p-3.5 shadow-sm transition-all hover:shadow-md"
                                 style={{
-                                  border: `1px solid ${isOutcomePromptOpen ? 'rgba(37,99,235,0.25)' : 'rgba(15,23,42,0.07)'}`,
+                                  border: `1px solid ${isOutcomePromptOpen ? 'rgba(37,99,235,0.25)' : 'rgba(15,23,42,0.08)'}`,
+                                  borderLeft: `3px solid ${pc.dot}`,
                                   opacity: isDraggingThis ? 0.35 : 1,
                                   cursor: draggingItemId ? 'grabbing' : 'grab',
                                   touchAction: 'none',
@@ -1976,30 +1977,35 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                                 }}
                                 onPointerDown={e => startActionDrag(e, item)}
                               >
-                                <div className="flex items-start justify-between gap-2 mb-2">
-                                  <p className="text-xs text-slate-800 leading-relaxed flex-1"
-                                    style={{ textDecoration: item.status === 'done' ? 'line-through' : 'none', color: item.status === 'done' ? '#94a3b8' : undefined }}>
+                                <div className="flex items-start justify-between gap-2 mb-2.5">
+                                  <p className="text-sm font-medium leading-relaxed flex-1"
+                                    style={{ textDecoration: item.status === 'done' ? 'line-through' : 'none', color: item.status === 'done' ? '#94a3b8' : '#1e293b' }}>
                                     {item.text}
                                   </p>
-                                  {item.source === 'ai' && <span title="AI suggested"><Sparkles className="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" /></span>}
+                                  {item.source === 'ai' && <span title="AI suggested"><Sparkles className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" /></span>}
                                 </div>
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs font-bold px-1.5 py-0.5 rounded-full capitalize" style={{ background: pc.bg, color: pc.text }}>{item.priority}</span>
+                                <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+                                  <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: pc.bg, color: pc.text }}>
+                                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: pc.dot }} />
+                                    {item.priority}
+                                  </span>
                                   {item.source_area && item.source_area !== 'manual' && (
-                                    <span className="text-xs text-slate-400 capitalize">{item.source_area.replace('_', ' ')}</span>
+                                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(15,23,42,0.05)', color: '#64748b' }}>
+                                      {item.source_area.replace('_', ' ')}
+                                    </span>
+                                  )}
+                                  {item.due_date && (
+                                    <span className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(37,99,235,0.06)', color: '#2563eb' }}>
+                                      <Calendar className="w-2.5 h-2.5" />
+                                      {new Date(item.due_date).toLocaleDateString()}
+                                    </span>
                                   )}
                                   {item.status === 'done' && item.outcome && item.outcome !== 'pending' && (
-                                    <span className="flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full capitalize"
+                                    <span className="flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full capitalize"
                                       style={{ background: outcomeConfig.bg, color: outcomeConfig.color }}>
                                       <outcomeConfig.Icon className="w-2.5 h-2.5" />{outcomeConfig.label}
                                     </span>
                                   )}
-                                  <button
-                                    onClick={() => cycleStatus(item)}
-                                    className="ml-auto text-xs px-2 py-0.5 rounded-full font-bold transition-all hover:opacity-80"
-                                    style={{ background: 'rgba(15,23,42,0.06)', color: '#475569' }}>
-                                    {col.key === 'todo' ? '▶ Start' : col.key === 'in_progress' ? '✓ Done' : '↩ Reopen'}
-                                  </button>
                                 </div>
                                 {/* Outcome prompt */}
                                 {isOutcomePromptOpen && (
@@ -2036,14 +2042,22 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                                     <Clock className="w-3 h-3" />Record outcome
                                   </button>
                                 )}
-                                <div className="mt-2">
-                                  <select value={item.assignee_user_id || ''} onChange={e => updateAssignee(item, e.target.value || null)}
-                                    className="text-xs text-slate-500 bg-transparent border-0 outline-none cursor-pointer w-full"
-                                    style={{ fontSize: '11px' }}>
-                                    <option value="">Unassigned</option>
-                                    {members.map(m => <option key={m.id} value={m.id}>{memberDisplayName(m)}</option>)}
-                                  </select>
-                                  {assignee && <span className="text-xs font-bold text-slate-500">{memberDisplayName(assignee)}</span>}
+                                <div className="flex items-center justify-between gap-2 pt-2" style={{ borderTop: '1px solid rgba(15,23,42,0.05)' }}>
+                                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full min-w-0" style={{ background: 'rgba(15,23,42,0.04)' }}>
+                                    <User className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                                    <select value={item.assignee_user_id || ''} onChange={e => updateAssignee(item, e.target.value || null)}
+                                      className="text-[11px] font-medium text-slate-500 bg-transparent border-0 outline-none cursor-pointer truncate"
+                                      style={{ fontSize: '11px' }}>
+                                      <option value="">Unassigned</option>
+                                      {members.map(m => <option key={m.id} value={m.id}>{memberDisplayName(m)}</option>)}
+                                    </select>
+                                  </div>
+                                  <button
+                                    onClick={() => cycleStatus(item)}
+                                    className="text-[11px] px-2 py-1 rounded-lg font-bold transition-all hover:opacity-80 flex-shrink-0"
+                                    style={{ background: 'rgba(15,23,42,0.06)', color: '#475569' }}>
+                                    {col.key === 'todo' ? '▶ Start' : col.key === 'in_progress' ? '✓ Done' : '↩ Reopen'}
+                                  </button>
                                 </div>
                               </div>
                             );
