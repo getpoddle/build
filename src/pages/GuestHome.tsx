@@ -1089,25 +1089,29 @@ function TeamSection() {
             {members.map((m) => (
               <div
                 key={m.name}
-                className="group flex flex-col items-center w-full sm:w-72 p-8 rounded-3xl transition-all duration-300 hover:-translate-y-1"
+                className="group flex flex-col sm:flex-row sm:items-start w-full sm:max-w-3xl p-8 sm:p-10 rounded-3xl transition-all duration-300 hover:-translate-y-1"
                 style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
               >
-                <div className="relative w-32 h-32 mb-5 rounded-full overflow-hidden" style={{ boxShadow: '0 8px 24px rgba(15,23,42,0.12)' }}>
-                  <img
-                    src={m.photo}
-                    alt={m.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="flex flex-col items-center sm:items-start sm:w-56 shrink-0 sm:pr-8 mb-6 sm:mb-0">
+                  <div className="relative w-32 h-32 mb-5 rounded-full overflow-hidden" style={{ boxShadow: '0 8px 24px rgba(15,23,42,0.12)' }}>
+                    <img
+                      src={m.photo}
+                      alt={m.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <h3 className="text-lg font-bold mb-1 text-center sm:text-left" style={{ color: '#0f172a' }}>
+                    {m.name}
+                  </h3>
+                  <p className="text-sm font-medium text-center sm:text-left" style={{ color: '#b8860b' }}>
+                    {m.role}
+                  </p>
                 </div>
-                <h3 className="text-lg font-bold mb-1" style={{ color: '#0f172a' }}>
-                  {m.name}
-                </h3>
-                <p className="text-sm font-medium mb-4" style={{ color: '#b8860b' }}>
-                  {m.role}
-                </p>
-                <p className="text-sm leading-relaxed whitespace-pre-line text-center" style={{ color: '#475569' }}>
-                  {m.bio}
-                </p>
+                <div className="flex-1 sm:border-l sm:pl-8 sm:border-slate-200">
+                  <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: '#475569' }}>
+                    {m.bio}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
