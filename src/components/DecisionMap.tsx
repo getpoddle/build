@@ -468,13 +468,35 @@ interface GhostStyle { x: number; y: number; width: number; label: string; }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+interface DomainOwnerRow {
+  id: string;
+  workspace_id: string;
+  domain: string;
+  category_key: string;
+  owner_user_id: string | null;
+  backup_owner_user_id: string | null;
+}
+
+interface MemberProfile {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  username: string | null;
+}
+
 export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps) {
   const { user } = useAuth();
+  const { tier } = useSubscriptionTier();
   const [healthScores, setHealthScores] = useState<Record<string, number>>({});
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   const [localWorkspaces, setLocalWorkspaces] = useState(workspaces);
   const [links, setLinks] = useState<DecisionLink[]>([]);
   const [connectionLines, setConnectionLines] = useState<ConnectionLine[]>([]);
+  const [domainOwners, setDomainOwners] = useState<DomainOwnerRow[]>([]);
+  const [overrideOwners, setOverrideOwners] = useState<Record<string, string | null>>({});
+  const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberProfile>>({});
+  const [workspaceMembers, setWorkspaceMembers] = useState<Record<string, MemberProfile[]>>({});
+  const canOwn = tier === 'business' || tier === 'enterprise';
 
   // Drag state
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -534,6 +556,58 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         if (data) setLinks(data as DecisionLink[]);
       });
   }, [user, workspaces]);
+
+  // Domain owners + per-workspace override + member profiles (Business+ only)
+  useEffect(() => {
+    if (!user || workspaces.length === 0 || !canOwn) return;
+    const ids = workspaces.map(w => w.id);
+
+    async function loadOwners() {
+      const [doRes, wsRes, wmRes] = await Promise.all([
+        supabase
+          .from('domain_owners')
+          .select('id, workspace_id, domain, category_key, owner_user_id, backup_owner_user_id')
+          .in('workspace_id', ids),
+        supabase
+          .from('workspaces')
+          .select('id, decision_owner_override_user_id')
+          .in('id', ids),
+        supabase
+          .from('workspace_members')
+          .select('workspace_id, user_id, profiles(full_name, avatar_url, username)')
+          .in('workspace_id', ids),
+      ]);
+
+      if (doRes.data) setDomainOwners(doRes.data as DomainOwnerRow[]);
+
+      if (wsRes.data) {
+        const map: Record<string, string | null> = {};
+        for (const row of wsRes.data) map[row.id] = row.decision_owner_override_user_id ?? null;
+        setOverrideOwners(map);
+      }
+
+      if (wmRes.data) {
+        const profileMap: Record<string, MemberProfile> = {};
+        const byWs: Record<string, MemberProfile[]> = {};
+        for (const row of wmRes.data) {
+          const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+          const mp: MemberProfile = {
+            user_id: row.user_id,
+            full_name: p?.full_name ?? null,
+            avatar_url: p?.avatar_url ?? null,
+            username: p?.username ?? null,
+          };
+          profileMap[row.user_id] = mp;
+          if (!byWs[row.workspace_id]) byWs[row.workspace_id] = [];
+          byWs[row.workspace_id].push(mp);
+        }
+        setMemberProfiles(profileMap);
+        setWorkspaceMembers(byWs);
+      }
+    }
+    loadOwners();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, workspaces, canOwn]);
 
   // Recompute SVG lines
   const recomputeLines = useCallback(() => {
@@ -648,6 +722,36 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
 
   function getLinkCount(wsId: string): number {
     return links.filter(l => l.workspace_id === wsId || l.linked_workspace_id === wsId).length;
+  }
+
+  function getOwnerFor(ws: MapWorkspace): { userId: string | null; name: string; avatarUrl: string | null } | null {
+    if (!canOwn) return null;
+    const override = overrideOwners[ws.id];
+    let ownerId: string | null = null;
+    if (override) {
+      ownerId = override;
+    } else {
+      const match = domainOwners.find(d => d.workspace_id === ws.id && d.category_key === ws.decision_category);
+      ownerId = match?.owner_user_id ?? match?.backup_owner_user_id ?? null;
+    }
+    if (!ownerId) return null;
+    const p = memberProfiles[ownerId];
+    if (!p) return null;
+    return {
+      userId: ownerId,
+      name: p.full_name || p.username || 'Member',
+      avatarUrl: p.avatar_url,
+    };
+  }
+
+  async function handleReassign(wsId: string, userId: string | null) {
+    const { error } = await supabase
+      .from('workspaces')
+      .update({ decision_owner_override_user_id: userId })
+      .eq('id', wsId);
+    if (!error) {
+      setOverrideOwners(prev => ({ ...prev, [wsId]: userId }));
+    }
   }
 
   const appWorkspaces = localWorkspaces.filter(w => w.source !== 'slack');
@@ -800,6 +904,10 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
                         onDragStart={startDrag}
                         onLinked={handleLinked}
                         onUnlinked={handleUnlinked}
+                        ownerInfo={getOwnerFor(ws)}
+                        canReassign={canOwn && (ws.role === 'owner' || ws.role === 'admin')}
+                        reassignMembers={workspaceMembers[ws.id] ?? []}
+                        onReassign={handleReassign}
                       />
                     </div>
                   ))
@@ -936,6 +1044,10 @@ function MobileStatusSection({ status: s, workspaces: col, healthScores, memberC
                   onLinked={onLinked}
                   onUnlinked={onUnlinked}
                   isMobile
+                  ownerInfo={null}
+                  canReassign={false}
+                  reassignMembers={[]}
+                  onReassign={() => {}}
                 />
               </div>
             ))
@@ -962,13 +1074,76 @@ interface CardProps {
   onLinked: (link: DecisionLink) => void;
   onUnlinked: (linkId: string) => void;
   isMobile?: boolean;
+  ownerInfo: { userId: string | null; name: string; avatarUrl: string | null } | null;
+  canReassign: boolean;
+  reassignMembers: MemberProfile[];
+  onReassign: (wsId: string, userId: string | null) => void;
 }
 
-function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, allWorkspaces, existingLinks, onNavigate, onMetaUpdated, onDragStart, onLinked, onUnlinked, isMobile = false }: CardProps) {
+function ReassignPopover({ anchorEl, members, currentUserId, onReassign, wsId, onClose }: {
+  anchorEl: HTMLElement | null;
+  members: MemberProfile[];
+  currentUserId: string | null;
+  onReassign: (wsId: string, userId: string | null) => void;
+  wsId: string;
+  onClose: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const pos = usePopoverPos(anchorEl, 224);
+  if (!pos) return null;
+
+  async function pick(userId: string | null) {
+    setSaving(true);
+    await onReassign(wsId, userId);
+    setSaving(false);
+    onClose();
+  }
+
+  return createPortal(
+    <div
+      style={{ position: 'fixed', top: pos.top, left: pos.left, width: Math.min(224, window.innerWidth - 16), zIndex: 9999, background: '#fff', border: '1px solid rgba(15,23,42,0.1)', borderRadius: '1rem', boxShadow: '0 20px 48px rgba(15,23,42,0.18)', padding: '0.75rem', maxHeight: '70vh', overflowY: 'auto' }}
+      onClick={e => e.stopPropagation()}
+      onPointerDown={e => e.stopPropagation()}
+    >
+      <p className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5"><UserCog className="w-3 h-3" /> Reassign owner</p>
+      <p className="text-[10px] text-slate-400 mb-2">Overrides the domain default for this card only.</p>
+      <div className="space-y-1">
+        <button
+          onClick={() => pick(null)}
+          disabled={saving}
+          className="w-full text-xs px-2 py-1.5 rounded-lg font-semibold text-left flex items-center gap-2 transition-colors hover:bg-slate-100"
+          style={{ color: '#64748b', background: currentUserId === null ? 'rgba(100,116,139,0.08)' : 'transparent' }}
+        >
+          <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-500">—</span>
+          Use domain default
+        </button>
+        {members.map(m => (
+          <button
+            key={m.user_id}
+            onClick={() => pick(m.user_id)}
+            disabled={saving}
+            className="w-full text-xs px-2 py-1.5 rounded-lg font-semibold text-left flex items-center gap-2 transition-colors hover:bg-slate-100"
+            style={{ color: '#334155', background: currentUserId === m.user_id ? 'rgba(37,99,235,0.08)' : 'transparent' }}
+          >
+            {m.avatar_url
+              ? <img src={m.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+              : <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-600 flex-shrink-0">{(m.full_name || m.username || 'M')[0].toUpperCase()}</span>}
+            <span className="truncate">{m.full_name || m.username || 'Member'}</span>
+          </button>
+        ))}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, allWorkspaces, existingLinks, onNavigate, onMetaUpdated, onDragStart, onLinked, onUnlinked, isMobile = false, ownerInfo, canReassign, reassignMembers, onReassign }: CardProps) {
   const [editing, setEditing] = useState(false);
   const [linking, setLinking] = useState(false);
+  const [reassigning, setReassigning] = useState(false);
   const linkBtnRef = useRef<HTMLButtonElement>(null);
   const editBtnRef = useRef<HTMLButtonElement>(null);
+  const reassignBtnRef = useRef<HTMLButtonElement>(null);
   const cat = categoryMeta(ws.decision_category);
   const isOwnerOrAdmin = ws.role === 'owner' || ws.role === 'admin';
   const isSlack = ws.source === 'slack';
@@ -999,7 +1174,7 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
           if ((e.target as HTMLElement).closest('button')) return;
           onDragStart(e, ws);
         }}
-        onClick={() => { if (!editing && !linking) onNavigate('workspace-hub', ws.id); }}
+        onClick={() => { if (!editing && !linking && !reassigning) onNavigate('workspace-hub', ws.id); }}
       >
         <div className="flex items-start gap-2 mb-3">
           <GripVertical className="w-3.5 h-3.5 flex-shrink-0 mt-1 opacity-0 group-hover:opacity-40 transition-opacity" style={{ color: '#64748b' }} />
@@ -1069,6 +1244,14 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border" style={{ background: cat.bg, color: cat.color, borderColor: `${cat.color}35` }}>{cat.label}</span>
           {isExpired && <span className="text-[10px] font-semibold text-red-500 flex items-center gap-1"><AlertTriangle className="w-2.5 h-2.5" />Expired</span>}
+          {ownerInfo && (
+            <div className="flex items-center gap-1 ml-auto" title={`Owner: ${ownerInfo.name}`}>
+              {ownerInfo.avatarUrl
+                ? <img src={ownerInfo.avatarUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
+                : <span className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-600">{ownerInfo.name[0].toUpperCase()}</span>}
+              <span className="text-[10px] font-semibold text-slate-600">{ownerInfo.name}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -1096,6 +1279,31 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
               <Link2 className="w-2.5 h-2.5" />
               <span className="text-[10px] font-bold">{linkCount}</span>
             </div>
+          )}
+          {canReassign && !isSlack && (
+            <button
+              ref={reassignBtnRef}
+              onClick={e => { e.stopPropagation(); setReassigning(v => !v); setEditing(false); setLinking(false); }}
+              className={`flex items-center justify-center rounded-lg transition-colors ${
+                isMobile
+                  ? 'w-9 h-9 opacity-70 active:bg-slate-100'
+                  : 'w-7 h-7 opacity-0 group-hover:opacity-100 hover:bg-slate-100'
+              }`}
+              style={{ color: reassigning ? '#1d4ed8' : '#64748b' }}
+              title="Reassign owner"
+            >
+              <UserCog className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {reassigning && (
+            <ReassignPopover
+              anchorEl={reassignBtnRef.current}
+              members={reassignMembers}
+              currentUserId={ownerInfo?.userId ?? null}
+              onReassign={onReassign}
+              wsId={ws.id}
+              onClose={() => setReassigning(false)}
+            />
           )}
         </div>
       </div>

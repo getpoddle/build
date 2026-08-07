@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Zap, Link2, Unlink, UserCog } from 'lucide-react';
+import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Zap, Link2, Unlink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
