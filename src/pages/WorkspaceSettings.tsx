@@ -701,8 +701,8 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
           </section>
         )}
 
-        {/* Decision Ownership — Business/Enterprise tier only */}
-        {isAdmin && (tier === 'business' || tier === 'enterprise') && (
+        {/* Decision Ownership — Pro and above */}
+        {isAdmin && (tier === 'pro' || tier === 'team' || tier === 'business' || tier === 'enterprise') && (
           <DecisionOwnership workspaceId={workspace.id} members={members} />
         )}
 
