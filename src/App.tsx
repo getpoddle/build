@@ -37,6 +37,7 @@ const BlogPost = lazy(() => import('./pages/BlogPost'));
 const SlackLanding = lazy(() => import('./pages/SlackLanding'));
 const SlackSuccess = lazy(() => import('./pages/SlackSuccess'));
 const Subprocessors = lazy(() => import('./pages/Subprocessors'));
+const Team = lazy(() => import('./pages/Team'));
 
 function RouteFallback() {
   return (
@@ -122,6 +123,7 @@ function AppContent() {
     if (hash === 'slack') return 'slack';
     if (hash === 'slack-success') return 'slack-success';
     if (hash === 'subprocessors') return 'subprocessors';
+    if (hash === 'team') return 'team';
     if (hash === 'blog') return 'blog';
     if (hash.startsWith('blog/')) return 'blog-post';
     const saved = sessionStorage.getItem('currentPage');
@@ -316,6 +318,7 @@ function AppContent() {
       if (hash === 'slack') { setCurrentPage('slack'); return; }
       if (hash === 'slack-success') { setCurrentPage('slack-success'); return; }
       if (hash === 'subprocessors') { setCurrentPage('subprocessors'); return; }
+      if (hash === 'team') { setCurrentPage('team'); return; }
       if (hash === 'blog') { setCurrentPage('blog'); return; }
       if (hash.startsWith('blog/')) {
         const slug = hash.slice('blog/'.length);
@@ -876,6 +879,10 @@ function AppContent() {
 
   if (currentPage === 'slack-success') {
     return wrap(<SlackSuccess onNavigate={handleNavigate} />);
+  }
+
+  if (currentPage === 'team') {
+    return wrap(<Team onNavigate={handleNavigate} />);
   }
 
   if (!user) {
