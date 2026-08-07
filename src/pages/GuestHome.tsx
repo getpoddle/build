@@ -1065,6 +1065,7 @@ function TeamSection() {
       name: 'Oludotun Akinbobola',
       role: 'Founder, Poddle AI',
       photo: '/images/team/headshot2.png',
+      bio: `Oludotun is the founder of Poddle AI, building an adversarial AI "War Room" that pressure-tests business decisions before they become expensive mistakes. With seven years in Agile delivery and program management across aviation software, insurance, and automotive, he's spent his career watching good decisions get made badly, and bad ones get made confidently. Poddle AI is his answer: a multi-agent system that debates a decision from every angle before you commit to it.\n\nOludotun holds executive education credentials from London Business School, MIT Sloan, and Cambridge Judge Business School, and previously co-founded Teamplana, a SaaS project management platform.`,
     },
   ];
 
@@ -1101,8 +1102,11 @@ function TeamSection() {
                 <h3 className="text-lg font-bold mb-1" style={{ color: '#0f172a' }}>
                   {m.name}
                 </h3>
-                <p className="text-sm font-medium" style={{ color: '#b8860b' }}>
+                <p className="text-sm font-medium mb-4" style={{ color: '#b8860b' }}>
                   {m.role}
+                </p>
+                <p className="text-sm leading-relaxed whitespace-pre-line text-center" style={{ color: '#475569' }}>
+                  {m.bio}
                 </p>
               </div>
             ))}
