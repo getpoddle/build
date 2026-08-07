@@ -104,12 +104,12 @@ export default function Pricing({ onNavigate }: PricingProps) {
     '1 War Room session per month',
     'Board Brief PDF export (trial)',
     'AI agent analysis on workspace content',
-    'Workspace memory & pattern tracking',
+    'Pattern Intelligence',
   ];
 
   const proBenefits = [
     'Everything in Free',
-    'Unlimited War Room sessions',
+    'Up to 3 seats',
     'Poddle Voice',
     'Board Brief PDF export',
     'Document upload',
@@ -123,6 +123,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
     'Multiplayer War Rooms',
     'Shared decision history',
     'Team-wide AI synthesis',
+    'Pattern Intelligence',
     'Priority support',
   ];
 
@@ -131,6 +132,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
     'Up to 100 seats',
     'SSO authentication',
     'Workspace governance & analytics',
+    'Decision ownership',
     'Dedicated support channel',
   ];
 
@@ -138,6 +140,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
     'Everything in Business',
     'Custom agent orchestration',
     'Pattern Intelligence',
+    'Decision ownership',
     'Full audit trails',
     'Dedicated SLAs',
     'Custom onboarding & training',
@@ -182,7 +185,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
       name: 'Team Workspace',
       price: '$249',
       period: '/ month',
-      audience: 'For pods and small teams',
+      audience: 'For small teams only',
       benefits: teamBenefits,
       badge: 'For teams',
       badgeClass: 'badge-amber',
@@ -364,7 +367,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         <div className="grid sm:grid-cols-3 gap-6 mb-16">
           {[
             { q: 'Can I cancel anytime?', a: 'Absolutely. All plans are monthly subscriptions with no lock-in. Cancel anytime from your workspace billing settings and you keep access until the end of the billing period.' },
-            { q: 'What is Team Workspace for?', a: "Fast-moving pods and small teams who need to collaborate with AI agents on proprietary ideas. 1–10 seats, multiplayer War Rooms, and shared decision history." },
+            { q: 'What is Team Workspace for?', a: "Small teams who need to collaborate with AI agents on proprietary ideas. 1–10 seats, multiplayer War Rooms, and shared decision history." },
             { q: 'What happens to my data if I cancel?', a: 'Your workspace data is retained for 30 days after cancellation. You can export your decisions and War Room intelligence before downgrading. Nothing is deleted without notice.' },
           ].map(({ q, a }) => (
             <div key={q} className="panel p-5">

@@ -17,7 +17,7 @@ const PLAN_ICONS: Record<string, React.ElementType> = {
 
 const PLAN_FEATURES: Record<string, string[]> = {
   Individual: [
-    'Unlimited War Room sessions',
+    'Up to 3 seats',
     'Voice input for all messages',
     'Board Brief PDF export',
     'Document upload (PDF, DOCX)',
@@ -32,6 +32,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
     'Shared decision history',
     'Team Chat with @mentions',
     'Workspace Synthesis',
+    'Pattern Intelligence',
     'Action items & outcomes',
   ],
   Business: [
@@ -40,6 +41,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
     'Single Sign-On (SSO)',
     'Workspace governance',
     'Analytics dashboard',
+    'Decision ownership',
     'Priority support',
     'Custom integrations',
   ],
