@@ -471,7 +471,7 @@ const BASE_STYLES = `
         padding-bottom: 4pt;
       }
       @bottom-left {
-        content: "poddleme.com";
+        content: "Human-AI Led Decision";
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         font-size: 7pt;
         font-weight: 700;

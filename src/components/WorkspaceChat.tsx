@@ -989,7 +989,16 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   return (
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
       {/* Toolbar */}
-      <div className="flex items-center justify-end gap-2 mb-2 lg:mb-3">
+      <div className="flex items-center justify-between gap-2 mb-2 lg:mb-3">
+        <span
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+          style={{ background: 'rgba(37,99,235,0.06)', color: '#1d4ed8' }}
+          title="This conversation includes both human and AI contributors"
+        >
+          <Shield className="w-3 h-3" />
+          Human-AI Led Decision
+        </span>
+        <div className="flex items-center gap-2">
         {messages.length > 0 && (
           <button
             onClick={() => exportChatToPDF(messages, workspaceName, workspaceTopic)}
@@ -1007,6 +1016,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         >
           <RefreshCw className="w-3 h-3" /> Refresh
         </button>
+        </div>
       </div>
 
       {/* Message feed */}
