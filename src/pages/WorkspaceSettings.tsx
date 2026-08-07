@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Zap, Link2, Unlink } from 'lucide-react';
+import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Zap, Link2, Unlink, UserCog } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
 import { useSubscription } from '../hooks/useSubscription';
+import { useSubscriptionTier } from '../hooks/useWorkspaceAccess';
+import DecisionOwnership from '../components/DecisionOwnership';
 
 interface WorkspaceSettingsProps {
   workspaceId: string;
@@ -57,6 +59,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   const { user } = useAuth();
   const { isAdmin, isOwner, seatsUsed, seatsTotal, loading: accessLoading } = useWorkspaceAccess(workspaceId);
   const subscription = useSubscription(user?.id);
+  const { tier } = useSubscriptionTier();
 
   const cancelDate = subscription.cancelAtPeriodEnd && subscription.currentPeriodEnd
     ? new Date(subscription.currentPeriodEnd * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -696,6 +699,11 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
               )}
             </div>
           </section>
+        )}
+
+        {/* Decision Ownership — Business/Enterprise tier only */}
+        {isAdmin && (tier === 'business' || tier === 'enterprise') && (
+          <DecisionOwnership workspaceId={workspace.id} members={members} />
         )}
 
         {/* Danger zone — visible to owners and admins only */}

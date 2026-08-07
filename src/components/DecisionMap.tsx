@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Lock, MessageSquare, Users, AlertTriangle, Pencil, Check, X, GripVertical, Link2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Lock, MessageSquare, Users, AlertTriangle, Pencil, Check, X, GripVertical, Link2, Trash2, ChevronDown, ChevronRight, UserCog } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useSubscriptionTier } from '../hooks/useWorkspaceAccess';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
