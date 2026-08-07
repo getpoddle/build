@@ -102,6 +102,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       <HowItWorksSection onNavigate={onNavigate} />
       <LiveDemoSection onNavigate={onNavigate} />
       <SocialProofSection />
+      <TeamSection />
       <FinalCTA onNavigate={onNavigate} />
 
       <footer style={{ background: '#000000', borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-12">
@@ -1051,6 +1052,62 @@ function SocialProofSection() {
             </RevealSection>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Team ────────────────────────────────────────────────────────────────────
+
+function TeamSection() {
+  const members = [
+    {
+      name: 'Oludotun Akinbobola',
+      role: 'Founder, Poddle AI',
+      photo: '/images/team/headshot2.png',
+    },
+  ];
+
+  return (
+    <section className="py-24" style={{ background: '#ffffff' }}>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection>
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: '#b8860b' }}>
+              The team
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4" style={{ color: '#0f172a' }}>
+              Built by people who live the problem.
+            </h2>
+            <p className="text-base max-w-xl mx-auto" style={{ color: '#64748b' }}>
+              The minds behind Poddle AI, shaping decision intelligence for teams.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-8">
+            {members.map((m) => (
+              <div
+                key={m.name}
+                className="group flex flex-col items-center w-full sm:w-72 p-8 rounded-3xl transition-all duration-300 hover:-translate-y-1"
+                style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
+              >
+                <div className="relative w-32 h-32 mb-5 rounded-full overflow-hidden" style={{ boxShadow: '0 8px 24px rgba(15,23,42,0.12)' }}>
+                  <img
+                    src={m.photo}
+                    alt={m.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <h3 className="text-lg font-bold mb-1" style={{ color: '#0f172a' }}>
+                  {m.name}
+                </h3>
+                <p className="text-sm font-medium" style={{ color: '#b8860b' }}>
+                  {m.role}
+                </p>
+              </div>
+            ))}
+          </div>
+        </RevealSection>
       </div>
     </section>
   );
