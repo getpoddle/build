@@ -133,18 +133,6 @@ const OUTCOME_OPTIONS: Array<{ value: OutcomeValue; label: string; color: string
   { value: 'abandoned', label: 'Abandoned',  color: '#64748b', bg: 'rgba(15,23,42,0.07)',   Icon: XCircle },
 ];
 
-const STATUS_COLS: Array<{ key: ActionItem['status']; label: string; color: string; bg: string }> = [
-  { key: 'todo',        label: 'To Do',       color: '#475569', bg: 'rgba(15,23,42,0.04)' },
-  { key: 'in_progress', label: 'In Progress', color: '#b45309', bg: 'rgba(245,158,11,0.06)' },
-  { key: 'done',        label: 'Done',        color: '#16a34a', bg: 'rgba(22,163,74,0.06)' },
-];
-
-const NEXT_STATUS: Record<ActionItem['status'], ActionItem['status']> = {
-  todo: 'in_progress',
-  in_progress: 'done',
-  done: 'todo',
-};
-
 const OP_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   clear:      { bg: 'rgba(22,163,74,0.1)',  text: '#15803d' },
   'on-track': { bg: 'rgba(22,163,74,0.1)',  text: '#15803d' },
@@ -928,18 +916,6 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const [outcomeNoteText, setOutcomeNoteText] = useState('');
   const addInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Action-item drag state ─────────────────────────────────────────────────
-  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
-  const [dragOverCol, setDragOverCol] = useState<ActionItem['status'] | null>(null);
-  const [dragGhost, setDragGhost] = useState<{ x: number; y: number; label: string } | null>(null);
-  const actionDragRef = useRef<{
-    itemId: string;
-    fromStatus: ActionItem['status'];
-    overStatus: ActionItem['status'] | null;
-    moved: boolean;
-  } | null>(null);
-  const actionColRefs = useRef<Map<string, HTMLElement>>(new Map());
-
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -1125,16 +1101,6 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     } finally { setGenerating(false); }
   }
 
-  async function cycleStatus(item: ActionItem) {
-    const next = NEXT_STATUS[item.status];
-    setActionItems(prev => prev.map(a => a.id === item.id ? { ...a, status: next } : a));
-    await supabase.from('workspace_action_items').update({ status: next, updated_at: new Date().toISOString() }).eq('id', item.id);
-    if (next === 'done' && !item.outcome) {
-      setOutcomePromptId(item.id);
-      setOutcomeNoteText('');
-    }
-  }
-
   async function recordOutcome(itemId: string, outcome: ActionItem['outcome']) {
     const notes = outcomeNoteText.trim() || null;
     setActionItems(prev => prev.map(a => a.id === itemId ? { ...a, outcome, outcome_notes: notes, outcome_recorded_at: new Date().toISOString() } : a));
@@ -1152,74 +1118,6 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     setOutcomePromptId(null);
     setOutcomeNoteText('');
   }
-
-  // ── Action-item drag handlers ──────────────────────────────────────────────
-
-  function startActionDrag(e: React.PointerEvent, item: ActionItem) {
-    if ((e.target as HTMLElement).closest('button,select,input')) return;
-    e.preventDefault();
-    actionDragRef.current = {
-      itemId: item.id,
-      fromStatus: item.status,
-      overStatus: item.status,
-      moved: false,
-    };
-    setDraggingItemId(item.id);
-    setDragOverCol(item.status);
-    setDragGhost({ x: e.clientX, y: e.clientY, label: item.text });
-  }
-
-  useEffect(() => {
-    if (!draggingItemId) return;
-
-    function getColFromPoint(x: number, y: number): ActionItem['status'] | null {
-      for (const [status, el] of actionColRefs.current) {
-        const r = el.getBoundingClientRect();
-        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
-          return status as ActionItem['status'];
-        }
-      }
-      return null;
-    }
-
-    function onMove(e: PointerEvent) {
-      if (!actionDragRef.current) return;
-      actionDragRef.current.moved = true;
-      setDragGhost(g => g ? { ...g, x: e.clientX, y: e.clientY } : g);
-      const over = getColFromPoint(e.clientX, e.clientY);
-      actionDragRef.current.overStatus = over;
-      setDragOverCol(over);
-    }
-
-    async function onUp() {
-      if (!actionDragRef.current) return;
-      const { itemId, fromStatus, overStatus, moved } = actionDragRef.current;
-      actionDragRef.current = null;
-      setDraggingItemId(null);
-      setDragOverCol(null);
-      setDragGhost(null);
-      if (moved && overStatus && overStatus !== fromStatus) {
-        setActionItems(prev => prev.map(a => a.id === itemId ? { ...a, status: overStatus } : a));
-        await supabase.from('workspace_action_items')
-          .update({ status: overStatus, updated_at: new Date().toISOString() })
-          .eq('id', itemId);
-        if (overStatus === 'done') {
-          setOutcomePromptId(itemId);
-          setOutcomeNoteText('');
-        }
-      }
-    }
-
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onUp);
-    return () => {
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
-      document.removeEventListener('pointercancel', onUp);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draggingItemId]);
 
   async function updateAssignee(item: ActionItem, userId: string | null) {
     setActionItems(prev => prev.map(a => a.id === item.id ? { ...a, assignee_user_id: userId } : a));
@@ -1909,171 +1807,100 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             {actionItems.length === 0 && !addingAction ? (
               <p className="text-sm text-slate-400 text-center py-6 italic">No action items yet. Run a synthesis to generate AI suggestions, or add your own.</p>
             ) : (
-              <>
-                {/* Drag ghost */}
-                {dragGhost && draggingItemId && (
-                  <div style={{
-                    position: 'fixed',
-                    left: dragGhost.x,
-                    top: dragGhost.y,
-                    transform: 'translate(-50%,-50%) rotate(1.5deg)',
-                    width: 200,
-                    pointerEvents: 'none',
-                    zIndex: 9999,
-                    background: '#fff',
-                    borderRadius: '0.75rem',
-                    boxShadow: '0 20px 40px rgba(15,23,42,0.18)',
-                    border: '1.5px solid rgba(37,99,235,0.25)',
-                    padding: '0.5rem 0.75rem',
-                  }}>
-                    <p className="text-xs font-semibold text-slate-800 line-clamp-2 leading-snug">{dragGhost.label}</p>
-                    {dragOverCol && (
-                      <p className="text-[10px] mt-1 font-bold" style={{ color: STATUS_COLS.find(c => c.key === dragOverCol)?.color }}>
-                        → {STATUS_COLS.find(c => c.key === dragOverCol)?.label}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0" style={{ cursor: draggingItemId ? 'grabbing' : undefined }}>
-                  {STATUS_COLS.map(col => {
-                    const items = actionItems.filter(a => a.status === col.key);
-                    const isDropTarget = !!draggingItemId && dragOverCol === col.key;
-                    const borderColor = isDropTarget ? `${col.color}60` : 'transparent';
-                    return (
-                      <div
-                        key={col.key}
-                        ref={el => { if (el) actionColRefs.current.set(col.key, el); else actionColRefs.current.delete(col.key); }}
-                        className="rounded-xl p-3 min-h-[100px] transition-all duration-150 flex-shrink-0 w-[75vw] sm:w-auto"
-                        style={{
-                          background: isDropTarget ? col.bg.replace('0.04', '0.10').replace('0.06', '0.14') : col.bg,
-                          border: `2px solid ${borderColor}`,
-                          boxShadow: isDropTarget ? `0 0 0 3px ${col.color}18` : 'none',
-                          transform: isDropTarget ? 'scale(1.01)' : 'scale(1)',
-                        }}
-                      >
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-xs font-black uppercase tracking-wide" style={{ color: col.color }}>{col.label}</span>
-                          <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(15,23,42,0.08)', color: '#64748b' }}>{items.length}</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {actionItems.map(item => {
+                  const pc = URGENCY_COLORS[item.priority?.toLowerCase()] || URGENCY_COLORS.low;
+                  const isOutcomePromptOpen = outcomePromptId === item.id;
+                  const outcomeConfig = OUTCOME_CONFIG[item.outcome ?? 'pending'];
+                  return (
+                    <div
+                      key={item.id}
+                      className="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md"
+                      style={{
+                        border: `1px solid ${isOutcomePromptOpen ? 'rgba(37,99,235,0.25)' : 'rgba(15,23,42,0.08)'}`,
+                        borderLeft: `3px solid ${pc.dot}`,
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <p className="text-sm font-medium leading-relaxed flex-1"
+                          style={{ textDecoration: item.status === 'done' ? 'line-through' : 'none', color: item.status === 'done' ? '#94a3b8' : '#1e293b' }}>
+                          {item.text}
+                        </p>
+                        {item.source === 'ai' && <span title="AI suggested"><Sparkles className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" /></span>}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: pc.bg, color: pc.text }}>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: pc.dot }} />
+                          {item.priority}
+                        </span>
+                        {item.source_area && item.source_area !== 'manual' && (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(15,23,42,0.05)', color: '#64748b' }}>
+                            {item.source_area.replace('_', ' ')}
+                          </span>
+                        )}
+                        {item.due_date && (
+                          <span className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(37,99,235,0.06)', color: '#2563eb' }}>
+                            <Calendar className="w-3 h-3" />
+                            {new Date(item.due_date).toLocaleDateString()}
+                          </span>
+                        )}
+                        {item.status === 'done' && item.outcome && item.outcome !== 'pending' && (
+                          <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full capitalize"
+                            style={{ background: outcomeConfig.bg, color: outcomeConfig.color }}>
+                            <outcomeConfig.Icon className="w-3 h-3" />{outcomeConfig.label}
+                          </span>
+                        )}
+                      </div>
+                      {/* Outcome prompt */}
+                      {isOutcomePromptOpen && (
+                        <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.15)' }}>
+                          <p className="text-xs font-bold text-slate-700 mb-2">Did this action succeed?</p>
+                          <div className="grid grid-cols-2 gap-1.5 mb-2">
+                            {OUTCOME_OPTIONS.map(opt => (
+                              <button key={opt.value} onClick={() => recordOutcome(item.id, opt.value)}
+                                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
+                                style={{ background: opt.bg, color: opt.color }}>
+                                <opt.Icon className="w-3 h-3 flex-shrink-0" />{opt.label}
+                              </button>
+                            ))}
+                          </div>
+                          <input
+                            type="text"
+                            value={outcomeNoteText}
+                            onChange={e => setOutcomeNoteText(e.target.value)}
+                            placeholder="Optional note (what happened?)"
+                            className="w-full text-xs px-2.5 py-1.5 rounded-lg border text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-300 mb-1.5"
+                            style={{ borderColor: 'rgba(37,99,235,0.2)' }}
+                          />
+                          <button onClick={dismissOutcomePrompt} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+                            Skip for now
+                          </button>
                         </div>
-                        <div className="space-y-2.5">
-                          {items.map(item => {
-                            const pc = URGENCY_COLORS[item.priority?.toLowerCase()] || URGENCY_COLORS.low;
-                            const assignee = members.find(m => m.id === item.assignee_user_id);
-                            const isOutcomePromptOpen = outcomePromptId === item.id;
-                            const outcomeConfig = OUTCOME_CONFIG[item.outcome ?? 'pending'];
-                            const isDraggingThis = draggingItemId === item.id;
-                            return (
-                              <div
-                                key={item.id}
-                                className="bg-white rounded-xl p-3.5 shadow-sm transition-all hover:shadow-md"
-                                style={{
-                                  border: `1px solid ${isOutcomePromptOpen ? 'rgba(37,99,235,0.25)' : 'rgba(15,23,42,0.08)'}`,
-                                  borderLeft: `3px solid ${pc.dot}`,
-                                  opacity: isDraggingThis ? 0.35 : 1,
-                                  cursor: draggingItemId ? 'grabbing' : 'grab',
-                                  touchAction: 'none',
-                                  userSelect: 'none',
-                                }}
-                                onPointerDown={e => startActionDrag(e, item)}
-                              >
-                                <div className="flex items-start justify-between gap-2 mb-2.5">
-                                  <p className="text-sm font-medium leading-relaxed flex-1"
-                                    style={{ textDecoration: item.status === 'done' ? 'line-through' : 'none', color: item.status === 'done' ? '#94a3b8' : '#1e293b' }}>
-                                    {item.text}
-                                  </p>
-                                  {item.source === 'ai' && <span title="AI suggested"><Sparkles className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" /></span>}
-                                </div>
-                                <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
-                                  <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: pc.bg, color: pc.text }}>
-                                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: pc.dot }} />
-                                    {item.priority}
-                                  </span>
-                                  {item.source_area && item.source_area !== 'manual' && (
-                                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(15,23,42,0.05)', color: '#64748b' }}>
-                                      {item.source_area.replace('_', ' ')}
-                                    </span>
-                                  )}
-                                  {item.due_date && (
-                                    <span className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(37,99,235,0.06)', color: '#2563eb' }}>
-                                      <Calendar className="w-2.5 h-2.5" />
-                                      {new Date(item.due_date).toLocaleDateString()}
-                                    </span>
-                                  )}
-                                  {item.status === 'done' && item.outcome && item.outcome !== 'pending' && (
-                                    <span className="flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full capitalize"
-                                      style={{ background: outcomeConfig.bg, color: outcomeConfig.color }}>
-                                      <outcomeConfig.Icon className="w-2.5 h-2.5" />{outcomeConfig.label}
-                                    </span>
-                                  )}
-                                </div>
-                                {/* Outcome prompt */}
-                                {isOutcomePromptOpen && (
-                                  <div className="mt-3 rounded-xl p-3" style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.15)' }}>
-                                    <p className="text-xs font-bold text-slate-700 mb-2">Did this action succeed?</p>
-                                    <div className="grid grid-cols-2 gap-1.5 mb-2">
-                                      {OUTCOME_OPTIONS.map(opt => (
-                                        <button key={opt.value} onClick={() => recordOutcome(item.id, opt.value)}
-                                          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105"
-                                          style={{ background: opt.bg, color: opt.color }}>
-                                          <opt.Icon className="w-3 h-3 flex-shrink-0" />{opt.label}
-                                        </button>
-                                      ))}
-                                    </div>
-                                    <input
-                                      type="text"
-                                      value={outcomeNoteText}
-                                      onChange={e => setOutcomeNoteText(e.target.value)}
-                                      placeholder="Optional note (what happened?)"
-                                      className="w-full text-xs px-2.5 py-1.5 rounded-lg border text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-300 mb-1.5"
-                                      style={{ borderColor: 'rgba(37,99,235,0.2)' }}
-                                    />
-                                    <button onClick={dismissOutcomePrompt} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
-                                      Skip for now
-                                    </button>
-                                  </div>
-                                )}
-                                {item.status === 'done' && item.outcome_notes && !isOutcomePromptOpen && (
-                                  <p className="mt-1.5 text-xs text-slate-400 italic leading-relaxed">{item.outcome_notes}</p>
-                                )}
-                                {item.status === 'done' && !item.outcome && !isOutcomePromptOpen && (
-                                  <button onClick={() => { setOutcomePromptId(item.id); setOutcomeNoteText(''); }}
-                                    className="mt-1.5 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 transition-colors">
-                                    <Clock className="w-3 h-3" />Record outcome
-                                  </button>
-                                )}
-                                <div className="flex items-center justify-between gap-2 pt-2" style={{ borderTop: '1px solid rgba(15,23,42,0.05)' }}>
-                                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full min-w-0" style={{ background: 'rgba(15,23,42,0.04)' }}>
-                                    <User className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                                    <select value={item.assignee_user_id || ''} onChange={e => updateAssignee(item, e.target.value || null)}
-                                      className="text-[11px] font-medium text-slate-500 bg-transparent border-0 outline-none cursor-pointer truncate"
-                                      style={{ fontSize: '11px' }}>
-                                      <option value="">Unassigned</option>
-                                      {members.map(m => <option key={m.id} value={m.id}>{memberDisplayName(m)}</option>)}
-                                    </select>
-                                  </div>
-                                  <button
-                                    onClick={() => cycleStatus(item)}
-                                    className="text-[11px] px-2 py-1 rounded-lg font-bold transition-all hover:opacity-80 flex-shrink-0"
-                                    style={{ background: 'rgba(15,23,42,0.06)', color: '#475569' }}>
-                                    {col.key === 'todo' ? '▶ Start' : col.key === 'in_progress' ? '✓ Done' : '↩ Reopen'}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {/* Drop zone hint */}
-                          {isDropTarget && (
-                            <div className="rounded-xl py-4 text-center" style={{ border: `2px dashed ${col.color}50`, background: `${col.color}08` }}>
-                              <p className="text-[10px] font-bold" style={{ color: col.color }}>Drop here</p>
-                            </div>
-                          )}
+                      )}
+                      {item.status === 'done' && item.outcome_notes && !isOutcomePromptOpen && (
+                        <p className="mb-3 text-xs text-slate-400 italic leading-relaxed">{item.outcome_notes}</p>
+                      )}
+                      {item.status === 'done' && !item.outcome && !isOutcomePromptOpen && (
+                        <button onClick={() => { setOutcomePromptId(item.id); setOutcomeNoteText(''); }}
+                          className="mb-3 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 transition-colors">
+                          <Clock className="w-3 h-3" />Record outcome
+                        </button>
+                      )}
+                      <div className="flex items-center gap-2 pt-2.5" style={{ borderTop: '1px solid rgba(15,23,42,0.05)' }}>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full min-w-0" style={{ background: 'rgba(15,23,42,0.04)' }}>
+                          <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                          <select value={item.assignee_user_id || ''} onChange={e => updateAssignee(item, e.target.value || null)}
+                            className="text-xs font-medium text-slate-500 bg-transparent border-0 outline-none cursor-pointer truncate"
+                            style={{ fontSize: '12px' }}>
+                            <option value="">Unassigned</option>
+                            {members.map(m => <option key={m.id} value={m.id}>{memberDisplayName(m)}</option>)}
+                          </select>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
