@@ -1,4 +1,4 @@
-import { Sparkles, User, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare } from 'lucide-react';
+import { Sparkles, User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import PoddleMark from './PoddleMark';
