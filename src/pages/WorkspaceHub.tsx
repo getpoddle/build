@@ -386,8 +386,8 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
 
         {/* ── MOBILE: Chat tab ── */}
-        {mainTab === 'chat' && (
-          <div className="lg:hidden flex-1 overflow-hidden" style={{ marginBottom: '3rem' }}>
+        {isMobileViewport && mainTab === 'chat' && (
+          <div className="flex-1 overflow-hidden" style={{ marginBottom: '3rem' }}>
             <PageErrorBoundary resetKey={`m-chat-${workspaceId}`}>
             <div className="h-full overflow-hidden relative flex flex-col" style={{ background: 'var(--app-surface-raised)' }}>
               {isReadOnly && <ReadOnlyOverlay />}
@@ -395,7 +395,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 workspaceId={workspaceId}
                 workspaceName={workspace?.name || 'Workspace'}
                 workspaceTopic={workspace?.description}
-                initialPrompt={isMobileViewport ? pendingPrompt : undefined}
+                initialPrompt={pendingPrompt}
                 onPromptConsumed={() => setPendingPrompt(undefined)}
                 onAgentsReplied={() => {}}
                 isPro={workspaceIsPro}
@@ -407,8 +407,8 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         )}
 
         {/* ── MOBILE: Team Chat tab ── */}
-        {mainTab === 'team' && (
-          <div className="lg:hidden flex-1 overflow-hidden" style={{ marginBottom: '3rem' }}>
+        {isMobileViewport && mainTab === 'team' && (
+          <div className="flex-1 overflow-hidden" style={{ marginBottom: '3rem' }}>
             <PageErrorBoundary resetKey={`m-team-${workspaceId}`}>
             <div className="h-full overflow-hidden relative flex flex-col" style={{ background: 'var(--app-surface-raised)' }}>
               {isReadOnly && <ReadOnlyOverlay />}
@@ -422,8 +422,8 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         )}
 
         {/* ── MOBILE: War Room tab ── */}
-        {mainTab === 'warroom' && (
-          <div className="lg:hidden flex-1 overflow-y-auto" style={{ marginBottom: '3rem', paddingBottom: '1.5rem' }}>
+        {isMobileViewport && mainTab === 'warroom' && (
+          <div className="flex-1 overflow-y-auto" style={{ marginBottom: '3rem', paddingBottom: '1.5rem' }}>
             <PageErrorBoundary resetKey={`m-war-${workspaceId}`}>
             {workspaceIsPro ? (
               <WorkspaceWarRoom
@@ -445,7 +445,8 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         )}
 
         {/* ── DESKTOP: Side-by-side panels ── */}
-        <div className="hidden lg:flex flex-1 overflow-hidden">
+        {!isMobileViewport && (
+        <div className="flex flex-1 overflow-hidden">
 
           {/* Left: Multiplayer AI or Team Chat (switches based on tab) */}
           <div
@@ -503,7 +504,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                     workspaceId={workspaceId}
                     workspaceName={workspace?.name || 'Workspace'}
                     workspaceTopic={workspace?.description}
-                    initialPrompt={!isMobileViewport ? pendingPrompt : undefined}
+                    initialPrompt={pendingPrompt}
                     onPromptConsumed={() => setPendingPrompt(undefined)}
                     onAgentsReplied={() => {}}
                     isPro={workspaceIsPro}
@@ -565,6 +566,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {showUpgrade && (
