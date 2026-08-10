@@ -11,7 +11,7 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
   market_analyst:      'Market Analyst',
   people_advisor:      'People Advisor',
   devils_advocate:     "Devil's Advocate",
-  innovation_scout:    'Innovation Scout',
+  innovation_scout:    'Innovation Lead',
   strategic_analyst:   'Strategic Analyst',
   financial_strategist:'Financial Strategist',
 };

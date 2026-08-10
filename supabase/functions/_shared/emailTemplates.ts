@@ -82,7 +82,7 @@ export function buildWelcomeEmail(firstName: string): string {
       <tr><td style="padding:0 0 18px 0;">
         <p style="color:#60a5fa;font-size:14px;font-weight:700;margin:0 0 4px 0;">1. Multiplayer AI</p>
         <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
-          Submit any decision you're facing. Seven agents &mdash; Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor &mdash; respond simultaneously, each from a completely different perspective. Your team can join the conversation, challenge the agents, and upload supporting documents to ground the analysis in real data.
+          Submit any decision you're facing. Seven agents &mdash; Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Lead, and People Advisor &mdash; respond simultaneously, each from a completely different perspective. Your team can join the conversation, challenge the agents, and upload supporting documents to ground the analysis in real data.
         </p>
       </td></tr>
       <tr><td style="padding:0 0 18px 0;">

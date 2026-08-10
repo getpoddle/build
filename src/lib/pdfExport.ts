@@ -4,7 +4,7 @@ import type { ChartData, AgentFigures } from '../components/ConsensusCharts';
 const AGENT_DISPLAY_NAMES: Record<string, string> = {
   risk_analyst: 'Risk Analyst',
   devils_advocate: "Devil's Advocate",
-  innovation_scout: 'Innovation Scout',
+  innovation_scout: 'Innovation Lead',
   market_analyst: 'Market Analyst',
   financial_strategist: 'Financial Strategist',
   execution_lead: 'Execution Lead',

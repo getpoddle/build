@@ -215,7 +215,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               { abbr: 'FS', label: 'Financial Strategist' },
               { abbr: 'MA', label: 'Market Analyst' },
               { abbr: 'EL', label: 'Execution Lead' },
-              { abbr: 'IS', label: 'Innovation Scout' },
+              { abbr: 'IS', label: 'Innovation Lead' },
               { abbr: 'PA', label: 'People Advisor' },
             ].map((a, i) => (
               <img
@@ -349,7 +349,7 @@ const HOW_STEPS = [
     border: 'rgba(184,134,11,0.18)',
     label: 'Multiplayer AI',
     title: 'Bring AI agents into the debate in real time',
-    body: "Seven specialized agents (Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Scout, and People Advisor) join the conversation alongside your team. Each agent responds from a completely different angle, challenging both your team's assumptions and each other. Your team can reply, push back, and steer the debate. This is multiplayer AI: humans and agents debating together in one shared thread.",
+    body: "Seven specialized agents (Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Lead, and People Advisor) join the conversation alongside your team. Each agent responds from a completely different angle, challenging both your team's assumptions and each other. Your team can reply, push back, and steer the debate. This is multiplayer AI: humans and agents debating together in one shared thread.",
     callout: 'Multiplayer AI is where humans and agents debate together: not agents talking at you, but a real-time, multi-perspective conversation.',
     visual: [
       { abbr: 'RA', avatar: AGENT_AVATARS.RA, bg: 'rgba(124,45,18,0.07)', color: '#7c2d12', text: 'Distribution shift risk in EU markets could cause 40-60% prediction errors in year one.' },
@@ -1034,7 +1034,7 @@ function SocialProofSection() {
         {/* Feature grid */}
         <div className="grid sm:grid-cols-3 gap-5 mt-10">
           {[
-            { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Scout, People Advisor, each with a different mandate." },
+            { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Lead, People Advisor, each with a different mandate." },
             { icon: Shield, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Your workspace is encrypted and invisible to the public. Invite your team. Nothing leaves your org. SOC 2-aligned infrastructure.' },
             { icon: FileText, color: '#059669', bg: '#ecfdf5', title: 'Board-ready exports', desc: 'The War Room PDF includes your recommendation, risk signals, action items by owner, and decision health scores, ready to share.' },
           ].map(({ icon: Icon, color, bg, title, desc }, i) => (
