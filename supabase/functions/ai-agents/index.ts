@@ -2611,11 +2611,27 @@ ${contextLines}
 
 Respond as ${responder.name}. Say something they have not said yet.`;
 
-    let replyContent: string;
+    let replyContent: string | null = null;
     try {
       replyContent = await callOpenAI(replySystemPrompt, replyUserMessage, TOKEN_LIMITS.post_reply);
-    } catch (_e) {
-      replyContent = `That framing misses the deeper structural issue here — what we're actually seeing is a symptom of something that's been building for years.`;
+    } catch (firstErr) {
+      console.error(`Challenges reply agent_${responder.name} error (attempt 1):`, String(firstErr).slice(0, 300));
+      try {
+        replyContent = await callOpenAI(replySystemPrompt, replyUserMessage, TOKEN_LIMITS.post_reply);
+      } catch (retryErr) {
+        console.error(`Challenges reply agent_${responder.name} retry also failed:`, String(retryErr).slice(0, 300));
+        await serviceSupabase
+          .from("debug_logs")
+          .insert({
+            event_type: "challenge_reply_failure",
+            payload: { discussion_id: discussion.id, agent_id: responder.id, agent_name: responder.name, error: String(retryErr).slice(0, 500), turn: i + 2 },
+          })
+          .then(() => {}, () => {});
+      }
+    }
+
+    if (!replyContent) {
+      continue;
     }
 
     await serviceSupabase

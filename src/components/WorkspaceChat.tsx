@@ -213,6 +213,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingPromptRef = useRef<string | undefined>(initialPrompt);
+  const sendingRef = useRef(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const memberProfilesRef = useRef<Record<string, MemberProfile>>({});
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -505,6 +506,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
     if (!content || loading || !user) return;
+    if (sendingRef.current) return;
+    sendingRef.current = true;
 
     setInput('');
     setLoading(true);
@@ -522,6 +525,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     setTimeout(() => scrollToBottom(), 50);
 
     setSendError(null);
+    const idempotencyKey = crypto.randomUUID();
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -545,6 +549,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             message: content,
             history: historyForApi,
             documents: chatDocuments.map(d => ({ filename: d.filename, extractedText: d.extractedText })),
+            idempotency_key: idempotencyKey,
           }),
         });
       } finally {
@@ -616,6 +621,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         setSendError("Something went wrong. Please try again.");
       }
     } finally {
+      sendingRef.current = false;
       setLoading(false);
       textareaRef.current?.focus();
     }
@@ -1433,8 +1439,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             placeholder={`Ask the AI agents about ${workspaceName}…`}
             rows={1}
             disabled={loading}
-            className="flex-1 resize-none bg-transparent text-sm focus:outline-none disabled:opacity-60" style={{ color: 'var(--app-text-primary)' }}
-            style={{ lineHeight: '1.5', maxHeight: '120px' }}
+            className="flex-1 resize-none bg-transparent text-sm focus:outline-none disabled:opacity-60"
+            style={{ color: 'var(--app-text-primary)', lineHeight: '1.5', maxHeight: '120px' }}
           />
         )}
 

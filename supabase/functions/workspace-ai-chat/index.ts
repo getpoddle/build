@@ -522,7 +522,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    let parsedBody: { workspace_id: string; message: string; history?: Array<{ role: string; content: string }>; documents?: Array<{ filename: string; extractedText: string }> };
+    let parsedBody: { workspace_id: string; message: string; history?: Array<{ role: string; content: string }>; documents?: Array<{ filename: string; extractedText: string }>; idempotency_key?: string };
     try {
       parsedBody = rawBody ? JSON.parse(rawBody) : {};
     } catch (e) {
@@ -531,7 +531,7 @@ Deno.serve(async (req: Request) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { workspace_id, message, history, documents } = parsedBody;
+    const { workspace_id, message, history, documents, idempotency_key } = parsedBody;
     console.log("workspace-ai-chat: parsed request workspace_id:", workspace_id, "message length:", message?.length ?? 0, "history items:", history?.length ?? 0, "documents:", documents?.length ?? 0);
 
     const validDocs = Array.isArray(documents)
@@ -895,21 +895,29 @@ Every section of your response must answer: how does this analysis change what t
     // Inserting early means other workspace members see the human message over
     // realtime immediately, rather than waiting 30-60s for the full AI pipeline.
     currentStage = "insert_user_msg";
-    await service.from("workspace_messages").insert({
+    const userInsertPayload: Record<string, unknown> = {
       workspace_id,
       user_id: user.id,
       role: "user",
       content: safeMessage,
-    });
+    };
+    if (idempotency_key) {
+      userInsertPayload.idempotency_key = idempotency_key;
+    }
+    const { error: userInsertError } = await service.from("workspace_messages").insert(userInsertPayload);
+    if (userInsertError && userInsertError.code === "23505") {
+      return new Response(JSON.stringify({ error: "Duplicate message already received." }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // ── ROUND 1: Independent initial responses (parallel) ───────────────────
-    const agentResponses = await Promise.all(
-      selectedAgents.map(async (agent) => {
-        const intakeInstruction = isNewWorkspace
-          ? `\n\nNEW WORKSPACE — DEEP INTAKE MODE: This team has just begun their War Room. Your first obligation is to do a comprehensive strategic assessment of the topic, not just respond to the surface question. Go deeper than they asked. Surface what they don't know they should be asking. Apply every analytical framework in your mandate. Think like a partner doing a first-day due diligence read — cover the full landscape, identify the 2-3 critical unknowns that will determine success or failure, and give them a foundation to build from. Be exhaustive within your domain.`
-          : "";
+    // ── ROUND 1: Independent initial responses (parallel, fault-isolated) ─
+    async function callAgentRound1(agent: typeof AGENT_ROSTER[keyof typeof AGENT_ROSTER]): Promise<{ agent: typeof agent; content: string; figures: AgentFigures | null; rawContent: string }> {
+      const intakeInstruction = isNewWorkspace
+        ? `\n\nNEW WORKSPACE — DEEP INTAKE MODE: This team has just begun their War Room. Your first obligation is to do a comprehensive strategic assessment of the topic, not just respond to the surface question. Go deeper than they asked. Surface what they don't know they should be asking. Apply every analytical framework in your mandate. Think like a partner doing a first-day due diligence read — cover the full landscape, identify the 2-3 critical unknowns that will determine success or failure, and give them a foundation to build from. Be exhaustive within your domain.`
+        : "";
 
-        const systemPrompt = `${agent.persona}
+      const systemPrompt = `${agent.persona}
 
 ${workspaceHeader}${topicAnchor}${documentBlock}${memoryContext}${synthesisContext}${priorContextBlock}${intakeInstruction}
 
@@ -928,6 +936,7 @@ FIGURES BLOCK — MANDATORY: End your response with a fenced JSON block containi
 {"figures": [{"label": "CAC estimate", "value": 4500, "unit": "$"}, {"label": "Payback period", "value": 14, "unit": "months"}], "categories": [{"label": "Market risk", "value": 40, "unit": "%"}, {"label": "Execution risk", "value": 35, "unit": "%"}, {"label": "Financial risk", "value": 25, "unit": "%"}]}
 Include 2-5 figures (quantitative values from your analysis) and 2-6 categories (breakdown of risks, opportunities, or priorities as percentages). Use "$" for currency, "%" for percentages, "months"/"years" for time, or "" for unitless counts. Only include numbers you actually derived in your analysis — do not fabricate.`;
 
+      async function attempt(): Promise<{ content: string; figures: AgentFigures | null; rawContent: string }> {
         const r1StartedAt = Date.now();
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -956,23 +965,47 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
           console.error(`Round 1 agent_${agent.role} response parse error:`, String(parseErr).slice(0, 300));
           logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-sol", maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
         }
-
         const figures = parseFiguresFromContent(content);
         const displayContent = figures ? stripFiguresBlock(content) : content;
-        return { agent, content: displayContent, figures, rawContent: content };
-      })
+        return { content: displayContent, figures, rawContent: content };
+      }
+
+      try {
+        return { agent, ...(await attempt()) };
+      } catch (firstErr) {
+        console.error(`Round 1 agent_${agent.role} network error (attempt 1):`, String(firstErr).slice(0, 300));
+        try {
+          return { agent, ...(await attempt()) };
+        } catch (retryErr) {
+          console.error(`Round 1 agent_${agent.role} retry also failed:`, String(retryErr).slice(0, 300));
+          await service.from("debug_logs").insert({
+            workspace_id,
+            user_id: user.id,
+            event_type: "agent_round1_failure",
+            payload: { agent_role: agent.role, agent_name: agent.name, error: String(retryErr).slice(0, 500), round: 1 },
+          }).then(() => {}, () => {});
+          throw retryErr;
+        }
+      }
+    }
+
+    const round1Results = await Promise.allSettled(
+      selectedAgents.map((agent) => callAgentRound1(agent))
     );
 
-    // ── ROUND 2: Cross-challenge (each agent challenges the others) ──────────
-    const round2Responses = await Promise.all(
-      selectedAgents.map(async (agent) => {
-        const otherResponses = agentResponses
-          .filter(r => r.agent.role !== agent.role)
-          .map(r => `### ${r.agent.name} (${r.agent.role})
-${r.content.slice(0, 1000)}`)
-          .join("\n\n---\n\n");
+    const agentResponses = round1Results
+      .filter((r): r is PromiseFulfilledResult<{ agent: typeof selectedAgents[0]; content: string; figures: AgentFigures | null; rawContent: string }> => r.status === "fulfilled")
+      .map(r => r.value);
 
-        const r2SystemPrompt = `${agent.persona}
+    // ── ROUND 2: Cross-challenge (each agent challenges the others) ──────────
+    async function callAgentRound2(agent: typeof selectedAgents[0]): Promise<{ agent: typeof agent; content: string }> {
+      const otherResponses = agentResponses
+        .filter(r => r.agent.role !== agent.role)
+        .map(r => `### ${r.agent.name} (${r.agent.role})
+${r.content.slice(0, 1000)}`)
+        .join("\n\n---\n\n");
+
+      const r2SystemPrompt = `${agent.persona}
 
 ${workspaceHeader}${topicAnchor}
 
@@ -989,33 +1022,50 @@ Then end with: What is the one thing the team should do differently based on the
 
 Respond in 250-350 words. Be direct and specific. No hedging. Reference agents by name using @.`;
 
+      async function attempt(): Promise<string> {
         const r2StartedAt = Date.now();
+        const r2Res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-5.6-sol",
+            messages: [
+              { role: "system", content: r2SystemPrompt },
+              { role: "user", content: safeMessage },
+            ],
+            max_completion_tokens: 800,
+          }),
+        });
+        const r2Data = await r2Res.json();
+        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `round2_${agent.role}`, model: "gpt-5.6-sol", usage: r2Data.usage, maxCompletionTokens: 800, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: r2Res.ok ? "succeeded" : "errored", httpStatus: r2Res.status });
+        if (!r2Res.ok) {
+          console.error(`Round 2 agent_${agent.role} failed: HTTP ${r2Res.status}`, JSON.stringify(r2Data?.error || r2Data).slice(0, 500));
+          throw new Error(`Round 2 HTTP ${r2Res.status}`);
+        }
+        return r2Data.choices?.[0]?.message?.content || "";
+      }
+
+      try {
+        return { agent, content: await attempt() };
+      } catch (firstErr) {
+        console.error(`Round 2 agent_${agent.role} error (attempt 1):`, String(firstErr).slice(0, 300));
         try {
-          const r2Res = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "gpt-5.6-sol",
-              messages: [
-                { role: "system", content: r2SystemPrompt },
-                { role: "user", content: safeMessage },
-              ],
-              max_completion_tokens: 800,
-            }),
-          });
-          const r2Data = await r2Res.json();
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `round2_${agent.role}`, model: "gpt-5.6-sol", usage: r2Data.usage, maxCompletionTokens: 800, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: r2Res.ok ? "succeeded" : "errored", httpStatus: r2Res.status });
-          if (!r2Res.ok) {
-            console.error(`Round 2 agent_${agent.role} failed: HTTP ${r2Res.status}`, JSON.stringify(r2Data?.error || r2Data).slice(0, 500));
-            return { agent, content: "" };
-          }
-          return { agent, content: r2Data.choices?.[0]?.message?.content || "" };
-        } catch (e) {
-          console.error(`Round 2 agent_${agent.role} error:`, String(e).slice(0, 300));
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `round2_${agent.role}`, model: "gpt-5.6-sol", maxCompletionTokens: 800, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: "errored" });
+          return { agent, content: await attempt() };
+        } catch (retryErr) {
+          console.error(`Round 2 agent_${agent.role} retry also failed:`, String(retryErr).slice(0, 300));
+          await service.from("debug_logs").insert({
+            workspace_id,
+            user_id: user.id,
+            event_type: "agent_round2_failure",
+            payload: { agent_role: agent.role, agent_name: agent.name, error: String(retryErr).slice(0, 500), round: 2 },
+          }).then(() => {}, () => {});
           return { agent, content: "" };
         }
-      })
+      }
+    }
+
+    const round2Responses = await Promise.all(
+      selectedAgents.map((agent) => callAgentRound2(agent))
     );
 
     // ── Generate debate analytics charts ─────────────────────────────────────

@@ -81,10 +81,20 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
     setMainTab(tab);
   }, [workspaceId]);
   const [pendingPrompt, setPendingPrompt] = useState<string | undefined>(undefined);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
+  );
   const [resyncing, setResyncing] = useState(false);
   const [warRoomKey, setWarRoomKey] = useState(0);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [discussedKeys, setDiscussedKeys] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1023px)');
+    const handleViewportChange = (event: MediaQueryListEvent) => setIsMobileViewport(event.matches);
+    mediaQuery.addEventListener('change', handleViewportChange);
+    return () => mediaQuery.removeEventListener('change', handleViewportChange);
+  }, []);
 
   function handleDiscuss(prompt: string) {
     setPendingPrompt(prompt);
@@ -385,7 +395,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 workspaceId={workspaceId}
                 workspaceName={workspace?.name || 'Workspace'}
                 workspaceTopic={workspace?.description}
-                initialPrompt={pendingPrompt}
+                initialPrompt={isMobileViewport ? pendingPrompt : undefined}
                 onPromptConsumed={() => setPendingPrompt(undefined)}
                 onAgentsReplied={() => {}}
                 isPro={workspaceIsPro}
@@ -493,7 +503,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                     workspaceId={workspaceId}
                     workspaceName={workspace?.name || 'Workspace'}
                     workspaceTopic={workspace?.description}
-                    initialPrompt={pendingPrompt}
+                    initialPrompt={!isMobileViewport ? pendingPrompt : undefined}
                     onPromptConsumed={() => setPendingPrompt(undefined)}
                     onAgentsReplied={() => {}}
                     isPro={workspaceIsPro}
