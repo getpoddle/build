@@ -313,14 +313,14 @@ Rules:
       method: "POST",
       headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gpt-5.6-sol",
+        model: "gpt-5.6-luna",
         messages: [{ role: "user", content: chartPrompt }],
         max_completion_tokens: 500,
         response_format: { type: "json_object" },
       }),
     });
     const data = await res.json();
-    logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "debate_charts", model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: 500, jsonMode: true, latencyMs: Date.now() - startedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+    logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: "debate_charts", model: "gpt-5.6-luna", usage: data.usage, maxCompletionTokens: 500, jsonMode: true, latencyMs: Date.now() - startedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
     if (!res.ok) return null;
     const raw = data.choices?.[0]?.message?.content?.trim() || "";
     const parsed = JSON.parse(raw);
@@ -454,14 +454,14 @@ Example output: ["financial_strategist", "devils_advocate", "risk_analyst", "mar
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-5.6-sol",
+        model: "gpt-5.6-luna",
         messages: [{ role: "user", content: classificationPrompt }],
         max_completion_tokens: 80,
       }),
     });
 
     const data = await res.json();
-    logAiOpenAICall({ distinctId: "workspace_agent_select", workspaceId: "unknown", functionName: "workspace-ai-chat", callSite: "agent_select", model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - selectStartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+    logAiOpenAICall({ distinctId: "workspace_agent_select", workspaceId: "unknown", functionName: "workspace-ai-chat", callSite: "agent_select", model: "gpt-5.6-luna", usage: data.usage, maxCompletionTokens: 80, jsonMode: false, latencyMs: Date.now() - selectStartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
     const raw = data.choices?.[0]?.message?.content?.trim() || "";
 
     const match = raw.match(/\[[\s\S]*\]/);
@@ -942,7 +942,7 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gpt-5.6-sol",
+            model: "gpt-5.6-luna",
             messages: [
               { role: "system", content: systemPrompt },
               ...conversationHistory,
@@ -955,7 +955,7 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
         let content = "I couldn't generate a response right now.";
         try {
           const data = await res.json();
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-sol", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-luna", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
           if (!res.ok) {
             console.error(`Round 1 agent_${agent.role} failed: HTTP ${res.status}`, JSON.stringify(data?.error || data).slice(0, 500));
           } else {
@@ -963,7 +963,7 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
           }
         } catch (parseErr) {
           console.error(`Round 1 agent_${agent.role} response parse error:`, String(parseErr).slice(0, 300));
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-sol", maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-luna", maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
         }
         const figures = parseFiguresFromContent(content);
         const displayContent = figures ? stripFiguresBlock(content) : content;
@@ -1028,7 +1028,7 @@ Respond in 250-350 words. Be direct and specific. No hedging. Reference agents b
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "gpt-5.6-sol",
+            model: "gpt-5.6-luna",
             messages: [
               { role: "system", content: r2SystemPrompt },
               { role: "user", content: safeMessage },
@@ -1037,7 +1037,7 @@ Respond in 250-350 words. Be direct and specific. No hedging. Reference agents b
           }),
         });
         const r2Data = await r2Res.json();
-        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `round2_${agent.role}`, model: "gpt-5.6-sol", usage: r2Data.usage, maxCompletionTokens: 800, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: r2Res.ok ? "succeeded" : "errored", httpStatus: r2Res.status });
+        logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `round2_${agent.role}`, model: "gpt-5.6-luna", usage: r2Data.usage, maxCompletionTokens: 800, jsonMode: false, latencyMs: Date.now() - r2StartedAt, status: r2Res.ok ? "succeeded" : "errored", httpStatus: r2Res.status });
         if (!r2Res.ok) {
           console.error(`Round 2 agent_${agent.role} failed: HTTP ${r2Res.status}`, JSON.stringify(r2Data?.error || r2Data).slice(0, 500));
           throw new Error(`Round 2 HTTP ${r2Res.status}`);
