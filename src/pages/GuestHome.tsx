@@ -162,9 +162,9 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-bold leading-[1.06] mb-5 text-white mx-auto max-w-3xl tracking-tight">
-          Stop making high-stakes decisions{' '}
+          Stress-test your business decisions against{' '}
           <span style={{ background: 'linear-gradient(135deg,#60a5fa,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            in an echo chamber.
+            catastrophic blind spots.
           </span>
         </h1>
 
