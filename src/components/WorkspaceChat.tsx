@@ -484,11 +484,28 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     });
     let didChange = false;
     setMessages(prev => {
-      const existing = new Set(prev.map(m => m.id));
+      // Reconcile optimistic user messages: if a DB message has the same
+      // role+user_id+content, the optimistic copy (with its random UUID) is
+      // stale and must be removed to prevent duplicates.
+      const dbUserKeys = new Set(
+        mapped
+          .filter(m => m.role === 'user' && m.user_id)
+          .map(m => `${m.role}:${m.user_id}:${m.content}`)
+      );
+      const dbIds = new Set(mapped.map(m => m.id));
+      const reconciled = prev.filter(m => {
+        if (m.role === 'user' && m.user_id) {
+          const key = `${m.role}:${m.user_id}:${m.content}`;
+          // Remove optimistic message only if a DB version exists with a different ID
+          if (dbUserKeys.has(key) && !dbIds.has(m.id)) return false;
+        }
+        return true;
+      });
+      const existing = new Set(reconciled.map(m => m.id));
       const newMsgs = mapped.filter(m => !existing.has(m.id));
-      if (newMsgs.length === 0) return prev;
+      if (newMsgs.length === 0 && reconciled.length === prev.length) return prev;
       didChange = true;
-      return [...prev, ...newMsgs];
+      return [...reconciled, ...newMsgs];
     });
     setInitialLoad(false);
     if (didChange) {

@@ -181,11 +181,20 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     if (!mountedRef.current) return;
     let didChange = false;
     setMessages(prev => {
-      const existing = new Set(prev.map(m => m.id));
+      const dbUserKeys = new Set(
+        (data || []).map(m => `${m.user_id}:${m.content}`)
+      );
+      const dbIds = new Set((data || []).map(m => m.id));
+      const reconciled = prev.filter(m => {
+        const key = `${m.user_id}:${m.content}`;
+        if (dbUserKeys.has(key) && !dbIds.has(m.id)) return false;
+        return true;
+      });
+      const existing = new Set(reconciled.map(m => m.id));
       const newMsgs = (data || []).filter(m => !existing.has(m.id));
-      if (newMsgs.length === 0) return prev;
+      if (newMsgs.length === 0 && reconciled.length === prev.length) return prev;
       didChange = true;
-      return [...prev, ...newMsgs];
+      return [...reconciled, ...newMsgs];
     });
     setLoading(false);
     if (didChange) {
