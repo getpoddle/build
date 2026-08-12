@@ -169,8 +169,8 @@ export default function Auth() {
       className="min-h-screen flex items-start sm:items-center justify-center px-4 py-8 sm:py-4 relative overflow-hidden"
       style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2rem)', background: 'var(--app-bg)' }}
     >
-      <div className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl floating pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(184,134,11,0.06) 0%, transparent 70%)' }} />
-      <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full blur-3xl floating pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(184,134,11,0.04) 0%, transparent 70%)', animationDelay: '1.5s' }} />
+      <div className="absolute top-0 right-0 w-96 h-96 blur-3xl floating pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(184,134,11,0.06) 0%, transparent 70%)' }} />
+      <div className="absolute bottom-0 left-0 w-96 h-96 blur-3xl floating pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(184,134,11,0.04) 0%, transparent 70%)', animationDelay: '1.5s' }} />
 
       <div className="max-w-md w-full relative z-10 scale-in">
         <div className="text-center mb-6 sm:mb-8">

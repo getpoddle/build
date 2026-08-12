@@ -32,12 +32,12 @@ interface TeamChatProps {
 }
 
 const MEMBER_COLORS = [
-  { bg: 'rgba(37,99,235,0.12)', text: '#1d4ed8' },
-  { bg: 'rgba(5,150,105,0.12)', text: '#065f46' },
-  { bg: 'rgba(217,119,6,0.12)', text: '#b45309' },
-  { bg: 'rgba(220,38,38,0.10)', text: '#b91c1c' },
-  { bg: 'rgba(124,58,237,0.10)', text: '#6d28d9' },
-  { bg: 'rgba(15,118,110,0.12)', text: '#0f766e' },
+  { bg: 'rgba(74,155,142,0.14)', text: '#4A9B8E' },
+  { bg: 'rgba(111,155,120,0.14)', text: '#6F9B78' },
+  { bg: 'rgba(184,149,89,0.14)', text: '#B89559' },
+  { bg: 'rgba(196,99,74,0.12)', text: '#C4634A' },
+  { bg: 'rgba(154,164,178,0.12)', text: '#9AA4B2' },
+  { bg: 'rgba(139,147,161,0.12)', text: '#8B93A1' },
 ];
 
 function memberColor(userId: string) {
@@ -121,8 +121,8 @@ function renderContent(content: string, members: Record<string, MemberProfile>, 
         key={`mention-${keyIdx++}`}
         className="font-semibold"
         style={{
-          color: isSelf ? 'var(--signal)' : '#2563eb',
-          background: 'rgba(37,99,235,0.10)',
+          color: isSelf ? 'var(--signal)' : 'var(--color-signal)',
+          background: 'var(--color-signal-soft)',
           padding: '0 4px',
           borderRadius: '4px',
         }}
@@ -619,7 +619,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
                       </span>
                     </div>
                     <div
-                      className="px-3 py-2 rounded-2xl text-sm leading-relaxed break-words"
+                      className="px-3 py-2 text-sm leading-relaxed break-words"
                       style={
                         own
                           ? { background: 'var(--signal)', color: 'var(--ink-950)', borderBottomRightRadius: '4px' }
@@ -646,7 +646,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
         {mentionQuery !== null && filteredMembers.length > 0 && (
           <div
             ref={mentionDropdownRef}
-            className="absolute bottom-full left-3 right-3 mb-1 rounded-xl overflow-hidden shadow-lg"
+            className="absolute bottom-full left-3 right-3 mb-1 overflow-hidden"
             style={{
               background: 'var(--app-surface-raised)',
               border: '1px solid var(--app-border)',
@@ -669,7 +669,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
                   onMouseEnter={() => setMentionIndex(i)}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors"
                   style={{
-                    background: i === mentionIndex ? 'rgba(37,99,235,0.08)' : 'transparent',
+                    background: i === mentionIndex ? 'var(--color-signal-soft)' : 'transparent',
                   }}
                 >
                   {avatarUrl ? (
@@ -686,7 +686,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
                     {name}
                   </span>
                   {m.role === 'owner' && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: 'rgba(37,99,235,0.10)', color: 'var(--signal)' }}>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5" style={{ background: 'var(--color-signal-soft)', color: 'var(--signal)' }}>
                       Owner
                     </span>
                   )}
@@ -697,7 +697,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
         )}
 
         {sendError && (
-          <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg text-xs" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>
+          <div className="flex items-center gap-2 px-3 py-1.5 mb-2 text-xs" style={{ background: 'var(--color-risk-soft)', color: 'var(--color-risk)' }}>
             <span>{sendError}</span>
             <button onClick={() => setSendError(null)} className="ml-auto font-semibold">Dismiss</button>
           </div>
@@ -705,11 +705,11 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
         {typingUsers.size > 0 && (
           <div className="flex items-center gap-2 mb-2 px-1">
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="w-1.5 h-1.5 animate-bounce" style={{ animationDelay: '0ms', background: 'var(--app-text-muted)' }} />
+              <span className="w-1.5 h-1.5 animate-bounce" style={{ animationDelay: '150ms', background: 'var(--app-text-muted)' }} />
+              <span className="w-1.5 h-1.5 animate-bounce" style={{ animationDelay: '300ms', background: 'var(--app-text-muted)' }} />
             </div>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
               {Array.from(typingUsers.values()).join(', ')} {typingUsers.size === 1 ? 'is' : 'are'} typing…
             </span>
           </div>
@@ -726,7 +726,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
             }}
             placeholder="Message… (use @ to mention)"
             rows={1}
-            className="flex-1 resize-none rounded-xl px-3 py-2 text-sm xs:text-[13px] outline-none transition-colors"
+            className="flex-1 resize-none px-3 py-2 text-sm xs:text-[13px] outline-none transition-colors"
             style={{
               background: 'var(--app-surface-raised)',
               border: '1px solid var(--app-border)',
@@ -739,7 +739,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
             onClick={sendMessage}
             disabled={!input.trim() || sending}
             aria-label="Send message"
-            className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0 transition-all disabled:opacity-40"
+            className="flex items-center justify-center w-10 h-10 flex-shrink-0 transition-all disabled:opacity-40"
             style={{ background: 'var(--signal)', color: 'var(--ink-950)' }}
           >
             {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
