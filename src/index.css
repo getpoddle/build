@@ -15,40 +15,40 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
 
-  /* ── LIGHT THEME (cool enterprise field — Bloomberg/McKinsey register) ── */
-  --ink-950:  #F0F3F7;   /* page bg: cool blue-grey field */
-  --ink-900:  #F7F9FC;   /* card surface */
-  --ink-800:  #FFFFFF;   /* elevated surface */
-  --ink-700:  #D8DDE8;   /* borders */
-  --ink-500:  #9BA6B8;   /* disabled, muted borders */
-  --ink-300:  #5D6B82;   /* muted text */
-  --ink-100:  #2B3444;   /* secondary text */
-  --ink-50:   #111827;   /* primary text */
+  /* ── LIGHT THEME (briefing paper) ── */
+  --ink-950:  #E7E6E2;
+  --ink-900:  #F0EFEB;
+  --ink-800:  #F7F6F2;
+  --ink-700:  #C8CBC7;
+  --ink-500:  #8A9292;
+  --ink-300:  #596467;
+  --ink-100:  #3E4A4D;
+  --ink-50:   #1C2729;
 
-  --signal:      #b8860b;  /* amber-gold — sharp, not garish */
-  --signal-dim:  #d4a535;
-  --signal-bg:   rgba(184,134,11,0.08);
-  --positive:    #1e7a52;
-  --positive-bg: rgba(30,122,82,0.08);
-  --negative:    #a8292a;
-  --negative-bg: rgba(168,41,42,0.08);
-  --caution:     #b35c10;
+  --signal:      #2E7066;
+  --signal-dim:  #255F57;
+  --signal-bg:   rgba(46,112,102,0.10);
+  --positive:    #287457;
+  --positive-bg: rgba(40,116,87,0.10);
+  --negative:    #9B4937;
+  --negative-bg: rgba(155,73,55,0.10);
+  --caution:     #9A5D24;
 
   /* Agent identity colors — light mode */
-  --agent-risk:      #a8292a;
-  --agent-risk-bg:   rgba(168,41,42,0.07);
-  --agent-fin:       #1a5c8a;
-  --agent-fin-bg:    rgba(26,92,138,0.07);
-  --agent-strat:     #1e6644;
-  --agent-strat-bg:  rgba(30,102,68,0.07);
-  --agent-exec:      #3d3630;
-  --agent-exec-bg:   rgba(61,54,48,0.05);
+  --agent-risk:      #9B4937;
+  --agent-risk-bg:   rgba(155,73,55,0.10);
+  --agent-fin:       #286786;
+  --agent-fin-bg:    rgba(40,103,134,0.10);
+  --agent-strat:     #287457;
+  --agent-strat-bg:  rgba(40,116,87,0.10);
+  --agent-exec:      #4E4A45;
+  --agent-exec-bg:   rgba(78,74,69,0.08);
 
   --app-bg:             var(--ink-950);
   --app-surface:        var(--ink-900);
   --app-surface-raised: var(--ink-800);
   --app-border:         var(--ink-700);
-  --app-border-subtle:  rgba(0,0,0,0.06);
+  --app-border-subtle:  rgba(28,39,41,0.10);
   --app-text-primary:   var(--ink-50);
   --app-text-secondary: var(--ink-100);
   --app-text-muted:     var(--ink-300);
@@ -57,47 +57,47 @@
   --app-input-border:   var(--ink-700);
   --app-divider:        var(--ink-700);
 
-  --shadow-sm:  0 1px 2px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-md:  0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-lg:  0 8px 24px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
-  --shadow-xl:  0 16px 48px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.08);
-  --shadow-signal: 0 0 20px rgba(184,134,11,0.25);
+  --shadow-sm:  none;
+  --shadow-md:  none;
+  --shadow-lg:  none;
+  --shadow-xl:  none;
+  --shadow-signal: none;
 }
 
 html.theme-dark {
-  /* ── DARK THEME (primary enterprise expression — terminal/command center) ── */
-  --ink-950:  #000000;
-  --ink-900:  #0a0a0a;
-  --ink-800:  #111111;
-  --ink-700:  #1a1a1a;
-  --ink-500:  #2a2a2a;
-  --ink-300:  #888888;
-  --ink-100:  #cccccc;
-  --ink-50:   #ffffff;
+  /* ── DARK THEME (command center) ── */
+  --ink-950:  #12151C;
+  --ink-900:  #1B1F29;
+  --ink-800:  #222733;
+  --ink-700:  #303744;
+  --ink-500:  #596270;
+  --ink-300:  #9BA4B0;
+  --ink-100:  #D0D5DB;
+  --ink-50:   #F3F4F1;
 
-  --signal:      #b8860b;
-  --signal-dim:  #d4a535;
-  --signal-bg:   rgba(184,134,11,0.08);
-  --positive:    #2d9e6b;
-  --positive-bg: rgba(45,158,107,0.08);
-  --negative:    #c0392b;
-  --negative-bg: rgba(192,57,43,0.09);
-  --caution:     #d4783a;
+  --signal:      #4A9B8E;
+  --signal-dim:  #65B0A2;
+  --signal-bg:   rgba(74,155,142,0.12);
+  --positive:    #62B39B;
+  --positive-bg: rgba(98,179,155,0.12);
+  --negative:    #C4634A;
+  --negative-bg: rgba(196,99,74,0.14);
+  --caution:     #D39A58;
 
-  --agent-risk:      #c0392b;
-  --agent-risk-bg:   rgba(192,57,43,0.10);
-  --agent-fin:       #2980b9;
-  --agent-fin-bg:    rgba(41,128,185,0.10);
-  --agent-strat:     #27ae60;
-  --agent-strat-bg:  rgba(39,174,96,0.10);
-  --agent-exec:      #8892a4;
-  --agent-exec-bg:   rgba(136,146,164,0.08);
+  --agent-risk:      #C4634A;
+  --agent-risk-bg:   rgba(196,99,74,0.14);
+  --agent-fin:       #6BA8C4;
+  --agent-fin-bg:    rgba(107,168,196,0.13);
+  --agent-strat:     #62B39B;
+  --agent-strat-bg:  rgba(98,179,155,0.13);
+  --agent-exec:      #AAB3C0;
+  --agent-exec-bg:   rgba(170,179,192,0.10);
 
   --app-bg:             var(--ink-950);
   --app-surface:        var(--ink-900);
   --app-surface-raised: var(--ink-800);
   --app-border:         var(--ink-700);
-  --app-border-subtle:  rgba(255,255,255,0.04);
+  --app-border-subtle:  rgba(243,244,241,0.08);
   --app-text-primary:   var(--ink-50);
   --app-text-secondary: var(--ink-100);
   --app-text-muted:     var(--ink-300);

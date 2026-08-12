@@ -158,10 +158,10 @@ function EditPopover({ anchorEl, workspaceId, category, status, onSaved, onClose
       onClick={e => e.stopPropagation()}
       onPointerDown={e => e.stopPropagation()}
     >
-      <p className="text-xs font-bold text-slate-700 mb-3">Edit decision metadata</p>
+      <p className="text-xs font-bold text-[var(--app-text-secondary)] mb-3">Edit decision metadata</p>
 
       <div className="mb-3">
-        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Category</p>
+        <p className="text-[10px] font-semibold text-[var(--app-text-muted)] uppercase tracking-widest mb-1.5">Category</p>
         <div className="grid grid-cols-2 gap-1.5">
           {CATEGORIES.map(c => (
             <button
@@ -181,7 +181,7 @@ function EditPopover({ anchorEl, workspaceId, category, status, onSaved, onClose
       </div>
 
       <div className="mb-4">
-        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Status</p>
+        <p className="text-[10px] font-semibold text-[var(--app-text-muted)] uppercase tracking-widest mb-1.5">Status</p>
         <div className="space-y-1">
           {STATUSES.map(s => (
             <button
@@ -207,7 +207,7 @@ function EditPopover({ anchorEl, workspaceId, category, status, onSaved, onClose
         <button
           onClick={save}
           disabled={saving}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-60"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-none text-xs font-bold text-white transition-all disabled:opacity-60"
           style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
         >
           {saving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check className="w-3 h-3" />}
@@ -215,7 +215,7 @@ function EditPopover({ anchorEl, workspaceId, category, status, onSaved, onClose
         </button>
         <button
           onClick={onClose}
-          className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 transition-colors"
+          className="px-3 py-2 rounded-none text-xs font-semibold text-[var(--app-text-muted)] hover:bg-[var(--app-surface-raised)] transition-colors"
         >
           <X className="w-3 h-3" />
         </button>
@@ -297,11 +297,11 @@ function LinkPopover({ anchorEl, workspaceId, workspaceName, allWorkspaces, exis
       onPointerDown={e => e.stopPropagation()}
     >
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+        <p className="text-xs font-bold text-[var(--app-text-secondary)] flex items-center gap-1.5">
           <Link2 className="w-3.5 h-3.5 text-blue-500" />
           Decision Connections
         </p>
-        <button onClick={onClose} className="text-slate-300 hover:text-slate-600 transition-colors">
+        <button onClick={onClose} className="text-slate-300 hover:text-[var(--app-text-secondary)] transition-colors">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -309,19 +309,19 @@ function LinkPopover({ anchorEl, workspaceId, workspaceName, allWorkspaces, exis
       {/* Existing links */}
       {myLinks.length > 0 && (
         <div className="mb-3 space-y-1.5">
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Connected</p>
+          <p className="text-[10px] font-semibold text-[var(--app-text-muted)] uppercase tracking-widest">Connected</p>
           {myLinks.map(link => {
             const otherId = link.workspace_id === workspaceId ? link.linked_workspace_id : link.workspace_id;
             const other = allWorkspaces.find(w => w.id === otherId);
             const rel = relMeta(link.relationship_type);
             const isSource = link.workspace_id === workspaceId;
             return (
-              <div key={link.id} className="flex items-start gap-2 px-2.5 py-2 rounded-xl" style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.06)' }}>
+              <div key={link.id} className="flex items-start gap-2 px-2.5 py-2 rounded-none" style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.06)' }}>
                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1" style={{ background: rel.color }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-slate-700 truncate">{other?.name ?? 'Unknown workspace'}</p>
+                  <p className="text-[10px] font-bold text-[var(--app-text-secondary)] truncate">{other?.name ?? 'Unknown workspace'}</p>
                   <p className="text-[10px]" style={{ color: rel.color }}>{isSource ? workspaceName : other?.name} {rel.label.toLowerCase()} {isSource ? other?.name : workspaceName}</p>
-                  {link.note && <p className="text-[10px] text-slate-400 italic truncate mt-0.5">{link.note}</p>}
+                  {link.note && <p className="text-[10px] text-[var(--app-text-muted)] italic truncate mt-0.5">{link.note}</p>}
                 </div>
                 {isSource && (
                   <button onClick={() => removeLink(link.id)} className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0 mt-0.5">
@@ -337,12 +337,12 @@ function LinkPopover({ anchorEl, workspaceId, workspaceName, allWorkspaces, exis
       {/* Add new link */}
       {available.length > 0 ? (
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Add Connection</p>
+          <p className="text-[10px] font-semibold text-[var(--app-text-muted)] uppercase tracking-widest">Add Connection</p>
 
           <select
             value={targetId}
             onChange={e => setTargetId(e.target.value)}
-            className="w-full text-xs px-2.5 py-2 rounded-xl border text-slate-700 focus:outline-none focus:border-blue-300"
+            className="w-full text-xs px-2.5 py-2 rounded-none border text-[var(--app-text-secondary)] focus:outline-none focus:border-blue-300"
             style={{ borderColor: 'rgba(15,23,42,0.12)', background: 'rgba(15,23,42,0.02)' }}
           >
             <option value="">Select a workspace…</option>
@@ -372,7 +372,7 @@ function LinkPopover({ anchorEl, workspaceId, workspaceName, allWorkspaces, exis
             value={note}
             onChange={e => setNote(e.target.value)}
             placeholder="Add a note (optional)…"
-            className="w-full text-xs px-2.5 py-1.5 rounded-xl border text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-300"
+            className="w-full text-xs px-2.5 py-1.5 rounded-none border text-[var(--app-text-secondary)] placeholder-slate-400 focus:outline-none focus:border-blue-300"
             style={{ borderColor: 'rgba(15,23,42,0.12)' }}
           />
 
@@ -381,7 +381,7 @@ function LinkPopover({ anchorEl, workspaceId, workspaceName, allWorkspaces, exis
           <button
             onClick={createLink}
             disabled={!targetId || saving}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-none text-xs font-bold text-white transition-all disabled:opacity-50"
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}
           >
             {saving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Link2 className="w-3 h-3" />}
@@ -390,7 +390,7 @@ function LinkPopover({ anchorEl, workspaceId, workspaceName, allWorkspaces, exis
         </div>
       ) : (
         myLinks.length === 0 && (
-          <p className="text-[10px] text-slate-400 text-center py-2">No other workspaces available to connect.</p>
+          <p className="text-[10px] text-[var(--app-text-muted)] text-center py-2">No other workspaces available to connect.</p>
         )
       )}
     </div>,
@@ -758,8 +758,8 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
 
   if (appWorkspaces.length === 0) {
     return (
-      <div className="rounded-2xl p-12 text-center" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}>
-        <p className="text-slate-400 text-sm">No workspaces to map yet.</p>
+      <div className="rounded-none p-12 text-center" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)' }}>
+        <p className="text-[var(--app-text-muted)] text-sm">No workspaces to map yet.</p>
       </div>
     );
   }
@@ -787,14 +787,14 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
       )}
 
       {/* Portfolio summary bar */}
-      <div className="rounded-2xl px-4 sm:px-5 py-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}>
+      <div className="rounded-none px-4 sm:px-5 py-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }}>
         <div className="col-span-2 sm:col-span-1 flex items-center gap-3 sm:border-r sm:border-slate-100 sm:pr-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm" style={{ background: avgHealth !== null ? `${healthColor(avgHealth)}18` : 'rgba(15,23,42,0.05)', color: avgHealth !== null ? healthColor(avgHealth) : '#94a3b8' }}>
+          <div className="w-10 h-10 rounded-none flex items-center justify-center font-black text-sm" style={{ background: avgHealth !== null ? `${healthColor(avgHealth)}18` : 'rgba(15,23,42,0.05)', color: avgHealth !== null ? healthColor(avgHealth) : '#94a3b8' }}>
             {avgHealth ?? '—'}
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Portfolio Health</p>
-            <p className="text-xs font-semibold text-slate-700">{avgHealth === null ? 'No analysis' : avgHealth >= 75 ? 'Sharp' : avgHealth >= 55 ? 'Developing' : avgHealth >= 35 ? 'Fragmented' : 'Critical'}</p>
+            <p className="text-[10px] font-bold text-[var(--app-text-muted)] uppercase tracking-widest">Portfolio Health</p>
+            <p className="text-xs font-semibold text-[var(--app-text-secondary)]">{avgHealth === null ? 'No analysis' : avgHealth >= 75 ? 'Sharp' : avgHealth >= 55 ? 'Developing' : avgHealth >= 35 ? 'Fragmented' : 'Critical'}</p>
           </div>
         </div>
         {STATUSES.map(s => (
@@ -807,8 +807,8 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
 
       {/* Active connection legend */}
       {links.length > 0 && (
-        <div className="rounded-2xl px-5 py-3 flex items-center gap-4 flex-wrap" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)' }}>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Connections:</span>
+        <div className="rounded-none px-5 py-3 flex items-center gap-4 flex-wrap" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)' }}>
+          <span className="text-[10px] font-bold text-[var(--app-text-muted)] uppercase tracking-widest">Connections:</span>
           {RELATIONSHIP_TYPES.map(r => {
             const count = links.filter(l => l.relationship_type === r.key).length;
             if (count === 0) return null;
@@ -816,17 +816,17 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
               <div key={r.key} className="flex items-center gap-1.5">
                 <span className="w-4 h-0 inline-block border-t" style={{ borderColor: r.color, borderTopWidth: '1.5px', opacity: 0.7, borderStyle: r.key === 'conflicts_with' ? 'dashed' : r.key === 'depends_on' ? 'dotted' : 'solid' }} />
                 <span className="text-[10px] font-semibold" style={{ color: r.color }}>{r.label}</span>
-                <span className="text-[10px] text-slate-400">({count})</span>
+                <span className="text-[10px] text-[var(--app-text-muted)]">({count})</span>
               </div>
             );
           })}
-          <span className="text-[10px] text-slate-400 ml-auto">{links.length} total</span>
+          <span className="text-[10px] text-[var(--app-text-muted)] ml-auto">{links.length} total</span>
         </div>
       )}
 
       {/* Health legend */}
       <div className="flex items-center gap-1 flex-wrap">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">Health:</span>
+        <span className="text-[10px] font-bold text-[var(--app-text-muted)] uppercase tracking-widest mr-1">Health:</span>
         {[
           { label: 'Sharp ≥75', color: '#16a34a' },
           { label: 'Developing ≥55', color: '#d97706' },
@@ -836,7 +836,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         ].map(l => (
           <div key={l.label} className="flex items-center gap-1.5 mr-3">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: l.color }} />
-            <span className="text-[10px] text-slate-500">{l.label}</span>
+            <span className="text-[10px] text-[var(--app-text-muted)]">{l.label}</span>
           </div>
         ))}
       </div>
@@ -855,7 +855,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
               <div
                 key={s.key}
                 ref={el => { if (el) columnRefs.current.set(s.key, el); else columnRefs.current.delete(s.key); }}
-                className="flex-1 rounded-2xl p-3 space-y-4 transition-all duration-150"
+                className="flex-1 rounded-none p-3 space-y-4 transition-all duration-150"
                 style={{
                   background: isDropTarget ? s.activeBg : s.bg,
                   border: isDropTarget ? `2px solid ${s.color}60` : `1px solid ${s.border}`,
@@ -875,14 +875,14 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
                 </div>
 
                 {isDropTarget && col.filter(w => w.id !== draggingId).length === 0 && col.length === 0 && (
-                  <div className="rounded-xl py-5 text-center" style={{ border: `2px dashed ${s.color}50`, background: `${s.color}08` }}>
+                  <div className="rounded-none py-5 text-center" style={{ border: `2px dashed ${s.color}50`, background: `${s.color}08` }}>
                     <p className="text-[10px] font-semibold" style={{ color: s.color }}>Drop here</p>
                   </div>
                 )}
 
                 {col.length === 0 && !isDropTarget ? (
-                  <div className="rounded-xl py-6 text-center" style={{ border: `1.5px dashed ${s.border}`, background: 'rgba(255,255,255,0.5)' }}>
-                    <p className="text-[10px] text-slate-400">No decisions here</p>
+                  <div className="rounded-none py-6 text-center" style={{ border: `1.5px dashed ${s.border}`, background: 'rgba(255,255,255,0.5)' }}>
+                    <p className="text-[10px] text-[var(--app-text-muted)]">No decisions here</p>
                   </div>
                 ) : (
                   col.map(ws => (
@@ -914,7 +914,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
                 )}
 
                 {isDropTarget && col.length > 0 && (
-                  <div className="rounded-xl py-3 text-center" style={{ border: `2px dashed ${s.color}50`, background: `${s.color}08` }}>
+                  <div className="rounded-none py-3 text-center" style={{ border: `2px dashed ${s.color}50`, background: `${s.color}08` }}>
                     <p className="text-[10px] font-semibold" style={{ color: s.color }}>Drop here</p>
                   </div>
                 )}
@@ -948,25 +948,25 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
       </div>
 
       {/* Category legend */}
-      <div className="rounded-2xl px-5 py-4" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)' }}>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Decision Categories</p>
+      <div className="rounded-none px-5 py-4" style={{ background: '#fff', border: '1px solid rgba(15,23,42,0.07)' }}>
+        <p className="text-[10px] font-bold text-[var(--app-text-muted)] uppercase tracking-widest mb-3">Decision Categories</p>
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map(c => {
             const count = appWorkspaces.filter(w => w.decision_category === c.key).length;
             return (
               <div key={c.key} className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: c.bg }}>
                 <span className="text-xs font-semibold" style={{ color: c.color }}>{c.label}</span>
-                <span className="text-[10px] font-bold text-slate-400">{count}</span>
+                <span className="text-[10px] font-bold text-[var(--app-text-muted)]">{count}</span>
               </div>
             );
           })}
         </div>
       </div>
 
-      <p className="hidden md:block text-[10px] text-slate-400 text-center">
+      <p className="hidden md:block text-[10px] text-[var(--app-text-muted)] text-center">
         Drag cards between stages · Hover a card to use the <Link2 className="w-2.5 h-2.5 inline" /> icon to connect decisions · Use <Pencil className="w-2.5 h-2.5 inline" /> to edit category or status
       </p>
-      <p className="md:hidden text-[10px] text-slate-400 text-center">
+      <p className="md:hidden text-[10px] text-[var(--app-text-muted)] text-center">
         Tap <Link2 className="w-2.5 h-2.5 inline" /> to connect decisions · Tap <Pencil className="w-2.5 h-2.5 inline" /> to edit category or status
       </p>
     </div>
@@ -1002,7 +1002,7 @@ function MobileStatusSection({ status: s, workspaces: col, healthScores, memberC
 
   return (
     <div
-      className="rounded-2xl overflow-hidden transition-all"
+      className="rounded-none overflow-hidden transition-all"
       style={{ border: `1px solid ${open ? s.border : 'rgba(15,23,42,0.06)'}`, background: s.bg }}
     >
       <button
@@ -1014,14 +1014,14 @@ function MobileStatusSection({ status: s, workspaces: col, healthScores, memberC
           <span className="text-sm font-bold" style={{ color: s.color }}>{s.label}</span>
           <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${s.color}20`, color: s.color }}>{col.length}</span>
         </div>
-        {open ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+        {open ? <ChevronDown className="w-4 h-4 text-[var(--app-text-muted)]" /> : <ChevronRight className="w-4 h-4 text-[var(--app-text-muted)]" />}
       </button>
 
       {open && (
         <div className="px-3 pb-3 space-y-4">
           {col.length === 0 ? (
-            <div className="rounded-xl py-5 text-center" style={{ border: `1.5px dashed ${s.border}`, background: 'rgba(255,255,255,0.5)' }}>
-              <p className="text-[10px] text-slate-400">No decisions here</p>
+            <div className="rounded-none py-5 text-center" style={{ border: `1.5px dashed ${s.border}`, background: 'rgba(255,255,255,0.5)' }}>
+              <p className="text-[10px] text-[var(--app-text-muted)]">No decisions here</p>
             </div>
           ) : (
             col.map(ws => (
@@ -1105,16 +1105,16 @@ function ReassignPopover({ anchorEl, members, currentUserId, onReassign, wsId, o
       onClick={e => e.stopPropagation()}
       onPointerDown={e => e.stopPropagation()}
     >
-      <p className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5"><UserCog className="w-3 h-3" /> Reassign owner</p>
-      <p className="text-[10px] text-slate-400 mb-2">Overrides the domain default for this card only.</p>
+      <p className="text-xs font-bold text-[var(--app-text-secondary)] mb-2 flex items-center gap-1.5"><UserCog className="w-3 h-3" /> Reassign owner</p>
+      <p className="text-[10px] text-[var(--app-text-muted)] mb-2">Overrides the domain default for this card only.</p>
       <div className="space-y-1">
         <button
           onClick={() => pick(null)}
           disabled={saving}
-          className="w-full text-xs px-2 py-1.5 rounded-lg font-semibold text-left flex items-center gap-2 transition-colors hover:bg-slate-100"
+          className="w-full text-xs px-2 py-1.5 rounded-lg font-semibold text-left flex items-center gap-2 transition-colors hover:bg-[var(--app-surface-raised)]"
           style={{ color: '#64748b', background: currentUserId === null ? 'rgba(100,116,139,0.08)' : 'transparent' }}
         >
-          <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-500">—</span>
+          <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold text-[var(--app-text-muted)]">—</span>
           Use domain default
         </button>
         {members.map(m => (
@@ -1122,12 +1122,12 @@ function ReassignPopover({ anchorEl, members, currentUserId, onReassign, wsId, o
             key={m.user_id}
             onClick={() => pick(m.user_id)}
             disabled={saving}
-            className="w-full text-xs px-2 py-1.5 rounded-lg font-semibold text-left flex items-center gap-2 transition-colors hover:bg-slate-100"
+            className="w-full text-xs px-2 py-1.5 rounded-lg font-semibold text-left flex items-center gap-2 transition-colors hover:bg-[var(--app-surface-raised)]"
             style={{ color: '#334155', background: currentUserId === m.user_id ? 'rgba(37,99,235,0.08)' : 'transparent' }}
           >
             {m.avatar_url
               ? <img src={m.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
-              : <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold text-slate-600 flex-shrink-0">{(m.full_name || m.username || 'M')[0].toUpperCase()}</span>}
+              : <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold text-[var(--app-text-secondary)] flex-shrink-0">{(m.full_name || m.username || 'M')[0].toUpperCase()}</span>}
             <span className="truncate">{m.full_name || m.username || 'Member'}</span>
           </button>
         ))}
@@ -1151,12 +1151,12 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
 
   return (
     <div
-      className={`relative group rounded-2xl transition-all duration-150 border shadow-sm ${
+      className={`relative group rounded-none transition-all duration-150 border  ${
         isDragging
           ? '!border-transparent !shadow-none'
           : isMobile
-            ? 'border-slate-200 active:scale-[0.98] active:bg-slate-50 active:border-slate-300'
-            : 'border-slate-200 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300'
+            ? 'border-[var(--app-border)] active:scale-[0.98] active:bg-[var(--app-bg)] active:border-slate-300'
+            : 'border-[var(--app-border)] hover: hover:-translate-y-0.5 hover:border-slate-300'
       }`}
       style={{
         background: '#fff',
@@ -1180,12 +1180,12 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
           <GripVertical className="w-3.5 h-3.5 flex-shrink-0 mt-1 opacity-0 group-hover:opacity-40 transition-opacity" style={{ color: '#64748b' }} />
 
           <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: isSlack ? 'rgba(74,21,75,0.09)' : isExpired ? 'rgba(100,116,139,0.1)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
-            {isSlack ? <MessageSquare className="w-3.5 h-3.5" style={{ color: '#4a154b' }} /> : <Lock className={`w-3.5 h-3.5 ${isExpired ? 'text-slate-400' : 'text-white'}`} />}
+            {isSlack ? <MessageSquare className="w-3.5 h-3.5" style={{ color: '#4a154b' }} /> : <Lock className={`w-3.5 h-3.5 ${isExpired ? 'text-[var(--app-text-muted)]' : 'text-white'}`} />}
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className={`text-sm font-bold leading-snug ${isExpired ? 'text-slate-400' : 'text-slate-800'}`}>{ws.name}</p>
-            {ws.description && <p className="text-xs text-slate-600 leading-snug mt-0.5 line-clamp-2">{ws.description}</p>}
+            <p className={`text-sm font-bold leading-snug ${isExpired ? 'text-[var(--app-text-muted)]' : 'text-slate-800'}`}>{ws.name}</p>
+            {ws.description && <p className="text-xs text-[var(--app-text-secondary)] leading-snug mt-0.5 line-clamp-2">{ws.description}</p>}
           </div>
 
           {isOwnerOrAdmin && !isSlack && (
@@ -1195,8 +1195,8 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
                 onClick={e => { e.stopPropagation(); setLinking(v => !v); setEditing(false); }}
                 className={`flex items-center justify-center rounded-lg transition-colors ${
                   isMobile
-                    ? 'w-9 h-9 opacity-70 active:bg-slate-100'
-                    : 'w-7 h-7 opacity-0 group-hover:opacity-100 hover:bg-slate-100'
+                    ? 'w-9 h-9 opacity-70 active:bg-[var(--app-surface-raised)]'
+                    : 'w-7 h-7 opacity-0 group-hover:opacity-100 hover:bg-[var(--app-surface-raised)]'
                 }`
                 }
                 style={{ color: linking ? '#1d4ed8' : '#64748b' }}
@@ -1221,8 +1221,8 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
                 onClick={e => { e.stopPropagation(); setEditing(v => !v); setLinking(false); }}
                 className={`flex items-center justify-center rounded-lg transition-colors ${
                   isMobile
-                    ? 'w-9 h-9 opacity-70 active:bg-slate-100 text-slate-500'
-                    : 'w-7 h-7 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                    ? 'w-9 h-9 opacity-70 active:bg-[var(--app-surface-raised)] text-[var(--app-text-muted)]'
+                    : 'w-7 h-7 opacity-0 group-hover:opacity-100 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-raised)]'
                 }`}
               >
                 <Pencil className="w-3.5 h-3.5" />
@@ -1248,8 +1248,8 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
             <div className="flex items-center gap-1 ml-auto" title={`Owner: ${ownerInfo.name}`}>
               {ownerInfo.avatarUrl
                 ? <img src={ownerInfo.avatarUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
-                : <span className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[7px] font-bold text-slate-600">{ownerInfo.name[0].toUpperCase()}</span>}
-              <span className="text-[10px] font-semibold text-slate-600">{ownerInfo.name}</span>
+                : <span className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-[7px] font-bold text-[var(--app-text-secondary)]">{ownerInfo.name[0].toUpperCase()}</span>}
+              <span className="text-[10px] font-semibold text-[var(--app-text-secondary)]">{ownerInfo.name}</span>
             </div>
           )}
         </div>
@@ -1266,7 +1266,7 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
               {healthScore !== null ? healthScore : '—'}
             </span>
           </div>
-          <div className="flex items-center gap-1 text-slate-600">
+          <div className="flex items-center gap-1 text-[var(--app-text-secondary)]">
             <Users className="w-3 h-3" />
             <span className="text-[10px] font-semibold">{memberCount}</span>
           </div>
@@ -1286,8 +1286,8 @@ function DecisionCard({ ws, healthScore, memberCount, linkCount, isDragging, all
               onClick={e => { e.stopPropagation(); setReassigning(v => !v); setEditing(false); setLinking(false); }}
               className={`flex items-center justify-center rounded-lg transition-colors ${
                 isMobile
-                  ? 'w-9 h-9 opacity-70 active:bg-slate-100'
-                  : 'w-7 h-7 opacity-0 group-hover:opacity-100 hover:bg-slate-100'
+                  ? 'w-9 h-9 opacity-70 active:bg-[var(--app-surface-raised)]'
+                  : 'w-7 h-7 opacity-0 group-hover:opacity-100 hover:bg-[var(--app-surface-raised)]'
               }`}
               style={{ color: reassigning ? '#1d4ed8' : '#64748b' }}
               title="Reassign owner"

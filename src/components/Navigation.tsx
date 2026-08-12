@@ -202,7 +202,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 <button
                   onClick={() => handleNavigate('admin')}
                   title={collapsed ? 'Admin Panel' : undefined}
-                  className="w-full flex items-center rounded-xl text-sm font-medium transition-all duration-150"
+                  className="w-full flex items-center rounded-none text-sm font-medium transition-all duration-150"
                   style={{
                     gap: collapsed ? 0 : '0.75rem',
                     padding: collapsed ? '0.625rem' : '0.625rem 0.75rem',
@@ -233,7 +233,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     onClick={() => handleNavigate('profile')}
                     aria-label="Account Settings"
                     title="Account Settings"
-                    className="flex-1 flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+                    className="flex-1 flex items-center gap-3 px-2 py-2 rounded-none text-sm font-medium transition-all duration-150"
                     style={{ color: activeId === 'profile' ? 'var(--signal)' : 'rgba(148,163,184,0.85)', background: activeId === 'profile' ? 'var(--signal-bg)' : '' }}
                     onMouseEnter={e => { if (activeId !== 'profile') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
                     onMouseLeave={e => { if (activeId !== 'profile') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
@@ -244,7 +244,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 </div>
                 <button
                   onClick={() => handleNavigate('pricing')}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-none text-sm font-medium transition-all duration-150"
                   style={{ color: activeId === 'pricing' ? '#93c5fd' : 'rgba(148,163,184,0.85)', background: activeId === 'pricing' ? 'rgba(37,99,235,0.18)' : '' }}
                   onMouseEnter={e => { if (activeId !== 'pricing') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
                   onMouseLeave={e => { if (activeId !== 'pricing') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
@@ -254,7 +254,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 </button>
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-none text-sm font-medium transition-all duration-150"
                   style={{ color: 'rgba(148,163,184,0.85)' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; }}
@@ -262,7 +262,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   {theme === 'dark' ? <Sun className="w-4 h-4 flex-shrink-0" strokeWidth={2} /> : <Moon className="w-4 h-4 flex-shrink-0" strokeWidth={2} />}
                   <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
                 </button>
-                <div className="flex items-center gap-3 p-3 rounded-xl mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <div className="flex items-center gap-3 p-3 rounded-none mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
                   <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-xs font-black" style={{ background: 'var(--signal)', color: 'var(--ink-950)' }}>
                     {initials}
                   </div>
@@ -290,7 +290,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 <button
                   onClick={() => handleNavigate('profile')}
                   title="Account Settings"
-                  className="w-9 h-9 flex items-center justify-center rounded-xl transition-all"
+                  className="w-9 h-9 flex items-center justify-center rounded-none transition-all"
                   style={{ color: activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.6)', background: activeId === 'profile' ? 'rgba(37,99,235,0.18)' : '' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = activeId === 'profile' ? 'rgba(37,99,235,0.18)' : ''; (e.currentTarget as HTMLElement).style.color = activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.6)'; }}
@@ -300,14 +300,14 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl transition-all"
+                  className="w-9 h-9 flex items-center justify-center rounded-none transition-all"
                   style={{ color: 'rgba(148,163,184,0.6)' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.6)'; }}
                 >
                   {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </button>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <div className="w-9 h-9 rounded-none flex items-center justify-center mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
                   <button
                     onClick={() => setShowLogoutConfirm(true)}
                     disabled={isSigningOut}
@@ -389,7 +389,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                         role="listitem"
                         onClick={() => handleNavigate(item.id)}
                         aria-current={isActive ? 'page' : undefined}
-                        className="relative flex items-center gap-2 h-9 px-3 rounded-xl transition-all duration-200"
+                        className="relative flex items-center gap-2 h-9 px-3 rounded-none transition-all duration-200"
                         style={isActive ? {
                           background: 'var(--signal-bg)',
                           color: 'var(--signal)',
@@ -416,7 +416,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                    className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200"
+                    className="flex items-center justify-center w-9 h-9 rounded-none transition-all duration-200"
                     style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)'; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#fbbf24' : '#d97706'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#71717a' : '#64748b'; }}
@@ -426,7 +426,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   <button
                     onClick={() => onNavigate('profile')}
                     aria-label="Account settings"
-                    className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200"
+                    className="flex items-center justify-center w-9 h-9 rounded-none transition-all duration-200"
                     style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)'; (e.currentTarget as HTMLElement).style.color = '#2563eb'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#71717a' : '#64748b'; }}
@@ -437,7 +437,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     onClick={() => setShowLogoutConfirm(true)}
                     disabled={isSigningOut}
                     aria-label="Sign out"
-                    className="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 disabled:opacity-50"
+                    className="flex items-center justify-center w-9 h-9 rounded-none transition-all duration-200 disabled:opacity-50"
                     style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)'; (e.currentTarget as HTMLElement).style.color = '#ef4444'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#71717a' : '#64748b'; }}
@@ -449,7 +449,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onNavigate('slack')}
-                    className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-600 text-sm font-semibold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"
+                    className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-none text-[var(--app-text-secondary)] text-sm font-semibold border border-[var(--app-border)] hover:border-slate-300 hover:bg-[var(--app-bg)] transition-all"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
                     Slack
@@ -458,19 +458,19 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     href="https://chromewebstore.google.com/detail/poddle-lens/pdcllidghoikeoamjebjgdlgjaccfmmn"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-600 text-sm font-semibold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"
+                    className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-none text-[var(--app-text-secondary)] text-sm font-semibold border border-[var(--app-border)] hover:border-slate-300 hover:bg-[var(--app-bg)] transition-all"
                   >
                     Poddle Lens
                   </a>
                   <button
                     onClick={() => onNavigate('auth')}
-                    className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-slate-600 text-sm font-semibold border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all"
+                    className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-none text-[var(--app-text-secondary)] text-sm font-semibold border border-[var(--app-border)] hover:border-slate-300 hover:bg-[var(--app-bg)] transition-all"
                   >
                     Sign in
                   </button>
                   <button
                     onClick={() => onNavigate('auth')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all hover:-translate-y-px"
+                    className="flex items-center gap-2 px-4 py-2 rounded-none text-white text-sm font-bold transition-all hover:-translate-y-px"
                     style={{ background: 'var(--signal)', boxShadow: '0 4px 10px rgba(184,134,11,0.25)' }}
                   >
                     <Sparkles className="w-3.5 h-3.5" />
@@ -587,7 +587,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(8px)' }}
         >
           <div
-            className="rounded-2xl max-w-sm w-full p-6"
+            className="rounded-none max-w-sm w-full p-6"
             style={{
               background: theme === 'dark' ? '#18181b' : '#fff',
               boxShadow: '0 24px 64px rgba(15,23,42,0.2)',
@@ -595,7 +595,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
             }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,0.1)' }}>
+              <div className="w-11 h-11 rounded-none flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,0.1)' }}>
                 <LogOut className="w-5 h-5 text-red-600" />
               </div>
               <div>
@@ -607,7 +607,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 disabled={isSigningOut}
-                className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 rounded-none font-semibold text-sm transition-colors disabled:opacity-50"
                 style={{
                   border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
                   color: theme === 'dark' ? '#a1a1aa' : '#334155',
@@ -621,7 +621,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
               <button
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="flex-1 px-4 py-2.5 text-white rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 text-white rounded-none font-semibold text-sm transition-all disabled:opacity-50"
                 style={{ background: 'linear-gradient(135deg,#dc2626,#ef4444)', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }}
               >
                 {isSigningOut ? 'Signing out…' : 'Sign Out'}

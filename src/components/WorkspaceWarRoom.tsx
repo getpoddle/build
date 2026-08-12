@@ -599,12 +599,12 @@ function RiskMatrix({ risks }: { risks: SynthesisData['risk_signals'] }) {
             return (
               <div key={i} className="absolute" style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)', zIndex: 10 }}
                 onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
-                <div className="w-6 h-6 rounded-full border-2 border-[var(--app-border)] shadow-md flex items-center justify-center cursor-pointer transition-transform hover:scale-125"
+                <div className="w-6 h-6 rounded-full border-2 border-[var(--app-border)]  flex items-center justify-center cursor-pointer transition-transform hover:scale-125"
                   style={{ background: color }}>
                   <span className="text-[var(--app-text-primary)] font-black" style={{ fontSize: '9px' }}>{i + 1}</span>
                 </div>
                 {hovered === i && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-[var(--app-surface-raised)] text-[var(--app-text-primary)] text-xs rounded-xl px-3 py-2 w-52 shadow-2xl z-20 pointer-events-none"
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-[var(--app-surface-raised)] text-[var(--app-text-primary)] text-xs rounded-none px-3 py-2 w-52 shadow-2xl z-20 pointer-events-none"
                     style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
                     <p className="font-bold mb-1 capitalize">{r.severity} · {r.category}</p>
                     <p className="leading-relaxed opacity-90">{r.signal}</p>
@@ -650,7 +650,7 @@ function FinancialMetricsPanel({ metrics, score, onDiscuss, discussedKeys = new 
         const sent = discussedKeys.has(key);
         return (
           <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(22,163,74,0.07)' : undefined, background: sent ? 'rgba(22,163,74,0.02)' : undefined }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--positive-bg)' }}>
+            <div className="w-8 h-8 rounded-none flex items-center justify-center flex-shrink-0" style={{ background: 'var(--positive-bg)' }}>
               <DollarSign className="w-4 h-4 text-green-600" />
             </div>
             <div className="flex-1 min-w-0">
@@ -658,7 +658,7 @@ function FinancialMetricsPanel({ metrics, score, onDiscuss, discussedKeys = new 
                 <span className="text-sm font-bold text-slate-800">{m.metric}</span>
                 <span className="text-xs font-bold px-1.5 py-0.5 rounded-full capitalize" style={{ background: cc.bg, color: cc.text }}>{m.confidence} confidence</span>
               </div>
-              <p className="text-sm font-semibold text-slate-700 mb-0.5">{m.value}</p>
+              <p className="text-sm font-semibold text-[var(--app-text-secondary)] mb-0.5">{m.value}</p>
               <p className="text-xs text-[var(--app-text-muted)] leading-relaxed">{m.note}</p>
             </div>
             {onDiscuss && (sent ? (
@@ -699,7 +699,7 @@ function OperationalMetricsPanel({ metrics, score, onDiscuss, discussedKeys = ne
         const sent = discussedKeys.has(key);
         return (
           <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(245,158,11,0.07)' : undefined, background: sent ? 'rgba(245,158,11,0.02)' : undefined }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--warning-bg)' }}>
+            <div className="w-8 h-8 rounded-none flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--warning-bg)' }}>
               <Settings className="w-4 h-4 text-amber-600" />
             </div>
             <div className="flex-1 min-w-0">
@@ -747,7 +747,7 @@ function NonFinancialMetricsPanel({ metrics, score, onDiscuss, discussedKeys = n
         const sent = discussedKeys.has(key);
         return (
           <div key={i} className="px-5 py-3.5 flex items-start gap-3" style={{ borderTop: i > 0 ? '1px solid rgba(37,99,235,0.07)' : undefined, background: sent ? 'rgba(37,99,235,0.02)' : undefined }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(37,99,235,0.07)' }}>
+            <div className="w-8 h-8 rounded-none flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(37,99,235,0.07)' }}>
               <BarChart3 className="w-4 h-4 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
@@ -796,7 +796,7 @@ function OpportunitySignalsPanel({ signals, onDiscuss, discussedKeys = new Set()
         return (
           <div key={i} className="px-5 py-4 flex items-start gap-3"
             style={{ borderTop: i > 0 ? '1px solid rgba(22,163,74,0.07)' : undefined, background: sent ? 'rgba(22,163,74,0.02)' : i % 2 === 1 ? 'rgba(22,163,74,0.015)' : undefined }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(22,163,74,0.12)' }}>
+            <div className="w-8 h-8 rounded-none flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(22,163,74,0.12)' }}>
               <Lightbulb className="w-4 h-4 text-green-600" />
             </div>
             <div className="flex-1 min-w-0">
@@ -858,13 +858,13 @@ function CognitiveBiasFlagsPanel({ flags, onDiscuss, discussedKeys = new Set(), 
         return (
           <div key={i} className="px-5 py-4" style={{ borderTop: i > 0 ? '1px solid rgba(245,158,11,0.08)' : undefined, background: sent ? 'rgba(245,158,11,0.03)' : 'rgba(245,158,11,0.02)' }}>
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,158,11,0.12)' }}>
+              <div className="w-8 h-8 rounded-none flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,158,11,0.12)' }}>
                 <AlertCircle className="w-4 h-4 text-amber-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-amber-800 mb-1">{f.bias_name}</p>
                 <p className="text-sm text-[var(--app-text-secondary)] leading-relaxed mb-3" style={{ lineHeight: '1.65' }}>{f.explanation}</p>
-                <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: 'var(--warning-bg)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <div className="rounded-none p-3 flex items-start gap-2" style={{ background: 'var(--warning-bg)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <HelpCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-amber-700 mb-0.5">Counter-question</p>
@@ -1309,14 +1309,14 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       </div>
 
       {error && (
-        <div className="p-3 rounded-xl text-sm text-red-700 font-medium" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+        <div className="p-3 rounded-none text-sm text-red-700 font-medium" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
           {error}
         </div>
       )}
 
       {/* ── Background synthesis in-progress banner ── */}
       {synthQueued && !generating && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium"
+        <div className="flex items-center gap-3 px-4 py-3 rounded-none text-sm font-medium"
           style={{ background: 'var(--signal-bg)', border: '1px solid', borderColor: 'rgba(184,134,11,0.3)' }}>
           <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" style={{ color: '#2563eb' }} />
           <span style={{ color: '#1e40af' }}>
@@ -1447,7 +1447,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             <span className="section-label" style={{ color: 'var(--signal)' }}>Conflict zones</span>
             <span className="text-xs hidden lg:inline ml-auto" style={{ color: 'var(--signal)' }}>Breakthroughs hide in disagreement</span>
           </div>
-          <div className="px-5 pt-4 pb-3 bg-white space-y-3">
+          <div className="px-5 pt-4 pb-3 bg-[var(--app-surface)] space-y-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-black uppercase tracking-widest text-[var(--app-text-muted)]">Tension Levels</span>
               <div className="flex items-center gap-3 text-[10px] font-semibold text-[var(--app-text-muted)]">
@@ -1478,14 +1478,14 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               );
             })}
           </div>
-          <div className="p-5 bg-white space-y-3 pt-2">
+          <div className="p-5 bg-[var(--app-surface)] space-y-3 pt-2">
             {synthesis.conflict_zones.map((z, i) => {
               const key = `conflict:${z.topic}`;
               const sent = discussedKeys.has(key);
               const commit = commits.find(c => c.conflict_topic === z.topic);
               const isPending = commitPending?.topic === z.topic;
               return (
-                <div key={i} className="rounded-xl p-4 transition-all"
+                <div key={i} className="rounded-none p-4 transition-all"
                   style={{ background: commit || sent ? 'rgba(22,163,74,0.04)' : 'rgba(245,158,11,0.04)', border: `1px solid ${commit || sent ? 'rgba(22,163,74,0.2)' : 'rgba(245,158,11,0.12)'}` }}>
                   <div className="flex items-center gap-2 mb-3 flex-wrap">
                     <span className="text-xs font-black text-amber-700 uppercase tracking-wide">{z.topic}</span>
@@ -1522,7 +1522,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                         {(z.participant_type === 'human' || z.participant_type === 'mixed') ? <Users className="w-3 h-3 text-emerald-600 flex-shrink-0" /> : <Bot className="w-3 h-3 text-blue-600 flex-shrink-0" />}
                         <p className={`text-xs font-bold truncate ${z.participant_type === 'human' || z.participant_type === 'mixed' ? 'text-emerald-700' : 'text-blue-700'}`}>{formatAgentName(z.agent_a)}</p>
                       </div>
-                      <p className="text-xs text-slate-700 leading-relaxed">{z.position_a}</p>
+                      <p className="text-xs text-[var(--app-text-secondary)] leading-relaxed">{z.position_a}</p>
                     </div>
                     <div className="rounded-lg p-3" style={
                       z.participant_type === 'human'
@@ -1532,7 +1532,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                         {z.participant_type === 'human' ? <Users className="w-3 h-3 text-amber-600 flex-shrink-0" /> : <Bot className="w-3 h-3 text-red-600 flex-shrink-0" />}
                         <p className={`text-xs font-bold truncate ${z.participant_type === 'human' ? 'text-amber-700' : 'text-red-700'}`}>{formatAgentName(z.agent_b)}</p>
                       </div>
-                      <p className="text-xs text-slate-700 leading-relaxed">{z.position_b}</p>
+                      <p className="text-xs text-[var(--app-text-secondary)] leading-relaxed">{z.position_b}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1571,7 +1571,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                   </div>
                   {isPending && (
                     <div className="mt-3 rounded-lg p-3 flex flex-col gap-2" style={{ background: 'rgba(22,163,74,0.05)', border: '1px solid rgba(22,163,74,0.15)' }}>
-                      <p className="text-xs font-bold text-slate-700">Which position does your team commit to?</p>
+                      <p className="text-xs font-bold text-[var(--app-text-secondary)]">Which position does your team commit to?</p>
                       <div className="flex gap-2 flex-wrap">
                         <button onClick={() => commitConflict(z.topic, 'a', z.position_a)}
                           className="flex-1 text-xs font-bold px-3 py-2 rounded-lg text-left transition-all hover:scale-105"
@@ -1603,7 +1603,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             <span className="text-sm font-bold text-blue-800">Unresolved questions</span>
             {onDiscuss && <span className="text-xs text-blue-400 ml-auto">Click to discuss with AI agents</span>}
           </div>
-          <div className="divide-y divide-blue-50 bg-white">
+          <div className="divide-y divide-blue-50 bg-[var(--app-surface)]">
             {synthesis.open_questions.map((q, i) => {
               const uc = URGENCY_COLORS[q.urgency] || URGENCY_COLORS.low;
               const key = `question:${q.question}`;
@@ -1657,14 +1657,14 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             <span className="text-sm font-bold" style={{ color: '#0e7490' }}>Blind spots</span>
             <span className="text-xs ml-auto" style={{ color: '#0891b2' }}>Topics you haven't considered yet</span>
           </div>
-          <div className="divide-y divide-cyan-50 bg-white">
+          <div className="divide-y divide-cyan-50 bg-[var(--app-surface)]">
             {synthesis.blind_spots.map((bs, i) => {
               const key = `blindspot:${bs.area}`;
               const sent = discussedKeys.has(key);
               return (
                 <div key={i} className="px-5 py-4 flex items-start gap-3 transition-all"
                   style={sent ? { background: 'rgba(22,163,74,0.03)' } : undefined}>
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                  <div className="w-8 h-8 rounded-none flex items-center justify-center flex-shrink-0"
                     style={{ background: sent ? 'rgba(22,163,74,0.1)' : 'rgba(8,145,178,0.1)' }}>
                     {sent ? <CheckCircle2 className="w-4 h-4" style={{ color: '#16a34a' }} /> : <Target className="w-4 h-4" style={{ color: '#0891b2' }} />}
                   </div>
@@ -1786,7 +1786,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               <Plus className="w-3 h-3" />Add Action
             </button>
           </div>
-          <div className="bg-white p-4">
+          <div className="bg-[var(--app-surface)] p-4">
             {addingAction && (
               <div className="mb-4 flex gap-2">
                 <input ref={addInputRef} type="text" value={newActionText} onChange={e => setNewActionText(e.target.value)}
@@ -1799,7 +1799,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                   style={{ padding: '0.5rem 0.875rem' }}>
                   {savingAction ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Add'}
                 </button>
-                <button onClick={() => setAddingAction(false)} className="px-3 py-2 rounded-xl text-xs text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]">
+                <button onClick={() => setAddingAction(false)} className="px-3 py-2 rounded-none text-xs text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)]">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -1815,7 +1815,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                   return (
                     <div
                       key={item.id}
-                      className="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md"
+                      className="bg-[var(--app-surface)] rounded-none p-4  transition-all hover:"
                       style={{
                         border: `1px solid ${isOutcomePromptOpen ? 'rgba(37,99,235,0.25)' : 'rgba(15,23,42,0.08)'}`,
                         borderLeft: `3px solid ${pc.dot}`,
@@ -1853,8 +1853,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                       </div>
                       {/* Outcome prompt */}
                       {isOutcomePromptOpen && (
-                        <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.15)' }}>
-                          <p className="text-xs font-bold text-slate-700 mb-2">Did this action succeed?</p>
+                        <div className="mb-3 rounded-none p-3" style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.15)' }}>
+                          <p className="text-xs font-bold text-[var(--app-text-secondary)] mb-2">Did this action succeed?</p>
                           <div className="grid grid-cols-2 gap-1.5 mb-2">
                             {OUTCOME_OPTIONS.map(opt => (
                               <button key={opt.value} onClick={() => recordOutcome(item.id, opt.value)}
@@ -1869,7 +1869,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                             value={outcomeNoteText}
                             onChange={e => setOutcomeNoteText(e.target.value)}
                             placeholder="Optional note (what happened?)"
-                            className="w-full text-xs px-2.5 py-1.5 rounded-lg border text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-300 mb-1.5"
+                            className="w-full text-xs px-2.5 py-1.5 rounded-lg border text-[var(--app-text-secondary)] placeholder-slate-400 focus:outline-none focus:border-blue-300 mb-1.5"
                             style={{ borderColor: 'rgba(37,99,235,0.2)' }}
                           />
                           <button onClick={dismissOutcomePrompt} className="text-xs text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors">
@@ -1914,10 +1914,10 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── Discuss All banner ── */}
       {onDiscuss && (synthesis.open_questions.length > 0 || synthesis.blind_spots.length > 0 || synthesis.conflict_zones.length > 0) && (
-        <div className="rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between"
+        <div className="rounded-none p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between"
           style={{ background: 'rgba(37,99,235,0.04)', border: '1px dashed rgba(37,99,235,0.2)' }}>
           <div>
-            <p className="text-sm font-bold text-slate-900">Ready to resolve what's outstanding?</p>
+            <p className="text-sm font-bold text-[var(--app-text-primary)]">Ready to resolve what's outstanding?</p>
             <p className="text-xs text-[var(--app-text-muted)] mt-0.5">Send all unresolved items to Multiplayer AI, then re-synthesize for updated intel.</p>
           </div>
           <button
@@ -1942,7 +1942,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(4px)' }}
           onClick={e => { if (e.target === e.currentTarget) setShowBoardSummary(false); }}>
-          <div className="w-full max-w-lg overflow-hidden" style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-xl)' }}>
+          <div className="w-full max-w-lg overflow-hidden" style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--)' }}>
             <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--app-border)', background: 'var(--app-surface)' }}>
               <div>
                 <p className="section-label mb-0.5">War Room</p>
@@ -1953,7 +1953,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
               </button>
             </div>
             <div className="p-6">
-              <pre className="text-xs leading-relaxed whitespace-pre-wrap font-mono rounded-xl p-4 max-h-80 overflow-y-auto"
+              <pre className="text-xs leading-relaxed whitespace-pre-wrap font-mono rounded-none p-4 max-h-80 overflow-y-auto"
                 style={{ background: 'var(--app-border-subtle)', border: '1px solid var(--app-border)', color: 'var(--app-text-primary)' }}>
                 {buildBoardSummary()}
               </pre>
@@ -2008,11 +2008,11 @@ export function WarRoomLockedState({ onUpgrade }: { onUpgrade: () => void }) {
             <div className="w-24 h-24 rounded-full bg-slate-200" />
             <div className="space-y-2 flex-1">
               <div className="h-4 bg-slate-200 rounded w-48" />
-              <div className="h-3 bg-slate-100 rounded w-72" />
-              <div className="h-3 bg-slate-100 rounded w-56" />
+              <div className="h-3 bg-[var(--app-surface-raised)] rounded w-72" />
+              <div className="h-3 bg-[var(--app-surface-raised)] rounded w-56" />
             </div>
           </div>
-          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-100 rounded-2xl" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-[var(--app-surface-raised)] rounded-none" />)}
         </div>
       </div>
           <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(240,243,247,0.94)', backdropFilter: 'blur(4px)' }}>

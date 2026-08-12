@@ -980,13 +980,13 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         <img
           src={avatarUrl}
           alt={name}
-          className="w-8 h-8 rounded-xl object-cover flex-shrink-0"
+          className="w-8 h-8 rounded-none object-cover flex-shrink-0"
         />
       );
     }
     return (
       <div
-        className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-bold"
+        className="w-8 h-8 rounded-none flex items-center justify-center flex-shrink-0 text-xs font-bold"
         style={{ background: colors.bg, color: colors.text }}
       >
         {initials}
@@ -1025,7 +1025,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         {messages.length > 0 && (
           <button
             onClick={() => exportChatToPDF(messages, workspaceName, workspaceTopic)}
-            className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-slate-700 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors"
             style={{ background: 'rgba(15,23,42,0.05)' }}
             title="Export discussion as PDF"
           >
@@ -1034,7 +1034,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         )}
         <button
           onClick={() => { loadMessages(); loadMemberProfiles(); }}
-          className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full text-slate-500 hover:text-slate-700 transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition-colors"
           style={{ background: 'rgba(15,23,42,0.05)' }}
         >
           <RefreshCw className="w-3 h-3" /> Refresh
@@ -1050,7 +1050,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       >
         {priorContextCount > 0 && messages.length <= 4 && (
           <div
-            className="rounded-xl border text-xs overflow-hidden transition-all"
+            className="rounded-none border text-xs overflow-hidden transition-all"
             style={{
               background: 'var(--app-surface-raised)',
               borderColor: 'var(--app-border)',
@@ -1107,7 +1107,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                     key={s.label}
                     onClick={() => { setInput(s.prompt); textareaRef.current?.focus(); }}
                     className="w-full flex items-start gap-3 p-3 text-left transition-all hover:scale-[1.02]"
-                    style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--shadow-sm)' }}
+                    style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', boxShadow: 'var(--)' }}
                   >
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}>
                       <Icon className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
@@ -1129,7 +1129,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                 onChange={adjustTextarea}
                 onKeyDown={handleKeyDown}
                 placeholder="Describe the decision you need help with…"
-                className="w-full text-sm resize-none rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 transition-all"
+                className="w-full text-sm resize-none rounded-none px-3 py-2.5 focus:outline-none focus:ring-2 transition-all"
                 style={{
                   background: 'rgba(15,23,42,0.03)',
                   border: '1px solid rgba(15,23,42,0.1)',
@@ -1185,7 +1185,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       >
                         {senderName}
                       </span>
-                      <span className="text-[10px] text-slate-400">{formatMessageTime(msg.created_at)}</span>
+                      <span className="text-[10px] text-[var(--app-text-muted)]">{formatMessageTime(msg.created_at)}</span>
                     </div>
                     <div
                       className="px-4 py-3"
@@ -1220,7 +1220,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               return (
                 <div key={msg.id}>
                   {dateDivider}
-                  <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(15,23,42,0.12)', background: 'rgba(15,23,42,0.02)' }}>
+                  <div className="rounded-none overflow-hidden" style={{ border: '1px solid rgba(15,23,42,0.12)', background: 'rgba(15,23,42,0.02)' }}>
                     <div className="px-4 py-2.5 flex items-center gap-2" style={{ background: 'rgba(15,23,42,0.05)', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>
                       <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: '#0f172a' }}>
                         <span className="text-white font-black" style={{ fontSize: '8px', letterSpacing: '0.02em' }}>C</span>
@@ -1242,7 +1242,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                 {dateDivider}
                 <div className="flex items-start gap-3">
                   <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 flex-none"
+                    className="w-8 h-8 rounded-none flex items-center justify-center flex-shrink-0 flex-none"
                     style={{ background: colors.text, border: `1px solid ${colors.border}` }}
                   >
                     <span className="text-white font-black" style={{ fontSize: '10px', letterSpacing: '0.02em' }}>{abbr}</span>
@@ -1250,13 +1250,13 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                   <div className="max-w-[85%]">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-xs font-bold agent-name-text" style={{ '--agent-color': colors.text } as React.CSSProperties}>{msg.agent_name}</p>
-                      <span className="text-[10px] text-slate-400">{formatMessageTime(msg.created_at)}</span>
+                      <span className="text-[10px] text-[var(--app-text-muted)]">{formatMessageTime(msg.created_at)}</span>
                       {phase === 'challenge' && (
                         <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: 'rgba(234,88,12,0.1)', color: '#c2410c' }}>challenges</span>
                       )}
                     </div>
                     <div
-                      className="rounded-2xl rounded-tl-md px-4 py-3 overflow-hidden"
+                      className="rounded-none rounded-tl-md px-4 py-3 overflow-hidden"
                       style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--app-text-primary)' }}>{msg.content}</p>
@@ -1272,17 +1272,17 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
         {loading && (
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(15,23,42,0.05)' }}>
-              <Bot className="w-4 h-4 text-slate-400" />
+            <div className="w-8 h-8 rounded-none flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(15,23,42,0.05)' }}>
+              <Bot className="w-4 h-4 text-[var(--app-text-muted)]" />
             </div>
-            <div className="rounded-2xl px-4 py-3" style={{ background: 'rgba(15,23,42,0.05)' }}>
+            <div className="rounded-none px-4 py-3" style={{ background: 'rgba(15,23,42,0.05)' }}>
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-xs font-semibold text-slate-500">War Room in session</span>
+                <span className="text-xs font-semibold text-[var(--app-text-muted)]">War Room in session</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {(['R1: Independent analysis', 'R2: Cross-challenge']).map((phase, i) => (
@@ -1309,7 +1309,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       {showScrollBtn && (
         <button
           onClick={() => scrollToBottom()}
-          className="absolute bottom-20 right-4 lg:bottom-24 lg:right-6 w-8 h-8 flex items-center justify-center shadow-lg transition-all hover:opacity-80 z-10"
+          className="absolute bottom-20 right-4 lg:bottom-24 lg:right-6 w-8 h-8 flex items-center justify-center  transition-all hover:opacity-80 z-10"
           style={{ background: 'var(--app-surface-raised)', border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
         >
           <ChevronDown className="w-4 h-4" />
@@ -1322,7 +1322,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           {recordingUsers.size > 0 && (
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-[var(--app-text-muted)]">
                 {Array.from(recordingUsers.values()).join(', ')} {recordingUsers.size === 1 ? 'is' : 'are'} recording a voice note…
               </span>
             </div>
@@ -1334,7 +1334,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-[var(--app-text-muted)]">
                 {Array.from(typingUsers.values()).join(', ')} {typingUsers.size === 1 ? 'is' : 'are'} typing…
               </span>
             </div>
@@ -1353,10 +1353,10 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             >
               <FileText className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
               <span className="text-xs font-semibold truncate flex-1" style={{ color: 'var(--app-text-primary)' }}>{doc.filename}</span>
-              <span className="text-xs text-slate-400 flex-shrink-0">{formatBytes(doc.size)} · {doc.wordCount.toLocaleString()} words</span>
+              <span className="text-xs text-[var(--app-text-muted)] flex-shrink-0">{formatBytes(doc.size)} · {doc.wordCount.toLocaleString()} words</span>
               <button
                 onClick={() => removeDoc(doc.filename)}
-                className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md text-[var(--app-text-muted)] hover:text-red-500 hover:bg-red-50 transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -1365,17 +1365,17 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           {docUploading.map(name => (
             <div
               key={name}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-none"
               style={{ background: 'rgba(15,23,42,0.03)', border: '1px solid rgba(15,23,42,0.08)' }}
             >
               <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 flex-shrink-0" />
-              <span className="text-xs text-slate-500 truncate">Extracting {name}…</span>
+              <span className="text-xs text-[var(--app-text-muted)] truncate">Extracting {name}…</span>
             </div>
           ))}
           {Object.entries(docErrors).map(([name, msg]) => (
             <div
               key={name}
-              className="flex items-start gap-2 px-3 py-2 rounded-xl"
+              className="flex items-start gap-2 px-3 py-2 rounded-none"
               style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}
             >
               <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -1390,8 +1390,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           ))}
           {chatDocuments.length > 0 && (
             <div className="flex items-center gap-1.5 px-1">
-              <Shield className="w-3 h-3 text-slate-400 flex-shrink-0" />
-              <p className="text-xs text-slate-400">Documents are used for this session only and are not stored.</p>
+              <Shield className="w-3 h-3 text-[var(--app-text-muted)] flex-shrink-0" />
+              <p className="text-xs text-[var(--app-text-muted)]">Documents are used for this session only and are not stored.</p>
             </div>
           )}
         </div>
@@ -1399,7 +1399,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
       {/* Error banner */}
       {sendError && (
-        <div className="mt-2 flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm" style={{ background: 'rgba(254,226,226,0.9)', border: '1px solid #fca5a5', color: '#7f1d1d' }}>
+        <div className="mt-2 flex items-start gap-2 rounded-none px-3 py-2.5 text-sm" style={{ background: 'rgba(254,226,226,0.9)', border: '1px solid #fca5a5', color: '#7f1d1d' }}>
           <span className="flex-1">{sendError}</span>
           <button onClick={() => setSendError(null)} className="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors">✕</button>
         </div>
@@ -1414,7 +1414,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           /* Transcribing overlay */
           <div className="flex-1 flex items-center gap-2.5 py-1">
             <Loader2 className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" />
-            <span className="text-sm text-slate-500 font-medium">Transcribing your thoughts…</span>
+            <span className="text-sm text-[var(--app-text-muted)] font-medium">Transcribing your thoughts…</span>
           </div>
         ) : isRecording ? (
           /* Waveform visualiser — canvas when AnalyserNode is available, animated bars on iOS */
@@ -1444,7 +1444,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                 ))}
               </div>
             )}
-            <span className="text-xs font-semibold text-slate-500 flex-shrink-0">REC</span>
+            <span className="text-xs font-semibold text-[var(--app-text-muted)] flex-shrink-0">REC</span>
           </div>
         ) : (
           /* Normal textarea */
@@ -1468,10 +1468,10 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               onClick={() => docInputRef.current?.click()}
               disabled={loading}
               title="Attach PDF or DOCX document"
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:scale-105"
+              className="w-9 h-9 rounded-none flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:scale-105"
               style={{ background: 'rgba(15,23,42,0.06)', border: '1.5px solid rgba(15,23,42,0.1)' }}
             >
-              <Paperclip className="w-4 h-4 text-slate-500" />
+              <Paperclip className="w-4 h-4 text-[var(--app-text-muted)]" />
             </button>
             <input
               ref={docInputRef}
@@ -1501,7 +1501,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                   ? 'Stop recording'
                   : 'Record voice message'
             }
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:scale-105"
+            className="w-9 h-9 rounded-none flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-40 hover:scale-105"
             style={isRecording
               ? { background: 'rgba(220,38,38,0.1)', border: '1.5px solid rgba(220,38,38,0.4)', boxShadow: '0 0 0 3px rgba(220,38,38,0.12)' }
               : micBlocked
@@ -1511,7 +1511,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           >
             {isRecording
               ? <Square className="w-3.5 h-3.5 text-red-600" />
-              : <Mic className={`w-4 h-4 ${micBlocked ? 'text-red-400' : 'text-slate-500'}`} />
+              : <Mic className={`w-4 h-4 ${micBlocked ? 'text-red-400' : 'text-[var(--app-text-muted)]'}`} />
             }
           </button>
         )}
@@ -1534,16 +1534,16 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       {/* Mic blocked banner — persistent, actionable */}
       {(micBlocked || recordingError === 'blocked') && (
         <div
-          className="mt-2 rounded-xl px-3.5 py-2.5 flex items-start gap-2.5"
+          className="mt-2 rounded-none px-3.5 py-2.5 flex items-start gap-2.5"
           style={{ background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.18)' }}
         >
           <Mic className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
           <div className="min-w-0">
             <p className="text-xs font-semibold text-red-700 leading-snug">Microphone access is blocked</p>
-            <p className="text-xs text-slate-500 mt-0.5 leading-snug">
+            <p className="text-xs text-[var(--app-text-muted)] mt-0.5 leading-snug">
               Your browser has blocked mic access for this site. To fix it:
             </p>
-            <ol className="text-xs text-slate-600 mt-1 space-y-0.5 list-decimal list-inside leading-snug">
+            <ol className="text-xs text-[var(--app-text-secondary)] mt-1 space-y-0.5 list-decimal list-inside leading-snug">
               <li>Click the <strong>lock / info icon</strong> in your browser's address bar</li>
               <li>Find <strong>Microphone</strong> and change it to <strong>Allow</strong></li>
               <li>Reload the page and try again</li>
@@ -1551,7 +1551,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
           </div>
           <button
             onClick={() => { setMicBlocked(false); setRecordingError(null); }}
-            className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition p-0.5"
+            className="flex-shrink-0 text-[var(--app-text-muted)] hover:text-[var(--app-text-secondary)] transition p-0.5"
           >
             <span className="sr-only">Dismiss</span>
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -1562,7 +1562,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       {!micBlocked && recordingError && recordingError !== 'blocked' ? (
         <p className="text-center text-xs text-red-500 mt-1.5">{recordingError}</p>
       ) : !micBlocked && (
-        <p className="hidden lg:block text-center text-xs text-slate-400 mt-1.5">
+        <p className="hidden lg:block text-center text-xs text-[var(--app-text-muted)] mt-1.5">
           {isRecording ? 'Recording… tap the stop button when done' : 'Press Enter to send · Shift+Enter for new line'}
         </p>
       )}
