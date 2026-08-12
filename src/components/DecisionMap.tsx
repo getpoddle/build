@@ -941,6 +941,10 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
                 onLinked={handleLinked}
                 onUnlinked={handleUnlinked}
                 cardRefs={cardRefs}
+                getOwnerFor={getOwnerFor}
+                canOwn={canOwn}
+                workspaceMembers={workspaceMembers}
+                onReassign={handleReassign}
               />
             );
           })}
@@ -987,9 +991,13 @@ interface MobileStatusSectionProps {
   onLinked: (link: DecisionLink) => void;
   onUnlinked: (linkId: string) => void;
   cardRefs: React.MutableRefObject<Map<string, HTMLElement>>;
+  getOwnerFor: (ws: MapWorkspace) => { userId: string | null; name: string; avatarUrl: string | null } | null;
+  canOwn: boolean;
+  workspaceMembers: Record<string, MemberProfile[]>;
+  onReassign: (wsId: string, userId: string | null) => void;
 }
 
-function MobileStatusSection({ status: s, workspaces: col, healthScores, memberCounts, links, allWorkspaces, onNavigate, onMetaUpdated, onLinked, onUnlinked, cardRefs }: MobileStatusSectionProps) {
+function MobileStatusSection({ status: s, workspaces: col, healthScores, memberCounts, links, allWorkspaces, onNavigate, onMetaUpdated, onLinked, onUnlinked, cardRefs, getOwnerFor, canOwn, workspaceMembers, onReassign }: MobileStatusSectionProps) {
   const [open, setOpen] = useState(col.length > 0);
 
   useEffect(() => {
@@ -1044,10 +1052,10 @@ function MobileStatusSection({ status: s, workspaces: col, healthScores, memberC
                   onLinked={onLinked}
                   onUnlinked={onUnlinked}
                   isMobile
-                  ownerInfo={null}
-                  canReassign={false}
-                  reassignMembers={[]}
-                  onReassign={() => {}}
+                  ownerInfo={getOwnerFor(ws)}
+                  canReassign={canOwn && (ws.role === 'owner' || ws.role === 'admin')}
+                  reassignMembers={workspaceMembers[ws.id] ?? []}
+                  onReassign={onReassign}
                 />
               </div>
             ))
