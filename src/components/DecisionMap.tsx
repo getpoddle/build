@@ -496,7 +496,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
   const [overrideOwners, setOverrideOwners] = useState<Record<string, string | null>>({});
   const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberProfile>>({});
   const [workspaceMembers, setWorkspaceMembers] = useState<Record<string, MemberProfile[]>>({});
-  const canOwn = tier === 'business' || tier === 'enterprise';
+  const canOwn = tier === 'pro' || tier === 'team' || tier === 'business' || tier === 'enterprise';
 
   // Drag state
   const [draggingId, setDraggingId] = useState<string | null>(null);
