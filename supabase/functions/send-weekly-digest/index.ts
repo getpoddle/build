@@ -90,7 +90,7 @@ function emailBase(content: string): string {
 }
 
 function buildEditorialEmail(recipientName: string, article: WeeklyArticle): string {
-  const articleUrl = `${APP_URL}/blog/${article.slug}`;
+  const articleUrl = `${APP_URL}/#/blog/${article.slug}`;
 
   // Extract the first <h2> as the lesson heading and first <p> as the hook
   const hookMatch = article.content.match(/<p[^>]*>([\s\S]*?)<\/p>/);
