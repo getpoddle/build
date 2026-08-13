@@ -300,13 +300,18 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
       if (snapshots.length > 0) {
         const workspaceIds = snapshots.map(s => s.workspace_id);
 
-        const [historyRes, outcomesRes] = await Promise.all([
+        const [historyRes, latestRes, outcomesRes] = await Promise.all([
           supabase
             .from('workspace_synthesis_history')
             .select('workspace_id, decision_health_score, generated_at')
             .in('workspace_id', workspaceIds)
             .order('generated_at', { ascending: true })
             .limit(40),
+          supabase
+            .from('workspace_synthesis')
+            .select('workspace_id, decision_health_score, generated_at')
+            .in('workspace_id', workspaceIds)
+            .order('generated_at', { ascending: true }),
           supabase
             .from('workspace_action_items')
             .select('outcome')
@@ -315,16 +320,26 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
             .not('outcome', 'is', null),
         ]);
 
-        if (historyRes.data && historyRes.data.length >= 2) {
-          const wsName: Record<string, string> = {};
-          for (const s of snapshots) wsName[s.workspace_id] = s.workspace_name;
-          setHealthHistory(
-            historyRes.data.map(h => ({
-              workspace_name: wsName[h.workspace_id] ?? 'Workspace',
-              score: h.decision_health_score,
-              date: h.generated_at,
-            }))
-          );
+        const wsName: Record<string, string> = {};
+        for (const s of snapshots) wsName[s.workspace_id] = s.workspace_name;
+
+        const historyPoints: HealthPoint[] = (historyRes.data ?? []).map(h => ({
+          workspace_name: wsName[h.workspace_id] ?? 'Workspace',
+          score: h.decision_health_score,
+          date: h.generated_at,
+        }));
+
+        const latestPoints: HealthPoint[] = (latestRes.data ?? []).map(h => ({
+          workspace_name: wsName[h.workspace_id] ?? 'Workspace',
+          score: h.decision_health_score,
+          date: h.generated_at,
+        }));
+
+        const merged = [...historyPoints, ...latestPoints]
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        if (merged.length >= 2) {
+          setHealthHistory(merged);
         }
 
         if (outcomesRes.data && outcomesRes.data.length > 0) {
