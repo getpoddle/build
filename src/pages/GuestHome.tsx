@@ -163,7 +163,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 
         <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-bold leading-[1.06] mb-5 text-white mx-auto max-w-3xl tracking-tight">
           Stress-test your business decisions before{' '}
-          <span style={{ background: 'linear-gradient(135deg,#4ade80,#22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+          <span style={{ background: 'linear-gradient(135deg,#60a5fa,#22d3ee)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             they become expensive mistakes
           </span>
         </h1>
