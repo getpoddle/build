@@ -34,43 +34,57 @@ export default function AppIcons() {
 
     if (!ctx) return;
 
-    // Background
-    ctx.fillStyle = '#2563eb';
-    ctx.fillRect(0, 0, size, size);
+    // Transparent background — mark stands on its own
+    ctx.clearRect(0, 0, size, size);
 
-    // Scale factor
-    const scale = size / 1024;
+    // Scale factor (mark viewBox is 100x100)
+    const scale = size / 100;
 
-    // Pod circles
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = '#60a5fa';
+    // Blue left chevron
+    ctx.fillStyle = '#0B4AA2';
     ctx.beginPath();
-    ctx.arc(512 * scale, 440 * scale, 160 * scale, 0, Math.PI * 2);
+    ctx.moveTo(8 * scale, 40 * scale);
+    ctx.lineTo(49 * scale, 12 * scale);
+    ctx.lineTo(58 * scale, 26 * scale);
+    ctx.lineTo(31 * scale, 44 * scale);
+    ctx.lineTo(58 * scale, 62 * scale);
+    ctx.lineTo(49 * scale, 76 * scale);
+    ctx.lineTo(8 * scale, 48 * scale);
+    ctx.closePath();
     ctx.fill();
 
-    ctx.globalAlpha = 0.8;
-    ctx.fillStyle = '#93c5fd';
+    // Gold right chevron
+    ctx.fillStyle = '#C7A95F';
     ctx.beginPath();
-    ctx.arc(400 * scale, 560 * scale, 120 * scale, 0, Math.PI * 2);
+    ctx.moveTo(92 * scale, 40 * scale);
+    ctx.lineTo(51 * scale, 12 * scale);
+    ctx.lineTo(42 * scale, 26 * scale);
+    ctx.lineTo(69 * scale, 44 * scale);
+    ctx.lineTo(42 * scale, 62 * scale);
+    ctx.lineTo(51 * scale, 76 * scale);
+    ctx.lineTo(92 * scale, 48 * scale);
+    ctx.closePath();
     ctx.fill();
 
+    // Inner blue diamond
+    ctx.fillStyle = '#0B4AA2';
     ctx.beginPath();
-    ctx.arc(624 * scale, 560 * scale, 120 * scale, 0, Math.PI * 2);
+    ctx.moveTo(43 * scale, 50 * scale);
+    ctx.lineTo(52 * scale, 37 * scale);
+    ctx.lineTo(61 * scale, 50 * scale);
+    ctx.lineTo(52 * scale, 63 * scale);
+    ctx.closePath();
     ctx.fill();
 
-    ctx.globalAlpha = 0.7;
-    ctx.fillStyle = '#dbeafe';
+    // Inner gold diamond
+    ctx.fillStyle = '#C7A95F';
     ctx.beginPath();
-    ctx.arc(512 * scale, 620 * scale, 95 * scale, 0, Math.PI * 2);
+    ctx.moveTo(39 * scale, 50 * scale);
+    ctx.lineTo(48 * scale, 37 * scale);
+    ctx.lineTo(57 * scale, 50 * scale);
+    ctx.lineTo(48 * scale, 63 * scale);
+    ctx.closePath();
     ctx.fill();
-
-    // Text "P"
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = 'white';
-    ctx.font = `bold ${420 * scale}px Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('P', 512 * scale, 512 * scale);
 
     // Download
     canvas.toBlob((blob) => {
@@ -99,13 +113,11 @@ export default function AppIcons() {
   };
 
   const downloadSVG = () => {
-    const svgContent = `<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1024" height="1024" fill="#2563eb"/>
-  <circle cx="512" cy="440" r="160" fill="#60a5fa" opacity="0.9"/>
-  <circle cx="400" cy="560" r="120" fill="#93c5fd" opacity="0.8"/>
-  <circle cx="624" cy="560" r="120" fill="#93c5fd" opacity="0.8"/>
-  <circle cx="512" cy="620" r="95" fill="#dbeafe" opacity="0.7"/>
-  <text x="512" y="512" font-family="Arial, sans-serif" font-size="420" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">P</text>
+    const svgContent = `<svg width="1024" height="1024" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M8 40 49 12l9 14-27 18 27 18-9 14L8 48V40Z" fill="#0B4AA2" />
+  <path d="m92 40-41-28-9 14 27 18-27 18 9 14 41-28v-8Z" fill="#C7A95F" />
+  <path d="m43 50 9-13 9 13-9 13-9-13Z" fill="#0B4AA2" />
+  <path d="m39 50 9-13 9 13-9 13-9-13Z" fill="#C7A95F" />
 </svg>`;
 
     const blob = new Blob([svgContent], { type: 'image/svg+xml' });

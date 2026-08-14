@@ -109,7 +109,9 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <PoddleMark size={28} />
-              <span className="text-white font-black text-lg tracking-tight">Poddle AI</span>
+              <span className="font-black text-lg tracking-tight">
+                <span style={{ color: '#60a5fa', fontWeight: 700 }}>Poddle</span><span style={{ color: '#d4a535', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+              </span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
               <button onClick={() => onNavigate('team')} className="hover:text-white transition-colors">Team</button>

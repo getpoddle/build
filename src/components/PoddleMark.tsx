@@ -14,17 +14,10 @@ export default function PoddleMark({ size = 36, className = '' }: PoddleMarkProp
       className={className}
       aria-hidden="true"
     >
-      {/* Top-right large bubble */}
-      <ellipse cx="60" cy="28" rx="26" ry="24" fill="#2563eb" />
-      <polygon points="52,48 44,62 62,48" fill="#2563eb" />
-
-      {/* Left medium bubble */}
-      <ellipse cx="34" cy="46" rx="22" ry="20" fill="#3b82f6" />
-      <polygon points="26,62 20,74 40,62" fill="#3b82f6" />
-
-      {/* Bottom-right small bubble */}
-      <ellipse cx="64" cy="64" rx="17" ry="15" fill="#60a5fa" />
-      <polygon points="58,76 54,86 68,76" fill="#60a5fa" />
+      <path d="M8 40 49 12l9 14-27 18 27 18-9 14L8 48V40Z" fill="#0B4AA2" />
+      <path d="m92 40-41-28-9 14 27 18-27 18 9 14 41-28v-8Z" fill="#C7A95F" />
+      <path d="m43 50 9-13 9 13-9 13-9-13Z" fill="#0B4AA2" />
+      <path d="m39 50 9-13 9 13-9 13-9-13Z" fill="#C7A95F" />
     </svg>
   );
 }

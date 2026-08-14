@@ -176,7 +176,9 @@ export default function Auth() {
         <div className="text-center mb-6 sm:mb-8">
           <div className="inline-flex items-center gap-2.5 mb-3 sm:mb-4 floating">
             <PoddleMark size={40} />
-            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight" style={{ color: 'var(--app-text-primary)' }}>Poddle AI</h1>
+            <h1 className="text-3xl sm:text-5xl font-bold tracking-tight" style={{ color: 'var(--app-text-primary)' }}>
+              <span style={{ color: '#0B4AA2', fontWeight: 700 }}>Poddle</span><span style={{ color: '#C7A95F', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+            </h1>
           </div>
           <p className="text-sm sm:text-base font-semibold" style={{ color: 'var(--app-text-secondary)' }}>
             Judgement infrastructure for high-stakes decisions

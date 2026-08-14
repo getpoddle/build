@@ -648,8 +648,8 @@ function AppContent() {
               <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
                 <CheckCircle className="w-8 h-8 text-white" />
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                Poddle AI
+              <h1 className="text-4xl font-bold tracking-tight">
+                <span style={{ color: '#0B4AA2', fontWeight: 700 }}>Poddle</span><span style={{ color: '#C7A95F', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
               </h1>
             </div>
           </div>
@@ -727,8 +727,8 @@ function AppContent() {
                   <Mail className="w-8 h-8 text-white" />
                 )}
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                Poddle AI
+              <h1 className="text-4xl font-bold tracking-tight">
+                <span style={{ color: '#0B4AA2', fontWeight: 700 }}>Poddle</span><span style={{ color: '#C7A95F', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
               </h1>
             </div>
           </div>

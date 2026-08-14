@@ -1,0 +1,10 @@
+<svg width="430" height="116" viewBox="0 0 430 116" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(0 8) scale(1 1)">
+    <path d="M8 40 49 12l9 14-27 18 27 18-9 14L8 48V40Z" fill="#0B4AA2"/>
+    <path d="m92 40-41-28-9 14 27 18-27 18 9 14 41-28v-8Z" fill="#C7A95F"/>
+    <path d="m43 50 9-13 9 13-9 13-9-13Z" fill="#0B4AA2"/>
+    <path d="m39 50 9-13 9 13-9 13-9-13Z" fill="#C7A95F"/>
+  </g>
+  <text x="112" y="82" fill="#0B4AA2" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="700" letter-spacing="-2">Poddle</text>
+  <text x="322" y="82" fill="#C7A95F" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="400" letter-spacing="-2">AI</text>
+</svg>

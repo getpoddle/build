@@ -137,7 +137,9 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           >
             <PoddleMark size={28} className="flex-shrink-0" />
             {!collapsed && (
-              <span className="text-base font-black text-white tracking-tight whitespace-nowrap overflow-hidden">Poddle AI</span>
+              <span className="text-base font-black tracking-tight whitespace-nowrap overflow-hidden">
+                <span style={{ color: '#60a5fa', fontWeight: 700 }}>Poddle</span><span style={{ color: '#d4a535', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+              </span>
             )}
             {/* Collapse toggle */}
             {onToggleCollapsed && (
@@ -361,7 +363,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   className="text-[15px] font-black tracking-tight"
                   style={{ color: theme === 'dark' ? '#f4f4f5' : '#0f172a' }}
                 >
-                  Poddle AI
+                  <span style={{ color: '#60a5fa', fontWeight: 700 }}>Poddle</span><span style={{ color: '#d4a535', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
                 </span>
               </button>
 

@@ -80,7 +80,9 @@ export default function ResetPassword({ onDone }: Props) {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
             <PoddleMark size={44} />
-            <h1 className="text-4xl font-black tracking-tight" style={{ color: '#0f172a' }}>Poddle AI</h1>
+            <h1 className="text-4xl font-black tracking-tight">
+              <span style={{ color: '#0B4AA2', fontWeight: 700 }}>Poddle</span><span style={{ color: '#C7A95F', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+            </h1>
           </div>
         </div>
 

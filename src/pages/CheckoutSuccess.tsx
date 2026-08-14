@@ -29,7 +29,9 @@ export default function CheckoutSuccess({ onNavigate }: CheckoutSuccessProps) {
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-12">
           <PoddleMark size={32} />
-          <span className="text-white font-black text-xl tracking-tight">Poddle AI</span>
+          <span className="font-black text-xl tracking-tight">
+            <span style={{ color: '#60a5fa', fontWeight: 700 }}>Poddle</span><span style={{ color: '#d4a535', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+          </span>
         </div>
 
         {/* Success icon */}
