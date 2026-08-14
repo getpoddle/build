@@ -34,70 +34,31 @@ export default function AppIcons() {
 
     if (!ctx) return;
 
-    // Transparent background — mark stands on its own
     ctx.clearRect(0, 0, size, size);
 
-    // Scale factor (mark viewBox is 100x100)
-    const scale = size / 100;
-
-    // Blue left chevron
-    ctx.fillStyle = '#0B4AA2';
-    ctx.beginPath();
-    ctx.moveTo(8 * scale, 40 * scale);
-    ctx.lineTo(49 * scale, 12 * scale);
-    ctx.lineTo(58 * scale, 26 * scale);
-    ctx.lineTo(31 * scale, 44 * scale);
-    ctx.lineTo(58 * scale, 62 * scale);
-    ctx.lineTo(49 * scale, 76 * scale);
-    ctx.lineTo(8 * scale, 48 * scale);
-    ctx.closePath();
-    ctx.fill();
-
-    // Gold right chevron
-    ctx.fillStyle = '#C7A95F';
-    ctx.beginPath();
-    ctx.moveTo(92 * scale, 40 * scale);
-    ctx.lineTo(51 * scale, 12 * scale);
-    ctx.lineTo(42 * scale, 26 * scale);
-    ctx.lineTo(69 * scale, 44 * scale);
-    ctx.lineTo(42 * scale, 62 * scale);
-    ctx.lineTo(51 * scale, 76 * scale);
-    ctx.lineTo(92 * scale, 48 * scale);
-    ctx.closePath();
-    ctx.fill();
-
-    // Inner blue diamond
-    ctx.fillStyle = '#0B4AA2';
-    ctx.beginPath();
-    ctx.moveTo(43 * scale, 50 * scale);
-    ctx.lineTo(52 * scale, 37 * scale);
-    ctx.lineTo(61 * scale, 50 * scale);
-    ctx.lineTo(52 * scale, 63 * scale);
-    ctx.closePath();
-    ctx.fill();
-
-    // Inner gold diamond
-    ctx.fillStyle = '#C7A95F';
-    ctx.beginPath();
-    ctx.moveTo(39 * scale, 50 * scale);
-    ctx.lineTo(48 * scale, 37 * scale);
-    ctx.lineTo(57 * scale, 50 * scale);
-    ctx.lineTo(48 * scale, 63 * scale);
-    ctx.closePath();
-    ctx.fill();
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const aspect = img.width / img.height;
+      let w = size, h = size;
+      if (aspect > 1) h = size / aspect;
+      else w = size * aspect;
+      ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `poddle-icon-${size}x${size}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    };
+    img.src = '/images/logos/poddle-mark.png';
 
     // Download
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `poddle-icon-${size}x${size}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
   };
 
   const downloadAllIOS = () => {
@@ -113,11 +74,8 @@ export default function AppIcons() {
   };
 
   const downloadSVG = () => {
-    const svgContent = `<svg width="1024" height="1024" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M8 40 49 12l9 14-27 18 27 18-9 14L8 48V40Z" fill="#0B4AA2" />
-  <path d="m92 40-41-28-9 14 27 18-27 18 9 14 41-28v-8Z" fill="#C7A95F" />
-  <path d="m43 50 9-13 9 13-9 13-9-13Z" fill="#0B4AA2" />
-  <path d="m39 50 9-13 9 13-9 13-9-13Z" fill="#C7A95F" />
+    const svgContent = `<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <image href="/images/logos/poddle-mark.png" x="256" y="340" width="512" height="344" />
 </svg>`;
 
     const blob = new Blob([svgContent], { type: 'image/svg+xml' });
