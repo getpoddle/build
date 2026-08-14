@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Sparkles, ArrowRight, CheckCircle, Lock, Brain,
+  ArrowRight, CheckCircle, Lock, Brain,
   Swords, Zap, X,
   Download, AlertTriangle, Target, BarChart3, TrendingUp,
   ChevronRight, Users, MessageSquare, FileText, Shield,
@@ -580,10 +580,9 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
             </p>
             <button
               onClick={() => onNavigate('auth')}
-              className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center mt-6 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
               style={{ background: 'linear-gradient(135deg,#111111,#b8860b)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
             >
-              <Sparkles className="w-4 h-4" />
               Try the full workflow
             </button>
           </div>
@@ -849,10 +848,9 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               )}
               <button
                 onClick={() => onNavigate('auth')}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5"
+                className="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5"
                 style={{ background: '#b8860b', color: '#F0F3F7', boxShadow: '0 2px 8px rgba(184,134,11,0.3)' }}
               >
-                <Sparkles className="w-3 h-3" />
                 Try it
               </button>
             </div>
@@ -1127,9 +1125,7 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
     <section style={{ background: 'linear-gradient(135deg,#000000 0%,#0a0a0a 55%,#111111 100%)' }} className="py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <RevealSection>
-          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.09)' }}>
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.09)' }} />
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
             Your next big decision<br />deserves a proper challenge.
           </h2>
@@ -1140,10 +1136,9 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
             <button
               onClick={() => onNavigate('auth')}
-              className="flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
+              className="px-8 py-4 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
               style={{ background: '#fff', color: '#b8860b', boxShadow: '0 4px 14px rgba(184,134,11,0.3)' }}
             >
-              <Sparkles className="w-4 h-4 text-blue-600" />
               Create free account
             </button>
             <button
