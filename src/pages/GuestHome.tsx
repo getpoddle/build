@@ -169,7 +169,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         </h1>
 
         <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-2xl mx-auto" style={{ color: 'rgba(203,213,225,0.78)' }}>
-          Poddle gives teams a private workspace where seven specialized AI agents challenge your thinking from every angle, and the War Room synthesizes everything into a clear, defensible recommendation.
+          Seven specialized AI agents challenge your assumptions, surface blind spots, and pressure-test your decisions. Poddle's War Room turns the debate into a clear, defensible recommendation.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
