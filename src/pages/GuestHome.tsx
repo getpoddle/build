@@ -175,10 +175,9 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
           <button
             onClick={() => onNavigate('auth')}
-            className="flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+            className="px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
             style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
           >
-            <Sparkles className="w-4 h-4" />
             Get started
           </button>
           <button
