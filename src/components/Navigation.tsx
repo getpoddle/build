@@ -1,4 +1,4 @@
-import { Sparkles, User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare } from 'lucide-react';
+import { User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import PoddleMark from './PoddleMark';
@@ -470,10 +470,9 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   </button>
                   <button
                     onClick={() => onNavigate('auth')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-none text-white text-sm font-bold transition-all hover:-translate-y-px"
+                    className="px-4 py-2 rounded-none text-white text-sm font-bold transition-all hover:-translate-y-px"
                     style={{ background: 'var(--signal)', boxShadow: '0 4px 10px rgba(184,134,11,0.25)' }}
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Join free</span>
                     <span className="sm:hidden">Join</span>
                   </button>
