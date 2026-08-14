@@ -502,7 +502,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
               className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide transition-all active:scale-95 btn-primary"
               style={{ justifyContent: 'center' }}
             >
-              Join free — it's instant
+              Join free
             </button>
             <button
               onClick={() => onNavigate('auth')}
