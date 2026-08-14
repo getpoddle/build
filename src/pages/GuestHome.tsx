@@ -179,7 +179,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
           >
             <Sparkles className="w-4 h-4" />
-            Start for free
+            Get started
           </button>
           <button
             onClick={() => onNavigate('pricing')}
