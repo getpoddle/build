@@ -27,6 +27,7 @@ const ContactUs = lazy(() => import('./pages/ContactUs'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 const SystemHealth = lazy(() => import('./pages/SystemHealth'));
 const Workspaces = lazy(() => import('./pages/Workspaces'));
+const Organization = lazy(() => import('./pages/Organization'));
 const WorkspaceHub = lazy(() => import('./pages/WorkspaceHub'));
 const WorkspaceSettings = lazy(() => import('./pages/WorkspaceSettings'));
 const JoinWorkspace = lazy(() => import('./pages/JoinWorkspace'));
@@ -343,6 +344,12 @@ function AppContent() {
       if (hash === 'workspaces') {
         setCurrentPage('workspaces');
         sessionStorage.setItem('currentPage', 'workspaces');
+        return;
+      }
+
+      if (hash === 'organization') {
+        setCurrentPage('organization');
+        sessionStorage.setItem('currentPage', 'organization');
         return;
       }
 
@@ -928,6 +935,7 @@ function AppContent() {
               {activePage === 'home' && !hasNoWorkspace && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
               {activePage === 'profile' && <Profile key="profile-settings" onNavigate={handleNavigate} />}
               {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
+              {activePage === 'organization' && <Organization key="organization" />}
               {activePage === 'workspace-hub' && workspaceId && (
                 <WorkspaceHub
                   key={`workspace-hub-${workspaceId}`}
