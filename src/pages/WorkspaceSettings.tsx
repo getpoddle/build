@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Zap, Link2, Unlink } from 'lucide-react';
+import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Zap, Link2, Unlink, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
@@ -43,6 +43,7 @@ interface Workspace {
   seats: number;
   stripe_customer_id: string | null;
   owner_id: string;
+  organization_id: string | null;
 }
 
 interface SlackConnection {
@@ -50,6 +51,11 @@ interface SlackConnection {
   slack_team_id: string;
   slack_team_name: string | null;
   created_at: string;
+}
+
+interface OrgOption {
+  id: string;
+  name: string;
 }
 
 const ROLE_ICONS = { owner: Crown, admin: Shield, member: User };
@@ -91,8 +97,13 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
   const [slackConnection, setSlackConnection] = useState<SlackConnection | null>(null);
   const [disconnectingSlack, setDisconnectingSlack] = useState(false);
-  const [connectingSlack, setConnectingSlack] = useState(false);
+    const [connectingSlack, setConnectingSlack] = useState(false);
   const [slackError, setSlackError] = useState('');
+
+  const [myOrgs, setMyOrgs] = useState<OrgOption[]>([]);
+  const [orgUpdating, setOrgUpdating] = useState(false);
+  const [orgError, setOrgError] = useState('');
+  const [selectedOrgToLink, setSelectedOrgToLink] = useState('');
 
   const fetchData = useCallback(async () => {
     const [wsRes, membersRes, invitesRes, slackRes] = await Promise.all([
@@ -133,7 +144,22 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
     setLoading(false);
   }, [workspaceId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+    useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    async function loadMyOrgs() {
+      if (!user) return;
+      const { data } = await supabase
+        .from('organization_members')
+        .select('organizations(id, name)')
+        .eq('user_id', user.id);
+      const options: OrgOption[] = (data || [])
+        .map((row: any) => row.organizations)
+        .filter(Boolean);
+      setMyOrgs(options);
+    }
+    loadMyOrgs();
+  }, [user]);
 
   async function handleSave() {
     if (!workspace) return;
@@ -142,8 +168,44 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
       .from('workspaces')
       .update({ name: editName.trim(), description: editDesc.trim() })
       .eq('id', workspaceId);
-    setWorkspace(prev => prev ? { ...prev, name: editName.trim(), description: editDesc.trim() } : prev);
+        setWorkspace(prev => prev ? { ...prev, name: editName.trim(), description: editDesc.trim() } : prev);
     setSaving(false);
+  }
+
+  async function handleLinkOrg() {
+    if (!selectedOrgToLink) return;
+    setOrgUpdating(true);
+    setOrgError('');
+    try {
+      const { error } = await supabase.rpc('set_workspace_organization', {
+        p_workspace_id: workspaceId,
+        p_organization_id: selectedOrgToLink,
+      });
+      if (error) throw error;
+      setWorkspace(prev => prev ? { ...prev, organization_id: selectedOrgToLink } : prev);
+      setSelectedOrgToLink('');
+    } catch (err: any) {
+      setOrgError(err?.message || 'Could not link this workspace to that organization.');
+    } finally {
+      setOrgUpdating(false);
+    }
+  }
+
+  async function handleUnlinkOrg() {
+    setOrgUpdating(true);
+    setOrgError('');
+    try {
+      const { error } = await supabase.rpc('set_workspace_organization', {
+        p_workspace_id: workspaceId,
+        p_organization_id: null,
+      });
+      if (error) throw error;
+      setWorkspace(prev => prev ? { ...prev, organization_id: null } : prev);
+    } catch (err: any) {
+      setOrgError(err?.message || 'Could not unlink this workspace.');
+    } finally {
+      setOrgUpdating(false);
+    }
   }
 
   async function handleInvite() {
@@ -322,7 +384,9 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
   const statusColor = workspace.subscription_status === 'active' ? 'var(--positive)' : workspace.subscription_status === 'cancelled' ? 'var(--app-text-muted)' : workspace.subscription_status === 'past_due' ? 'var(--caution)' : 'var(--signal)';
   const statusBg = workspace.subscription_status === 'active' ? 'var(--positive-bg)' : workspace.subscription_status === 'cancelled' ? 'var(--app-border-subtle)' : workspace.subscription_status === 'past_due' ? 'rgba(245,158,11,0.08)' : 'var(--signal-bg)';
-  const statusLabel = workspace.subscription_status === 'active' ? 'Active' : workspace.subscription_status === 'cancelled' ? 'Cancelled' : workspace.subscription_status === 'past_due' ? 'Past due' : workspace.subscription_status;
+    const statusLabel = workspace.subscription_status === 'active' ? 'Active' : workspace.subscription_status === 'cancelled' ? 'Cancelled' : workspace.subscription_status === 'past_due' ? 'Past due' : workspace.subscription_status;
+
+  const linkedOrg = workspace.organization_id ? myOrgs.find(o => o.id === workspace.organization_id) : null;
 
   return (
     <div className="flex-1 overflow-y-auto" style={{ background: 'var(--app-bg)', minHeight: '100vh' }}>
@@ -371,12 +435,68 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                 className="input-modern"
               />
             </div>
-            {isOwner && (
+                        {isOwner && (
               <button onClick={handleSave} disabled={saving} className="btn-primary">
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>
             )}
           </div>
+        </section>
+
+        {/* Organization */}
+        <section className="panel p-6 mb-4">
+          <h2 className="section-label flex items-center gap-2 mb-4">
+            <Building2 className="w-4 h-4" />
+            Organization
+          </h2>
+
+          {orgError && (
+            <p className="text-xs font-medium mb-3" style={{ color: 'var(--negative)' }}>{orgError}</p>
+          )}
+
+          {linkedOrg ? (
+            <div className="flex items-center justify-between p-4" style={{ background: 'var(--app-border-subtle)' }}>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>{linkedOrg.name}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
+                  This workspace's decisions are governed by this organization.
+                </p>
+              </div>
+              <button
+                onClick={handleUnlinkOrg}
+                disabled={orgUpdating}
+                className="btn-secondary flex-shrink-0 ml-4"
+              >
+                <Unlink className="w-3.5 h-3.5" />
+                {orgUpdating ? 'Unlinking…' : 'Unlink'}
+              </button>
+            </div>
+          ) : myOrgs.length === 0 ? (
+            <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>
+              You're not part of any organization yet. Create one from the Organization tab to link this workspace to it.
+            </p>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select
+                value={selectedOrgToLink}
+                onChange={e => setSelectedOrgToLink(e.target.value)}
+                className="input-modern flex-1"
+              >
+                <option value="">Select an organization…</option>
+                {myOrgs.map(org => (
+                  <option key={org.id} value={org.id}>{org.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleLinkOrg}
+                disabled={!selectedOrgToLink || orgUpdating}
+                className="btn-primary flex-shrink-0"
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                {orgUpdating ? 'Linking…' : 'Link'}
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Members */}
