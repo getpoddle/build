@@ -149,7 +149,7 @@ function EditPopover({ anchorEl, workspaceId, category, status, onSaved, onClose
     }
 
     // If this org requires a fresh approval before committing, offer to request one.
-    if (sta === 'committed' && error.message?.includes('requires a fresh approved')) {
+    if (['committed', 'implemented', 'reviewed'].includes(sta) && error.message?.includes('requires a fresh approved')) {
       setSaving(false);
       const { data: ws } = await supabase
         .from('workspaces')
@@ -694,7 +694,7 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
     setLinks(prev => prev.filter(l => l.id !== linkId));
   }
 
-  async function saveStatusChange(wsId: string, newStatus: string) {
+    async function saveStatusChange(wsId: string, newStatus: string) {
     const { error } = await supabase
       .from('workspaces')
       .update({ decision_status: newStatus })
@@ -704,6 +704,43 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         prev.map(w => w.id === wsId ? { ...w, decision_status: newStatus } : w)
       );
       setTimeout(recomputeLines, 200);
+      return;
+    }
+
+    // If this org requires a fresh approval before a decision is locked in
+    // (committed, implemented, or reviewed), offer to request one instead
+    // of silently failing.
+    if (['committed', 'implemented', 'reviewed'].includes(newStatus) && error.message?.includes('requires a fresh approved')) {
+      const { data: ws } = await supabase
+        .from('workspaces')
+        .select('organization_id')
+        .eq('id', wsId)
+        .maybeSingle();
+
+      if (ws?.organization_id && user) {
+        const wantsToRequest = window.confirm(
+          'This organization requires approval before a decision can be committed. Request approval now?'
+        );
+        if (wantsToRequest) {
+          const { error: reqError } = await supabase
+            .from('decision_approvals')
+            .insert({
+              workspace_id: wsId,
+              organization_id: ws.organization_id,
+              requested_by: user.id,
+            });
+          if (!reqError) {
+            window.alert('Approval requested. An organization owner or admin will need to approve it before this decision can be committed.');
+          } else {
+            window.alert('Could not submit the approval request. Please try again.');
+          }
+        }
+      }
+      return;
+    }
+
+    if (error.message) {
+      window.alert(error.message);
     }
   }
 
