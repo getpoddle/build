@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, AlertTriangle, RefreshCw, ChevronRight, Plus } from 'lucide-react';
+import { Building2, AlertTriangle, RefreshCw, ChevronRight, Plus, ShieldCheck, Check, X as XIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface OrganizationProps {
@@ -9,6 +9,18 @@ interface OrganizationProps {
 interface OrgOption {
   id: string;
   name: string;
+  role: string;
+  require_approval_for_commit: boolean;
+}
+
+interface ApprovalRequest {
+  id: string;
+  workspace_id: string;
+  workspace_name: string;
+  requested_by: string;
+  requester_name: string;
+  status: string;
+  created_at: string;
 }
 
 interface PortfolioHealthRow {
@@ -47,18 +59,27 @@ export default function Organization({ onNavigate }: OrganizationProps) {
   const [overview, setOverview] = useState<OverviewRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
+  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
+  const [togglingGovernance, setTogglingGovernance] = useState(false);
+  const [governanceError, setGovernanceError] = useState<string | null>(null);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id || null));
     loadOrgs();
   }, []);
 
   useEffect(() => {
-    if (selectedOrgId) loadOrgData(selectedOrgId);
+    if (selectedOrgId) {
+      loadOrgData(selectedOrgId);
+      loadApprovalRequests(selectedOrgId);
+    }
   }, [selectedOrgId]);
 
   async function loadOrgs() {
@@ -70,13 +91,13 @@ export default function Organization({ onNavigate }: OrganizationProps) {
 
       const { data, error: membersError } = await supabase
         .from('organization_members')
-        .select('role, organizations(id, name)')
+        .select('role, organizations(id, name, require_approval_for_commit)')
         .eq('user_id', user.id);
 
       if (membersError) throw membersError;
 
       const orgOptions: OrgOption[] = (data || [])
-        .map((row: any) => row.organizations)
+        .map((row: any) => row.organizations ? { ...row.organizations, role: row.role } : null)
         .filter(Boolean);
 
       setOrgs(orgOptions);
@@ -85,6 +106,81 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     } catch (err) {
       setError('Could not load your organizations.');
       setLoading(false);
+    }
+  }
+
+  async function loadOrgData(orgId: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const [healthRes, overviewRes] = await Promise.all([
+        supabase.rpc('get_organization_portfolio_health', { org_id: orgId }),
+        supabase.rpc('get_organization_decision_overview', { org_id: orgId }),
+      ]);
+
+      if (healthRes.error) throw healthRes.error;
+      if (overviewRes.error) throw overviewRes.error;
+
+      setHealth(healthRes.data || []);
+      setOverview(overviewRes.data || []);
+    } catch (err) {
+      setError('Could not load decision data for this organization.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadApprovalRequests(orgId: string) {
+    const { data } = await supabase
+      .from('decision_approvals')
+      .select('id, workspace_id, requested_by, status, created_at, workspaces(name), profiles!decision_approvals_requested_by_fkey(full_name)')
+      .eq('organization_id', orgId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    const requests: ApprovalRequest[] = (data || []).map((row: any) => ({
+      id: row.id,
+      workspace_id: row.workspace_id,
+      workspace_name: row.workspaces?.name || 'Unknown workspace',
+      requested_by: row.requested_by,
+      requester_name: row.profiles?.full_name || 'A team member',
+      status: row.status,
+      created_at: row.created_at,
+    }));
+
+    setApprovalRequests(requests);
+  }
+
+  async function handleToggleGovernance(orgId: string, currentValue: boolean) {
+    setTogglingGovernance(true);
+    setGovernanceError(null);
+    try {
+      const { error: updateErr } = await supabase
+        .from('organizations')
+        .update({ require_approval_for_commit: !currentValue })
+        .eq('id', orgId);
+      if (updateErr) throw updateErr;
+      setOrgs(prev => prev.map(o => o.id === orgId ? { ...o, require_approval_for_commit: !currentValue } : o));
+    } catch (err: any) {
+      setGovernanceError(err?.message || 'Could not update this setting.');
+    } finally {
+      setTogglingGovernance(false);
+    }
+  }
+
+  async function handleReviewRequest(requestId: string, decision: 'approved' | 'rejected') {
+    setReviewingId(requestId);
+    try {
+      const { error: reviewErr } = await supabase
+        .from('decision_approvals')
+        .update({ status: decision, reviewed_by: currentUserId, reviewed_at: new Date().toISOString() })
+        .eq('id', requestId);
+      if (reviewErr) throw reviewErr;
+      setApprovalRequests(prev => prev.filter(r => r.id !== requestId));
+    } catch {
+      // Leave the request visible; user can retry.
+    } finally {
+      setReviewingId(null);
     }
   }
 
@@ -134,6 +230,8 @@ export default function Organization({ onNavigate }: OrganizationProps) {
   }
 
   const totalWorkspaces = health.reduce((sum, row) => sum + Number(row.workspace_count), 0);
+  const currentOrg = orgs.find(o => o.id === selectedOrgId) || null;
+  const canManageGovernance = currentOrg?.role === 'owner' || currentOrg?.role === 'admin';
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
@@ -243,6 +341,80 @@ export default function Organization({ onNavigate }: OrganizationProps) {
 
         {!loading && !error && orgs.length > 0 && (
           <>
+            {/* Governance toggle */}
+            {canManageGovernance && currentOrg && (
+              <div className="mb-6 p-4 flex items-center justify-between gap-4" style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)' }}>
+                <div className="flex items-start gap-3 min-w-0">
+                  <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--app-text-secondary)' }} />
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>Require approval before commit</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
+                      When on, decisions in this organization's workspaces need a fresh, org owner/admin-approved request before they can be marked Committed.
+                    </p>
+                    {governanceError && (
+                      <p className="text-xs mt-1" style={{ color: '#dc2626' }}>{governanceError}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleToggleGovernance(currentOrg.id, currentOrg.require_approval_for_commit)}
+                  disabled={togglingGovernance}
+                  className="flex-shrink-0 text-xs font-bold px-3 py-2 disabled:opacity-50"
+                  style={{
+                    background: currentOrg.require_approval_for_commit ? 'var(--signal, #2563eb)' : 'var(--app-border-subtle, #f1f5f9)',
+                    color: currentOrg.require_approval_for_commit ? '#fff' : 'var(--app-text-primary)',
+                  }}
+                >
+                  {togglingGovernance ? 'Saving…' : currentOrg.require_approval_for_commit ? 'On' : 'Off'}
+                </button>
+              </div>
+            )}
+
+            {/* Pending approval requests */}
+            {canManageGovernance && approvalRequests.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--app-text-secondary)' }}>
+                  Pending approval requests
+                </h2>
+                <div className="space-y-2">
+                  {approvalRequests.map((req) => (
+                    <div
+                      key={req.id}
+                      className="flex items-center justify-between gap-4 px-4 py-3"
+                      style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)' }}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>{req.workspace_name}</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
+                          Requested by {req.requester_name} · {new Date(req.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleReviewRequest(req.id, 'approved')}
+                          disabled={reviewingId === req.id}
+                          className="flex items-center gap-1 text-xs font-bold px-3 py-2 text-white disabled:opacity-50"
+                          style={{ background: '#16a34a' }}
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleReviewRequest(req.id, 'rejected')}
+                          disabled={reviewingId === req.id}
+                          className="flex items-center gap-1 text-xs font-bold px-3 py-2 disabled:opacity-50"
+                          style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
+                        >
+                          <XIcon className="w-3.5 h-3.5" />
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4 mb-6 lg:mb-10">
               <div className="stat-card">
                 <p className="stat-card-value">{totalWorkspaces}</p>
