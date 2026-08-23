@@ -17,12 +17,12 @@ interface ApprovalRequest {
   id: string;
   workspace_id: string;
   workspace_name: string;
+  workspace_description: string;
   requested_by: string;
   requester_name: string;
   status: string;
   created_at: string;
 }
-
 interface PortfolioHealthRow {
   decision_status: string;
   workspace_count: number;
@@ -130,10 +130,10 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     }
   }
 
-  async function loadApprovalRequests(orgId: string) {
+    async function loadApprovalRequests(orgId: string) {
     const { data } = await supabase
       .from('decision_approvals')
-      .select('id, workspace_id, requested_by, status, created_at, workspaces(name), profiles!decision_approvals_requested_by_fkey(full_name)')
+      .select('id, workspace_id, requested_by, status, created_at, workspaces(name, description), profiles!decision_approvals_requested_by_fkey(full_name)')
       .eq('organization_id', orgId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
@@ -142,6 +142,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       id: row.id,
       workspace_id: row.workspace_id,
       workspace_name: row.workspaces?.name || 'Unknown workspace',
+      workspace_description: row.workspaces?.description || '',
       requested_by: row.requested_by,
       requester_name: row.profiles?.full_name || 'A team member',
       status: row.status,
@@ -383,9 +384,14 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                       className="flex items-center justify-between gap-4 px-4 py-3"
                       style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)' }}
                     >
-                      <div className="min-w-0">
+                       <div className="min-w-0">
                         <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>{req.workspace_name}</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
+                        {req.workspace_description && (
+                          <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--app-text-secondary)' }}>
+                            {req.workspace_description}
+                          </p>
+                        )}
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-muted, var(--app-text-secondary))' }}>
                           Requested by {req.requester_name} · {new Date(req.created_at).toLocaleDateString()}
                         </p>
                       </div>
