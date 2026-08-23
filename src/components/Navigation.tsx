@@ -1,4 +1,4 @@
-import { User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare } from 'lucide-react';
+import { User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare, Building2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import PoddleMark from './PoddleMark';
@@ -39,6 +39,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
   const { theme, setTheme } = useTheme();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; email?: string } | null>(null);
@@ -62,6 +63,15 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
       setIsAdmin(sensitiveRes.data?.is_admin || false);
       setUserProfile({ full_name: profileRes.data?.full_name || null, email: user.email });
     }).catch(() => setIsAdmin(false));
+
+    supabase
+      .from('organization_members')
+      .select('role')
+      .eq('user_id', user.id)
+      .in('role', ['owner', 'admin'])
+      .limit(1)
+      .then(({ data }) => setIsOrgAdmin(!!data && data.length > 0))
+      .catch(() => setIsOrgAdmin(false));
   }, [user]);
 
   useEffect(() => {
@@ -93,8 +103,12 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
     }
   }, [onNavigate]);
 
+  const navItemsAuth = isOrgAdmin
+    ? [...NAV_ITEMS_AUTH, { id: 'organization', label: 'Organization', icon: Building2 }]
+    : NAV_ITEMS_AUTH;
+
   const navItems = user
-    ? (hideDashboard ? NAV_ITEMS_AUTH.filter(i => i.id !== 'home') : NAV_ITEMS_AUTH)
+    ? (hideDashboard ? navItemsAuth.filter(i => i.id !== 'home') : navItemsAuth)
     : NAV_ITEMS_GUEST;
 
   // Determine active item
@@ -456,7 +470,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     <MessageSquare className="w-3.5 h-3.5" />
                     Slack
                   </button>
-                  <a
+                  
                     href="https://chromewebstore.google.com/detail/poddle-lens/pdcllidghoikeoamjebjgdlgjaccfmmn"
                     target="_blank"
                     rel="noopener noreferrer"
