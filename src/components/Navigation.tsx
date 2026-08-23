@@ -471,7 +471,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     Slack
                   </button>
                   
-                    href="https://chromewebstore.google.com/detail/poddle-lens/pdcllidghoikeoamjebjgdlgjaccfmmn"
+                                        <a href="https://chromewebstore.google.com/detail/poddle-lens/pdcllidghoikeoamjebjgdlgjaccfmmn"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-none text-[var(--app-text-secondary)] text-sm font-semibold border border-[var(--app-border)] hover:border-slate-300 hover:bg-[var(--app-bg)] transition-all"
