@@ -127,8 +127,8 @@ interface EditPopoverProps {
   onSaved: (category: string, status: string) => void;
   onClose: () => void;
 }
-
 function EditPopover({ anchorEl, workspaceId, category, status, onSaved, onClose }: EditPopoverProps) {
+  const { user } = useAuth();
   const [cat, setCat] = useState(category);
   const [sta, setSta] = useState(status);
   const [saving, setSaving] = useState(false);
@@ -142,14 +142,50 @@ function EditPopover({ anchorEl, workspaceId, category, status, onSaved, onClose
       .from('workspaces')
       .update({ decision_category: cat, decision_status: sta })
       .eq('id', workspaceId);
-    if (error) {
-      setErr('Failed to save');
-      setSaving(false);
-    } else {
-      onSaved(cat, sta);
-    }
-  }
 
+    if (!error) {
+      onSaved(cat, sta);
+      return;
+    }
+
+    // If this org requires a fresh approval before committing, offer to request one.
+    if (sta === 'committed' && error.message?.includes('requires a fresh approved')) {
+      setSaving(false);
+      const { data: ws } = await supabase
+        .from('workspaces')
+        .select('organization_id')
+        .eq('id', workspaceId)
+        .maybeSingle();
+
+      if (ws?.organization_id && user) {
+        const wantsToRequest = window.confirm(
+          'This organization requires approval before a decision can be committed. Request approval now?'
+        );
+        if (wantsToRequest) {
+          const { error: reqError } = await supabase
+            .from('decision_approvals')
+            .insert({
+              workspace_id: workspaceId,
+              organization_id: ws.organization_id,
+              requested_by: user.id,
+            });
+          if (!reqError) {
+            setErr('Approval requested. Waiting on an org owner/admin.');
+          } else {
+            setErr('Could not submit the approval request.');
+          }
+        } else {
+          setErr('Approval required to commit.');
+        }
+      } else {
+        setErr('Approval required to commit.');
+      }
+      return;
+    }
+
+    setErr('Failed to save');
+    setSaving(false);
+  }
   if (!pos) return null;
 
   return createPortal(
