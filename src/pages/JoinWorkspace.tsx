@@ -15,7 +15,7 @@ interface InviteInfo {
   invited_email: string;
   expires_at: string;
   workspace: { name: string; description: string; plan: string };
-  inviter: { full_name: string | null } | null;
+  inviter_full_name: string | null;
 }
 
 async function callAcceptInvite(accessToken: string, token: string) {
@@ -47,32 +47,27 @@ export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps)
   async function validateToken() {
     setStatus('loading');
     try {
-      // Use REST API directly with anon key so unauthenticated visitors can
-      // read the invite — the token itself is the proof of authorisation.
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const res = await fetch(
-        `${supabaseUrl}/rest/v1/workspace_invites?token=eq.${token}&select=workspace_id,invited_email,expires_at,accepted_at,workspaces(name,description,plan),profiles!workspace_invites_invited_by_fkey(full_name)`,
-        {
-          headers: {
-            'apikey': anonKey,
-            'Authorization': `Bearer ${anonKey}`,
-            'Accept': 'application/json',
-          },
-        }
-      );
-      const rows = await res.json();
+      // Token-gated RPC — only returns a row when the exact token matches.
+      // Replaces the old direct table query, which relied on a table-wide
+      // RLS policy that (incorrectly) exposed every pending invite.
+      const { data: rows, error: rpcError } = await supabase.rpc('get_invite_by_token', {
+        p_token: token,
+      });
       const data = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
-      if (!res.ok || !data) { setStatus('invalid'); return; }
+      if (rpcError || !data) { setStatus('invalid'); return; }
       if (new Date(data.expires_at) < new Date()) { setStatus('expired'); return; }
 
       const info: InviteInfo = {
         workspace_id: data.workspace_id,
         invited_email: data.invited_email,
         expires_at: data.expires_at,
-        workspace: Array.isArray(data.workspaces) ? data.workspaces[0] : data.workspaces as InviteInfo['workspace'],
-        inviter: Array.isArray(data.profiles) ? data.profiles[0] : data.profiles as InviteInfo['inviter'],
+        workspace: {
+          name: data.workspace_name,
+          description: data.workspace_description,
+          plan: data.workspace_plan,
+        },
+        inviter_full_name: data.inviter_full_name,
       };
       setInvite(info);
       setWorkspaceId(data.workspace_id);
@@ -309,7 +304,7 @@ export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps)
           </div>
           <h2 className="text-xl font-black text-white mb-1">You're invited</h2>
           <p className="text-slate-300 text-sm">
-            {invite?.inviter?.full_name || 'A team member'} invited you to join a private workspace.
+            {invite?.inviter_full_name || 'A team member'} invited you to join a private workspace.
           </p>
         </div>
 
