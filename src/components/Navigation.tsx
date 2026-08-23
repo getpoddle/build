@@ -103,12 +103,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
     }
   }, [onNavigate]);
 
-  const navItemsAuth = [...NAV_ITEMS_AUTH, { id: 'organization', label: 'Organization', icon: Building2 }];
-
-  const navItems = user
-    ? (hideDashboard ? navItemsAuth.filter(i => i.id !== 'home') : navItemsAuth)
-    : NAV_ITEMS_GUEST;
-
+    const navItemsAuth = [...NAV_ITEMS_AUTH, { id: 'organization', label: 'Organization', icon: Building2 }];
   const navItems = user
     ? (hideDashboard ? navItemsAuth.filter(i => i.id !== 'home') : navItemsAuth)
     : NAV_ITEMS_GUEST;
