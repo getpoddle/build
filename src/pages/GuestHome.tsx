@@ -1030,7 +1030,7 @@ function SocialProofSection() {
           ))}
         </div>
 
-                {/* Feature grid */}
+          {/* Feature grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
           {[
             { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Lead, People Advisor, each with a different mandate." },
