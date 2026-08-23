@@ -1030,12 +1030,13 @@ function SocialProofSection() {
           ))}
         </div>
 
-        {/* Feature grid */}
-        <div className="grid sm:grid-cols-3 gap-5 mt-10">
+                {/* Feature grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
           {[
             { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Lead, People Advisor, each with a different mandate." },
             { icon: Shield, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Your workspace is encrypted and invisible to the public. Invite your team. Nothing leaves your org. SOC 2-aligned infrastructure.' },
             { icon: FileText, color: '#059669', bg: '#ecfdf5', title: 'Board-ready exports', desc: 'The War Room PDF includes your recommendation, risk signals, action items by owner, and decision health scores, ready to share.' },
+            { icon: Building2, color: '#7c3aed', bg: '#f5f3ff', title: 'Organization-wide oversight', desc: 'Link every workspace to your organization. See every decision, its status, and its owner in one view, with optional approval gates before anything commits.' },
           ].map(({ icon: Icon, color, bg, title, desc }, i) => (
             <RevealSection key={title} delay={i * 80}>
               <div
