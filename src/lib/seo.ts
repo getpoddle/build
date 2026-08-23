@@ -7,10 +7,10 @@ export interface SEOData {
 }
 
 export const pageSEO: Record<string, SEOData> = {
-  home: {
-    title: 'Poddle – Judgment Infrastructure for High-Stakes Decisions',
-    description: 'Turn every critical decision into a structured, multi-perspective challenge before you commit.',
-    keywords: 'judgment infrastructure, high-stakes decisions, decision intelligence, AI agents, assumption testing, forecasting, strategic analysis, cognitive bias detection',
+    home: {
+    title: 'Poddle – The Decision Review Copilot',
+    description: "The layer between thinking and commitment — adversarial AI agents review your decisions while they're still forming, not after.",
+    keywords: 'decision review copilot, decision intelligence, adversarial AI agents, decision memory, assumption testing, forecasting, strategic analysis, cognitive bias detection',
   },
   pods: {
     title: 'Decision Rooms for High-Stakes Calls | Poddle',
