@@ -717,23 +717,18 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         .eq('id', wsId)
         .maybeSingle();
 
-      if (ws?.organization_id && user) {
-        const wantsToRequest = window.confirm(
-          'This organization requires approval before a decision can be committed. Request approval now?'
-        );
-        if (wantsToRequest) {
-          const { error: reqError } = await supabase
-            .from('decision_approvals')
-            .insert({
-              workspace_id: wsId,
-              organization_id: ws.organization_id,
-              requested_by: user.id,
-            });
-          if (!reqError) {
-            window.alert('Approval requested. An organization owner or admin will need to approve it before this decision can be committed.');
-          } else {
-            window.alert('Could not submit the approval request. Please try again.');
-          }
+            if (ws?.organization_id && user) {
+        const { error: reqError } = await supabase
+          .from('decision_approvals')
+          .insert({
+            workspace_id: wsId,
+            organization_id: ws.organization_id,
+            requested_by: user.id,
+          });
+        if (!reqError) {
+          window.alert('This organization requires approval before committing. An approval request has been sent to an organization owner or admin.');
+        } else {
+          window.alert('Could not submit the approval request. Please try again.');
         }
       }
       return;
