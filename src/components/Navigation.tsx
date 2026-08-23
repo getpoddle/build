@@ -72,7 +72,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
       .limit(1)
       .then(({ data }) => setIsOrgAdmin(!!data && data.length > 0))
       .catch(() => setIsOrgAdmin(false));
-  }, [user]);
+   }, [user?.id]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
