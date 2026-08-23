@@ -1,7 +1,7 @@
 {
-  "name": "Poddle - Decision-Making for Teams and Founders",
+  "name": "Poddle - Decision Review Copilot",
   "short_name": "Poddle",
-  "description": "Decision-making for teams and founders. Pressure-test assumptions, forecast outcomes, and ship calls you can defend.",
+  "description": "The decision review copilot that stress-tests your thinking before you commit — adversarial AI agents, built for the moment before the decision is made.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -11,76 +11,31 @@
   "orientation": "portrait-primary",
   "lang": "en-US",
   "dir": "ltr",
-  "categories": ["business", "education", "social", "productivity"],
+  "categories": ["business", "productivity"],
   "id": "com.poddle.app",
   "prefer_related_applications": false,
   "icons": [
-    {
-      "src": "/icon-72x72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/icon-72x72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-96x96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-128x128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-144x144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-152x152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-384x384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "screenshots": [
-    {
-      "src": "/screenshot-mobile-1.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Home feed on mobile"
-    },
-    {
-      "src": "/screenshot-desktop-1.png",
-      "sizes": "1920x1080",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Poddle on desktop"
-    }
+    { "src": "/screenshot-mobile-1.png", "sizes": "540x720", "type": "image/png", "form_factor": "narrow", "label": "Home feed on mobile" },
+    { "src": "/screenshot-desktop-1.png", "sizes": "1920x1080", "type": "image/png", "form_factor": "wide", "label": "Poddle on desktop" }
   ],
   "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Your home feed and activity overview",
+      "url": "/#home",
+      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
+    },
     {
       "name": "My Profile",
       "short_name": "Profile",
@@ -89,24 +44,10 @@
       "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
     },
     {
-      "name": "Decision Rooms",
-      "short_name": "Pods",
-      "description": "Browse and join decision rooms",
-      "url": "/#pods",
-      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Job Board",
-      "short_name": "Jobs",
-      "description": "Find career opportunities",
-      "url": "/#jobs",
-      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Messages",
-      "short_name": "Messages",
-      "description": "Check your messages",
-      "url": "/#messages",
+      "name": "Workspaces",
+      "short_name": "Workspaces",
+      "description": "Open your War Room, Decision Map, Team Chat, and Multiplayer AI workspaces",
+      "url": "/#workspaces",
       "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
     }
   ],
