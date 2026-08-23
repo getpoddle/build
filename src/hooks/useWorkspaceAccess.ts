@@ -111,7 +111,7 @@ export function useWorkspaceAccess(workspaceId: string | null): WorkspaceAccess 
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [workspaceId, user]);
+   }, [workspaceId, user?.id]);
 
   return state;
 }
@@ -163,12 +163,11 @@ export function useUserWorkspaces() {
     setLoading(false);
   }
 
-  useEffect(() => {
+    useEffect(() => {
     setLoading(true);
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
+  }, [user?.id]);
   return { workspaces, loading, refetch: () => { setLoading(true); load(); } };
 }
 
@@ -193,9 +192,8 @@ export function useSubscriptionTier() {
       setLoading(false);
     }
 
-    load().catch(() => setLoading(false));
-  }, [user]);
-
+        load().catch(() => setLoading(false));
+  }, [user?.id]);
   return { tier, loading, isPro: tier === 'pro' || tier === 'team' || tier === 'business' || tier === 'enterprise' };
 }
 
@@ -238,9 +236,8 @@ export function useWarRoomUsage(workspaceId: string | null): WarRoomUsage & { re
     }
   }
 
-  useEffect(() => { load(); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceId, user]);
-
+    useEffect(() => { load(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId, user?.id]);
   return { ...state, refetch: load };
 }
 
