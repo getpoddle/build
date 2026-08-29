@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, MessageSquare, ExternalLink, LayoutList, Map, Bot, TrendingUp } from 'lucide-react';
+import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, MessageSquare, ExternalLink, Bot, TrendingUp } from 'lucide-react';
 import { useUserWorkspaces, useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { useBetaAccess } from '../hooks/useBetaAccess';
@@ -195,10 +195,10 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                 {[1, 2, 3].map(i => <div key={i} className="skeleton h-20" />)}
               </div>
             )}
-            
+
 
             {/* Workspace list — desktop table-style */}
-            {!isLoading && appWorkspaces.length > 0 && view === 'list' && (
+            {!isLoading && appWorkspaces.length > 0 && (
               <div className="panel overflow-hidden">
                 {/* Table header — hidden on mobile */}
                 <div
@@ -352,7 +352,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             )}
 
             {/* Upgrade banner when trial limit reached */}
-            {!isLoading && !isPro && trialLimitReached && appWorkspaces.length > 0 && view === 'list' && (
+            {!isLoading && !isPro && trialLimitReached && appWorkspaces.length > 0 && (
               <div className="panel p-5 flex items-center gap-4" style={{ background: 'var(--signal-bg)' }}>
                 <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--signal)' }}>
                   <Sparkles className="w-5 h-5" style={{ color: 'var(--ink-900)' }} />
@@ -368,7 +368,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             )}
 
             {/* Slack Sessions */}
-            {!isLoading && view === 'list' && (
+            {!isLoading && (
               <div>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--app-border-subtle)' }}>
@@ -432,12 +432,12 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             )}
 
             {/* Cross-workspace Decision Intelligence */}
-            {!isLoading && user && view === 'list' && (
+            {!isLoading && user && (
               <CrossWorkspacePatternCard userId={user.id} />
             )}
 
             {/* Feature callout strip */}
-            {!isLoading && view === 'list' && (
+            {!isLoading && (
               <div className="grid sm:grid-cols-3 gap-4">
                 {[
                   { icon: Lock, title: 'End-to-end encrypted', desc: 'All workspace data encrypted at rest and in transit' },
