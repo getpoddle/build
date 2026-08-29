@@ -6,7 +6,6 @@ import { useBetaAccess } from '../hooks/useBetaAccess';
 import CreateWorkspace from '../components/CreateWorkspace';
 import UpgradePrompt from '../components/UpgradePrompt';
 import CrossWorkspacePatternCard from '../components/CrossWorkspacePatternCard';
-import DecisionMap from '../components/DecisionMap';
 
 interface WorkspacesProps {
   onNavigate: (page: string, workspaceId?: string) => void;
@@ -28,7 +27,6 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const { hasBetaAccess } = useBetaAccess();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [view, setView] = useState<'list' | 'map'>('list');
 
   function handleCreateClick() {
     if (!isPro && !hasBetaAccess && trialExhausted) {
@@ -144,30 +142,6 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               </div>
             </div>
 
-            {/* View toggle + actions row */}
-            {!isLoading && appWorkspaces.length > 0 && (
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center p-1" style={{ background: 'var(--app-border-subtle)', border: '1px solid var(--app-border)' }}>
-                  <button
-                    onClick={() => setView('list')}
-                    className="nav-pill"
-                    style={view === 'list' ? { background: 'var(--signal)', color: 'var(--ink-900)' } : { color: 'var(--app-text-muted)' }}
-                  >
-                    <LayoutList className="w-3.5 h-3.5 inline-block sm:mr-1.5" />
-                    <span className="hidden sm:inline">List</span>
-                  </button>
-                  <button
-                    onClick={() => setView('map')}
-                    className="nav-pill"
-                    style={view === 'map' ? { background: 'var(--signal)', color: 'var(--ink-900)' } : { color: 'var(--app-text-muted)' }}
-                  >
-                    <Map className="w-3.5 h-3.5 inline-block sm:mr-1.5" />
-                    <span className="hidden sm:inline">Map</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Monthly workspace status banner */}
             {!isLoading && !isPro && !hasBetaAccess && monthlyLimitReached && (
               <div
@@ -221,11 +195,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                 {[1, 2, 3].map(i => <div key={i} className="skeleton h-20" />)}
               </div>
             )}
-
-            {/* Decision Map view */}
-            {!isLoading && appWorkspaces.length > 0 && view === 'map' && (
-              <DecisionMap workspaces={appWorkspaces} onNavigate={onNavigate} />
-            )}
+            
 
             {/* Workspace list — desktop table-style */}
             {!isLoading && appWorkspaces.length > 0 && view === 'list' && (
