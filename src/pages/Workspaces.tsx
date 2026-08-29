@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, MessageSquare, ExternalLink, Bot, TrendingUp } from 'lucide-react';
+import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, MessageSquare, ExternalLink, LayoutList, Map, Bot, TrendingUp } from 'lucide-react';
 import { useUserWorkspaces, useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { useBetaAccess } from '../hooks/useBetaAccess';
 import CreateWorkspace from '../components/CreateWorkspace';
 import UpgradePrompt from '../components/UpgradePrompt';
 import CrossWorkspacePatternCard from '../components/CrossWorkspacePatternCard';
+import DecisionMap from '../components/DecisionMap';
 
 interface WorkspacesProps {
   onNavigate: (page: string, workspaceId?: string) => void;
@@ -27,6 +28,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const { hasBetaAccess } = useBetaAccess();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [view, setView] = useState<'list' | 'map'>('list');
 
   function handleCreateClick() {
     if (!isPro && !hasBetaAccess && trialExhausted) {
@@ -142,6 +144,30 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               </div>
             </div>
 
+            {/* View toggle + actions row */}
+            {!isLoading && appWorkspaces.length > 0 && (
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center p-1" style={{ background: 'var(--app-border-subtle)', border: '1px solid var(--app-border)' }}>
+                  <button
+                    onClick={() => setView('list')}
+                    className="nav-pill"
+                    style={view === 'list' ? { background: 'var(--signal)', color: 'var(--ink-900)' } : { color: 'var(--app-text-muted)' }}
+                  >
+                    <LayoutList className="w-3.5 h-3.5 inline-block sm:mr-1.5" />
+                    <span className="hidden sm:inline">List</span>
+                  </button>
+                  <button
+                    onClick={() => setView('map')}
+                    className="nav-pill"
+                    style={view === 'map' ? { background: 'var(--signal)', color: 'var(--ink-900)' } : { color: 'var(--app-text-muted)' }}
+                  >
+                    <Map className="w-3.5 h-3.5 inline-block sm:mr-1.5" />
+                    <span className="hidden sm:inline">Map</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Monthly workspace status banner */}
             {!isLoading && !isPro && !hasBetaAccess && monthlyLimitReached && (
               <div
@@ -196,9 +222,13 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
               </div>
             )}
 
+            {/* Decision Map view */}
+            {!isLoading && appWorkspaces.length > 0 && view === 'map' && (
+              <DecisionMap workspaces={appWorkspaces} onNavigate={onNavigate} />
+            )}
 
             {/* Workspace list — desktop table-style */}
-            {!isLoading && appWorkspaces.length > 0 && (
+            {!isLoading && appWorkspaces.length > 0 && view === 'list' && (
               <div className="panel overflow-hidden">
                 {/* Table header — hidden on mobile */}
                 <div
@@ -352,7 +382,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             )}
 
             {/* Upgrade banner when trial limit reached */}
-            {!isLoading && !isPro && trialLimitReached && appWorkspaces.length > 0 && (
+            {!isLoading && !isPro && trialLimitReached && appWorkspaces.length > 0 && view === 'list' && (
               <div className="panel p-5 flex items-center gap-4" style={{ background: 'var(--signal-bg)' }}>
                 <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--signal)' }}>
                   <Sparkles className="w-5 h-5" style={{ color: 'var(--ink-900)' }} />
@@ -368,7 +398,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             )}
 
             {/* Slack Sessions */}
-            {!isLoading && (
+            {!isLoading && view === 'list' && (
               <div>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--app-border-subtle)' }}>
@@ -432,12 +462,12 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             )}
 
             {/* Cross-workspace Decision Intelligence */}
-            {!isLoading && user && (
+            {!isLoading && user && view === 'list' && (
               <CrossWorkspacePatternCard userId={user.id} />
             )}
 
             {/* Feature callout strip */}
-            {!isLoading && (
+            {!isLoading && view === 'list' && (
               <div className="grid sm:grid-cols-3 gap-4">
                 {[
                   { icon: Lock, title: 'End-to-end encrypted', desc: 'All workspace data encrypted at rest and in transit' },

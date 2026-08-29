@@ -1,4 +1,4 @@
-import { User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare, Building2, Map } from 'lucide-react';
+import { User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare, Building2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import PoddleMark from './PoddleMark';
@@ -103,7 +103,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
     }
   }, [onNavigate]);
 
-      const navItemsAuth = [...NAV_ITEMS_AUTH, { id: 'decision-map', label: 'Decision Map', icon: Map }, { id: 'organization', label: 'Organization', icon: Building2 }];
+    const navItemsAuth = [...NAV_ITEMS_AUTH, { id: 'organization', label: 'Organization', icon: Building2 }];
   const navItems = user
     ? (hideDashboard ? navItemsAuth.filter(i => i.id !== 'home') : navItemsAuth)
     : NAV_ITEMS_GUEST;
