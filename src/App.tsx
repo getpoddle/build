@@ -322,6 +322,7 @@ function AppContent() {
       if (hash === 'subprocessors') { setCurrentPage('subprocessors'); return; }
       if (hash === 'team') { setCurrentPage('team'); return; }
       if (hash === 'advisory') { setCurrentPage('advisory'); return; }
+      if (hash === 'advisory') { setCurrentPage('advisory'); return; }
       if (hash === 'blog') { setCurrentPage('blog'); return; }
       if (hash.startsWith('blog/')) {
         const slug = hash.slice('blog/'.length);
@@ -890,8 +891,12 @@ function AppContent() {
     return wrap(<SlackSuccess onNavigate={handleNavigate} />);
   }
 
-  if (currentPage === 'team') {
+    if (currentPage === 'team') {
     return wrap(<Team onNavigate={handleNavigate} />);
+  }
+
+  if (currentPage === 'advisory') {
+    return wrap(<Advisory onNavigate={handleNavigate} />);
   }
 
   if (!user) {
