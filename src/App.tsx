@@ -39,6 +39,7 @@ const SlackLanding = lazy(() => import('./pages/SlackLanding'));
 const SlackSuccess = lazy(() => import('./pages/SlackSuccess'));
 const Subprocessors = lazy(() => import('./pages/Subprocessors'));
 const Team = lazy(() => import('./pages/Team'));
+const Advisory = lazy(() => import('./pages/Advisory'));
 
 function RouteFallback() {
   return (
@@ -320,6 +321,7 @@ function AppContent() {
       if (hash === 'slack-success') { setCurrentPage('slack-success'); return; }
       if (hash === 'subprocessors') { setCurrentPage('subprocessors'); return; }
       if (hash === 'team') { setCurrentPage('team'); return; }
+      if (hash === 'advisory') { setCurrentPage('advisory'); return; }
       if (hash === 'blog') { setCurrentPage('blog'); return; }
       if (hash.startsWith('blog/')) {
         const slug = hash.slice('blog/'.length);
