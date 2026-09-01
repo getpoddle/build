@@ -993,8 +993,18 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
       }
     }
 
+        // Stagger the start of each agent's OpenAI call. Firing all agents at
+    // once against the same API key is a common trigger for 429 rate-limit
+    // responses — a small offset per agent meaningfully reduces how often
+    // that happens in the first place, on top of the retry fix above.
     const round1Results = await Promise.allSettled(
-      selectedAgents.map((agent) => callAgentRound1(agent))
+      selectedAgents.map((agent, i) =>
+        new Promise<Awaited<ReturnType<typeof callAgentRound1>>>((resolve, reject) => {
+          setTimeout(() => {
+            callAgentRound1(agent).then(resolve, reject);
+          }, i * 200);
+        })
+      )
     );
 
     const agentResponses = round1Results
