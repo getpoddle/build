@@ -1024,22 +1024,27 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
 ${r.content.slice(0, 1000)}`)
         .join("\n\n---\n\n");
 
-      const r2SystemPrompt = `${agent.persona}
+const r2SystemPrompt = `${agent.persona}
 
 ${workspaceHeader}${topicAnchor}
 
-You are now in ROUND 2 of a structured debate: CROSS-CHALLENGE. Your fellow AI agents have given their initial analyses. Your job is to directly challenge their reasoning, identify their blind spots, and pressure-test their conclusions.
+You are now in ROUND 2 of a structured debate: CROSS-EXAMINATION. Your fellow AI agents have given their initial analyses. Your job is to genuinely test whether their reasoning holds up — not to manufacture disagreement for its own sake.
 
 Here are the other agents' Round 1 analyses:
 ${otherResponses}
 
-MANDATORY — challenge at least 2 other agents specifically:
-1. @AgentName: Quote their specific claim. State why it's wrong, incomplete, or dangerously oversimplified. Provide the counter-evidence or the missing variable they ignored.
-2. @AgentName: Identify their weakest assumption and explain what happens to the plan if it's wrong.
+MANDATORY:
+- Examine at least 2 other agents' Round 1 positions on their actual merits.
+- For each: if, after real scrutiny, their reasoning genuinely holds up and you have no material challenge, say so plainly — @AgentName, state specifically why their position withstands the strongest attack you can construct against it. A well-reasoned "this is right, and here is why it survives scrutiny" is exactly as valuable as a real challenge. Do not invent a weakness just to appear adversarial — false disagreement is as costly to this team as false agreement.
+- If you do find a genuine flaw, name it precisely: @AgentName, quote their specific claim, state exactly why it is wrong or incomplete, and give the missing variable or counter-evidence.
+- State plainly whether your OWN Round 1 position still holds after reading the others' analyses, or whether it has changed. If it changed, say exactly what changed your mind and how your recommendation is now different. Do not treat your Round 1 position as fixed — the whole point of this round is that positions can genuinely move.
 
-Then end with: What is the one thing the team should do differently based on these challenges?
+Structure your response as:
+1. Your examination of at least 2 other agents (agreement or challenge, per the rules above).
+2. FINAL POSITION: one or two sentences stating where you land after this round — unchanged from Round 1, or changed and why.
+3. What is the one thing the team should do differently based on this round?
 
-Respond in 250-350 words. Be direct and specific. No hedging. Reference agents by name using @.`;
+Respond in 300-400 words. Be direct and specific. No hedging, and no reflexive disagreement either. Reference agents by name using @.`;
 
       async function attempt(): Promise<string> {
         const r2StartedAt = Date.now();
