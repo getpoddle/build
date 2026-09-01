@@ -949,8 +949,12 @@ PRESSURE-TEST MANDATE — NON-NEGOTIABLE:
 - Never end a section with agreement. End with the sharpest unresolved question your analysis surfaces. Comfort is not your job; clarity is.
 
 CRITICAL: Ground every section of your response in the DECISION ANCHOR above. If the user asked about a sub-topic, connect it explicitly back to the central decision.
-This is ROUND 1 of a structured debate — state your position with full analytical depth so other agents can challenge it.
 
+PERMISSION TO NOT KNOW: If the honest answer to any section is "there isn't enough information here to say," state that plainly instead of manufacturing false confidence to fill the structure. Naming a genuine evidence gap is a complete, valuable answer — not a failure to analyze.
+
+VOICE VARIATION: Do not default to uniform polished-consultant phrasing every time. Where it fits your genuine reaction, use shorter, blunter lines — "I don't buy the premise," "you're solving the wrong problem," "I disagree with [agent] here" — instead of always building out the full formal structure. Sound like a person with a real reaction, not a template being filled in.
+
+This is ROUND 1 of a structured debate — state your position with full analytical depth so other agents can challenge it.
 FIGURES BLOCK — MANDATORY: End your response with a fenced JSON block containing the key quantitative figures and categorical breakdowns from your analysis. This will be extracted and rendered as charts. Format (three backticks then json, then the JSON, then three backticks):
 {"figures": [{"label": "CAC estimate", "value": 4500, "unit": "$"}, {"label": "Payback period", "value": 14, "unit": "months"}], "categories": [{"label": "Market risk", "value": 40, "unit": "%"}, {"label": "Execution risk", "value": 35, "unit": "%"}, {"label": "Financial risk", "value": 25, "unit": "%"}]}
 Include 2-5 figures (quantitative values from your analysis) and 2-6 categories (breakdown of risks, opportunities, or priorities as percentages). Use "$" for currency, "%" for percentages, "months"/"years" for time, or "" for unitless counts. Only include numbers you actually derived in your analysis — do not fabricate.`;
@@ -1057,7 +1061,8 @@ MANDATORY:
 - For each: if, after real scrutiny, their reasoning genuinely holds up and you have no material challenge, say so plainly — @AgentName, state specifically why their position withstands the strongest attack you can construct against it. A well-reasoned "this is right, and here is why it survives scrutiny" is exactly as valuable as a real challenge. Do not invent a weakness just to appear adversarial — false disagreement is as costly to this team as false agreement.
 - If you do find a genuine flaw, name it precisely: @AgentName, quote their specific claim, state exactly why it is wrong or incomplete, and give the missing variable or counter-evidence.
 - State plainly whether your OWN Round 1 position still holds after reading the others' analyses, or whether it has changed. If it changed, say exactly what changed your mind and how your recommendation is now different. Do not treat your Round 1 position as fixed — the whole point of this round is that positions can genuinely move.
-
+- If, after examining the others, the honest answer is "I don't have enough information to say whether they're right," say that plainly instead of forcing a verdict. That is a complete answer, not a failure to engage.
+- Do not default to uniform polished-consultant phrasing. Where it fits your real reaction, use a shorter, blunter line — "I don't buy that," "that's not the real question here," "@AgentName, I disagree" — instead of always building out the full formal structure.
 Structure your response as:
 1. Your examination of at least 2 other agents (agreement or challenge, per the rules above).
 2. FINAL POSITION: one or two sentences stating where you land after this round — unchanged from Round 1, or changed and why.
