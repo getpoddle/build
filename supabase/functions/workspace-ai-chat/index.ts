@@ -958,12 +958,16 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
           logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-luna", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
           if (!res.ok) {
             console.error(`Round 1 agent_${agent.role} failed: HTTP ${res.status}`, JSON.stringify(data?.error || data).slice(0, 500));
-          } else {
-            content = data.choices?.[0]?.message?.content || content;
+            // HTTP-level failures (rate limits, server errors) must be treated as
+            // retryable, same as network exceptions — otherwise a 429 silently
+            // becomes a permanent fallback with no retry at all.
+            throw new Error(`OpenAI HTTP ${res.status}`);
           }
+          content = data.choices?.[0]?.message?.content || content;
         } catch (parseErr) {
           console.error(`Round 1 agent_${agent.role} response parse error:`, String(parseErr).slice(0, 300));
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-luna", maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
+          throw parseErr;
         }
         const figures = parseFiguresFromContent(content);
         const displayContent = figures ? stripFiguresBlock(content) : content;
