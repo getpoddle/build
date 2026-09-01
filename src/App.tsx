@@ -948,6 +948,7 @@ function AppContent() {
               {activePage === 'profile' && <Profile key="profile-settings" onNavigate={handleNavigate} />}
               {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
               {activePage === 'organization' && <Organization key="organization" onNavigate={handleNavigate} />}
+              {activePage === 'decision-map' && <DecisionMapPage key="decision-map" onNavigate={handleNavigate} />}
               {activePage === 'workspace-hub' && workspaceId && (
                 <WorkspaceHub
                   key={`workspace-hub-${workspaceId}`}
