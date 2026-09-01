@@ -28,6 +28,7 @@ const Pricing = lazy(() => import('./pages/Pricing'));
 const SystemHealth = lazy(() => import('./pages/SystemHealth'));
 const Workspaces = lazy(() => import('./pages/Workspaces'));
 const Organization = lazy(() => import('./pages/Organization'));
+const DecisionMapPage = lazy(() => import('./pages/DecisionMapPage'));
 const WorkspaceHub = lazy(() => import('./pages/WorkspaceHub'));
 const WorkspaceSettings = lazy(() => import('./pages/WorkspaceSettings'));
 const JoinWorkspace = lazy(() => import('./pages/JoinWorkspace'));
