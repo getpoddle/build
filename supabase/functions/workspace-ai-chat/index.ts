@@ -952,22 +952,18 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
           }),
         });
 
-      let content = "I couldn't generate a response right now.";
+        let content = "I couldn't generate a response right now.";
         try {
           const data = await res.json();
           logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-luna", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
           if (!res.ok) {
             console.error(`Round 1 agent_${agent.role} failed: HTTP ${res.status}`, JSON.stringify(data?.error || data).slice(0, 500));
-            // HTTP-level failures (rate limits, server errors) must be treated as
-            // retryable, same as network exceptions — otherwise a 429 silently
-            // becomes a permanent fallback with no retry at all.
-            throw new Error(`OpenAI HTTP ${res.status}`);
+          } else {
+            content = data.choices?.[0]?.message?.content || content;
           }
-          content = data.choices?.[0]?.message?.content || content;
         } catch (parseErr) {
           console.error(`Round 1 agent_${agent.role} response parse error:`, String(parseErr).slice(0, 300));
-          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
-          throw parseErr;
+          logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-luna", maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
         }
         const figures = parseFiguresFromContent(content);
         const displayContent = figures ? stripFiguresBlock(content) : content;
@@ -993,18 +989,8 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
       }
     }
 
-    // Stagger the start of each agent's OpenAI call. Firing all agents at
-    // once against the same API key is a common trigger for 429 rate-limit
-    // responses — a small offset per agent meaningfully reduces how often
-    // that happens in the first place, on top of the retry fix above.
     const round1Results = await Promise.allSettled(
-      selectedAgents.map((agent, i) =>
-        new Promise<Awaited<ReturnType<typeof callAgentRound1>>>((resolve, reject) => {
-          setTimeout(() => {
-            callAgentRound1(agent).then(resolve, reject);
-          }, i * 200);
-        })
-      )
+      selectedAgents.map((agent) => callAgentRound1(agent))
     );
 
     const agentResponses = round1Results
