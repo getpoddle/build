@@ -356,7 +356,11 @@ function AppContent() {
         sessionStorage.setItem('currentPage', 'organization');
         return;
       }
-
+      if (hash === 'decision-map') {
+        setCurrentPage('decision-map');
+        sessionStorage.setItem('currentPage', 'decision-map');
+        return;
+      }
       if (hash.startsWith('workspace/')) {
         const id = hash.split('/')[1];
         if (id && id.trim()) {
