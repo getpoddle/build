@@ -956,14 +956,19 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
         try {
           const data = await res.json();
           logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, model: "gpt-5.6-luna", usage: data.usage, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: res.ok ? "succeeded" : "errored", httpStatus: res.status });
-          if (!res.ok) {
+                    if (!res.ok) {
             console.error(`Round 1 agent_${agent.role} failed: HTTP ${res.status}`, JSON.stringify(data?.error || data).slice(0, 500));
             // HTTP-level failures (rate limits, server errors) must be treated as
             // retryable, same as network exceptions — otherwise a 429 silently
             // becomes a permanent fallback with no retry at all.
             throw new Error(`OpenAI HTTP ${res.status}`);
           }
-          content = data.choices?.[0]?.message?.content || content;
+          const receivedContent = data.choices?.[0]?.message?.content;
+          if (!receivedContent || !receivedContent.trim()) {
+            console.error(`Round 1 agent_${agent.role} returned empty content`, JSON.stringify(data).slice(0, 500));
+            throw new Error(`OpenAI returned empty content for agent_${agent.role}`);
+          }
+          content = receivedContent;
         } catch (parseErr) {
           console.error(`Round 1 agent_${agent.role} response parse error:`, String(parseErr).slice(0, 300));
           logAiOpenAICall({ distinctId: user.id, workspaceId: workspace_id, functionName: "workspace-ai-chat", callSite: `agent_${agent.role}`, maxCompletionTokens: agent.maxTokens, jsonMode: false, latencyMs: Date.now() - r1StartedAt, status: "errored", httpStatus: res.status });
