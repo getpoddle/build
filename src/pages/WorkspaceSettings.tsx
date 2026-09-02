@@ -305,9 +305,19 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
     setMembers(prev => prev.filter(m => m.id !== memberId));
   }
 
-  async function handleChangeRole(memberId: string, newRole: 'admin' | 'member') {
+   async function handleChangeRole(memberId: string, newRole: 'admin' | 'member') {
+    const prevMember = members.find(m => m.id === memberId);
     await supabase.from('workspace_members').update({ role: newRole }).eq('id', memberId);
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m));
+    if (user && prevMember) {
+      supabase.from('decision_events').insert({
+        workspace_id: workspaceId,
+        event_type: 'human_override',
+        actor_type: 'user',
+        actor_id: user.id,
+        payload: { field: 'member_role', target_user_id: prevMember.user_id, before: prevMember.role, after: newRole, changed_by: user.id },
+      }).then(({ error: e }) => { if (e) console.error('Decision event insert error:', e); });
+    }
   }
 
   async function handleDelete() {
