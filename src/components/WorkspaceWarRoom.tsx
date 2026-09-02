@@ -1145,12 +1145,13 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     }
   }
 
-  async function addManualAction() {
+   async function addManualAction() {
     if (!newActionText.trim() || savingAction || !user) return;
     setSavingAction(true);
+    const actionText = newActionText.trim();
     const { data } = await supabase.from('workspace_action_items').insert({
       workspace_id: workspaceId,
-      text: newActionText.trim(),
+      text: actionText,
       source: 'manual',
       priority: 'medium',
       source_area: 'manual',
@@ -1159,6 +1160,14 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     }).select('id,text,source,priority,source_area,assignee_user_id,due_date,status,outcome,outcome_notes,outcome_recorded_at,created_at').maybeSingle();
     if (data) setActionItems(prev => [...prev, data as ActionItem]);
     setNewActionText(''); setAddingAction(false); setSavingAction(false);
+
+    supabase.from('decision_events').insert({
+      workspace_id: workspaceId,
+      event_type: 'human_override',
+      actor_type: 'user',
+      actor_id: user.id,
+      payload: { field: 'manual_action_item_added', action_item: actionText, added_by: user.id },
+    }).then(({ error }) => { if (error) console.error('Decision event insert error:', error); });
   }
 
   async function commitConflict(topic: string, side: 'a' | 'b', position: string) {
