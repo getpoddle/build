@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Clock, X } from 'lucide-react';
+import { ArrowLeft, Clock, X, Sparkles } from 'lucide-react';
 import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
 import { supabase } from '../lib/supabase';
 
@@ -17,6 +17,20 @@ interface DecisionEvent {
   created_at: string;
 }
 
+interface DecisionClaim {
+  id: string;
+  workspace_id: string;
+  claim_code: string;
+  agent_role: string;
+  agent_name: string;
+  statement: string;
+  claim_type: string;
+  evidence_refs: unknown;
+  assumptions: unknown;
+  confidence: number;
+  created_at: string;
+}
+
 const EVENT_LABELS: Record<string, string> = {
   decision_created: 'Decision created',
   evidence_added: 'Evidence added',
@@ -27,9 +41,99 @@ const EVENT_LABELS: Record<string, string> = {
   outcome_logged: 'Outcome logged',
 };
 
+const CLAIM_TYPE_COLORS: Record<string, string> = {
+  fact: '#16a34a',
+  assumption: '#d97706',
+  inference: '#2563eb',
+  opinion: '#7c3aed',
+};
+
 function toLocalDatetimeInputValue(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function ClaimsPanel({ workspaceId }: { workspaceId: string }) {
+  const [claims, setClaims] = useState<DecisionClaim[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    supabase
+      .from('decision_claims')
+      .select('id, workspace_id, claim_code, agent_role, agent_name, statement, claim_type, evidence_refs, assumptions, confidence, created_at')
+      .eq('workspace_id', workspaceId)
+      .order('created_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (!error && data) setClaims(data as DecisionClaim[]);
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [workspaceId]);
+
+  if (loading || claims.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--signal)' }} />
+        <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--app-text-secondary)' }}>
+          Claims ({claims.length})
+        </h3>
+      </div>
+      <div className="space-y-2">
+        {claims.map(claim => {
+          const isOpen = expanded === claim.id;
+          const typeColor = CLAIM_TYPE_COLORS[claim.claim_type] || '#64748b';
+          const evidenceRefs = Array.isArray(claim.evidence_refs) ? claim.evidence_refs as string[] : [];
+          const assumptions = Array.isArray(claim.assumptions) ? claim.assumptions as { key: string; value: string }[] : [];
+          return (
+            <button
+              key={claim.id}
+              onClick={() => setExpanded(isOpen ? null : claim.id)}
+              className="panel w-full text-left p-3"
+            >
+              <div className="flex items-start gap-2">
+                <span
+                  className="text-xs font-bold px-2 py-0.5 flex-shrink-0"
+                  style={{ color: typeColor, background: `${typeColor}1a` }}
+                >
+                  {claim.claim_code}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm">{claim.statement}</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--app-text-secondary)' }}>
+                    {claim.agent_name} · {claim.claim_type} · {Math.round(claim.confidence * 100)}% confidence
+                  </p>
+                  {isOpen && (
+                    <div className="mt-2 space-y-1.5 text-xs" style={{ color: 'var(--app-text-secondary)' }}>
+                      {evidenceRefs.length > 0 && (
+                        <p>Evidence: {evidenceRefs.join(', ')}</p>
+                      )}
+                      {assumptions.length > 0 && (
+                        <div>
+                          <p className="font-medium" style={{ color: 'var(--app-text-primary)' }}>Assumptions:</p>
+                          {assumptions.map((a, i) => (
+                            <p key={i}>{a.key}: {a.value}</p>
+                          ))}
+                        </div>
+                      )}
+                      {evidenceRefs.length === 0 && assumptions.length === 0 && (
+                        <p>No evidence or assumptions recorded for this claim.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: string; workspaceName: string; onBack: () => void }) {
@@ -147,6 +251,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           </button>
         </div>
       )}
+
+      {!replayActive && <ClaimsPanel workspaceId={workspaceId} />}
 
       {loading && (
         <div className="space-y-3">
