@@ -1170,7 +1170,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     }).then(({ error }) => { if (error) console.error('Decision event insert error:', error); });
   }
 
-  async function commitConflict(topic: string, side: 'a' | 'b', position: string) {
+    async function commitConflict(topic: string, side: 'a' | 'b', position: string) {
     if (!user) return;
     setCommitPending(null);
     setCommits(prev => [...prev.filter(c => c.conflict_topic !== topic), { conflict_topic: topic, committed_position: position, committed_side: side }]);
@@ -1178,11 +1178,29 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       workspace_id: workspaceId, conflict_topic: topic, committed_position: position,
       committed_side: side, committed_by: user.id,
     }, { onConflict: 'workspace_id,conflict_topic' });
+
+    supabase.from('decision_events').insert({
+      workspace_id: workspaceId,
+      event_type: 'human_override',
+      actor_type: 'user',
+      actor_id: user.id,
+      payload: { field: 'conflict_commit', conflict_topic: topic, committed_side: side, committed_position: position, changed_by: user.id },
+    }).then(({ error }) => { if (error) console.error('Decision event insert error:', error); });
   }
 
   async function uncommitConflict(topic: string) {
     setCommits(prev => prev.filter(c => c.conflict_topic !== topic));
     await supabase.from('workspace_conflict_commits').delete().eq('workspace_id', workspaceId).eq('conflict_topic', topic);
+
+    if (user) {
+      supabase.from('decision_events').insert({
+        workspace_id: workspaceId,
+        event_type: 'human_override',
+        actor_type: 'user',
+        actor_id: user.id,
+        payload: { field: 'conflict_uncommit', conflict_topic: topic, changed_by: user.id },
+      }).then(({ error }) => { if (error) console.error('Decision event insert error:', error); });
+    }
   }
 
   function buildBoardSummary(): string {
