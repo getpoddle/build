@@ -930,6 +930,21 @@ Every section of your response must answer: how does this analysis change what t
       });
     }
 
+    // ── Decision Audit Trail: log the first message as the framing moment ───
+    // messageCount is the count BEFORE this insert, so 0 means this is
+    // genuinely the first message ever sent in this workspace — the actual
+    // question/framing that kicked off the discussion, distinct from the
+    // workspace name captured at decision_created.
+    if (messageCount === 0) {
+      service.from("decision_events").insert({
+        workspace_id,
+        event_type: "evidence_added",
+        actor_type: "user",
+        actor_id: user.id,
+        payload: { kind: "framing_message", content: safeMessage },
+      }).then(({ error }) => { if (error) console.error("Decision event insert error:", error); });
+    }
+
     // ── ROUND 1: Independent initial responses (parallel, fault-isolated) ─
     async function callAgentRound1(agent: typeof AGENT_ROSTER[keyof typeof AGENT_ROSTER]): Promise<{ agent: typeof agent; content: string; figures: AgentFigures | null; rawContent: string }> {
       const intakeInstruction = isNewWorkspace
