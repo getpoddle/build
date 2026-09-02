@@ -299,10 +299,20 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
     setInvites(prev => prev.filter(i => i.id !== inviteId));
   }
 
-  async function handleRemoveMember(memberId: string, userId: string) {
+    async function handleRemoveMember(memberId: string, userId: string) {
     if (userId === user?.id) return;
+    const removedMember = members.find(m => m.id === memberId);
     await supabase.from('workspace_members').delete().eq('id', memberId);
     setMembers(prev => prev.filter(m => m.id !== memberId));
+    if (user) {
+      supabase.from('decision_events').insert({
+        workspace_id: workspaceId,
+        event_type: 'human_override',
+        actor_type: 'user',
+        actor_id: user.id,
+        payload: { field: 'member_removed', target_user_id: userId, role: removedMember?.role, changed_by: user.id },
+      }).then(({ error: e }) => { if (e) console.error('Decision event insert error:', e); });
+    }
   }
 
    async function handleChangeRole(memberId: string, newRole: 'admin' | 'member') {
