@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Clock, X, Sparkles, List, PlayCircle, PauseCircle, ChevronLeft, ChevronRight, UserCog } from 'lucide-react';
+import {
+  ArrowLeft, Clock, X, Sparkles, List, PlayCircle, PauseCircle,
+  ChevronLeft, ChevronRight, UserCog, FileText, MessageSquare,
+  Brain, GitBranch, Edit3, CheckCircle2, TrendingUp,
+} from 'lucide-react';
 import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
 import { supabase } from '../lib/supabase';
 
@@ -38,14 +42,14 @@ interface DomainOwnerRow {
   backup_owner_user_id: string | null;
 }
 
-const EVENT_LABELS: Record<string, string> = {
-  decision_created: 'Decision created',
-  evidence_added: 'Evidence added',
-  agent_analysis: 'Agent analysis',
-  challenge_raised: 'Challenge raised',
-  human_override: 'Human override',
-  final_decision: 'Final decision',
-  outcome_logged: 'Outcome logged',
+const EVENT_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
+  decision_created:  { icon: FileText,      color: '#475569', label: 'Decision Created' },
+  evidence_added:    { icon: MessageSquare, color: '#0891b2', label: 'Evidence Added' },
+  agent_analysis:    { icon: Brain,         color: '#2563eb', label: 'Agent Analysis' },
+  challenge_raised:  { icon: GitBranch,     color: '#d97706', label: 'Challenge Raised' },
+  human_override:    { icon: Edit3,         color: '#7c3aed', label: 'Human Override' },
+  final_decision:    { icon: CheckCircle2,  color: '#16a34a', label: 'Final Decision' },
+  outcome_logged:    { icon: TrendingUp,    color: '#0d9488', label: 'Outcome Logged' },
 };
 
 const CLAIM_TYPE_COLORS: Record<string, string> = {
@@ -107,99 +111,159 @@ function groupIntoStages(events: DecisionEvent[]): { key: StageKey; events: Deci
     .map(key => ({ key, events: buckets.get(key)! }));
 }
 
-function EventDetail({ ev, actorNames, claims }: { ev: DecisionEvent; actorNames: Record<string, string>; claims: DecisionClaim[] }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="mb-3">
-      <p className="text-sm font-medium">{EVENT_LABELS[ev.event_type] || ev.event_type}</p>
-      <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
-        {new Date(ev.created_at).toLocaleString()}
-        {ev.actor_type === 'user' && ev.actor_id && (
-          <> · {actorNames[ev.actor_id] || 'A team member'}</>
-        )}
+    <div className="mb-3 last:mb-0">
+      <p
+        className="text-[10px] font-bold uppercase mb-1"
+        style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}
+      >
+        {label}
       </p>
+      <div className="text-sm" style={{ color: 'var(--app-text-primary)', lineHeight: 1.5 }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
-      {typeof ev.payload?.question === 'string' && (
-        <p className="text-sm mt-1">{String(ev.payload.question)}</p>
-      )}
-      {typeof ev.payload?.recommendation === 'string' && (
-        <p className="text-sm mt-1" style={{ color: 'var(--app-text-secondary)' }}>
-          {String(ev.payload.recommendation).slice(0, 240)}
-        </p>
-      )}
-      {typeof ev.payload?.status === 'string' && !ev.payload?.field && (
-        <p className="text-sm mt-1">Status: {String(ev.payload.status)}</p>
-      )}
-      {typeof ev.payload?.kind === 'string' && ev.payload.kind === 'framing_message' && typeof ev.payload?.content === 'string' && (
-        <p className="text-sm mt-1">{String(ev.payload.content)}</p>
-      )}
+function ClaimBadges({ claims }: { claims: DecisionClaim[] }) {
+  if (claims.length === 0) return null;
+  return (
+    <Field label="Referenced Claims">
+      <div className="flex flex-wrap gap-1.5">
+        {claims.slice(0, 8).map(c => {
+          const color = CLAIM_TYPE_COLORS[c.claim_type] || '#64748b';
+          return (
+            <span
+              key={c.id}
+              title={c.statement}
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '2px 8px',
+                border: `1px solid ${color}40`,
+                background: `${color}0d`,
+                color,
+              }}
+            >
+              {c.claim_code}
+            </span>
+          );
+        })}
+      </div>
+    </Field>
+  );
+}
 
-      {ev.event_type === 'human_override' && typeof ev.payload?.field === 'string' && (
-        <div className="text-sm mt-1 space-y-0.5">
-          <p style={{ color: 'var(--app-text-secondary)' }}>
-            Changed: <span className="font-medium" style={{ color: 'var(--app-text-primary)' }}>{String(ev.payload.field).replace(/_/g, ' ')}</span>
-          </p>
-          {ev.payload.field === 'name' && (
-            <p>
-              <span style={{ color: 'var(--app-text-muted)', textDecoration: 'line-through' }}>
-                {String((ev.payload.before as Record<string, unknown>)?.name ?? '')}
-              </span>
-              {' → '}
-              {String((ev.payload.after as Record<string, unknown>)?.name ?? '')}
-            </p>
-          )}
-          {ev.payload.field === 'description' && (
-            <p>
-              <span style={{ color: 'var(--app-text-muted)', textDecoration: 'line-through' }}>
-                {String((ev.payload.before as Record<string, unknown>)?.description ?? '(empty)')}
-              </span>
-              {' → '}
-              {String((ev.payload.after as Record<string, unknown>)?.description ?? '(empty)')}
-            </p>
-          )}
-          {ev.payload.field === 'name_and_description' && <p>Updated name and description</p>}
-          {ev.payload.field === 'member_role' && <p>Role: {String(ev.payload.before)} → {String(ev.payload.after)}</p>}
-          {ev.payload.field === 'member_removed' && <p>Removed a {String(ev.payload.role || 'member')}</p>}
-          {ev.payload.field === 'organization' && (
-            <p>{ev.payload.action === 'linked' ? 'Linked to an organization' : 'Unlinked from organization'}</p>
-          )}
-          {ev.payload.field === 'action_item_assignee' && <p>Assigned "{String(ev.payload.action_item ?? '')}"</p>}
-          {ev.payload.field === 'manual_action_item_added' && <p>Added: {String(ev.payload.action_item ?? '')}</p>}
-          {ev.payload.field === 'conflict_commit' && <p>Committed to a position on "{String(ev.payload.conflict_topic ?? '')}"</p>}
-          {ev.payload.field === 'conflict_uncommit' && <p>Reversed commitment on "{String(ev.payload.conflict_topic ?? '')}"</p>}
+// ── EventCard: a single, self-contained enterprise-style card for one
+// event — icon-coded header with a colored left accent, structured
+// labeled fields in the body instead of run-together sentences.
+function EventCard({ ev, actorNames, claims }: { ev: DecisionEvent; actorNames: Record<string, string>; claims: DecisionClaim[] }) {
+  const meta = EVENT_META[ev.event_type] || { icon: FileText, color: '#64748b', label: ev.event_type };
+  const Icon = meta.icon;
+  const actorName = ev.actor_type === 'user' && ev.actor_id ? (actorNames[ev.actor_id] || 'A team member') : null;
+
+  return (
+    <div style={{ border: '1px solid var(--app-border)', borderLeft: `3px solid ${meta.color}`, background: 'var(--app-surface-raised, #fff)' }}>
+      <div
+        className="flex items-center gap-2.5 px-4 py-2.5 flex-wrap"
+        style={{ borderBottom: '1px solid var(--app-border)', background: `${meta.color}0a` }}
+      >
+        <div
+          className="flex items-center justify-center flex-shrink-0"
+          style={{ width: 26, height: 26, background: 'var(--app-surface-raised, #fff)', border: `1px solid ${meta.color}40` }}
+        >
+          <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
         </div>
-      )}
-
-      {ev.event_type === 'outcome_logged' && (
-        <p className="text-sm mt-1">
-          "{String(ev.payload.action_item ?? '')}" — {String(ev.payload.outcome ?? '')}
-        </p>
-      )}
-
-      {ev.event_type === 'agent_analysis' && claims.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {claims.slice(0, 6).map(c => {
-            const color = CLAIM_TYPE_COLORS[c.claim_type] || '#64748b';
-            return (
-              <span
-                key={c.id}
-                className="text-xs font-bold px-2 py-0.5"
-                style={{ color, background: `${color}1a` }}
-                title={c.statement}
-              >
-                {c.claim_code}
-              </span>
-            );
-          })}
+        <span className="text-xs font-bold uppercase" style={{ color: meta.color, letterSpacing: '0.06em' }}>
+          {meta.label}
+        </span>
+        <div className="ml-auto text-right">
+          <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>{new Date(ev.created_at).toLocaleString()}</p>
+          {actorName && (
+            <p className="text-xs font-medium" style={{ color: 'var(--app-text-secondary)' }}>{actorName}</p>
+          )}
         </div>
-      )}
+      </div>
+
+      <div className="px-4 py-3.5">
+        {typeof ev.payload?.question === 'string' && (
+          <Field label="Original Question">{String(ev.payload.question)}</Field>
+        )}
+        {typeof ev.payload?.kind === 'string' && ev.payload.kind === 'framing_message' && typeof ev.payload?.content === 'string' && (
+          <Field label="Framing Message">{String(ev.payload.content)}</Field>
+        )}
+        {typeof ev.payload?.recommendation === 'string' && (
+          <Field label="Recommendation">
+            <span style={{ color: 'var(--app-text-secondary)' }}>{String(ev.payload.recommendation).slice(0, 280)}</span>
+          </Field>
+        )}
+        {typeof ev.payload?.status === 'string' && !ev.payload?.field && (
+          <Field label="Status">
+            <span
+              className="text-xs font-bold uppercase px-2 py-0.5"
+              style={{ color: meta.color, background: `${meta.color}14` }}
+            >
+              {String(ev.payload.status)}
+            </span>
+          </Field>
+        )}
+
+        {ev.event_type === 'human_override' && typeof ev.payload?.field === 'string' && (
+          <>
+            <Field label="Changed">
+              <span className="font-medium">{String(ev.payload.field).replace(/_/g, ' ')}</span>
+            </Field>
+            {ev.payload.field === 'name' && (
+              <Field label="Before → After">
+                <span style={{ color: 'var(--app-text-muted)', textDecoration: 'line-through' }}>
+                  {String((ev.payload.before as Record<string, unknown>)?.name ?? '')}
+                </span>
+                {' → '}
+                <span style={{ fontWeight: 500 }}>{String((ev.payload.after as Record<string, unknown>)?.name ?? '')}</span>
+              </Field>
+            )}
+            {ev.payload.field === 'description' && (
+              <Field label="Before → After">
+                <span style={{ color: 'var(--app-text-muted)', textDecoration: 'line-through' }}>
+                  {String((ev.payload.before as Record<string, unknown>)?.description ?? '(empty)')}
+                </span>
+                {' → '}
+                <span style={{ fontWeight: 500 }}>{String((ev.payload.after as Record<string, unknown>)?.description ?? '(empty)')}</span>
+              </Field>
+            )}
+            {ev.payload.field === 'name_and_description' && <Field label="Detail">Updated name and description</Field>}
+            {ev.payload.field === 'member_role' && (
+              <Field label="Before → After">{String(ev.payload.before)} → {String(ev.payload.after)}</Field>
+            )}
+            {ev.payload.field === 'member_removed' && <Field label="Detail">Removed a {String(ev.payload.role || 'member')}</Field>}
+            {ev.payload.field === 'organization' && (
+              <Field label="Detail">{ev.payload.action === 'linked' ? 'Linked to an organization' : 'Unlinked from organization'}</Field>
+            )}
+            {ev.payload.field === 'action_item_assignee' && <Field label="Detail">Assigned "{String(ev.payload.action_item ?? '')}"</Field>}
+            {ev.payload.field === 'manual_action_item_added' && <Field label="Detail">Added: {String(ev.payload.action_item ?? '')}</Field>}
+            {ev.payload.field === 'conflict_commit' && <Field label="Detail">Committed to a position on "{String(ev.payload.conflict_topic ?? '')}"</Field>}
+            {ev.payload.field === 'conflict_uncommit' && <Field label="Detail">Reversed commitment on "{String(ev.payload.conflict_topic ?? '')}"</Field>}
+          </>
+        )}
+
+        {ev.event_type === 'outcome_logged' && (
+          <Field label="Outcome">
+            "{String(ev.payload.action_item ?? '')}" — <span className="font-medium">{String(ev.payload.outcome ?? '')}</span>
+          </Field>
+        )}
+
+        {ev.event_type === 'agent_analysis' && <ClaimBadges claims={claims} />}
+      </div>
     </div>
   );
 }
 
 function DecisionStory({
-  workspaceId, events, claims, actorNames, domainOwners, ownerNames,
+  events, claims, actorNames, domainOwners, ownerNames,
 }: {
-  workspaceId: string;
   events: DecisionEvent[];
   claims: DecisionClaim[];
   actorNames: Record<string, string>;
@@ -229,21 +293,30 @@ function DecisionStory({
 
   const current = stages[Math.min(stageIndex, stages.length - 1)];
   const ownedDomains = domainOwners.filter(d => d.owner_user_id || d.backup_owner_user_id);
+  const progressPct = stages.length > 1 ? (stageIndex / (stages.length - 1)) * 100 : 0;
 
   return (
     <div>
       {/* Stage tracker */}
-      <div className="mb-5">
+      <div className="mb-6">
         <div className="flex items-center" style={{ position: 'relative' }}>
           <div
             style={{
-              position: 'absolute', left: 0, right: 0, top: '10px', height: '2px',
+              position: 'absolute', left: 0, right: 0, top: '11px', height: '2px',
               background: 'var(--app-border)', zIndex: 0,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute', left: 0, top: '11px', height: '2px',
+              background: 'var(--signal)', zIndex: 0, width: `${progressPct}%`,
+              transition: 'width 0.35s ease',
             }}
           />
           {stages.map((s, i) => {
             const active = i === stageIndex;
             const done = i < stageIndex;
+            const meta = EVENT_META[s.events[0].event_type];
             return (
               <button
                 key={s.key}
@@ -254,18 +327,18 @@ function DecisionStory({
                 <div
                   className="rounded-full flex items-center justify-center"
                   style={{
-                    width: 22, height: 22,
-                    background: active || done ? 'var(--signal)' : 'var(--app-surface)',
+                    width: 24, height: 24,
+                    background: active || done ? 'var(--signal)' : 'var(--app-surface-raised, #fff)',
                     border: `2px solid ${active || done ? 'var(--signal)' : 'var(--app-border)'}`,
                     color: active || done ? '#fff' : 'var(--app-text-muted)',
                     fontSize: '11px', fontWeight: 700,
                   }}
                 >
-                  {i + 1}
+                  {done ? <CheckCircle2 className="w-3 h-3" /> : i + 1}
                 </div>
                 <span
-                  className="text-xs font-medium"
-                  style={{ color: active ? 'var(--app-text-primary)' : 'var(--app-text-secondary)' }}
+                  className="text-xs font-semibold"
+                  style={{ color: active ? (meta?.color || 'var(--app-text-primary)') : 'var(--app-text-secondary)' }}
                 >
                   {STAGE_LABELS[s.key]}
                 </span>
@@ -275,19 +348,13 @@ function DecisionStory({
         </div>
       </div>
 
-      {/* Stage card */}
-      <div className="panel p-5 mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <span
-            className="text-xs font-bold uppercase tracking-wide px-2 py-0.5"
-            style={{ color: 'var(--signal)', background: 'var(--signal-bg)' }}
-          >
-            Stage {stageIndex + 1} of {stages.length} · {STAGE_LABELS[current.key]}
-          </span>
-        </div>
-
+      {/* Stage context strip */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-semibold" style={{ color: 'var(--app-text-muted)' }}>
+          Stage {stageIndex + 1} of {stages.length}
+        </span>
         {current.key === 'created' && ownedDomains.length > 0 && (
-          <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <UserCog className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--app-text-secondary)' }} />
             {ownedDomains.map(d => (
               <span key={d.id} className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
@@ -296,9 +363,12 @@ function DecisionStory({
             ))}
           </div>
         )}
+      </div>
 
+      {/* Stage cards */}
+      <div className="space-y-3 mb-5">
         {current.events.map(ev => (
-          <EventDetail key={ev.id} ev={ev} actorNames={actorNames} claims={ev.event_type === 'agent_analysis' ? claims : []} />
+          <EventCard key={ev.id} ev={ev} actorNames={actorNames} claims={ev.event_type === 'agent_analysis' ? claims : []} />
         ))}
       </div>
 
@@ -344,7 +414,7 @@ function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3">
         <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--signal)' }} />
-        <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--app-text-secondary)' }}>
+        <h3 className="text-sm font-bold uppercase" style={{ color: 'var(--app-text-secondary)', letterSpacing: '0.06em' }}>
           Claims ({claims.length})
         </h3>
       </div>
@@ -358,34 +428,48 @@ function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
             <button
               key={claim.id}
               onClick={() => setExpanded(isOpen ? null : claim.id)}
-              className="panel w-full text-left p-3"
+              className="w-full text-left"
+              style={{ border: '1px solid var(--app-border)', borderLeft: `3px solid ${typeColor}`, background: 'var(--app-surface-raised, #fff)' }}
             >
-              <div className="flex items-start gap-2">
-                <span
-                  className="text-xs font-bold px-2 py-0.5 flex-shrink-0"
-                  style={{ color: typeColor, background: `${typeColor}1a` }}
-                >
-                  {claim.claim_code}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">{claim.statement}</p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--app-text-secondary)' }}>
-                    {claim.agent_name} · {claim.claim_type} · {Math.round(claim.confidence * 100)}% confidence
-                  </p>
-                  {isOpen && (
-                    <div className="mt-2 space-y-1.5 text-xs" style={{ color: 'var(--app-text-secondary)' }}>
-                      {evidenceRefs.length > 0 && <p>Evidence: {evidenceRefs.join(', ')}</p>}
-                      {assumptions.length > 0 && (
-                        <div>
-                          <p className="font-medium" style={{ color: 'var(--app-text-primary)' }}>Assumptions:</p>
-                          {assumptions.map((a, i) => <p key={i}>{a.key}: {a.value}</p>)}
-                        </div>
-                      )}
-                      {evidenceRefs.length === 0 && assumptions.length === 0 && (
-                        <p>No evidence or assumptions recorded for this claim.</p>
-                      )}
-                    </div>
-                  )}
+              <div className="p-3.5">
+                <div className="flex items-start gap-2.5">
+                  <span
+                    style={{
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                      fontSize: '11px', fontWeight: 700,
+                      padding: '2px 8px', flexShrink: 0,
+                      border: `1px solid ${typeColor}40`, background: `${typeColor}0d`, color: typeColor,
+                    }}
+                  >
+                    {claim.claim_code}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm">{claim.statement}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--app-text-secondary)' }}>
+                      {claim.agent_name} · <span className="capitalize">{claim.claim_type}</span> · {Math.round(claim.confidence * 100)}% confidence
+                    </p>
+                    {isOpen && (
+                      <div className="mt-2.5 pt-2.5 space-y-2 text-xs" style={{ borderTop: '1px solid var(--app-border)' }}>
+                        {evidenceRefs.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Evidence</p>
+                            <p style={{ color: 'var(--app-text-secondary)' }}>{evidenceRefs.join(', ')}</p>
+                          </div>
+                        )}
+                        {assumptions.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Assumptions</p>
+                            {assumptions.map((a, i) => (
+                              <p key={i} style={{ color: 'var(--app-text-secondary)' }}>{a.key}: {a.value}</p>
+                            ))}
+                          </div>
+                        )}
+                        {evidenceRefs.length === 0 && assumptions.length === 0 && (
+                          <p style={{ color: 'var(--app-text-secondary)' }}>No evidence or assumptions recorded for this claim.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </button>
@@ -581,7 +665,6 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
 
       {!loading && events.length > 0 && viewMode === 'story' && (
         <DecisionStory
-          workspaceId={workspaceId}
           events={events}
           claims={claims}
           actorNames={actorNames}
@@ -603,19 +686,9 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           )}
 
           {displayedEvents.length > 0 && (
-            <div className="space-y-0">
-              {displayedEvents.map((ev, i) => (
-                <div key={ev.id} className="flex gap-3">
-                  <div className="flex flex-col items-center" style={{ width: 20 }}>
-                    <div className="rounded-full" style={{ width: 10, height: 10, background: 'var(--signal)', marginTop: 4 }} />
-                    {i < displayedEvents.length - 1 && (
-                      <div style={{ width: 1, flex: 1, background: 'var(--app-border)', marginTop: 2 }} />
-                    )}
-                  </div>
-                  <div style={{ paddingBottom: 20, flex: 1 }}>
-                    <EventDetail ev={ev} actorNames={actorNames} claims={ev.event_type === 'agent_analysis' ? claims : []} />
-                  </div>
-                </div>
+            <div className="space-y-3">
+              {displayedEvents.map(ev => (
+                <EventCard key={ev.id} ev={ev} actorNames={actorNames} claims={ev.event_type === 'agent_analysis' ? claims : []} />
               ))}
             </div>
           )}
