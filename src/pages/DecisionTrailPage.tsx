@@ -413,7 +413,7 @@ function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
   if (claims.length === 0) return null;
 
   return (
-    <div className="mb-6 p-4" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
+    <div className="mt-6 p-4" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
       <div className="flex items-center gap-2 mb-3">
         <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--signal)' }} />
         <h3 className="text-sm font-bold uppercase" style={{ color: 'var(--signal)', letterSpacing: '0.06em' }}>
@@ -486,104 +486,101 @@ function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
 function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: string; workspaceName: string; onBack: () => void }) {
   const [events, setEvents] = useState<DecisionEvent[]>([]);
   const [claims, setClaims] = useState<DecisionClaim[]>([]);
+  const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [domainOwners, setDomainOwners] = useState<DomainOwnerRow[]>([]);
   const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [actorNames, setActorNames] = useState<Record<string, string>>({});
-  const [replayActive, setReplayActive] = useState(false);
-  const [replayTimestamp, setReplayTimestamp] = useState<string>('');
   const [viewMode, setViewMode] = useState<'list' | 'story'>('list');
+  const [replayActive, setReplayActive] = useState(false);
+  const [replayTimestamp, setReplayTimestamp] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      supabase
-        .from('decision_events')
-        .select('id, workspace_id, event_type, actor_type, actor_id, payload, created_at')
-        .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('decision_claims')
-        .select('id, workspace_id, claim_code, agent_role, agent_name, statement, claim_type, evidence_refs, assumptions, confidence, created_at')
-        .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('domain_owners')
-        .select('id, domain, owner_user_id, backup_owner_user_id')
-        .eq('workspace_id', workspaceId)
-        .order('domain'),
-    ]).then(([evRes, claimsRes, ownersRes]) => {
+    (async () => {
+      const [eventsRes, claimsRes, ownersRes] = await Promise.all([
+        supabase
+          .from('decision_events')
+          .select('id, workspace_id, event_type, actor_type, actor_id, payload, created_at')
+          .eq('workspace_id', workspaceId)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('decision_claims')
+          .select('id, workspace_id, claim_code, agent_role, agent_name, statement, claim_type, evidence_refs, assumptions, confidence, created_at')
+          .eq('workspace_id', workspaceId)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('domain_owners')
+          .select('id, domain, owner_user_id, backup_owner_user_id')
+          .eq('workspace_id', workspaceId),
+      ]);
+
       if (cancelled) return;
-      if (!evRes.error && evRes.data) setEvents(evRes.data as DecisionEvent[]);
+
+      const eventRows = (!eventsRes.error && eventsRes.data ? eventsRes.data : []) as DecisionEvent[];
+      setEvents(eventRows);
       if (!claimsRes.error && claimsRes.data) setClaims(claimsRes.data as DecisionClaim[]);
-      if (!ownersRes.error && ownersRes.data) setDomainOwners(ownersRes.data as DomainOwnerRow[]);
-      setLoading(false);
-    });
+      const ownerRows = (!ownersRes.error && ownersRes.data ? ownersRes.data : []) as DomainOwnerRow[];
+      setDomainOwners(ownerRows);
+
+      const actorIds = Array.from(new Set(eventRows.filter(e => e.actor_type === 'user' && e.actor_id).map(e => e.actor_id as string)));
+      const ownerIds = Array.from(new Set(ownerRows.flatMap(d => [d.owner_user_id, d.backup_owner_user_id]).filter((v): v is string => !!v)));
+      const allIds = Array.from(new Set([...actorIds, ...ownerIds]));
+
+      if (allIds.length > 0) {
+        const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', allIds);
+        if (!cancelled && profiles) {
+          const map: Record<string, string> = {};
+          for (const p of profiles as { id: string; full_name: string | null }[]) {
+            map[p.id] = p.full_name || 'A team member';
+          }
+          setActorNames(map);
+          setOwnerNames(map);
+        }
+      }
+
+      if (!cancelled) setLoading(false);
+    })();
     return () => { cancelled = true; };
   }, [workspaceId]);
-
-  useEffect(() => {
-    const ids = new Set<string>();
-    for (const e of events) if (e.actor_type === 'user' && e.actor_id) ids.add(e.actor_id);
-    for (const d of domainOwners) {
-      if (d.owner_user_id) ids.add(d.owner_user_id);
-      if (d.backup_owner_user_id) ids.add(d.backup_owner_user_id);
-    }
-    const userActorIds = [...ids];
-    if (userActorIds.length === 0) return;
-    supabase
-      .from('profiles')
-      .select('id, full_name')
-      .in('id', userActorIds)
-      .then(({ data, error }) => {
-        if (error || !data) return;
-        const map: Record<string, string> = {};
-        for (const row of data as { id: string; full_name: string | null }[]) {
-          if (row.full_name) map[row.id] = row.full_name;
-        }
-        setActorNames(map);
-        setOwnerNames(map);
-      });
-  }, [events, domainOwners]);
-
-  const displayedEvents = useMemo(() => {
-    if (!replayActive || !replayTimestamp) return events;
-    const cutoff = new Date(replayTimestamp).getTime();
-    return events.filter(ev => new Date(ev.created_at).getTime() <= cutoff);
-  }, [events, replayActive, replayTimestamp]);
-
-  function startReplay() {
-    const now = events.length > 0 ? new Date(events[events.length - 1].created_at) : new Date();
-    setReplayTimestamp(toLocalDatetimeInputValue(now));
-    setReplayActive(true);
-    setViewMode('list');
-  }
-
-  function endReplay() {
-    setReplayActive(false);
-    setReplayTimestamp('');
-  }
 
   const earliestEvent = events[0];
   const latestEvent = events[events.length - 1];
 
+  useEffect(() => {
+    if (latestEvent && !replayTimestamp) {
+      setReplayTimestamp(toLocalDatetimeInputValue(new Date(latestEvent.created_at)));
+    }
+  }, [latestEvent, replayTimestamp]);
+
+  const displayedEvents = useMemo(() => {
+    if (!replayActive || !replayTimestamp) return events;
+    const cutoff = new Date(replayTimestamp).getTime();
+    return events.filter(e => new Date(e.created_at).getTime() <= cutoff);
+  }, [events, replayActive, replayTimestamp]);
+
+  const startReplay = () => {
+    if (latestEvent) setReplayTimestamp(toLocalDatetimeInputValue(new Date(latestEvent.created_at)));
+    setReplayActive(true);
+  };
+  const endReplay = () => setReplayActive(false);
+
   return (
     <div>
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1.5 text-sm font-medium mb-4"
-        style={{ color: 'var(--app-text-secondary)' }}
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Decision Trail
-      </button>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <button onClick={onBack} className="btn-ghost flex-shrink-0" style={{ padding: '0.5rem' }} aria-label="Back to decisions">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="min-w-0">
+            <p className="section-label mb-0.5">Decision Trail</p>
+            <h1 className="display-heading text-xl lg:text-2xl truncate">{workspaceName}</h1>
+          </div>
+        </div>
 
-      <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-        <h2 className="display-heading text-xl">{workspaceName}</h2>
         {!loading && events.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex" style={{ border: '1px solid var(--app-border)' }}>
+            <div className="flex items-center" style={{ border: '1px solid var(--app-border)' }}>
               <button
                 onClick={() => { setViewMode('list'); }}
                 className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5"
@@ -678,8 +675,6 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
 
       {!loading && events.length > 0 && viewMode === 'list' && (
         <>
-          {!replayActive && <ClaimsPanel claims={claims} />}
-
           {replayActive && displayedEvents.length === 0 && (
             <div className="panel p-8 text-center">
               <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>
@@ -700,6 +695,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
               </div>
             </>
           )}
+
+          {!replayActive && <ClaimsPanel claims={claims} />}
         </>
       )}
     </div>
