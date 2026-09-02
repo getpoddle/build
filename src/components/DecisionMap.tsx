@@ -704,6 +704,20 @@ export default function DecisionMap({ workspaces, onNavigate }: DecisionMapProps
         prev.map(w => w.id === wsId ? { ...w, decision_status: newStatus } : w)
       );
       setTimeout(recomputeLines, 200);
+
+      // ── Decision Audit Trail: log committed/implemented as final_decision ──
+      if (['committed', 'implemented'].includes(newStatus) && user) {
+        supabase.from('decision_events').insert({
+          workspace_id: wsId,
+          event_type: 'final_decision',
+          actor_type: 'user',
+          actor_id: user.id,
+          payload: { status: newStatus, changed_by: user.id },
+        }).then(({ error: eventError }) => {
+          if (eventError) console.error('Decision event insert error:', eventError);
+        });
+      }
+
       return;
     }
 
