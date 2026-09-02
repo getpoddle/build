@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, AlertTriangle, RefreshCw, ChevronRight, Plus, ShieldCheck, Check, X as XIcon } from 'lucide-react';
+import { Building2, AlertTriangle, RefreshCw, ChevronRight, Plus, ShieldCheck, Check, X as XIcon, Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface OrganizationProps {
@@ -69,6 +69,16 @@ export default function Organization({ onNavigate }: OrganizationProps) {
   const [governanceError, setGovernanceError] = useState<string | null>(null);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  const [editingName, setEditingName] = useState(false);
+  const [orgNameInput, setOrgNameInput] = useState('');
+  const [savingOrgName, setSavingOrgName] = useState(false);
+  const [orgNameError, setOrgNameError] = useState<string | null>(null);
+
+  const [showDeleteOrgConfirm, setShowDeleteOrgConfirm] = useState(false);
+  const [deleteOrgConfirmText, setDeleteOrgConfirmText] = useState('');
+  const [deletingOrg, setDeletingOrg] = useState(false);
+  const [deleteOrgError, setDeleteOrgError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id || null));
@@ -185,24 +195,45 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     }
   }
 
-  async function loadOrgData(orgId: string) {
-    setLoading(true);
-    setError(null);
+  async function handleRenameOrg() {
+    if (!currentOrg || !orgNameInput.trim() || savingOrgName) return;
+    setSavingOrgName(true);
+    setOrgNameError(null);
     try {
-      const [healthRes, overviewRes] = await Promise.all([
-        supabase.rpc('get_organization_portfolio_health', { org_id: orgId }),
-        supabase.rpc('get_organization_decision_overview', { org_id: orgId }),
-      ]);
-
-      if (healthRes.error) throw healthRes.error;
-      if (overviewRes.error) throw overviewRes.error;
-
-      setHealth(healthRes.data || []);
-      setOverview(overviewRes.data || []);
-    } catch (err) {
-      setError('Could not load decision data for this organization.');
+      const { error: renameErr } = await supabase
+        .from('organizations')
+        .update({ name: orgNameInput.trim() })
+        .eq('id', currentOrg.id);
+      if (renameErr) throw renameErr;
+      setOrgs(prev => prev.map(o => o.id === currentOrg.id ? { ...o, name: orgNameInput.trim() } : o));
+      setEditingName(false);
+    } catch (err: any) {
+      setOrgNameError(err?.message || 'Could not rename this organization.');
     } finally {
-      setLoading(false);
+      setSavingOrgName(false);
+    }
+  }
+
+  async function handleDeleteOrg() {
+    if (!currentOrg || deleteOrgConfirmText !== currentOrg.name || deletingOrg) return;
+    if (overview.length > 0) {
+      setDeleteOrgError('Unlink all workspaces from this organization first, from each workspace\'s Settings page.');
+      return;
+    }
+    setDeletingOrg(true);
+    setDeleteOrgError(null);
+    try {
+      await supabase.from('organization_members').delete().eq('organization_id', currentOrg.id);
+      const { error: deleteErr } = await supabase.from('organizations').delete().eq('id', currentOrg.id);
+      if (deleteErr) throw deleteErr;
+      setShowDeleteOrgConfirm(false);
+      setDeleteOrgConfirmText('');
+      await loadOrgs();
+      setSelectedOrgId(null);
+    } catch (err: any) {
+      setDeleteOrgError(err?.message || 'Could not delete this organization.');
+    } finally {
+      setDeletingOrg(false);
     }
   }
 
@@ -240,12 +271,57 @@ export default function Organization({ onNavigate }: OrganizationProps) {
         className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 mx-auto"
         style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
-        <div className="mb-6 lg:mb-10 flex items-center justify-between">
+        <div className="mb-6 lg:mb-10 flex items-center justify-between flex-wrap gap-3">
           <div>
             <p className="section-label mb-2">Organization</p>
-            <h1 className="display-heading text-2xl lg:text-3xl xl:text-4xl mb-1">
-              Decision Overview
-            </h1>
+            {editingName && currentOrg ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={orgNameInput}
+                  onChange={(e) => setOrgNameInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleRenameOrg(); if (e.key === 'Escape') setEditingName(false); }}
+                  autoFocus
+                  className="display-heading text-2xl lg:text-3xl px-2 py-1"
+                  style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)' }}
+                />
+                <button
+                  onClick={handleRenameOrg}
+                  disabled={savingOrgName || !orgNameInput.trim()}
+                  className="text-sm font-semibold px-3 py-2 text-white disabled:opacity-50"
+                  style={{ background: 'var(--signal, #2563eb)' }}
+                >
+                  {savingOrgName ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  onClick={() => { setEditingName(false); setOrgNameError(null); }}
+                  disabled={savingOrgName}
+                  className="text-sm font-semibold px-3 py-2"
+                  style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1 className="display-heading text-2xl lg:text-3xl xl:text-4xl mb-1">
+                  Decision Overview
+                </h1>
+                {canManageGovernance && currentOrg && (
+                  <button
+                    onClick={() => { setOrgNameInput(currentOrg.name); setEditingName(true); }}
+                    className="p-1.5 flex-shrink-0"
+                    style={{ color: 'var(--app-text-secondary)' }}
+                    title="Rename organization"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
+            {orgNameError && (
+              <p className="text-xs mt-1" style={{ color: '#dc2626' }}>{orgNameError}</p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {orgs.length > 1 && (
@@ -476,6 +552,70 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                     </div>
                   </button>
                 ))}
+              </div>
+            )}
+
+            {canManageGovernance && currentOrg && (
+              <div className="mt-10 p-4" style={{ border: '1px solid #dc2626' }}>
+                <h2 className="text-sm font-bold flex items-center gap-2 mb-1" style={{ color: '#dc2626' }}>
+                  <AlertTriangle className="w-4 h-4" />
+                  Danger Zone
+                </h2>
+                {!showDeleteOrgConfirm ? (
+                  <div className="flex items-center justify-between gap-4 p-3 mt-3" style={{ background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)' }}>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>Delete this organization</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
+                        {overview.length > 0
+                          ? `Unlink all ${overview.length} linked workspace(s) first, from each workspace's Settings page.`
+                          : 'Permanently removes this organization. Irreversible.'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowDeleteOrgConfirm(true)}
+                      disabled={overview.length > 0}
+                      className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 flex-shrink-0 disabled:opacity-40"
+                      style={{ border: '1px solid #dc2626', color: '#dc2626' }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3 mt-3">
+                    {deleteOrgError && (
+                      <p className="text-xs font-medium" style={{ color: '#dc2626' }}>{deleteOrgError}</p>
+                    )}
+                    <p className="text-sm" style={{ color: 'var(--app-text-primary)' }}>
+                      Type <strong>{currentOrg.name}</strong> to confirm. This cannot be undone.
+                    </p>
+                    <input
+                      type="text"
+                      value={deleteOrgConfirmText}
+                      onChange={(e) => setDeleteOrgConfirmText(e.target.value)}
+                      placeholder={currentOrg.name}
+                      className="text-sm px-3 py-2 w-full"
+                      style={{ border: '1px solid #dc2626', background: 'var(--app-bg)' }}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setShowDeleteOrgConfirm(false); setDeleteOrgConfirmText(''); setDeleteOrgError(null); }}
+                        className="text-sm font-semibold px-4 py-2"
+                        style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleDeleteOrg}
+                        disabled={deleteOrgConfirmText !== currentOrg.name || deletingOrg}
+                        className="text-sm font-semibold px-4 py-2 text-white disabled:opacity-50"
+                        style={{ background: '#dc2626' }}
+                      >
+                        {deletingOrg ? 'Deleting…' : 'Delete Forever'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
