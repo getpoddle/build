@@ -1487,6 +1487,53 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         </div>
       )}
 
+      {/* ── CLAIMS (Evidence IDs) ── */}
+      {(activeSection === null || activeSection === 'claims') && claims.length > 0 && (
+        <div style={{ border: '1px solid var(--signal)', borderOpacity: 0.25 }}>
+          <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: 'var(--signal-bg)', borderBottom: '1px solid var(--signal)', borderBottomOpacity: 0.3 }}>
+            <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
+            <span className="section-label" style={{ color: 'var(--signal)' }}>Claims</span>
+            <span className="text-xs ml-auto hidden sm:inline" style={{ color: 'var(--app-text-muted)' }}>Evidence-linked, citable by code</span>
+          </div>
+          <div className="p-3 space-y-2" style={{ background: 'var(--app-surface-raised)' }}>
+            {claims.map(claim => {
+              const typeColor = claim.claim_type === 'fact' ? '#16a34a'
+                : claim.claim_type === 'assumption' ? '#d97706'
+                : claim.claim_type === 'inference' ? '#2563eb'
+                : '#7c3aed';
+              const evidenceRefs = Array.isArray(claim.evidence_refs) ? claim.evidence_refs as string[] : [];
+              const assumptionsList = Array.isArray(claim.assumptions) ? claim.assumptions as { key: string; value: string }[] : [];
+              return (
+                <div key={claim.id} className="p-3" style={{ border: '1px solid var(--app-border)', background: 'var(--app-surface)' }}>
+                  <div className="flex items-start gap-2">
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 flex-shrink-0"
+                      style={{ color: typeColor, background: `${typeColor}1a` }}
+                    >
+                      {claim.claim_code}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm">{claim.statement}</p>
+                      <p className="text-xs mt-1" style={{ color: 'var(--app-text-secondary)' }}>
+                        {claim.agent_name} · {claim.claim_type} · {Math.round(claim.confidence * 100)}% confidence
+                      </p>
+                      {evidenceRefs.length > 0 && (
+                        <p className="text-xs mt-1" style={{ color: 'var(--app-text-muted)' }}>Evidence: {evidenceRefs.join(', ')}</p>
+                      )}
+                      {assumptionsList.length > 0 && (
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
+                          Assumes: {assumptionsList.map(a => `${a.key} = ${a.value}`).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── CONSENSUS ── */}
       {(activeSection === null || activeSection === 'consensus') && synthesis.consensus_points.length > 0 && (
         <div style={{ border: '1px solid var(--positive)', borderOpacity: 0.25 }}>
