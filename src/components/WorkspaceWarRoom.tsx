@@ -1130,9 +1130,19 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     setOutcomeNoteText('');
   }
 
-  async function updateAssignee(item: ActionItem, userId: string | null) {
+   async function updateAssignee(item: ActionItem, userId: string | null) {
     setActionItems(prev => prev.map(a => a.id === item.id ? { ...a, assignee_user_id: userId } : a));
     await supabase.from('workspace_action_items').update({ assignee_user_id: userId, updated_at: new Date().toISOString() }).eq('id', item.id);
+
+    if (user) {
+      supabase.from('decision_events').insert({
+        workspace_id: workspaceId,
+        event_type: 'human_override',
+        actor_type: 'user',
+        actor_id: user.id,
+        payload: { field: 'action_item_assignee', action_item: item.text, assignee_user_id: userId, changed_by: user.id },
+      }).then(({ error }) => { if (error) console.error('Decision event insert error:', error); });
+    }
   }
 
   async function addManualAction() {
