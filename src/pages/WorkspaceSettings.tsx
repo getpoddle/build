@@ -203,6 +203,15 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
       });
       if (error) throw error;
       setWorkspace(prev => prev ? { ...prev, organization_id: selectedOrgToLink } : prev);
+      if (user) {
+        supabase.from('decision_events').insert({
+          workspace_id: workspaceId,
+          event_type: 'human_override',
+          actor_type: 'user',
+          actor_id: user.id,
+          payload: { field: 'organization', action: 'linked', organization_id: selectedOrgToLink, changed_by: user.id },
+        }).then(({ error: e }) => { if (e) console.error('Decision event insert error:', e); });
+      }
       setSelectedOrgToLink('');
     } catch (err: any) {
       setOrgError(err?.message || 'Could not link this workspace to that organization.');
