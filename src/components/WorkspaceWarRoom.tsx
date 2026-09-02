@@ -897,6 +897,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
   const { user } = useAuth();
   const [synthesis, setSynthesis] = useState<SynthesisData | null>(null);
   const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [claims, setClaims] = useState<Array<{ id: string; claim_code: string; agent_name: string; statement: string; claim_type: string; evidence_refs: unknown; assumptions: unknown; confidence: number }>>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [members, setMembers] = useState<MemberProfile[]>([]);
   const [commits, setCommits] = useState<ConflictCommit[]>([]);
