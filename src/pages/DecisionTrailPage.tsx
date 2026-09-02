@@ -30,6 +30,7 @@ const EVENT_LABELS: Record<string, string> = {
 function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: string; workspaceName: string; onBack: () => void }) {
   const [events, setEvents] = useState<DecisionEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actorNames, setActorNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +47,23 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
       });
     return () => { cancelled = true; };
   }, [workspaceId]);
+
+  useEffect(() => {
+    const userActorIds = [...new Set(events.filter(e => e.actor_type === 'user' && e.actor_id).map(e => e.actor_id as string))];
+    if (userActorIds.length === 0) return;
+    supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', userActorIds)
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        const map: Record<string, string> = {};
+        for (const row of data as { id: string; full_name: string | null }[]) {
+          if (row.full_name) map[row.id] = row.full_name;
+        }
+        setActorNames(map);
+      });
+  }, [events]);
 
   return (
     <div>
@@ -87,7 +105,11 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
                 <p className="text-sm font-medium">{EVENT_LABELS[ev.event_type] || ev.event_type}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
                   {new Date(ev.created_at).toLocaleString()}
+                  {ev.actor_type === 'user' && ev.actor_id && (
+                    <> · {actorNames[ev.actor_id] || 'A team member'}</>
+                  )}
                 </p>
+
                 {typeof ev.payload?.question === 'string' && (
                   <p className="text-sm mt-1">{String(ev.payload.question)}</p>
                 )}
@@ -96,8 +118,49 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
                     {String(ev.payload.recommendation).slice(0, 200)}
                   </p>
                 )}
-                {typeof ev.payload?.status === 'string' && (
+                {typeof ev.payload?.status === 'string' && !ev.payload?.field && (
                   <p className="text-sm mt-1">Status: {String(ev.payload.status)}</p>
+                )}
+                {typeof ev.payload?.kind === 'string' && ev.payload.kind === 'framing_message' && typeof ev.payload?.content === 'string' && (
+                  <p className="text-sm mt-1">{String(ev.payload.content)}</p>
+                )}
+
+                {ev.event_type === 'human_override' && typeof ev.payload?.field === 'string' && (
+                  <div className="text-sm mt-1 space-y-0.5">
+                    <p style={{ color: 'var(--app-text-secondary)' }}>
+                      Changed: <span className="font-medium" style={{ color: 'var(--app-text-primary)' }}>{String(ev.payload.field).replace(/_/g, ' ')}</span>
+                    </p>
+                    {ev.payload.field === 'name' && (
+                      <p>
+                        <span style={{ color: 'var(--app-text-muted)', textDecoration: 'line-through' }}>
+                          {String((ev.payload.before as Record<string, unknown>)?.name ?? '')}
+                        </span>
+                        {' → '}
+                        {String((ev.payload.after as Record<string, unknown>)?.name ?? '')}
+                      </p>
+                    )}
+                    {ev.payload.field === 'description' && (
+                      <p>
+                        <span style={{ color: 'var(--app-text-muted)', textDecoration: 'line-through' }}>
+                          {String((ev.payload.before as Record<string, unknown>)?.description ?? '(empty)')}
+                        </span>
+                        {' → '}
+                        {String((ev.payload.after as Record<string, unknown>)?.description ?? '(empty)')}
+                      </p>
+                    )}
+                    {ev.payload.field === 'name_and_description' && (
+                      <p>Updated name and description</p>
+                    )}
+                    {ev.payload.field === 'member_role' && (
+                      <p>Role: {String(ev.payload.before)} → {String(ev.payload.after)}</p>
+                    )}
+                    {ev.payload.field === 'member_removed' && (
+                      <p>Removed a {String(ev.payload.role || 'member')}</p>
+                    )}
+                    {ev.payload.field === 'organization' && (
+                      <p>{ev.payload.action === 'linked' ? 'Linked to an organization' : 'Unlinked from organization'}</p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
