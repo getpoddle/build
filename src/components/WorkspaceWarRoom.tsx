@@ -964,6 +964,17 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  useEffect(() => {
+    supabase
+      .from('decision_claims')
+      .select('id, claim_code, agent_name, statement, claim_type, evidence_refs, assumptions, confidence')
+      .eq('workspace_id', workspaceId)
+      .order('created_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (!error && data) setClaims(data as typeof claims);
+      });
+  }, [workspaceId, synthesis?.generated_at]);
+
   // Realtime: update message count as new messages arrive
   useEffect(() => {
     const channel = supabase
