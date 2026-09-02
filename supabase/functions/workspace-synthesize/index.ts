@@ -1292,7 +1292,113 @@ RULES:
         confidence_trajectory: synthesis.confidence_trajectory ?? "flat",
       },
     }).then(({ error }) => { if (error) console.error("Decision event insert error:", error); });
+    
+    // ── Evidence IDs: extract structured, evidence-linked claims ─────────────
+    // Runs once per synthesis (not per chat message) to keep cost controlled.
+    // Fire-and-forget: does not block the synthesis response to the user.
+    const claimsPromise = (async () => {
+      if (!openAiKey) return;
+      try {
+        const claimsPrompt = `You are extracting structured, evidence-linked claims from this War Room debate.
 
+THE CENTRAL DECISION: "${workspace?.name || "the workspace decision"}"
+
+FULL DEBATE TRANSCRIPT:
+${transcript}
+
+For each claim, extract:
+- statement: a specific, checkable conclusion (a number, a recommendation, a risk rating) — not a hedge or vague statement
+- claim_type: "fact" (directly stated/verifiable), "assumption" (an input the conclusion depends on), "inference" (a conclusion drawn from other facts), or "opinion" (a judgment call, not derivable from data alone)
+- agent_role: the exact role name from the transcript labels (e.g. financial_strategist, risk_analyst, market_analyst, people_advisor, execution_lead, innovation_scout, devils_advocate)
+- evidence_refs: array of short strings naming what this claim is based on (a document, a stated figure, "team discussion")
+- assumptions: array of { "key": string, "value": string } for any specific assumption the claim depends on
+- confidence: a number 0 to 1
+
+Only extract claims with a specific, checkable conclusion. Skip generic or hedging statements. Extract at most 2-3 claims per agent that actually participated.
+
+Return ONLY valid JSON: { "claims": [ { "statement": "...", "claim_type": "...", "agent_role": "...", "evidence_refs": [...], "assumptions": [...], "confidence": 0.0 } ] }`;
+
+        const claimsRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+          signal: AbortSignal.timeout(60_000),
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [
+              { role: "system", content: "You extract structured, evidence-linked claims from strategy debates. You produce JSON only, grounded entirely in the transcript." },
+              { role: "user", content: claimsPrompt },
+            ],
+            max_tokens: 2000,
+            response_format: { type: "json_object" },
+          }),
+        });
+        if (!claimsRes.ok) return;
+        const claimsJson = await claimsRes.json();
+        const claimsRaw = claimsJson.choices?.[0]?.message?.content || "{}";
+        const claimsParsed = JSON.parse(claimsRaw);
+        const claims: Array<{ statement?: string; claim_type?: string; agent_role?: string; evidence_refs?: unknown; assumptions?: unknown; confidence?: number }> =
+          Array.isArray(claimsParsed.claims) ? claimsParsed.claims : [];
+        if (claims.length === 0) return;
+
+        const PREFIX_MAP: Record<string, string> = {
+          financial_strategist: "FIN",
+          risk_analyst: "RISK",
+          market_analyst: "MKT",
+          people_advisor: "PPL",
+          execution_lead: "OPS",
+          innovation_scout: "INN",
+          devils_advocate: "CHA",
+        };
+
+        // Fetch existing claim codes for this workspace to continue numbering
+        // rather than colliding on re-synthesis.
+        const { data: existingClaims } = await service
+          .from("decision_claims")
+          .select("claim_code")
+          .eq("workspace_id", workspace_id);
+        const nextNumber: Record<string, number> = {};
+        for (const row of existingClaims || []) {
+          const match = /^([A-Z]+)-(\d+)$/.exec(row.claim_code || "");
+          if (!match) continue;
+          const [, prefix, num] = match;
+          nextNumber[prefix] = Math.max(nextNumber[prefix] || 0, parseInt(num, 10) + 1);
+        }
+
+        const agentNameFor = (role: string) =>
+          role.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+
+        const rows = claims
+          .filter(c => typeof c.statement === "string" && c.statement.trim().length > 10)
+          .map(c => {
+            const role = typeof c.agent_role === "string" ? c.agent_role : "general";
+            const prefix = PREFIX_MAP[role] || "GEN";
+            const num = nextNumber[prefix] || 1;
+            nextNumber[prefix] = num + 1;
+            const claimType = ["fact", "assumption", "inference", "opinion"].includes(String(c.claim_type))
+              ? String(c.claim_type) : "fact";
+            const confidence = typeof c.confidence === "number" ? Math.max(0, Math.min(1, c.confidence)) : 0.5;
+            return {
+              workspace_id,
+              claim_code: `${prefix}-${String(num).padStart(2, "0")}`,
+              agent_role: role,
+              agent_name: agentNameFor(role),
+              statement: c.statement!.trim(),
+              claim_type: claimType,
+              evidence_refs: Array.isArray(c.evidence_refs) ? c.evidence_refs : [],
+              assumptions: Array.isArray(c.assumptions) ? c.assumptions : [],
+              confidence,
+            };
+          });
+
+        if (rows.length > 0) {
+          const { error: claimsInsertError } = await service.from("decision_claims").insert(rows);
+          if (claimsInsertError) console.error("Decision claims insert error:", claimsInsertError);
+        }
+      } catch (e) {
+        console.error("Claims extraction failed:", e);
+      }
+    })();
+    EdgeRuntime.waitUntil(claimsPromise);
     // ── Cross-workspace Pattern Intelligence rollup ───────────────────────────
     // Fire-and-forget — runs as the response is already sent
     const patternPromise = (async () => {
