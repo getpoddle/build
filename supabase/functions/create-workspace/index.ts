@@ -157,6 +157,21 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // ── Decision Audit Trail: log this workspace's creation as decision_created ──
+    // Fire-and-forget: never blocks or fails workspace creation itself.
+    await service.from("decision_events").insert({
+      workspace_id: ws.id,
+      event_type: "decision_created",
+      actor_type: "user",
+      actor_id: user.id,
+      payload: {
+        question: ws.name,
+        description: ws.description,
+        domain: ws.domain,
+        created_by: user.id,
+      },
+    }).then(({ error }) => { if (error) console.error("Decision event insert error:", error); });
+
     // Increment trial_workspace_count so the 3-workspace limit is enforced.
     if (!isPaid) {
       await service
