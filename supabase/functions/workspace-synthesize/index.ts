@@ -1274,6 +1274,25 @@ RULES:
       generated_at: new Date().toISOString(),
     }).then(({ error }) => { if (error) console.error("History insert error:", error); });
 
+    // ── Decision Audit Trail: log this synthesis as an agent_analysis event ───
+    // Reuses data already computed above (scores, healthRationale, recommendation)
+    // rather than re-deriving or re-calling the model.
+    await service.from("decision_events").insert({
+      workspace_id,
+      event_type: "agent_analysis",
+      actor_type: "system",
+      actor_id: "workspace-synthesize",
+      payload: {
+        recommendation,
+        health_rationale: healthRationale,
+        decision_health_score: scores.decisionHealth,
+        financial_score: scores.financial,
+        operational_score: scores.operational,
+        alignment_score: scores.alignment,
+        confidence_trajectory: synthesis.confidence_trajectory ?? "flat",
+      },
+    }).then(({ error }) => { if (error) console.error("Decision event insert error:", error); });
+
     // ── Cross-workspace Pattern Intelligence rollup ───────────────────────────
     // Fire-and-forget — runs as the response is already sent
     const patternPromise = (async () => {
