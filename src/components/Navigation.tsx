@@ -550,7 +550,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   onClick={() => handleNavigate(item.id)}
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
-                  className="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 min-h-[56px] transition-all duration-200 active:scale-95 touch-manipulation"
+                  className="relative flex-1 flex flex-col items-center justify-center py-2.5 min-h-[56px] transition-all duration-200 active:scale-95 touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   {isActive && (
@@ -563,18 +563,12 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   <Icon
                     className="relative z-10 transition-all duration-200"
                     style={{
-                      width: '1.375rem',
-                      height: '1.375rem',
+                      width: '1.625rem',
+                      height: '1.625rem',
                       color: isActive ? 'var(--signal)' : (theme === 'dark' ? '#52525b' : '#94a3b8'),
                     }}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
-                  <span
-                    className="relative z-10 text-[11px] leading-none font-semibold"
-                    style={{ color: isActive ? '#2563eb' : (theme === 'dark' ? '#52525b' : '#94a3b8') }}
-                  >
-                    {item.label}
-                  </span>
                   {isActive && (
                     <span
                       aria-hidden="true"
