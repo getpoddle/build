@@ -229,7 +229,17 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
         p_organization_id: null,
       });
       if (error) throw error;
+      const prevOrgId = workspace?.organization_id;
       setWorkspace(prev => prev ? { ...prev, organization_id: null } : prev);
+      if (user) {
+        supabase.from('decision_events').insert({
+          workspace_id: workspaceId,
+          event_type: 'human_override',
+          actor_type: 'user',
+          actor_id: user.id,
+          payload: { field: 'organization', action: 'unlinked', organization_id: prevOrgId, changed_by: user.id },
+        }).then(({ error: e }) => { if (e) console.error('Decision event insert error:', e); });
+      }
     } catch (err: any) {
       setOrgError(err?.message || 'Could not unlink this workspace.');
     } finally {
