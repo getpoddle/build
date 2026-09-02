@@ -1310,8 +1310,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     hasOpportunities && { key: 'opportunities', label: 'Opportunities', icon: Lightbulb, count: synthesis.opportunity_signals.length,  color: 'var(--positive)',    bg: 'var(--positive-bg)' },
     hasBiases       && { key: 'biases',       label: 'Bias Flags',   icon: AlertCircle,  count: synthesis.cognitive_bias_flags.length, color: 'var(--caution)',    bg: 'var(--signal-bg)' },
     { key: 'actions',       label: 'Actions',        icon: Target,        count: actionItems.length,                      color: 'var(--agent-strat)', bg: 'var(--agent-strat-bg)' },
+    claims.length > 0 && { key: 'claims', label: 'Claims', icon: Sparkles, count: claims.length, color: 'var(--signal)', bg: 'var(--signal-bg)' },
   ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ElementType; count: number; color: string; bg: string }>;
-
   return (
     <div className="space-y-5 p-4 lg:p-5" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
 
