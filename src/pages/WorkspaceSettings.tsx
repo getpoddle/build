@@ -161,14 +161,34 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
     loadMyOrgs();
   }, [user]);
 
-  async function handleSave() {
+    async function handleSave() {
     if (!workspace) return;
     setSaving(true);
+    const nameChanged = editName.trim() !== workspace.name;
+    const descChanged = editDesc.trim() !== workspace.description;
+
     await supabase
       .from('workspaces')
       .update({ name: editName.trim(), description: editDesc.trim() })
       .eq('id', workspaceId);
-        setWorkspace(prev => prev ? { ...prev, name: editName.trim(), description: editDesc.trim() } : prev);
+    setWorkspace(prev => prev ? { ...prev, name: editName.trim(), description: editDesc.trim() } : prev);
+
+    // ── Decision Audit Trail: log edits to the decision's core framing ──
+    if ((nameChanged || descChanged) && user) {
+      supabase.from('decision_events').insert({
+        workspace_id: workspaceId,
+        event_type: 'human_override',
+        actor_type: 'user',
+        actor_id: user.id,
+        payload: {
+          field: nameChanged && descChanged ? 'name_and_description' : nameChanged ? 'name' : 'description',
+          before: { name: workspace.name, description: workspace.description },
+          after: { name: editName.trim(), description: editDesc.trim() },
+          changed_by: user.id,
+        },
+      }).then(({ error }) => { if (error) console.error('Decision event insert error:', error); });
+    }
+
     setSaving(false);
   }
 
