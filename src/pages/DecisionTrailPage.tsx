@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, Clock, X } from 'lucide-react';
 import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
 import { supabase } from '../lib/supabase';
 
@@ -27,10 +27,17 @@ const EVENT_LABELS: Record<string, string> = {
   outcome_logged: 'Outcome logged',
 };
 
+function toLocalDatetimeInputValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: string; workspaceName: string; onBack: () => void }) {
   const [events, setEvents] = useState<DecisionEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
+  const [replayActive, setReplayActive] = useState(false);
+  const [replayTimestamp, setReplayTimestamp] = useState<string>('');
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +72,26 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
       });
   }, [events]);
 
+  const displayedEvents = useMemo(() => {
+    if (!replayActive || !replayTimestamp) return events;
+    const cutoff = new Date(replayTimestamp).getTime();
+    return events.filter(ev => new Date(ev.created_at).getTime() <= cutoff);
+  }, [events, replayActive, replayTimestamp]);
+
+  function startReplay() {
+    const now = events.length > 0 ? new Date(events[events.length - 1].created_at) : new Date();
+    setReplayTimestamp(toLocalDatetimeInputValue(now));
+    setReplayActive(true);
+  }
+
+  function endReplay() {
+    setReplayActive(false);
+    setReplayTimestamp('');
+  }
+
+  const earliestEvent = events[0];
+  const latestEvent = events[events.length - 1];
+
   return (
     <div>
       <button
@@ -75,7 +102,51 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         <ArrowLeft className="w-4 h-4" />
         Back to Decision Trail
       </button>
-      <h2 className="display-heading text-xl mb-6">{workspaceName}</h2>
+
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <h2 className="display-heading text-xl">{workspaceName}</h2>
+        {!loading && events.length > 0 && !replayActive && (
+          <button
+            onClick={startReplay}
+            className="btn-secondary flex-shrink-0"
+            style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            Replay
+          </button>
+        )}
+      </div>
+
+      {replayActive && (
+        <div
+          className="flex items-center gap-3 p-3 mb-4 flex-wrap"
+          style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
+        >
+          <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--signal)' }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>
+              Viewing what was known as of:
+            </p>
+            <input
+              type="datetime-local"
+              value={replayTimestamp}
+              min={earliestEvent ? toLocalDatetimeInputValue(new Date(earliestEvent.created_at)) : undefined}
+              max={latestEvent ? toLocalDatetimeInputValue(new Date(latestEvent.created_at)) : undefined}
+              onChange={e => setReplayTimestamp(e.target.value)}
+              className="input-modern mt-1"
+              style={{ padding: '0.25rem 0.5rem', fontSize: '0.8125rem', maxWidth: '240px' }}
+            />
+          </div>
+          <button
+            onClick={endReplay}
+            className="btn-ghost flex-shrink-0"
+            style={{ padding: '0.375rem' }}
+            aria-label="Exit replay"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {loading && (
         <div className="space-y-3">
@@ -91,13 +162,21 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         </div>
       )}
 
-      {!loading && events.length > 0 && (
+      {!loading && events.length > 0 && replayActive && displayedEvents.length === 0 && (
+        <div className="panel p-8 text-center">
+          <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>
+            Nothing was recorded yet at this point in time.
+          </p>
+        </div>
+      )}
+
+      {!loading && displayedEvents.length > 0 && (
         <div className="space-y-0">
-          {events.map((ev, i) => (
+          {displayedEvents.map((ev, i) => (
             <div key={ev.id} className="flex gap-3">
               <div className="flex flex-col items-center" style={{ width: 20 }}>
                 <div className="rounded-full" style={{ width: 10, height: 10, background: 'var(--signal)', marginTop: 4 }} />
-                {i < events.length - 1 && (
+                {i < displayedEvents.length - 1 && (
                   <div style={{ width: 1, flex: 1, background: 'var(--app-border)', marginTop: 2 }} />
                 )}
               </div>
@@ -160,7 +239,25 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
                     {ev.payload.field === 'organization' && (
                       <p>{ev.payload.action === 'linked' ? 'Linked to an organization' : 'Unlinked from organization'}</p>
                     )}
+                    {ev.payload.field === 'action_item_assignee' && (
+                      <p>Assigned "{String(ev.payload.action_item ?? '')}"</p>
+                    )}
+                    {ev.payload.field === 'manual_action_item_added' && (
+                      <p>Added: {String(ev.payload.action_item ?? '')}</p>
+                    )}
+                    {ev.payload.field === 'conflict_commit' && (
+                      <p>Committed to a position on "{String(ev.payload.conflict_topic ?? '')}"</p>
+                    )}
+                    {ev.payload.field === 'conflict_uncommit' && (
+                      <p>Reversed commitment on "{String(ev.payload.conflict_topic ?? '')}"</p>
+                    )}
                   </div>
+                )}
+
+                {ev.event_type === 'outcome_logged' && (
+                  <p className="text-sm mt-1">
+                    "{String(ev.payload.action_item ?? '')}" — {String(ev.payload.outcome ?? '')}
+                  </p>
                 )}
               </div>
             </div>
