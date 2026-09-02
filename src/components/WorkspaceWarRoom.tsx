@@ -1101,8 +1101,9 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     } finally { setGenerating(false); }
   }
 
-  async function recordOutcome(itemId: string, outcome: ActionItem['outcome']) {
+    async function recordOutcome(itemId: string, outcome: ActionItem['outcome']) {
     const notes = outcomeNoteText.trim() || null;
+    const item = actionItems.find(a => a.id === itemId);
     setActionItems(prev => prev.map(a => a.id === itemId ? { ...a, outcome, outcome_notes: notes, outcome_recorded_at: new Date().toISOString() } : a));
     setOutcomePromptId(null);
     setOutcomeNoteText('');
@@ -1112,6 +1113,16 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       outcome_recorded_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq('id', itemId);
+
+    if (user) {
+      supabase.from('decision_events').insert({
+        workspace_id: workspaceId,
+        event_type: 'outcome_logged',
+        actor_type: 'user',
+        actor_id: user.id,
+        payload: { action_item: item?.text ?? null, outcome, notes, logged_by: user.id },
+      }).then(({ error }) => { if (error) console.error('Decision event insert error:', error); });
+    }
   }
 
   function dismissOutcomePrompt() {
