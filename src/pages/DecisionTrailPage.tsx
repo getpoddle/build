@@ -42,10 +42,10 @@ interface DomainOwnerRow {
   backup_owner_user_id: string | null;
 }
 
-const EVENT_META: Record<string, { icon: React.ElementType; color: string; label: string }> = {
+const EVENT_META: Record<string, { icon: React.ElementType | null; color: string; label: string }> = {
   decision_created:  { icon: FileText,      color: '#475569', label: 'Decision Created' },
   evidence_added:    { icon: MessageSquare, color: '#0891b2', label: 'Evidence Added' },
-  agent_analysis:    { icon: Brain,         color: '#2563eb', label: 'Agent Analysis' },
+  agent_analysis:    { icon: null,          color: '#2563eb', label: 'Agent Analysis' },
   challenge_raised:  { icon: GitBranch,     color: '#d97706', label: 'Challenge Raised' },
   human_override:    { icon: Edit3,         color: '#7c3aed', label: 'Human Override' },
   final_decision:    { icon: CheckCircle2,  color: '#16a34a', label: 'Final Decision' },
@@ -171,12 +171,14 @@ function EventCard({ ev, actorNames, claims }: { ev: DecisionEvent; actorNames: 
         className="flex items-center gap-2.5 px-4 py-2.5 flex-wrap"
         style={{ borderBottom: '1px solid var(--app-border)', background: `${meta.color}0a` }}
       >
-        <div
-          className="flex items-center justify-center flex-shrink-0"
-          style={{ width: 26, height: 26, background: 'var(--app-surface-raised, #fff)', border: `1px solid ${meta.color}40` }}
-        >
-          <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
-        </div>
+        {Icon && (
+          <div
+            className="flex items-center justify-center flex-shrink-0"
+            style={{ width: 26, height: 26, background: 'var(--app-surface-raised, #fff)', border: `1px solid ${meta.color}40` }}
+          >
+            <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
+          </div>
+        )}
         <span className="text-xs font-bold uppercase" style={{ color: meta.color, letterSpacing: '0.06em' }}>
           {meta.label}
         </span>
@@ -411,12 +413,13 @@ function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
   if (claims.length === 0) return null;
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 p-4" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
       <div className="flex items-center gap-2 mb-3">
         <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--signal)' }} />
-        <h3 className="text-sm font-bold uppercase" style={{ color: 'var(--app-text-secondary)', letterSpacing: '0.06em' }}>
+        <h3 className="text-sm font-bold uppercase" style={{ color: 'var(--signal)', letterSpacing: '0.06em' }}>
           Claims ({claims.length})
         </h3>
+        <span className="text-xs ml-auto" style={{ color: 'var(--app-text-secondary)' }}>Evidence-linked, citable by code</span>
       </div>
       <div className="space-y-2">
         {claims.map(claim => {
@@ -686,11 +689,16 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           )}
 
           {displayedEvents.length > 0 && (
-            <div className="space-y-3">
-              {displayedEvents.map(ev => (
-                <EventCard key={ev.id} ev={ev} actorNames={actorNames} claims={ev.event_type === 'agent_analysis' ? claims : []} />
-              ))}
-            </div>
+            <>
+              <h3 className="text-sm font-bold uppercase mb-3" style={{ color: 'var(--app-text-secondary)', letterSpacing: '0.06em' }}>
+                Audit Trail ({displayedEvents.length})
+              </h3>
+              <div className="space-y-3">
+                {displayedEvents.map(ev => (
+                  <EventCard key={ev.id} ev={ev} actorNames={actorNames} claims={ev.event_type === 'agent_analysis' ? claims : []} />
+                ))}
+              </div>
+            </>
           )}
         </>
       )}
