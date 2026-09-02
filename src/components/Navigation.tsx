@@ -104,9 +104,9 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
   }, [onNavigate]);
 
   const navItemsAuth = [...NAV_ITEMS_AUTH, { id: 'decision-map', label: 'Decision Map', icon: Map }, { id: 'decision-trail', label: 'Decision Trail', icon: BookOpen }, { id: 'organization', label: 'Organization', icon: Building2 }];
+  const navItems = user
     ? (hideDashboard ? navItemsAuth.filter(i => i.id !== 'home') : navItemsAuth)
     : NAV_ITEMS_GUEST;
-
   // Determine active item
   const activeId = (currentPage === 'workspace-hub' || currentPage === 'workspace-settings')
     ? 'workspaces'
