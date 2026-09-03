@@ -167,14 +167,18 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold leading-[1.08] mb-5 text-slate-900 mx-auto lg:mx-0 max-w-xl tracking-tight">
-              Stress-test your business decisions before{' '}
+              Make every important business decision{' '}
               <span style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                they become expensive mistakes
+                defensible
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0" style={{ color: '#4b5563' }}>
-              Seven specialized AI agents challenge your assumptions, surface blind spots, and pressure-test your decisions. Poddle's War Room turns the debate into a clear, defensible recommendation.
+            <p className="text-base sm:text-lg leading-relaxed mb-4 max-w-xl mx-auto lg:mx-0" style={{ color: '#4b5563' }}>
+              Poddle is an AI-powered decision intelligence platform that helps organizations analyze, challenge, govern, and trace high-stakes decisions from initial thinking to final execution.
+            </p>
+
+            <p className="text-sm leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0" style={{ color: '#6b7280' }}>
+              Know what was decided. Why it was decided. Who owns it. What supports it. And how the decision evolved.
             </p>
 
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-10">
@@ -231,23 +235,13 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
           </div>
 
-          {/* Right column: live-style preview */}
-          <div className="hidden lg:block">
+          {/* Right column: two stacked preview panels (shown on all breakpoints) */}
+          <div className="flex flex-col gap-4 max-w-md mx-auto lg:max-w-none w-full">
+            {/* Panel 1: Multiplayer AI */}
             <div
               className="rounded-3xl overflow-hidden"
               style={{ background: '#FFFFFF', border: '1px solid #e5e7eb', boxShadow: '0 20px 48px rgba(17,24,39,0.12)' }}
             >
-              <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
-                <div className="w-3 h-3 rounded-full" style={{ background: '#f59e0b' }} />
-                <div className="w-3 h-3 rounded-full" style={{ background: '#10b981' }} />
-                <div className="flex items-center gap-2 ml-4 flex-1">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
-                  <span className="text-xs font-medium" style={{ color: '#5D6B82' }}>Private Workspace · European Expansion</span>
-                </div>
-                <Lock className="w-3 h-3" style={{ color: '#9BA6B8' }} />
-              </div>
-
               <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
                 <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
                 <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Multiplayer AI</span>
@@ -280,8 +274,22 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div className="rounded-2xl p-3.5 mt-1" style={{ background: '#F7F9FC', border: '1px solid #D8DDE8' }}>
+            {/* Panel 2: War Room */}
+            <div
+              className="rounded-3xl overflow-hidden"
+              style={{ background: '#FFFFFF', border: '1px solid #e5e7eb', boxShadow: '0 20px 48px rgba(17,24,39,0.12)' }}
+            >
+              <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                <Swords className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
+                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>War Room</span>
+                <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— Synthesis</span>
+              </div>
+
+              <div className="p-4 space-y-3" style={{ background: '#FFFFFF' }}>
+                <div className="rounded-2xl p-3.5" style={{ background: '#F7F9FC', border: '1px solid #D8DDE8' }}>
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(184,134,11,0.12)' }}>
                       <Brain className="w-3 h-3" style={{ color: '#b8860b' }} />
@@ -1310,5 +1318,6 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
     </section>
   );
 }
+
 
 
