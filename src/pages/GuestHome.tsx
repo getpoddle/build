@@ -143,7 +143,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
     <section
       className="relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, #000000 0%, #0a0a0a 55%, #111111 100%)',
+        background: 'linear-gradient(135deg, #0a0e1a 0%, #0d1424 55%, #111827 100%)',
         minHeight: '88vh',
         display: 'flex',
         alignItems: 'center',
@@ -155,81 +155,157 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)', backgroundSize: '52px 52px' }} />
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full relative z-10 text-center">
-        <div
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-8"
-          style={{ background: 'rgba(184,134,11,0.15)', color: '#d4a535', border: '1px solid rgba(184,134,11,0.22)' }}
-        >
-          <Zap className="w-3.5 h-3.5" />
-          The Decision Review Copilot
-        </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left column: copy */}
+          <div className="text-center lg:text-left">
+            <div
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-8"
+              style={{ background: 'rgba(184,134,11,0.15)', color: '#d4a535', border: '1px solid rgba(184,134,11,0.22)' }}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              The Decision Review Copilot
+            </div>
 
-        <h1 className="text-4xl sm:text-5xl lg:text-[3.75rem] font-bold leading-[1.06] mb-5 text-white mx-auto max-w-3xl tracking-tight">
-          Stress-test your business decisions before{' '}
-          <span style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            they become expensive mistakes
-          </span>
-        </h1>
+            <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold leading-[1.08] mb-5 text-white mx-auto lg:mx-0 max-w-xl tracking-tight">
+              Stress-test your business decisions before{' '}
+              <span style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                they become expensive mistakes
+              </span>
+            </h1>
 
-        <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-2xl mx-auto" style={{ color: 'rgba(203,213,225,0.78)' }}>
-          Seven specialized AI agents challenge your assumptions, surface blind spots, and pressure-test your decisions. Poddle's War Room turns the debate into a clear, defensible recommendation.
-        </p>
+            <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0" style={{ color: 'rgba(203,213,225,0.78)' }}>
+              Seven specialized AI agents challenge your assumptions, surface blind spots, and pressure-test your decisions. Poddle's War Room turns the debate into a clear, defensible recommendation.
+            </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
-          <button
-            onClick={() => onNavigate('auth')}
-            className="px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-            style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
-          >
-            Get started
-          </button>
-          <button
-            onClick={() => onNavigate('pricing')}
-            className="flex items-center gap-2 text-sm font-semibold transition-colors hover:text-white"
-            style={{ color: 'rgba(148,163,184,0.75)' }}
-          >
-            View pricing
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-10">
+              <button
+                onClick={() => onNavigate('auth')}
+                className="px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+                style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
+              >
+                Get started
+              </button>
+              <button
+                onClick={() => onNavigate('pricing')}
+                className="flex items-center gap-2 text-sm font-semibold transition-colors hover:text-white"
+                style={{ color: 'rgba(148,163,184,0.75)' }}
+              >
+                View pricing
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-        <div className="flex items-center justify-center gap-6 flex-wrap mb-14">
-          <div className="flex items-center gap-1.5">
-            <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Free. No card required.</span>
+            <div className="flex items-center justify-center lg:justify-start gap-6 flex-wrap mb-10">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+                <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Free. No card required.</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+                <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Private & encrypted workspaces</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center lg:items-start gap-3">
+              <div className="flex items-center gap-1">
+                {[
+                  { abbr: 'RA', label: 'Risk Analyst' },
+                  { abbr: 'DA', label: "Devil's Advocate" },
+                  { abbr: 'FS', label: 'Financial Strategist' },
+                  { abbr: 'MA', label: 'Market Analyst' },
+                  { abbr: 'EL', label: 'Execution Lead' },
+                  { abbr: 'IS', label: 'Innovation Lead' },
+                  { abbr: 'PA', label: 'People Advisor' },
+                ].map((a, i) => (
+                  <img
+                    key={a.abbr}
+                    src={AGENT_AVATARS[a.abbr]}
+                    alt={a.label}
+                    title={a.label}
+                    className="w-8 h-8 rounded-xl object-cover transition-transform hover:-translate-y-1 cursor-default"
+                    style={{ zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0, boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
+                  />
+                ))}
+              </div>
+              <p className="text-xs font-medium" style={{ color: 'rgba(100,116,139,0.7)' }}>7 specialized agents · each with a different mandate</p>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Private & encrypted workspaces</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-            <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Built for teams</span>
-          </div>
-        </div>
 
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-1">
-            {[
-              { abbr: 'RA', label: 'Risk Analyst' },
-              { abbr: 'DA', label: "Devil's Advocate" },
-              { abbr: 'FS', label: 'Financial Strategist' },
-              { abbr: 'MA', label: 'Market Analyst' },
-              { abbr: 'EL', label: 'Execution Lead' },
-              { abbr: 'IS', label: 'Innovation Lead' },
-              { abbr: 'PA', label: 'People Advisor' },
-            ].map((a, i) => (
-              <img
-                key={a.abbr}
-                src={AGENT_AVATARS[a.abbr]}
-                alt={a.label}
-                title={a.label}
-                className="w-9 h-9 rounded-xl object-cover transition-transform hover:-translate-y-1 cursor-default"
-                style={{ zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0, boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
-              />
-            ))}
+          {/* Right column: live-style preview */}
+          <div className="hidden lg:block">
+            <div
+              className="rounded-3xl overflow-hidden"
+              style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}
+            >
+              <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
+                <div className="w-3 h-3 rounded-full" style={{ background: '#f59e0b' }} />
+                <div className="w-3 h-3 rounded-full" style={{ background: '#10b981' }} />
+                <div className="flex items-center gap-2 ml-4 flex-1">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
+                  <span className="text-xs font-medium" style={{ color: '#5D6B82' }}>Private Workspace · European Expansion</span>
+                </div>
+                <Lock className="w-3 h-3" style={{ color: '#9BA6B8' }} />
+              </div>
+
+              <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
+                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Multiplayer AI</span>
+                <div className="ml-auto flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
+                  <span className="text-[10px]" style={{ color: '#5D6B82' }}>Live</span>
+                </div>
+              </div>
+
+              <div className="p-4 space-y-3" style={{ background: '#FFFFFF' }}>
+                <div className="flex gap-2.5">
+                  <img src={TEAM_AVATARS.ML} alt="Maya (Head of Risk)" className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
+                  <div className="flex flex-col max-w-[85%]">
+                    <div className="flex items-baseline gap-2 mb-0.5">
+                      <span className="text-[10px] font-semibold" style={{ color: '#0f766e' }}>Maya (Head of Risk)</span>
+                    </div>
+                    <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed" style={{ background: 'rgba(8,145,178,0.12)', color: '#111827', border: '1px solid rgba(8,145,178,0.18)', borderBottomLeftRadius: '4px' }}>
+                      Should we go multi-market across Europe now, or stage the rollout?
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2.5">
+                  <img src={AGENT_AVATARS.RA} alt="Risk Analyst" className="w-7 h-7 rounded-xl object-cover flex-shrink-0 mt-0.5" style={{ border: '1px solid rgba(124,45,18,0.22)' }} />
+                  <div className="flex flex-col max-w-[85%]">
+                    <div className="flex items-baseline gap-2 mb-0.5">
+                      <span className="text-[10px] font-semibold" style={{ color: '#7c2d12' }}>Risk Analyst</span>
+                    </div>
+                    <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed" style={{ background: 'rgba(124,45,18,0.07)', color: '#111827', border: '1px solid rgba(124,45,18,0.22)', borderBottomLeftRadius: '4px' }}>
+                      Distribution shift risk in EU markets could cause 40-60% prediction errors in year one.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-3.5 mt-1" style={{ background: '#F7F9FC', border: '1px solid #D8DDE8' }}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(184,134,11,0.12)' }}>
+                      <Brain className="w-3 h-3" style={{ color: '#b8860b' }} />
+                    </div>
+                    <span className="text-[11px] font-bold" style={{ color: '#b8860b' }}>War Room Synthesis</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed" style={{ color: '#111827' }}>
+                    <strong>Stage the rollout. Start Germany.</strong> BaFin approval de-risks the rest of the continent.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5"
+                    style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: '#2563eb', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.3)' }}
+                  >
+                    FIN-01
+                  </span>
+                  <span className="text-[10px]" style={{ color: '#9BA6B8' }}>Evidence-linked, citable by code</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-xs font-medium" style={{ color: 'rgba(100,116,139,0.7)' }}>7 specialized agents · each with a different mandate</p>
         </div>
 
         <div className="flex justify-center mt-14">
@@ -1186,7 +1262,7 @@ export function TeamSection() {
 
 function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section style={{ background: 'linear-gradient(135deg,#000000 0%,#0a0a0a 55%,#111111 100%)' }} className="py-24">
+    <section style={{ background: 'linear-gradient(135deg,#0a0e1a 0%,#0d1424 55%,#111827 100%)' }} className="py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <RevealSection>
           <div className="w-16 h-16 mx-auto mb-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.09)' }} />
