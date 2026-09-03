@@ -1421,9 +1421,25 @@ Return ONLY valid JSON: { "claims": [ { "statement": "...", "claim_type": "...",
           return matched / wordsB.length;
         }
 
+        // Fetch challenge statements already logged for this workspace, so
+        // re-running synthesis doesn't re-insert the same disagreement every
+        // time the same transcript content is still present.
+        const { data: existingChallengeEvents } = await service
+          .from("decision_events")
+          .select("payload")
+          .eq("workspace_id", workspace_id)
+          .eq("event_type", "challenge_raised");
+        const existingChallengeStatements = new Set(
+          (existingChallengeEvents || [])
+            .map(r => (r.payload as Record<string, unknown>)?.statement)
+            .filter((s): s is string => typeof s === "string")
+            .map(s => s.trim().toLowerCase())
+        );
+
         for (const ch of challengesList) {
           const statement = typeof ch.statement === "string" ? ch.statement.trim() : "";
           if (statement.length < 10) continue;
+          if (existingChallengeStatements.has(statement.toLowerCase())) continue;
           const isHuman = ch.challenger_is_human === true;
           const role = typeof ch.challenger_role === "string" ? ch.challenger_role : (isHuman ? "team" : "general");
 
