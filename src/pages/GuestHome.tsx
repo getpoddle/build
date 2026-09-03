@@ -5,6 +5,7 @@ import {
   Download, AlertTriangle, Target, BarChart3, TrendingUp,
   ChevronRight, Users, MessageSquare, FileText, Shield,
   ArrowDown, ChevronDown, Send, Building2,
+  Fingerprint, Hash, History, ShieldCheck,
 } from 'lucide-react';
 import JoinPromptModal from '../components/JoinPromptModal';
 import PoddleMark from '../components/PoddleMark';
@@ -100,6 +101,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       <HeroSection onNavigate={onNavigate} />
       <AsSeenOnSection />
       <HowItWorksSection onNavigate={onNavigate} />
+      <DecisionTrailSection onNavigate={onNavigate} />
       <LiveDemoSection onNavigate={onNavigate} />
       <SocialProofSection />
       <FinalCTA onNavigate={onNavigate} />
@@ -147,7 +149,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         alignItems: 'center',
       }}
     >
-      {/* Background mesh */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.12) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.06) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
@@ -155,7 +156,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full relative z-10 text-center">
-        {/* Badge */}
         <div
           className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-8"
           style={{ background: 'rgba(184,134,11,0.15)', color: '#d4a535', border: '1px solid rgba(184,134,11,0.22)' }}
@@ -208,7 +208,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
         </div>
 
-        {/* Agent avatars */}
         <div className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-1">
             {[
@@ -233,7 +232,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           <p className="text-xs font-medium" style={{ color: 'rgba(100,116,139,0.7)' }}>7 specialized agents · each with a different mandate</p>
         </div>
 
-        {/* Scroll hint */}
         <div className="flex justify-center mt-14">
           <a href="#how-it-works" className="flex flex-col items-center gap-2 group" style={{ color: 'rgba(100,116,139,0.55)' }}>
             <span className="text-xs font-medium group-hover:text-slate-400 transition-colors">See how it works</span>
@@ -250,7 +248,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 function AsSeenOnSection() {
   const logos = (
     <>
-      {/* PR Newswire */}
       <a href="https://www.prnewswire.com/news-releases/poddle-ai-launches-worlds-first-self-service-adversarial-ai-platform-302837161.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
         <svg viewBox="0 0 120 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="16" cy="20" r="13" fill="#c8102e" />
@@ -259,7 +256,6 @@ function AsSeenOnSection() {
           <text x="34" y="30" fill="#64748b" fontSize="7" fontWeight="600" fontFamily="Arial, sans-serif" letterSpacing="1.5">PRESS RELEASE DISTRIBUTION</text>
         </svg>
       </a>
-      {/* Yahoo! Finance */}
       <a href="https://finance.yahoo.com/technology/ai/articles/poddle-ai-launches-worlds-first-123700881.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
         <svg viewBox="0 0 140 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
           <text x="0" y="20" fill="#6001d2" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif" fontStyle="italic">Yahoo!</text>
@@ -267,13 +263,11 @@ function AsSeenOnSection() {
           <rect x="0" y="26" width="120" height="2" fill="#6001d2" rx="1" />
         </svg>
       </a>
-      {/* Benzinga */}
       <a href="https://www.benzinga.com/pressreleases/26/07/n60758133/poddle-ai-launches-world-s-first-self-service-adversarial-ai-platform" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
         <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
           <text x="0" y="28" fill="#1e293b" fontSize="22" fontWeight="800" fontFamily="Arial, sans-serif">Benzinga</text>
         </svg>
       </a>
-      {/* AI Journal */}
       <a href="https://aijourn.com/poddle-ai-launches-worlds-first-self-service-adversarial-ai-platform/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
         <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
           <text x="0" y="18" fill="#2563eb" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif">AI</text>
@@ -281,7 +275,6 @@ function AsSeenOnSection() {
           <rect x="0" y="24" width="92" height="2" fill="#2563eb" rx="1" />
         </svg>
       </a>
-      {/* California Business Journal */}
       <a href="https://calbizjournal.com/latest-tech-news/?rkey=20260729PH13856&filter=26804" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
         <svg viewBox="0 0 200 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
           <text x="0" y="18" fill="#0f766e" fontSize="13" fontWeight="800" fontFamily="Arial, sans-serif">California</text>
@@ -381,7 +374,6 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
   return (
     <section id="how-it-works" style={{ background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <RevealSection className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(0,0,0,0.05)', color: '#475569', border: '1px solid rgba(0,0,0,0.09)' }}>
             How Poddle works
@@ -394,7 +386,6 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
           </p>
         </RevealSection>
 
-        {/* Steps */}
         <div className="space-y-6">
           {HOW_STEPS.map((step, idx) => {
             const Icon = step.icon;
@@ -406,7 +397,6 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                 >
                   <div className="p-8 sm:p-10">
                     <div className="flex flex-col lg:flex-row gap-10">
-                      {/* Left */}
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-5">
                           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: step.bg }}>
@@ -430,7 +420,6 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                         </div>
                       </div>
 
-                      {/* Right, visual */}
                       <div className="lg:w-80 flex-shrink-0">
                         {idx === 0 && step.visual && (
                           <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
@@ -484,7 +473,6 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                               </div>
                             </div>
                             <div className="flex-1 p-4 space-y-3" style={{ background: '#FFFFFF' }}>
-                              {/* Team member message */}
                               <div className="flex gap-2.5">
                                 <img src={TEAM_AVATARS.ML} alt="Maya (Head of Risk)" className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
                                 <div className="flex flex-col max-w-[80%]">
@@ -497,7 +485,6 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                                   </div>
                                 </div>
                               </div>
-                              {/* Agent responses */}
                               {(step.visual as { abbr: string; avatar: string; bg: string; color: string; text: string }[]).map((v) => (
                                 <div key={v.abbr} className="flex gap-2.5">
                                   <img src={v.avatar} alt={v.abbr} className="w-7 h-7 rounded-xl object-cover flex-shrink-0 mt-0.5" style={{ border: `1px solid ${v.color}22` }} />
@@ -557,7 +544,6 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                   </div>
                 </div>
 
-                {/* Connector arrow between steps */}
                 {idx < HOW_STEPS.length - 1 && (
                   <div className="flex flex-col items-center py-3">
                     <div className="w-px h-6" style={{ background: 'rgba(0,0,0,0.1)' }} />
@@ -569,7 +555,6 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
           })}
         </div>
 
-        {/* Summary banner */}
         <RevealSection delay={300} className="mt-12">
           <div
             className="rounded-3xl p-8 sm:p-10 text-center"
@@ -589,6 +574,90 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
               Try the full workflow
             </button>
           </div>
+        </RevealSection>
+      </div>
+    </section>
+  );
+}
+
+// ─── Decision Trail ───────────────────────────────────────────────────────────
+
+const TRAIL_FEATURES = [
+  {
+    icon: Fingerprint,
+    color: '#475569',
+    bg: 'rgba(71,85,105,0.08)',
+    title: 'Immutable audit trail',
+    desc: 'From the first question to the final call, every step is logged permanently. Nothing can be quietly edited or backdated, not even by us.',
+  },
+  {
+    icon: Hash,
+    color: '#2563eb',
+    bg: 'rgba(37,99,235,0.08)',
+    title: 'Evidence IDs',
+    desc: "AI conclusions aren't just paragraphs. They're labeled, citable claims like FIN-01, each tagged as a fact, assumption, inference, or opinion, with its evidence attached.",
+  },
+  {
+    icon: History,
+    color: '#0d9488',
+    bg: 'rgba(13,148,136,0.08)',
+    title: 'Point-in-time replay',
+    desc: 'Rewind any decision to a past moment and see exactly what the team knew then, before hindsight rewrote the story.',
+  },
+  {
+    icon: ShieldCheck,
+    color: '#7c3aed',
+    bg: 'rgba(124,58,237,0.08)',
+    title: 'Decision Control',
+    desc: 'Require formal approval before a decision commits. Org owners and admins see every pending request and sign off before anything becomes final.',
+  },
+];
+
+function DecisionTrailSection({ onNavigate }: { onNavigate: (p: string) => void }) {
+  return (
+    <section style={{ background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection className="text-center mb-14">
+          <div
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4"
+            style={{ background: 'rgba(37,99,235,0.08)', color: '#2563eb', border: '1px solid rgba(37,99,235,0.18)' }}
+          >
+            New: Decision Governance
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
+            Every decision, permanently traceable.
+          </h2>
+          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
+            Poddle doesn't just help you decide. It remembers exactly how you got there, and gives your organization control over when a decision is allowed to become final.
+          </p>
+        </RevealSection>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          {TRAIL_FEATURES.map(({ icon: Icon, color, bg, title, desc }, i) => (
+            <RevealSection key={title} delay={i * 100}>
+              <div
+                className="h-full p-6 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: bg }}>
+                  <Icon className="w-5 h-5" style={{ color }} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 mb-2">{title}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
+              </div>
+            </RevealSection>
+          ))}
+        </div>
+
+        <RevealSection delay={300} className="text-center">
+          <button
+            onClick={() => onNavigate('auth')}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(135deg,#111111,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+          >
+            See your decisions, traced
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </RevealSection>
       </div>
     </section>
@@ -699,7 +768,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           </p>
         </div>
 
-        {/* Phase labels */}
         <div className="flex items-center justify-center gap-4 mb-6 flex-wrap">
           {[
             { step: '1', label: 'Team Chat', color: '#0891b2', bg: 'rgba(8,145,178,0.07)' },
@@ -716,12 +784,10 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           ))}
         </div>
 
-        {/* Browser-style demo */}
         <div
           className="rounded-3xl overflow-hidden mx-auto"
           style={{ maxWidth: 800, background: '#FFFFFF', boxShadow: '0 8px 32px rgba(0,0,0,0.10)', border: '1px solid #D8DDE8' }}
         >
-          {/* Title bar */}
           <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
             <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
             <div className="w-3 h-3 rounded-full" style={{ background: '#f59e0b' }} />
@@ -733,7 +799,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             <Lock className="w-3 h-3" style={{ color: '#9BA6B8' }} />
           </div>
 
-          {/* Tab header */}
           <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
             <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
             <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Multiplayer AI</span>
@@ -743,7 +808,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
           </div>
 
-          {/* User prompt */}
           <div className="px-5 pt-5 pb-4" style={{ background: '#FFFFFF' }}>
             <div
               className="flex items-start gap-3 rounded-2xl p-4 mb-1"
@@ -761,7 +825,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               </div>
             </div>
 
-            {/* Agent tags */}
             <div className="flex items-center gap-2 mt-3 mb-4 flex-wrap">
               <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9BA6B8' }}>Responding:</span>
               {DEMO_MESSAGES.map((m, i) => (
@@ -777,7 +840,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               ))}
             </div>
 
-            {/* Agent responses */}
             <div className="space-y-3 pb-1">
               {DEMO_MESSAGES.map((m, i) => (
                 <div
@@ -805,7 +867,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               ))}
             </div>
 
-            {/* War Room Synthesis */}
             {revealed >= DEMO_MESSAGES.length && (
               <div
                 className="mt-4 rounded-2xl p-4 transition-all duration-700"
@@ -830,7 +891,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             )}
           </div>
 
-          {/* Bottom bar */}
           <div className="px-5 py-3.5" style={{ borderTop: '1px solid #D8DDE8', background: '#F7F9FC' }}>
             <div className="flex items-center gap-3">
               <div
@@ -860,7 +920,6 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
         </div>
 
-        {/* PDF Export Preview */}
         <div
           className="mx-auto mt-6 overflow-hidden transition-all duration-700"
           style={{
@@ -1031,13 +1090,14 @@ function SocialProofSection() {
           ))}
         </div>
 
-          {/* Feature grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-10">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
           {[
             { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Lead, People Advisor, each with a different mandate." },
             { icon: Shield, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Your workspace is encrypted and invisible to the public. Invite your team. Nothing leaves your org. SOC 2-aligned infrastructure.' },
             { icon: FileText, color: '#059669', bg: '#ecfdf5', title: 'Board-ready exports', desc: 'The War Room PDF includes your recommendation, risk signals, action items by owner, and decision health scores, ready to share.' },
             { icon: Building2, color: '#7c3aed', bg: '#f5f3ff', title: 'Organization-wide oversight', desc: 'Link every workspace to your organization. See every decision, its status, and its owner in one view, with optional approval gates before anything commits.' },
+            { icon: Fingerprint, color: '#475569', bg: 'rgba(71,85,105,0.08)', title: 'Immutable audit trail', desc: 'Every decision is logged from question to outcome, permanently. Nothing can be quietly edited or backdated.' },
+            { icon: Hash, color: '#2563eb', bg: 'rgba(37,99,235,0.08)', title: 'Evidence IDs', desc: "AI claims are labeled and citable, like FIN-01, tagged as fact, assumption, inference, or opinion, with evidence attached." },
           ].map(({ icon: Icon, color, bg, title, desc }, i) => (
             <RevealSection key={title} delay={i * 80}>
               <div
@@ -1169,7 +1229,6 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
               Invite your team
             </div>
           </div>
-
 
         </RevealSection>
       </div>
