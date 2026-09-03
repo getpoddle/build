@@ -459,13 +459,30 @@ const HOW_STEPS = [
     border: 'rgba(71,85,105,0.16)',
     label: 'Decision Trail',
     title: 'Every step is recorded, permanently',
-    body: 'From the first question to the final call, Poddle logs an immutable audit trail: who said what, what the agents concluded, and what changed along the way. AI claims become citable Evidence IDs like FIN-01, tagged as fact, assumption, inference, or opinion. Rewind to any past moment with Point-in-Time Replay to see exactly what the team knew then. And Decision Control lets your organization require formal approval before a decision can commit.',
+    body: 'From the first question to the final call, Poddle logs an immutable audit trail: who said what, what the agents concluded, and what changed along the way. AI claims become citable Evidence IDs like FIN-01, tagged as fact, assumption, inference, or opinion. Rewind to any past moment with Point-in-Time Replay to see exactly what the team knew then.',
     callout: 'Nothing here can be quietly edited or backdated, not even by us. That is what makes a decision defensible.',
     visual: [
       { label: 'decision_created', code: null },
       { label: 'agent_analysis', code: 'FIN-01' },
       { label: 'human_override', code: null },
       { label: 'final_decision', code: null },
+    ],
+  },
+  {
+    number: '05',
+    icon: ShieldCheck,
+    color: '#7c3aed',
+    bg: 'rgba(124,58,237,0.08)',
+    border: 'rgba(124,58,237,0.16)',
+    label: 'Decision Map',
+    title: 'See every decision across your organization',
+    body: 'The Decision Map gives leadership a portfolio view: every decision across every workspace, its status, and its owner, all in one place. Pair it with Decision Control to require formal approval before a decision can move to Committed. Org owners and admins see every pending request and sign off before anything becomes final.',
+    callout: 'Individual decisions get a trail. The Decision Map is how an organization sees all of them at once.',
+    visual: [
+      { status: 'Exploring', count: 4, color: '#64748b' },
+      { status: 'In Debate', count: 2, color: '#d97706' },
+      { status: 'Committed', count: 3, color: '#2563eb' },
+      { status: 'Pending approval', count: 1, color: '#7c3aed' },
     ],
   },
 ]
@@ -479,10 +496,10 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
             How Poddle works
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
-            Team Chat starts the debate. Multiplayer AI widens it.<br className="hidden sm:block" /> The War Room resolves it. The Decision Trail remembers it.
+            Team Chat starts the debate. Multiplayer AI widens it.<br className="hidden sm:block" /> The War Room resolves it. The Decision Trail remembers it. The Decision Map governs it.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Four connected features, not separate tools. Here is exactly how they work together.
+            Five connected features, not separate tools. Here is exactly how they work together.
           </p>
         </RevealSection>
 
@@ -665,6 +682,36 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                               <div className="flex items-center gap-2 pt-2 mt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
                                 <History className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
                                 <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Rewind to any point-in-time · never edited or backdated</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {idx === 4 && step.visual && (
+                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                              <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7c3aed' }} />
+                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Decision Map</span>
+                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— Organization</span>
+                            </div>
+                            <div className="flex-1 p-4 space-y-2.5" style={{ background: '#FFFFFF' }}>
+                              {(step.visual as { status: string; count: number; color: string }[]).map((v) => (
+                                <div key={v.status} className="flex items-center gap-2.5">
+                                  <span
+                                    className="text-[10px] font-bold px-2 py-0.5 flex-shrink-0"
+                                    style={{ color: v.color, background: `${v.color}14` }}
+                                  >
+                                    {v.status}
+                                  </span>
+                                  <div className="flex-1 h-1.5 rounded-full" style={{ background: '#F0F3F7' }}>
+                                    <div className="h-1.5 rounded-full" style={{ background: v.color, width: `${Math.min(100, v.count * 20)}%` }} />
+                                  </div>
+                                  <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: '#5D6B82' }}>{v.count}</span>
+                                </div>
+                              ))}
+                              <div className="flex items-center gap-2 pt-2 mt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
+                                <ShieldCheck className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
+                                <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Decision Control: CFO approval required before commit</span>
                               </div>
                             </div>
                           </div>
@@ -877,11 +924,14 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
     setTimeout(tick, 300);
   }, [visible]);
 
+  const [showMap, setShowMap] = useState(false);
+
   useEffect(() => {
     if (revealed >= DEMO_MESSAGES.length) {
       const t1 = setTimeout(() => setShowTrail(true), 1400);
-      const t2 = setTimeout(() => setShowPDF(true), 2600);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      const t2 = setTimeout(() => setShowMap(true), 2400);
+      const t3 = setTimeout(() => setShowPDF(true), 3600);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
     }
   }, [revealed]);
 
@@ -909,6 +959,8 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             { step: '3', label: 'War Room Synthesis', color: '#dc2626', bg: 'rgba(220,38,38,0.07)' },
             { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
             { step: '4', label: 'Decision Trail', color: '#475569', bg: 'rgba(71,85,105,0.08)' },
+            { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
+            { step: '5', label: 'Decision Map', color: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
           ].map((item, i) => item.label ? (
             <span key={i} className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: item.bg, color: item.color }}>
               {item.step} · {item.label}
@@ -1057,6 +1109,38 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                 <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
                   <History className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
                   <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Point-in-Time Replay: rewind to see exactly what the team knew, then</span>
+                </div>
+              </div>
+            )}
+
+            {showMap && (
+              <div
+                className="mt-4 rounded-2xl p-4 transition-all duration-700"
+                style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', opacity: 1 }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <ShieldCheck className="w-3.5 h-3.5" style={{ color: '#7c3aed' }} />
+                  <span className="text-[11px] font-bold" style={{ color: '#7c3aed' }}>Decision Map</span>
+                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(124,58,237,0.1)', color: '#7c3aed' }}>Org-wide</span>
+                </div>
+                <div className="space-y-2 mb-3">
+                  {[
+                    { status: 'Exploring', count: 4, color: '#64748b' },
+                    { status: 'In Debate', count: 2, color: '#d97706' },
+                    { status: 'Committed', count: 3, color: '#2563eb' },
+                  ].map((v) => (
+                    <div key={v.status} className="flex items-center gap-2.5">
+                      <span className="text-[10px] font-bold px-2 py-0.5 flex-shrink-0" style={{ color: v.color, background: `${v.color}14` }}>{v.status}</span>
+                      <div className="flex-1 h-1.5 rounded-full" style={{ background: '#F0F3F7' }}>
+                        <div className="h-1.5 rounded-full" style={{ background: v.color, width: `${Math.min(100, v.count * 20)}%` }} />
+                      </div>
+                      <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: '#5D6B82' }}>{v.count}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
+                  <ShieldCheck className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
+                  <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Decision Control: this decision is pending CFO approval before it can commit</span>
                 </div>
               </div>
             )}
@@ -1406,6 +1490,5 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
     </section>
   );
 }
-
 
 
