@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight, CheckCircle, Lock, Brain,
@@ -496,7 +497,7 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
             How Poddle works
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
-            Team Chat starts the debate. Multiplayer AI widens it.<br className="hidden sm:block" /> The War Room resolves it. The Decision Trail remembers it. The Decision Map governs it.
+            Teams talk it through. AI challenges the thinking.<br className="hidden sm:block" /> The War Room puts the decision under pressure. The Decision Trail keeps the reasoning. The Decision Map keeps ownership clear.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
             Five connected features, not separate tools. Here is exactly how they work together.
@@ -1490,5 +1491,3 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
     </section>
   );
 }
-
-
