@@ -35,6 +35,18 @@ interface DecisionClaim {
   created_at: string;
 }
 
+interface DecisionChallenge {
+  id: string;
+  workspace_id: string;
+  target_claim_id: string;
+  challenger_agent_role: string;
+  challenger_agent_name: string;
+  challenge_text: string;
+  rebuttal_text: string | null;
+  status: string;
+  created_at: string;
+}
+
 interface DomainOwnerRow {
   id: string;
   domain: string;
@@ -408,9 +420,15 @@ function DecisionStory({
   );
 }
 
-function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
+function ClaimsPanel({ claims, challenges }: { claims: DecisionClaim[]; challenges: DecisionChallenge[] }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   if (claims.length === 0) return null;
+
+  const challengesByClaim = new Map<string, DecisionChallenge[]>();
+  for (const ch of challenges) {
+    if (!challengesByClaim.has(ch.target_claim_id)) challengesByClaim.set(ch.target_claim_id, []);
+    challengesByClaim.get(ch.target_claim_id)!.push(ch);
+  }
 
   return (
     <div className="mb-6 p-4" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
@@ -426,6 +444,7 @@ function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
           const typeColor = CLAIM_TYPE_COLORS[claim.claim_type] || '#64748b';
           const evidenceRefs = Array.isArray(claim.evidence_refs) ? claim.evidence_refs as string[] : [];
           const assumptions = Array.isArray(claim.assumptions) ? claim.assumptions as { key: string; value: string }[] : [];
+          const claimChallenges = challengesByClaim.get(claim.id) || [];
           return (
             <button
               key={claim.id}
@@ -446,7 +465,17 @@ function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
                     {claim.claim_code}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm">{claim.statement}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm">{claim.statement}</p>
+                      {claimChallenges.length > 0 && (
+                        <span
+                          className="text-[10px] font-bold uppercase px-1.5 py-0.5 flex-shrink-0"
+                          style={{ color: '#b45309', background: 'rgba(217,119,6,0.12)' }}
+                        >
+                          {claimChallenges.length} Challenge{claimChallenges.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs mt-1" style={{ color: 'var(--app-text-secondary)' }}>
                       {claim.agent_name} · <span className="capitalize">{claim.claim_type}</span> · {Math.round(claim.confidence * 100)}% confidence
                     </p>
@@ -466,8 +495,23 @@ function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
                             ))}
                           </div>
                         )}
-                        {evidenceRefs.length === 0 && assumptions.length === 0 && (
+                        {evidenceRefs.length === 0 && assumptions.length === 0 && claimChallenges.length === 0 && (
                           <p style={{ color: 'var(--app-text-secondary)' }}>No evidence or assumptions recorded for this claim.</p>
+                        )}
+                        {claimChallenges.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-bold uppercase mb-1" style={{ color: '#b45309', letterSpacing: '0.08em' }}>Challenges</p>
+                            <div className="space-y-2">
+                              {claimChallenges.map(ch => (
+                                <div key={ch.id} className="p-2" style={{ background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.2)' }}>
+                                  <p style={{ color: 'var(--app-text-primary)' }}>{ch.challenge_text}</p>
+                                  <p className="mt-1" style={{ color: 'var(--app-text-muted)' }}>
+                                    — {ch.challenger_agent_name} · <span className="capitalize">{ch.status}</span>
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
                     )}
@@ -485,6 +529,7 @@ function ClaimsPanel({ claims }: { claims: DecisionClaim[] }) {
 function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: string; workspaceName: string; onBack: () => void }) {
   const [events, setEvents] = useState<DecisionEvent[]>([]);
   const [claims, setClaims] = useState<DecisionClaim[]>([]);
+  const [challenges, setChallenges] = useState<DecisionChallenge[]>([]);
   const [domainOwners, setDomainOwners] = useState<DomainOwnerRow[]>([]);
   const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -508,14 +553,20 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: true }),
       supabase
+        .from('decision_challenges')
+        .select('id, workspace_id, target_claim_id, challenger_agent_role, challenger_agent_name, challenge_text, rebuttal_text, status, created_at')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: true }),
+      supabase
         .from('domain_owners')
         .select('id, domain, owner_user_id, backup_owner_user_id')
         .eq('workspace_id', workspaceId)
         .order('domain'),
-    ]).then(([evRes, claimsRes, ownersRes]) => {
+    ]).then(([evRes, claimsRes, challengesRes, ownersRes]) => {
       if (cancelled) return;
       if (!evRes.error && evRes.data) setEvents(evRes.data as DecisionEvent[]);
       if (!claimsRes.error && claimsRes.data) setClaims(claimsRes.data as DecisionClaim[]);
+      if (!challengesRes.error && challengesRes.data) setChallenges(challengesRes.data as DecisionChallenge[]);
       if (!ownersRes.error && ownersRes.data) setDomainOwners(ownersRes.data as DomainOwnerRow[]);
       setLoading(false);
     });
@@ -674,6 +725,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           ownerNames={ownerNames}
         />
       )}
+
       {!loading && events.length > 0 && viewMode === 'list' && (
         <>
           {replayActive && displayedEvents.length === 0 && (
@@ -697,7 +749,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
             </>
           )}
 
-          {!replayActive && <ClaimsPanel claims={claims} />}
+          {!replayActive && <ClaimsPanel claims={claims} challenges={challenges} />}
         </>
       )}
     </div>
