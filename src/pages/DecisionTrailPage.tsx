@@ -674,11 +674,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           ownerNames={ownerNames}
         />
       )}
-
       {!loading && events.length > 0 && viewMode === 'list' && (
         <>
-          {!replayActive && <ClaimsPanel claims={claims} />}
-
           {replayActive && displayedEvents.length === 0 && (
             <div className="panel p-8 text-center">
               <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>
@@ -699,6 +696,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
               </div>
             </>
           )}
+
+          {!replayActive && <ClaimsPanel claims={claims} />}
         </>
       )}
     </div>
