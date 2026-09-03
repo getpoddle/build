@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight, CheckCircle, Lock, Brain,
@@ -1262,46 +1261,46 @@ export function TeamSection() {
 
 function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section style={{ background: 'linear-gradient(135deg,#0a0e1a 0%,#0d1424 55%,#111827 100%)' }} className="py-24">
+    <section style={{ background: '#ffffff', borderTop: '1px solid #e5e7eb' }} className="py-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <RevealSection>
-          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.09)' }} />
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl" style={{ background: 'rgba(184,134,11,0.08)' }} />
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
             Your next big decision<br />deserves a proper challenge.
           </h2>
-          <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: 'rgba(203,213,225,0.75)' }}>
+          <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: '#4b5563' }}>
             Start a Team Chat. Bring in the AI agents. Run the War Room. Export the report. Free to start, no card required.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
             <button
               onClick={() => onNavigate('auth')}
-              className="px-8 py-4 rounded-2xl font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
-              style={{ background: '#fff', color: '#b8860b', boxShadow: '0 4px 14px rgba(184,134,11,0.3)' }}
+              className="px-8 py-4 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
+              style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.3)' }}
             >
               Create free account
             </button>
             <button
               onClick={() => onNavigate('pricing')}
               className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm transition-all hover:-translate-y-0.5"
-              style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(203,213,225,0.9)', border: '1px solid rgba(255,255,255,0.12)' }}
+              style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb' }}
             >
               View pricing
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex items-center justify-center gap-6 flex-wrap text-xs" style={{ color: 'rgba(100,116,139,0.8)' }}>
+          <div className="flex items-center justify-center gap-6 flex-wrap text-xs" style={{ color: '#6b7280' }}>
             <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
               Free forever plan
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
               No credit card required
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
               Invite your team
             </div>
           </div>
@@ -1311,3 +1310,4 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
     </section>
   );
 }
+
