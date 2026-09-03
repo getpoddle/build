@@ -262,7 +262,30 @@ function EventCard({ ev, actorNames, claims }: { ev: DecisionEvent; actorNames: 
             {ev.payload.field === 'conflict_uncommit' && <Field label="Detail">Reversed commitment on "{String(ev.payload.conflict_topic ?? '')}"</Field>}
           </>
         )}
-
+        {ev.event_type === 'challenge_raised' && typeof ev.payload?.statement === 'string' && (
+          <>
+            <Field label="Challenge">{String(ev.payload.statement)}</Field>
+            {typeof ev.payload?.challenger_role === 'string' && (
+              <Field label="Raised By">
+                <span className="capitalize">{String(ev.payload.challenger_role).replace(/_/g, ' ')}</span>
+              </Field>
+            )}
+            {typeof ev.payload?.target_claim_code === 'string' && ev.payload.target_claim_code && (
+              <Field label="Targets">
+                <span
+                  style={{
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    fontSize: '11px', fontWeight: 700,
+                    padding: '2px 8px',
+                    border: '1px solid #d9770640', background: '#d977060d', color: '#b45309',
+                  }}
+                >
+                  {String(ev.payload.target_claim_code)}
+                </span>
+              </Field>
+            )}
+          </>
+        )}
         {ev.event_type === 'outcome_logged' && (
           <Field label="Outcome">
             "{String(ev.payload.action_item ?? '')}" — <span className="font-medium">{String(ev.payload.outcome ?? '')}</span>
