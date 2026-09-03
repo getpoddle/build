@@ -1293,20 +1293,21 @@ RULES:
       },
     }).then(({ error }) => { if (error) console.error("Decision event insert error:", error); });
     
-    // ── Evidence IDs: extract structured, evidence-linked claims ─────────────
-    // Runs once per synthesis (not per chat message) to keep cost controlled.
+      // ── Evidence IDs + Challenges: extract structured claims and any
+    // moments of disagreement/pushback from the transcript. One AI call
+    // covers both, runs once per synthesis (not per chat message).
     // Fire-and-forget: does not block the synthesis response to the user.
     const claimsPromise = (async () => {
       if (!openAiKey) return;
       try {
-        const claimsPrompt = `You are extracting structured, evidence-linked claims from this War Room debate.
+        const claimsPrompt = `You are extracting structured, evidence-linked claims AND moments of challenge/disagreement from this War Room debate.
 
 THE CENTRAL DECISION: "${workspace?.name || "the workspace decision"}"
 
 FULL DEBATE TRANSCRIPT:
 ${transcript}
 
-For each claim, extract:
+PART 1 — CLAIMS. For each claim, extract:
 - statement: a specific, checkable conclusion (a number, a recommendation, a risk rating) — not a hedge or vague statement
 - claim_type: "fact" (directly stated/verifiable), "assumption" (an input the conclusion depends on), "inference" (a conclusion drawn from other facts), or "opinion" (a judgment call, not derivable from data alone)
 - agent_role: the exact role name from the transcript labels (e.g. financial_strategist, risk_analyst, market_analyst, people_advisor, execution_lead, innovation_scout, devils_advocate)
@@ -1316,7 +1317,15 @@ For each claim, extract:
 
 Only extract claims with a specific, checkable conclusion. Skip generic or hedging statements. Extract at most 2-3 claims per agent that actually participated.
 
-Return ONLY valid JSON: { "claims": [ { "statement": "...", "claim_type": "...", "agent_role": "...", "evidence_refs": [...], "assumptions": [...], "confidence": 0.0 } ] }`;
+PART 2 — CHALLENGES. Separately, identify moments where someone (a team member OR an agent) explicitly disagreed with, pushed back on, or challenged a specific conclusion or assumption in the transcript. For each challenge:
+- statement: what was actually said, in the challenger's own words (paraphrase is fine)
+- challenger_is_human: true if a [TEAM] message, false if an agent
+- challenger_role: the agent role name if an agent, or "team" if human
+- target_hint: a short phrase identifying what claim or statement is being challenged (used to try to match it to a specific claim above — does not need to be exact)
+
+Only extract genuine disagreement or pushback — not agreement, not neutral questions. Skip if nothing in the transcript rises to a real challenge.
+
+Return ONLY valid JSON: { "claims": [ { "statement": "...", "claim_type": "...", "agent_role": "...", "evidence_refs": [...], "assumptions": [...], "confidence": 0.0 } ], "challenges": [ { "statement": "...", "challenger_is_human": false, "challenger_role": "...", "target_hint": "..." } ] }`;
 
         const claimsRes = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -1325,10 +1334,10 @@ Return ONLY valid JSON: { "claims": [ { "statement": "...", "claim_type": "...",
           body: JSON.stringify({
             model: "gpt-4o",
             messages: [
-              { role: "system", content: "You extract structured, evidence-linked claims from strategy debates. You produce JSON only, grounded entirely in the transcript." },
+              { role: "system", content: "You extract structured, evidence-linked claims and genuine moments of challenge or disagreement from strategy debates. You produce JSON only, grounded entirely in the transcript." },
               { role: "user", content: claimsPrompt },
             ],
-            max_tokens: 2000,
+            max_tokens: 2500,
             response_format: { type: "json_object" },
           }),
         });
@@ -1336,9 +1345,10 @@ Return ONLY valid JSON: { "claims": [ { "statement": "...", "claim_type": "...",
         const claimsJson = await claimsRes.json();
         const claimsRaw = claimsJson.choices?.[0]?.message?.content || "{}";
         const claimsParsed = JSON.parse(claimsRaw);
-        const claims: Array<{ statement?: string; claim_type?: string; agent_role?: string; evidence_refs?: unknown; assumptions?: unknown; confidence?: number }> =
+        const claimsList: Array<{ statement?: string; claim_type?: string; agent_role?: string; evidence_refs?: unknown; assumptions?: unknown; confidence?: number }> =
           Array.isArray(claimsParsed.claims) ? claimsParsed.claims : [];
-        if (claims.length === 0) return;
+        const challengesList: Array<{ statement?: string; challenger_is_human?: boolean; challenger_role?: string; target_hint?: string }> =
+          Array.isArray(claimsParsed.challenges) ? claimsParsed.challenges : [];
 
         const PREFIX_MAP: Record<string, string> = {
           financial_strategist: "FIN",
@@ -1349,12 +1359,13 @@ Return ONLY valid JSON: { "claims": [ { "statement": "...", "claim_type": "...",
           innovation_scout: "INN",
           devils_advocate: "CHA",
         };
+        const agentNameFor = (role: string) =>
+          role.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
-        // Fetch existing claim codes for this workspace to continue numbering
-        // rather than colliding on re-synthesis.
+        // ── Insert claims (unchanged from before) ──
         const { data: existingClaims } = await service
           .from("decision_claims")
-          .select("claim_code")
+          .select("id, claim_code, statement")
           .eq("workspace_id", workspace_id);
         const nextNumber: Record<string, number> = {};
         for (const row of existingClaims || []) {
@@ -1364,10 +1375,7 @@ Return ONLY valid JSON: { "claims": [ { "statement": "...", "claim_type": "...",
           nextNumber[prefix] = Math.max(nextNumber[prefix] || 0, parseInt(num, 10) + 1);
         }
 
-        const agentNameFor = (role: string) =>
-          role.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-
-        const rows = claims
+        const newClaimRows = claimsList
           .filter(c => typeof c.statement === "string" && c.statement.trim().length > 10)
           .map(c => {
             const role = typeof c.agent_role === "string" ? c.agent_role : "general";
@@ -1390,12 +1398,76 @@ Return ONLY valid JSON: { "claims": [ { "statement": "...", "claim_type": "...",
             };
           });
 
-        if (rows.length > 0) {
-          const { error: claimsInsertError } = await service.from("decision_claims").insert(rows);
+        let insertedClaims: Array<{ id: string; claim_code: string; statement: string }> = [];
+        if (newClaimRows.length > 0) {
+          const { data: insertedData, error: claimsInsertError } = await service
+            .from("decision_claims")
+            .insert(newClaimRows)
+            .select("id, claim_code, statement");
           if (claimsInsertError) console.error("Decision claims insert error:", claimsInsertError);
+          if (insertedData) insertedClaims = insertedData;
+        }
+
+        // ── Insert challenges ──
+        // Pool of all claims (existing + just-inserted) to try to match against.
+        const allClaims = [...(existingClaims || []), ...insertedClaims];
+
+        function simpleOverlapScore(a: string, b: string): number {
+          const wordsA = new Set(a.toLowerCase().split(/\W+/).filter(w => w.length > 3));
+          const wordsB = b.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+          if (wordsA.size === 0 || wordsB.length === 0) return 0;
+          let matched = 0;
+          for (const w of wordsB) if (wordsA.has(w)) matched++;
+          return matched / wordsB.length;
+        }
+
+        for (const ch of challengesList) {
+          const statement = typeof ch.statement === "string" ? ch.statement.trim() : "";
+          if (statement.length < 10) continue;
+          const isHuman = ch.challenger_is_human === true;
+          const role = typeof ch.challenger_role === "string" ? ch.challenger_role : (isHuman ? "team" : "general");
+
+          // Try to match this challenge to a specific claim via word overlap
+          // with the target_hint. Not exact, but good enough to link related
+          // challenges to the claim they're actually pushing back on.
+          let matchedClaim: { id: string; claim_code: string } | null = null;
+          if (typeof ch.target_hint === "string" && ch.target_hint.trim().length > 5) {
+            let bestScore = 0;
+            for (const c of allClaims) {
+              const score = simpleOverlapScore(c.statement || "", ch.target_hint);
+              if (score > bestScore) { bestScore = score; matchedClaim = c; }
+            }
+            if (bestScore < 0.25) matchedClaim = null; // too weak a match, don't force it
+          }
+
+          // Always log the challenge to the audit trail, matched or not.
+          await service.from("decision_events").insert({
+            workspace_id,
+            event_type: "challenge_raised",
+            actor_type: isHuman ? "user" : "agent",
+            actor_id: isHuman ? null : role,
+            payload: {
+              statement,
+              challenger_role: role,
+              target_claim_code: matchedClaim?.claim_code ?? null,
+            },
+          }).then(({ error }) => { if (error) console.error("Challenge event insert error:", error); });
+
+          // Only insert into decision_challenges when we have a real target,
+          // since target_claim_id is required there.
+          if (matchedClaim) {
+            await service.from("decision_challenges").insert({
+              workspace_id,
+              target_claim_id: matchedClaim.id,
+              challenger_agent_role: role,
+              challenger_agent_name: isHuman ? "Team" : agentNameFor(role),
+              challenge_text: statement,
+              status: "open",
+            }).then(({ error }) => { if (error) console.error("Decision challenge insert error:", error); });
+          }
         }
       } catch (e) {
-        console.error("Claims extraction failed:", e);
+        console.error("Claims/challenges extraction failed:", e);
       }
     })();
     EdgeRuntime.waitUntil(claimsPromise);
