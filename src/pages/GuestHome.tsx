@@ -143,16 +143,15 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
     <section
       className="relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, #0a0e1a 0%, #0d1424 55%, #111827 100%)',
+        background: '#ffffff',
         minHeight: '88vh',
         display: 'flex',
         alignItems: 'center',
       }}
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.12) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.06) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)', backgroundSize: '52px 52px' }} />
+        <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.06) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.03) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10">
@@ -161,20 +160,20 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           <div className="text-center lg:text-left">
             <div
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-8"
-              style={{ background: 'rgba(184,134,11,0.15)', color: '#d4a535', border: '1px solid rgba(184,134,11,0.22)' }}
+              style={{ background: 'rgba(184,134,11,0.08)', color: '#92660b', border: '1px solid rgba(184,134,11,0.2)' }}
             >
               <Zap className="w-3.5 h-3.5" />
               The Decision Review Copilot
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold leading-[1.08] mb-5 text-white mx-auto lg:mx-0 max-w-xl tracking-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold leading-[1.08] mb-5 text-slate-900 mx-auto lg:mx-0 max-w-xl tracking-tight">
               Stress-test your business decisions before{' '}
               <span style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                 they become expensive mistakes
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0" style={{ color: 'rgba(203,213,225,0.78)' }}>
+            <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0" style={{ color: '#4b5563' }}>
               Seven specialized AI agents challenge your assumptions, surface blind spots, and pressure-test your decisions. Poddle's War Room turns the debate into a clear, defensible recommendation.
             </p>
 
@@ -182,14 +181,14 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               <button
                 onClick={() => onNavigate('auth')}
                 className="px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-                style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
+                style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.25)' }}
               >
                 Get started
               </button>
               <button
                 onClick={() => onNavigate('pricing')}
-                className="flex items-center gap-2 text-sm font-semibold transition-colors hover:text-white"
-                style={{ color: 'rgba(148,163,184,0.75)' }}
+                className="flex items-center gap-2 text-sm font-semibold transition-colors hover:text-slate-900"
+                style={{ color: '#6b7280' }}
               >
                 View pricing
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -198,12 +197,12 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 
             <div className="flex items-center justify-center lg:justify-start gap-6 flex-wrap mb-10">
               <div className="flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-                <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Free. No card required.</span>
+                <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
+                <span className="text-xs font-medium" style={{ color: '#6b7280' }}>Free. No card required.</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-                <span className="text-xs font-medium" style={{ color: 'rgba(148,163,184,0.75)' }}>Private & encrypted workspaces</span>
+                <Lock className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
+                <span className="text-xs font-medium" style={{ color: '#6b7280' }}>Private & encrypted workspaces</span>
               </div>
             </div>
 
@@ -224,11 +223,11 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                     alt={a.label}
                     title={a.label}
                     className="w-8 h-8 rounded-xl object-cover transition-transform hover:-translate-y-1 cursor-default"
-                    style={{ zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0, boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
+                    style={{ zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0, boxShadow: '0 0 0 2px #ffffff' }}
                   />
                 ))}
               </div>
-              <p className="text-xs font-medium" style={{ color: 'rgba(100,116,139,0.7)' }}>7 specialized agents · each with a different mandate</p>
+              <p className="text-xs font-medium" style={{ color: '#6b7280' }}>7 specialized agents · each with a different mandate</p>
             </div>
           </div>
 
@@ -236,7 +235,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           <div className="hidden lg:block">
             <div
               className="rounded-3xl overflow-hidden"
-              style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 24px 64px rgba(0,0,0,0.45)' }}
+              style={{ background: '#FFFFFF', border: '1px solid #e5e7eb', boxShadow: '0 20px 48px rgba(17,24,39,0.12)' }}
             >
               <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
                 <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
@@ -309,8 +308,8 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         </div>
 
         <div className="flex justify-center mt-14">
-          <a href="#how-it-works" className="flex flex-col items-center gap-2 group" style={{ color: 'rgba(100,116,139,0.55)' }}>
-            <span className="text-xs font-medium group-hover:text-slate-400 transition-colors">See how it works</span>
+          <a href="#how-it-works" className="flex flex-col items-center gap-2 group" style={{ color: '#9ca3af' }}>
+            <span className="text-xs font-medium group-hover:text-slate-600 transition-colors">See how it works</span>
             <ChevronDown className="w-4 h-4 animate-bounce" />
           </a>
         </div>
@@ -1311,3 +1310,4 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
     </section>
   );
 }
+
