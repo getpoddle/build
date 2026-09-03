@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight, CheckCircle, Lock, Brain,
@@ -106,28 +107,28 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
       <SocialProofSection />
       <FinalCTA onNavigate={onNavigate} />
 
-      <footer style={{ background: '#000000', borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-12">
+      <footer style={{ background: '#ffffff', borderTop: '1px solid #e5e7eb' }} className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <PoddleMark size={28} />
               <span className="font-black text-lg tracking-tight">
-                <span style={{ color: '#60a5fa', fontWeight: 700 }}>Poddle</span><span style={{ color: '#d4a535', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+                <span style={{ color: '#2563eb', fontWeight: 700 }}>Poddle</span><span style={{ color: '#b8860b', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
               </span>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
-              <button onClick={() => onNavigate('team')} className="hover:text-white transition-colors">Team</button>
-              <button onClick={() => onNavigate('advisory')} className="hover:text-white transition-colors">Advisory</button>
-              <button onClick={() => onNavigate('blog')} className="hover:text-white transition-colors">Blog</button>
-              <button onClick={() => onNavigate('slack')} className="hover:text-white transition-colors">Slack</button>
-              <a href={LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Poddle Lens</a>
-              <a href="#privacy" className="hover:text-white transition-colors">Privacy</a>
-              <a href="#terms" className="hover:text-white transition-colors">Terms</a>
-              <a href="#subprocessors" className="hover:text-white transition-colors">Sub-processors</a>
-              <a href="#contact-us" className="hover:text-white transition-colors">Contact</a>
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: '#6b7280' }}>
+              <button onClick={() => onNavigate('team')} className="hover:text-slate-900 transition-colors">Team</button>
+              <button onClick={() => onNavigate('advisory')} className="hover:text-slate-900 transition-colors">Advisory</button>
+              <button onClick={() => onNavigate('blog')} className="hover:text-slate-900 transition-colors">Blog</button>
+              <button onClick={() => onNavigate('slack')} className="hover:text-slate-900 transition-colors">Slack</button>
+              <a href={LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 transition-colors">Poddle Lens</a>
+              <a href="#privacy" className="hover:text-slate-900 transition-colors">Privacy</a>
+              <a href="#terms" className="hover:text-slate-900 transition-colors">Terms</a>
+              <a href="#subprocessors" className="hover:text-slate-900 transition-colors">Sub-processors</a>
+              <a href="#contact-us" className="hover:text-slate-900 transition-colors">Contact</a>
             </div>
           </div>
-          <div className="mt-8 pt-8 text-center text-xs" style={{ color: 'rgba(100,116,139,0.7)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="mt-8 pt-8 text-center text-xs" style={{ color: '#9ca3af', borderTop: '1px solid #e5e7eb' }}>
             &copy; 2026 Poddle, Inc. All rights reserved.
           </div>
         </div>
@@ -1310,4 +1311,3 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
     </section>
   );
 }
-
