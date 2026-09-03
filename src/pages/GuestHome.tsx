@@ -451,6 +451,23 @@ const HOW_STEPS = [
       { label: 'Action Items', value: '4', sub: 'Prioritized', color: '#b8860b' },
     ],
   },
+  {
+    number: '04',
+    icon: Fingerprint,
+    color: '#475569',
+    bg: 'rgba(71,85,105,0.08)',
+    border: 'rgba(71,85,105,0.16)',
+    label: 'Decision Trail',
+    title: 'Every step is recorded, permanently',
+    body: 'From the first question to the final call, Poddle logs an immutable audit trail: who said what, what the agents concluded, and what changed along the way. AI claims become citable Evidence IDs like FIN-01, tagged as fact, assumption, inference, or opinion. Rewind to any past moment with Point-in-Time Replay to see exactly what the team knew then. And Decision Control lets your organization require formal approval before a decision can commit.',
+    callout: 'Nothing here can be quietly edited or backdated, not even by us. That is what makes a decision defensible.',
+    visual: [
+      { label: 'decision_created', code: null },
+      { label: 'agent_analysis', code: 'FIN-01' },
+      { label: 'human_override', code: null },
+      { label: 'final_decision', code: null },
+    ],
+  },
 ]
 
 function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) {
@@ -462,10 +479,10 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
             How Poddle works
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
-            Team Chat starts the debate.<br className="hidden sm:block" /> Multiplayer AI widens it. The War Room resolves it.
+            Team Chat starts the debate. Multiplayer AI widens it.<br className="hidden sm:block" /> The War Room resolves it. The Decision Trail remembers it.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Three connected features, not separate tools. Here is exactly how they work together.
+            Four connected features, not separate tools. Here is exactly how they work together.
           </p>
         </RevealSection>
 
@@ -618,6 +635,36 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
                                 <p className="text-[11px] leading-relaxed" style={{ color: '#111827' }}>
                                   <strong style={{ color: '#111827' }}>Stage the rollout. Start Germany.</strong> BaFin approval is the hardest and most valuable first stamp. Target Q3 Germany, Q1 next year France and Netherlands.
                                 </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {idx === 3 && step.visual && (
+                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
+                              <Fingerprint className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#475569' }} />
+                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Decision Trail</span>
+                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— European Expansion</span>
+                            </div>
+                            <div className="flex-1 p-4 space-y-2.5" style={{ background: '#FFFFFF' }}>
+                              {(step.visual as { label: string; code: string | null }[]).map((v, vi) => (
+                                <div key={v.label} className="flex items-center gap-2.5">
+                                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: vi === 0 ? '#475569' : vi === 1 ? '#2563eb' : vi === 2 ? '#7c3aed' : '#16a34a' }} />
+                                  <span className="text-[10px] font-mono flex-shrink-0" style={{ color: '#374151' }}>{v.label}</span>
+                                  {v.code && (
+                                    <span
+                                      className="text-[9px] font-bold px-1.5 py-0.5 ml-auto"
+                                      style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: '#2563eb', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.3)' }}
+                                    >
+                                      {v.code}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                              <div className="flex items-center gap-2 pt-2 mt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
+                                <History className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
+                                <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Rewind to any point-in-time · never edited or backdated</span>
                               </div>
                             </div>
                           </div>
@@ -815,6 +862,7 @@ function ScoreArc({ score, label, color }: { score: number; label: string; color
 
 function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [revealed, setRevealed] = useState(0);
+  const [showTrail, setShowTrail] = useState(false);
   const [showPDF, setShowPDF] = useState(false);
   const { ref, visible } = useScrollReveal();
 
@@ -831,8 +879,9 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 
   useEffect(() => {
     if (revealed >= DEMO_MESSAGES.length) {
-      const t = setTimeout(() => setShowPDF(true), 1800);
-      return () => clearTimeout(t);
+      const t1 = setTimeout(() => setShowTrail(true), 1400);
+      const t2 = setTimeout(() => setShowPDF(true), 2600);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
   }, [revealed]);
 
@@ -847,7 +896,7 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             Watch the full workflow.
           </h2>
           <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            A fintech team asks: <strong className="text-slate-700">"Should we launch our AI lending product across Europe now?"</strong> Agents debate it, the War Room synthesizes it, the report is ready.
+            A fintech team asks: <strong className="text-slate-700">"Should we launch our AI lending product across Europe now?"</strong> Agents debate it, the War Room synthesizes it, and the Decision Trail records it, permanently.
           </p>
         </div>
 
@@ -858,6 +907,8 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             { step: '2', label: 'Multiplayer AI', color: '#b8860b', bg: 'rgba(184,134,11,0.08)' },
             { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
             { step: '3', label: 'War Room Synthesis', color: '#dc2626', bg: 'rgba(220,38,38,0.07)' },
+            { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
+            { step: '4', label: 'Decision Trail', color: '#475569', bg: 'rgba(71,85,105,0.08)' },
           ].map((item, i) => item.label ? (
             <span key={i} className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: item.bg, color: item.color }}>
               {item.step} · {item.label}
@@ -970,6 +1021,43 @@ function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
                 <p className="text-[12px] leading-relaxed" style={{ color: '#111827' }}>
                   <strong style={{ color: '#111827' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp. It de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year.
                 </p>
+              </div>
+            )}
+
+            {showTrail && (
+              <div
+                className="mt-4 rounded-2xl p-4 transition-all duration-700"
+                style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', opacity: 1 }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Fingerprint className="w-3.5 h-3.5" style={{ color: '#475569' }} />
+                  <span className="text-[11px] font-bold" style={{ color: '#475569' }}>Decision Trail</span>
+                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(71,85,105,0.1)', color: '#475569' }}>Immutable</span>
+                </div>
+                <div className="space-y-2 mb-3">
+                  {[
+                    { label: 'decision_created', code: null, color: '#475569' },
+                    { label: 'agent_analysis', code: 'FIN-01', color: '#2563eb' },
+                    { label: 'agent_analysis', code: 'RISK-01', color: '#2563eb' },
+                  ].map((ev, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: ev.color }} />
+                      <span className="text-[10px] font-mono" style={{ color: '#374151' }}>{ev.label}</span>
+                      {ev.code && (
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 ml-auto"
+                          style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: ev.color, background: `${ev.color}14`, border: `1px solid ${ev.color}4d` }}
+                        >
+                          {ev.code}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
+                  <History className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
+                  <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Point-in-Time Replay: rewind to see exactly what the team knew, then</span>
+                </div>
               </div>
             )}
           </div>
