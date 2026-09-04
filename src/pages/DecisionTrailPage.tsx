@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ArrowLeft, Clock, X, List, PlayCircle, PauseCircle,
-  ChevronLeft, ChevronRight, UserCog, FileText, MessageSquare,
-  GitBranch, Edit3, CheckCircle2, TrendingUp,
+  ChevronLeft, ChevronRight, UserCog, FileText, MessageSquare, MessageCircle,
+  GitBranch, Edit3, CheckCircle2, TrendingUp, Send,
 } from 'lucide-react';
 import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
 interface DecisionTrailPageProps {
@@ -62,6 +63,7 @@ const EVENT_META: Record<string, { icon: React.ElementType | null; color: string
   human_override:    { icon: Edit3,         color: '#7c3aed', label: 'Human Override' },
   final_decision:    { icon: CheckCircle2,  color: '#16a34a', label: 'Final Decision' },
   outcome_logged:    { icon: TrendingUp,    color: '#0d9488', label: 'Outcome Logged' },
+  team_note:         { icon: MessageCircle, color: '#64748b', label: 'Team Note' },
 };
 
 const CLAIM_TYPE_COLORS: Record<string, string> = {
@@ -101,6 +103,7 @@ function stageForEvent(ev: DecisionEvent): StageKey | null {
     case 'final_decision': return 'committed';
     case 'outcome_logged': return 'outcome';
     case 'challenge_raised': return 'challenged';
+    case 'team_note': return null; // notes don't belong to a narrative stage
     case 'human_override': {
       const field = typeof ev.payload?.field === 'string' ? ev.payload.field : '';
       if (field === 'conflict_commit' || field === 'conflict_uncommit') return 'challenged';
@@ -139,7 +142,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function ClaimBadges({ claims }: { claims: DecisionClaim[] }) {
+function ClaimBadges({ claims, onJumpToClaim }: { claims: DecisionClaim[]; onJumpToClaim: (claimCode: string) => void }) {
   if (claims.length === 0) return null;
   return (
     <Field label="Evidence IDs">
@@ -147,9 +150,10 @@ function ClaimBadges({ claims }: { claims: DecisionClaim[] }) {
         {claims.slice(0, 8).map(c => {
           const color = CLAIM_TYPE_COLORS[c.claim_type] || '#64748b';
           return (
-            <span
+            <button
               key={c.id}
               title={c.statement}
+              onClick={() => onJumpToClaim(c.claim_code)}
               style={{
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                 fontSize: '11px',
@@ -158,10 +162,11 @@ function ClaimBadges({ claims }: { claims: DecisionClaim[] }) {
                 border: `1px solid ${color}40`,
                 background: `${color}0d`,
                 color,
+                cursor: 'pointer',
               }}
             >
               {c.claim_code}
-            </span>
+            </button>
           );
         })}
       </div>
@@ -169,40 +174,56 @@ function ClaimBadges({ claims }: { claims: DecisionClaim[] }) {
   );
 }
 
-// ── EventCard: a single, self-contained enterprise-style card for one
-// event — icon-coded header with a colored left accent, structured
-// labeled fields in the body instead of run-together sentences.
-function EventCard({ ev, actorNames, claims }: { ev: DecisionEvent; actorNames: Record<string, string>; claims: DecisionClaim[] }) {
+// ── Timeline node: a single event rendered as a connected timeline entry
+// (icon dot + colored vertical rail) rather than a standalone card, so
+// the Audit Trail reads as a chronological log distinct from the
+// reference-style Evidence IDs panel below it.
+function TimelineNode({
+  ev, actorNames, claims, onJumpToClaim, isLast,
+}: {
+  ev: DecisionEvent;
+  actorNames: Record<string, string>;
+  claims: DecisionClaim[];
+  onJumpToClaim: (claimCode: string) => void;
+  isLast: boolean;
+}) {
   const meta = EVENT_META[ev.event_type] || { icon: FileText, color: '#64748b', label: ev.event_type };
   const Icon = meta.icon;
   const actorName = ev.actor_type === 'user' && ev.actor_id ? (actorNames[ev.actor_id] || 'A team member') : null;
 
   return (
-    <div style={{ border: '1px solid var(--app-border)', borderLeft: `3px solid ${meta.color}`, background: 'var(--app-surface-raised, #fff)' }}>
+    <div className="relative pl-7" style={{ paddingBottom: isLast ? 0 : '1.75rem' }}>
+      {!isLast && (
+        <div
+          className="absolute"
+          style={{ left: '9px', top: '26px', bottom: '-6px', width: '1px', background: 'var(--app-border)' }}
+        />
+      )}
       <div
-        className="flex items-center gap-2.5 px-4 py-2.5 flex-wrap"
-        style={{ borderBottom: '1px solid var(--app-border)', background: `${meta.color}0a` }}
+        className="absolute flex items-center justify-center rounded-full"
+        style={{
+          left: 0, top: '2px', width: '19px', height: '19px',
+          background: `${meta.color}14`, border: `1.5px solid ${meta.color}`,
+        }}
       >
-        {Icon && (
-          <div
-            className="flex items-center justify-center flex-shrink-0"
-            style={{ width: 26, height: 26, background: 'var(--app-surface-raised, #fff)', border: `1px solid ${meta.color}40` }}
-          >
-            <Icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
-          </div>
-        )}
+        {Icon ? <Icon className="w-2.5 h-2.5" style={{ color: meta.color }} /> : <div style={{ width: 5, height: 5, borderRadius: '50%', background: meta.color }} />}
+      </div>
+
+      <div className="flex items-baseline gap-2 mb-1 flex-wrap">
+        <span
+          style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '11px', color: 'var(--app-text-muted)' }}
+        >
+          {new Date(ev.created_at).toLocaleString()}
+        </span>
         <span className="text-xs font-bold uppercase" style={{ color: meta.color, letterSpacing: '0.06em' }}>
           {meta.label}
         </span>
-        <div className="ml-auto text-right">
-          <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>{new Date(ev.created_at).toLocaleString()}</p>
-          {actorName && (
-            <p className="text-xs font-medium" style={{ color: 'var(--app-text-secondary)' }}>{actorName}</p>
-          )}
-        </div>
+        {actorName && (
+          <span className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>· {actorName}</span>
+        )}
       </div>
 
-      <div className="px-4 py-3.5">
+      <div style={{ background: 'var(--app-surface-raised, #fff)', border: '1px solid var(--app-border)' }} className="px-3.5 py-3">
         {typeof ev.payload?.question === 'string' && (
           <Field label="Original Question">{String(ev.payload.question)}</Field>
         )}
@@ -272,16 +293,18 @@ function EventCard({ ev, actorNames, claims }: { ev: DecisionEvent; actorNames: 
             )}
             {typeof ev.payload?.target_claim_code === 'string' && ev.payload.target_claim_code && (
               <Field label="Targets">
-                <span
+                <button
+                  onClick={() => onJumpToClaim(String(ev.payload.target_claim_code))}
                   style={{
                     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                     fontSize: '11px', fontWeight: 700,
                     padding: '2px 8px',
                     border: '1px solid #d9770640', background: '#d977060d', color: '#b45309',
+                    cursor: 'pointer',
                   }}
                 >
                   {String(ev.payload.target_claim_code)}
-                </span>
+                </button>
               </Field>
             )}
           </>
@@ -291,21 +314,62 @@ function EventCard({ ev, actorNames, claims }: { ev: DecisionEvent; actorNames: 
             "{String(ev.payload.action_item ?? '')}" — <span className="font-medium">{String(ev.payload.outcome ?? '')}</span>
           </Field>
         )}
+        {ev.event_type === 'team_note' && typeof ev.payload?.text === 'string' && (
+          <p className="text-sm" style={{ color: 'var(--app-text-primary)', lineHeight: 1.5 }}>{String(ev.payload.text)}</p>
+        )}
 
-        {ev.event_type === 'agent_analysis' && <ClaimBadges claims={claims} />}
+        {ev.event_type === 'agent_analysis' && <ClaimBadges claims={claims} onJumpToClaim={onJumpToClaim} />}
       </div>
     </div>
   );
 }
 
+function NoteComposer({ onSubmit }: { onSubmit: (text: string) => Promise<void> }) {
+  const [text, setText] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  const handleSubmit = async () => {
+    const trimmed = text.trim();
+    if (!trimmed || posting) return;
+    setPosting(true);
+    await onSubmit(trimmed);
+    setText('');
+    setPosting(false);
+  };
+
+  return (
+    <div className="flex items-center gap-2 mb-5">
+      <input
+        type="text"
+        value={text}
+        onChange={e => setText(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+        placeholder="Add a note to this trail…"
+        className="input-modern flex-1"
+        style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem' }}
+      />
+      <button
+        onClick={handleSubmit}
+        disabled={!text.trim() || posting}
+        className="btn-secondary flex-shrink-0 disabled:opacity-40"
+        style={{ padding: '0.5rem 0.75rem' }}
+        aria-label="Post note"
+      >
+        <Send className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 function DecisionStory({
-  events, claims, actorNames, domainOwners, ownerNames,
+  events, claims, actorNames, domainOwners, ownerNames, onJumpToClaim,
 }: {
   events: DecisionEvent[];
   claims: DecisionClaim[];
   actorNames: Record<string, string>;
   domainOwners: DomainOwnerRow[];
   ownerNames: Record<string, string>;
+  onJumpToClaim: (claimCode: string) => void;
 }) {
   const stages = useMemo(() => groupIntoStages(events), [events]);
   const [stageIndex, setStageIndex] = useState(0);
@@ -402,10 +466,17 @@ function DecisionStory({
         )}
       </div>
 
-      {/* Stage cards */}
-      <div className="space-y-3 mb-5">
-        {current.events.map(ev => (
-          <EventCard key={ev.id} ev={ev} actorNames={actorNames} claims={ev.event_type === 'agent_analysis' ? claims : []} />
+      {/* Stage nodes */}
+      <div className="mb-5">
+        {current.events.map((ev, i) => (
+          <TimelineNode
+            key={ev.id}
+            ev={ev}
+            actorNames={actorNames}
+            claims={ev.event_type === 'agent_analysis' ? claims : claims}
+            onJumpToClaim={onJumpToClaim}
+            isLast={i === current.events.length - 1}
+          />
         ))}
       </div>
 
@@ -443,8 +514,16 @@ function DecisionStory({
   );
 }
 
-function ClaimsPanel({ claims, challenges }: { claims: DecisionClaim[]; challenges: DecisionChallenge[] }) {
-  const [expanded, setExpanded] = useState<string | null>(null);
+function ClaimsPanel({
+  claims, challenges, expandedId, setExpandedId, highlightId, claimRefs,
+}: {
+  claims: DecisionClaim[];
+  challenges: DecisionChallenge[];
+  expandedId: string | null;
+  setExpandedId: (id: string | null) => void;
+  highlightId: string | null;
+  claimRefs: React.MutableRefObject<Record<string, HTMLButtonElement | null>>;
+}) {
   if (claims.length === 0) return null;
 
   const challengesByClaim = new Map<string, DecisionChallenge[]>();
@@ -463,7 +542,8 @@ function ClaimsPanel({ claims, challenges }: { claims: DecisionClaim[]; challeng
       </div>
       <div className="space-y-2">
         {claims.map(claim => {
-          const isOpen = expanded === claim.id;
+          const isOpen = expandedId === claim.id;
+          const isHighlighted = highlightId === claim.id;
           const typeColor = CLAIM_TYPE_COLORS[claim.claim_type] || '#64748b';
           const evidenceRefs = Array.isArray(claim.evidence_refs) ? claim.evidence_refs as string[] : [];
           const assumptions = Array.isArray(claim.assumptions) ? claim.assumptions as { key: string; value: string }[] : [];
@@ -471,9 +551,16 @@ function ClaimsPanel({ claims, challenges }: { claims: DecisionClaim[]; challeng
           return (
             <button
               key={claim.id}
-              onClick={() => setExpanded(isOpen ? null : claim.id)}
+              ref={el => { claimRefs.current[claim.id] = el; }}
+              onClick={() => setExpandedId(isOpen ? null : claim.id)}
               className="w-full text-left"
-              style={{ border: '1px solid var(--app-border)', borderLeft: `3px solid ${typeColor}`, background: 'var(--app-surface-raised, #fff)' }}
+              style={{
+                border: isHighlighted ? `1px solid ${typeColor}` : '1px solid var(--app-border)',
+                borderLeft: `3px solid ${typeColor}`,
+                background: isHighlighted ? `${typeColor}0d` : 'var(--app-surface-raised, #fff)',
+                boxShadow: isHighlighted ? `0 0 0 2px ${typeColor}40` : 'none',
+                transition: 'background 0.3s ease, box-shadow 0.3s ease',
+              }}
             >
               <div className="p-3.5">
                 <div className="flex items-start gap-2.5">
@@ -550,6 +637,7 @@ function ClaimsPanel({ claims, challenges }: { claims: DecisionClaim[]; challeng
 }
 
 function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: string; workspaceName: string; onBack: () => void }) {
+  const { user } = useAuth();
   const [events, setEvents] = useState<DecisionEvent[]>([]);
   const [claims, setClaims] = useState<DecisionClaim[]>([]);
   const [challenges, setChallenges] = useState<DecisionChallenge[]>([]);
@@ -560,6 +648,9 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
   const [replayActive, setReplayActive] = useState(false);
   const [replayTimestamp, setReplayTimestamp] = useState<string>('');
   const [viewMode, setViewMode] = useState<'list' | 'story'>('list');
+  const [expandedClaimId, setExpandedClaimId] = useState<string | null>(null);
+  const [highlightClaimId, setHighlightClaimId] = useState<string | null>(null);
+  const claimRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -636,6 +727,40 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
   function endReplay() {
     setReplayActive(false);
     setReplayTimestamp('');
+  }
+
+  function handleJumpToClaim(claimCode: string) {
+    const claim = claims.find(c => c.claim_code === claimCode);
+    if (!claim) return;
+    setExpandedClaimId(claim.id);
+    setHighlightClaimId(claim.id);
+    requestAnimationFrame(() => {
+      claimRefs.current[claim.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    window.setTimeout(() => setHighlightClaimId(null), 2200);
+  }
+
+  async function handlePostNote(text: string) {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('decision_events')
+      .insert({
+        workspace_id: workspaceId,
+        event_type: 'team_note',
+        actor_type: 'user',
+        actor_id: user.id,
+        payload: { text },
+      })
+      .select('id, workspace_id, event_type, actor_type, actor_id, payload, created_at')
+      .single();
+
+    if (!error && data) {
+      setEvents(prev => [...prev, data as DecisionEvent]);
+      const displayName = user.user_metadata?.full_name || user.email || 'You';
+      setActorNames(prev => ({ ...prev, [user.id]: prev[user.id] || displayName }));
+    } else if (error) {
+      console.error('Failed to post note:', error.message);
+    }
   }
 
   const earliestEvent = events[0];
@@ -746,6 +871,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           actorNames={actorNames}
           domainOwners={domainOwners}
           ownerNames={ownerNames}
+          onJumpToClaim={handleJumpToClaim}
         />
       )}
 
@@ -759,20 +885,38 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
             </div>
           )}
 
+          {!replayActive && <NoteComposer onSubmit={handlePostNote} />}
+
           {displayedEvents.length > 0 && (
             <>
               <h3 className="text-sm font-bold uppercase mb-3" style={{ color: 'var(--app-text-secondary)', letterSpacing: '0.06em' }}>
                 Audit Trail ({displayedEvents.length})
               </h3>
-              <div className="space-y-3">
-                {displayedEvents.map(ev => (
-                  <EventCard key={ev.id} ev={ev} actorNames={actorNames} claims={ev.event_type === 'agent_analysis' ? claims : []} />
+              <div className="mb-6">
+                {displayedEvents.map((ev, i) => (
+                  <TimelineNode
+                    key={ev.id}
+                    ev={ev}
+                    actorNames={actorNames}
+                    claims={claims}
+                    onJumpToClaim={handleJumpToClaim}
+                    isLast={i === displayedEvents.length - 1}
+                  />
                 ))}
               </div>
             </>
           )}
 
-          {!replayActive && <ClaimsPanel claims={claims} challenges={challenges} />}
+          {!replayActive && (
+            <ClaimsPanel
+              claims={claims}
+              challenges={challenges}
+              expandedId={expandedClaimId}
+              setExpandedId={setExpandedClaimId}
+              highlightId={highlightClaimId}
+              claimRefs={claimRefs}
+            />
+          )}
         </>
       )}
     </div>
@@ -873,3 +1017,4 @@ export default function DecisionTrailPage({ onNavigate }: DecisionTrailPageProps
     </div>
   );
 }
+
