@@ -180,8 +180,8 @@ export default function Auth() {
               <span style={{ color: '#0B4AA2', fontWeight: 700 }}>Poddle</span><span style={{ color: '#C7A95F', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
             </h1>
           </div>
-                    <p className="text-sm sm:text-base font-semibold" style={{ color: 'var(--app-text-secondary)' }}>
-            The Decision Review Copilot
+          <p className="text-sm sm:text-base font-semibold" style={{ color: 'var(--app-text-secondary)' }}>
+            The Governance Layer for Company Decisions
           </p>
         </div>
 
