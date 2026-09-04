@@ -57,7 +57,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
     }
   }
 
-  async function handleCheckout(plan: 'pro' | 'team' | 'business') {
+  async function handleCheckout(plan: 'team' | 'business') {
     if (!user) {
       onNavigate('auth');
       return;
@@ -77,7 +77,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         },
         body: JSON.stringify({
           plan,
-          seats: plan === 'business' ? 100 : plan === 'team' ? 10 : 1,
+          seats: plan === 'business' ? 100 : 10,
           success_url: `${origin}/?payment_success=1&plan=${plan}`,
           cancel_url: `${origin}/#pricing`,
         }),
@@ -109,17 +109,8 @@ export default function Pricing({ onNavigate }: PricingProps) {
     'Cross-workspace Decision Map',
   ];
 
-  const proBenefits = [
-    'Everything in Free',
-    '1–3 seats',
-    'Board Brief PDF export',
-    'Document upload',
-    'Priority AI analysis',
-    'Early access to new features',
-  ];
-
   const teamBenefits = [
-    'Everything in Pro Individual',
+    'Everything in Free',
     '1–10 seats',
     'Multiplayer War Rooms',
     'Shared decision history',
@@ -153,7 +144,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
     badge?: string;
     badgeClass?: string;
     cta: 'checkout' | 'enterprise' | 'none';
-    checkoutPlan?: 'pro' | 'team' | 'business';
+    checkoutPlan?: 'team' | 'business';
   }[] = [
     {
       id: 'free',
@@ -165,23 +156,11 @@ export default function Pricing({ onNavigate }: PricingProps) {
       cta: 'none',
     },
     {
-      id: 'pro',
-      name: 'Pro Individual',
-      price: '$39',
-      period: '/ month',
-      audience: 'For individual founders & strategists',
-      benefits: proBenefits,
-      featured: true,
-      badge: 'Most popular',
-      cta: 'checkout',
-      checkoutPlan: 'pro',
-    },
-    {
       id: 'team',
       name: 'Team Workspace',
       price: '$249',
       period: '/ month',
-      audience: 'For small teams only',
+      audience: 'For small teams',
       benefits: teamBenefits,
       badge: 'For teams',
       badgeClass: 'badge-amber',
@@ -195,8 +174,8 @@ export default function Pricing({ onNavigate }: PricingProps) {
       period: '/ month',
       audience: 'For mid-market departments',
       benefits: businessBenefits,
-      badge: 'For departments',
-      badgeClass: 'badge-amber',
+      featured: true,
+      badge: 'Most popular',
       cta: 'checkout',
       checkoutPlan: 'business',
     },
@@ -237,7 +216,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         )}
 
         {/* Tier cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-5 mb-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
           {tiers.map(tier => {
             const isCurrent = currentTier === tier.id;
             const isFeatured = tier.featured;
@@ -387,9 +366,9 @@ export default function Pricing({ onNavigate }: PricingProps) {
                 Manage subscription
               </button>
             ) : (
-              <button onClick={() => handleCheckout('pro')} disabled={loadingPlan === 'pro'} className="btn-primary">
-                {loadingPlan === 'pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                Get Pro — $39/mo
+              <button onClick={() => handleCheckout('business')} disabled={loadingPlan === 'business'} className="btn-primary">
+                {loadingPlan === 'business' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                Get Business — $999/mo
               </button>
             )}
             <button onClick={handleEnterprise} className="btn-secondary" style={{ background: 'transparent', color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)' }}>
