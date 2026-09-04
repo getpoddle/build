@@ -131,7 +131,7 @@ function AppContent() {
     if (hash === 'blog') return 'blog';
     if (hash.startsWith('blog/')) return 'blog-post';
     const saved = sessionStorage.getItem('currentPage');
-    if (!saved || saved === 'auth' || saved === 'home') return 'workspaces';
+    if (!saved || saved === 'auth') return 'home';
     return saved;
   });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(() => {
@@ -236,7 +236,8 @@ function AppContent() {
                 if (!otpError) {
                   // Session established — the onAuthStateChange listener
                   // and the first-sign-in effect will handle the rest
-                  // (workspace creation + redirect to Multiplayer AI).
+                  // (workspace creation happens in the background; the
+                  // user lands on the dashboard).
                   setConfirmResult(null);
                   setConfirmingEmail(false);
                   return;
@@ -292,23 +293,6 @@ function AppContent() {
 
     const checkForSpecialRoutes = () => {
       const hash = window.location.hash.substring(1);
-
-      // Block dashboard access for first-time users on initial load.
-      const fswId = firstSignInRef.current;
-      if (hasNoWorkspace && (hash === '' || hash === 'home')) {
-        if (fswId) {
-          history.replaceState(null, '', `#workspace/${fswId}`);
-          setWorkspaceId(fswId);
-          setWorkspaceInitialTab('chat');
-          setCurrentPage('workspace-hub');
-          sessionStorage.setItem('currentPage', 'workspace-hub');
-        } else {
-          history.replaceState(null, '', '#workspaces');
-          setCurrentPage('workspaces');
-          sessionStorage.setItem('currentPage', 'workspaces');
-        }
-        return;
-      }
 
       if (hash === 'app-icons') { setCurrentPage('app-icons'); return; }
       if (hash === 'admin') { setCurrentPage('admin'); return; }
@@ -441,25 +425,6 @@ function AppContent() {
     }
 
     const handleHashChange = () => {
-      // Block dashboard access for first-time users who have no workspace yet.
-      const fswId = firstSignInRef.current;
-      if (hasNoWorkspace) {
-        const hash = window.location.hash.substring(1);
-        if (hash === '' || hash === 'home') {
-          if (fswId) {
-            history.replaceState(null, '', `#workspace/${fswId}`);
-            setWorkspaceId(fswId);
-            setWorkspaceInitialTab('chat');
-            setCurrentPage('workspace-hub');
-            sessionStorage.setItem('currentPage', 'workspace-hub');
-          } else {
-            history.replaceState(null, '', '#workspaces');
-            setCurrentPage('workspaces');
-            sessionStorage.setItem('currentPage', 'workspaces');
-          }
-          return;
-        }
-      }
       checkForSpecialRoutes();
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -496,7 +461,8 @@ function AppContent() {
       if (!onboardingCheckedRef.current) {
         onboardingCheckedRef.current = true;
         // First sign-in check: if the user has no workspace yet, auto-create
-        // one and redirect to Multiplayer AI. Returning users are unaffected.
+        // one in the background. Returning users are unaffected. The user
+        // is NOT force-navigated into it — they land on the dashboard.
         (async () => {
           if (currentPage === 'admin' || currentPage === 'admin-panel') return;
           setFirstSignInInProgress(true);
@@ -517,10 +483,8 @@ function AppContent() {
               firstSignInRef.current = data.workspaceId;
               setFirstSignInWorkspaceId(data.workspaceId);
               setWorkspaceId(data.workspaceId);
-              setWorkspaceInitialTab('chat');
-              setCurrentPage('workspace-hub');
-              sessionStorage.setItem('currentPage', 'workspace-hub');
-              history.replaceState(null, '', `#workspace/${data.workspaceId}`);
+              // No longer force-navigating into the workspace — user stays
+              // on the dashboard by default.
             }
           } catch {
             // Silently fail — user lands on the default page and can create
@@ -539,35 +503,7 @@ function AppContent() {
     }
   }, [user, loading]);
 
-  // Safety net: if the first-sign-in workspace creation failed (edge function
-  // error, network issue, etc.) the user has no workspace and the home page
-  // renders nothing. Redirect them to the Workspaces page so they can create
-  // one manually instead of staring at a blank screen.
-  useEffect(() => {
-    if (firstSignInInProgress) return;
-    if (hasNoWorkspace && !firstSignInWorkspaceId && (currentPage === 'home' || currentPage === 'auth')) {
-      setCurrentPage('workspaces');
-      sessionStorage.setItem('currentPage', 'workspaces');
-      history.replaceState(null, '', '#workspaces');
-    }
-  }, [hasNoWorkspace, firstSignInWorkspaceId, currentPage, firstSignInInProgress]);
-
   const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
-    // Block dashboard access for first-time users locked into Multiplayer AI.
-    if (page === 'home' && hasNoWorkspace) {
-      if (firstSignInWorkspaceId) {
-        setWorkspaceId(firstSignInWorkspaceId);
-        setWorkspaceInitialTab('chat');
-        setCurrentPage('workspace-hub');
-        sessionStorage.setItem('currentPage', 'workspace-hub');
-        history.pushState(null, '', `#workspace/${firstSignInWorkspaceId}`);
-      } else {
-        setCurrentPage('workspaces');
-        sessionStorage.setItem('currentPage', 'workspaces');
-        history.pushState(null, '', '#workspaces');
-      }
-      return;
-    }
     if (page === 'public-post' && postId) {
       setPublicPostId(postId);
       setPublicDiscussionId(null);
@@ -819,7 +755,7 @@ function AppContent() {
   if (currentPage === 'admin-panel') return wrap(<AdminPanel />);
   if (currentPage === 'privacy') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={false} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><PrivacyPolicy /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -828,7 +764,7 @@ function AppContent() {
   );
   if (currentPage === 'terms') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={false} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><TermsOfService /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -837,7 +773,7 @@ function AppContent() {
   );
   if (currentPage === 'subprocessors') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={false} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><Subprocessors /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -846,7 +782,7 @@ function AppContent() {
   );
   if (currentPage === 'contact-us') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={false} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><ContactUs /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -855,7 +791,7 @@ function AppContent() {
   );
   if (currentPage === 'pricing') return (
     <div className="flex bg-slate-50 min-h-screen">
-      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={false} />
       <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         <Suspense fallback={<RouteFallback />}><Pricing onNavigate={handleNavigate} /></Suspense>
         <div className="xl:hidden" style={{ height: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }} />
@@ -917,7 +853,7 @@ function AppContent() {
     if (currentPage === 'auth') return <Auth />;
     return (
       <div className="min-h-screen bg-slate-50">
-        <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
+        <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={false} />
         <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
           <GuestHome onNavigate={handleNavigate} />
         </div>
@@ -928,7 +864,7 @@ function AppContent() {
   if (currentPage === 'admin') {
     return (
       <div className="flex bg-slate-50 min-h-screen">
-        <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
+        <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={false} />
         <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
           <Suspense fallback={<RouteFallback />}>
             <Admin key="admin" />
@@ -942,7 +878,7 @@ function AppContent() {
 
   return (
     <div className="flex" style={{ height: '100dvh', overflow: 'hidden' }}>
-      <Navigation currentPage={activePage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
+      <Navigation currentPage={activePage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={false} />
       <main
         className="flex-1 overflow-x-hidden overflow-y-auto min-w-0 xl-sidebar-margin flex flex-col"
         style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
@@ -950,7 +886,7 @@ function AppContent() {
         <div className="flex-1">
           <PageErrorBoundary resetKey={`${activePage}-${workspaceId}-${workspaceInitialTab}`}>
             <Suspense fallback={<RouteFallback />}>
-              {activePage === 'home' && !hasNoWorkspace && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
+              {activePage === 'home' && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
               {activePage === 'profile' && <Profile key="profile-settings" onNavigate={handleNavigate} />}
               {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
               {activePage === 'organization' && <Organization key="organization" onNavigate={handleNavigate} />}
