@@ -273,7 +273,10 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       >
         <div className="mb-6 lg:mb-10 flex items-center justify-between flex-wrap gap-3">
           <div>
-            <p className="section-label mb-2">Organization</p>
+        <p className="section-label mb-2">Organization</p>
+            <h1 className="display-heading text-2xl lg:text-3xl xl:text-4xl mb-1">
+              Decision Overview
+            </h1>
             {editingName && currentOrg ? (
               <div className="flex items-center gap-2">
                 <input
@@ -282,13 +285,13 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                   onChange={(e) => setOrgNameInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleRenameOrg(); if (e.key === 'Escape') setEditingName(false); }}
                   autoFocus
-                  className="display-heading text-2xl lg:text-3xl px-2 py-1"
+                  className="text-sm font-semibold px-2 py-1"
                   style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)' }}
                 />
                 <button
                   onClick={handleRenameOrg}
                   disabled={savingOrgName || !orgNameInput.trim()}
-                  className="text-sm font-semibold px-3 py-2 text-white disabled:opacity-50"
+                  className="text-xs font-semibold px-3 py-1.5 text-white disabled:opacity-50"
                   style={{ background: 'var(--signal, #2563eb)' }}
                 >
                   {savingOrgName ? 'Saving…' : 'Save'}
@@ -296,33 +299,33 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                 <button
                   onClick={() => { setEditingName(false); setOrgNameError(null); }}
                   disabled={savingOrgName}
-                  className="text-sm font-semibold px-3 py-2"
+                  className="text-xs font-semibold px-3 py-1.5"
                   style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
                 >
                   Cancel
                 </button>
               </div>
             ) : (
-           <div className="flex items-center gap-2">
-                <h1 className="display-heading text-2xl lg:text-3xl xl:text-4xl mb-1">
-                  Decision Overview
-                </h1>
-                {canManageGovernance && currentOrg && (
-                  <button
-                    onClick={() => { setOrgNameInput(currentOrg.name); setEditingName(true); }}
-                    className="p-1.5 flex-shrink-0"
-                    style={{ color: 'var(--app-text-secondary)' }}
-                    title="Rename organization"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+              currentOrg && (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--app-text-secondary)' }}>
+                    {currentOrg.name}
+                  </p>
+                  {canManageGovernance && (
+                    <button
+                      onClick={() => { setOrgNameInput(currentOrg.name); setEditingName(true); }}
+                      className="p-1 flex-shrink-0"
+                      style={{ color: 'var(--app-text-secondary)' }}
+                      title="Rename organization"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )
             )}
-            {!editingName && currentOrg && (
-              <p className="text-sm font-semibold" style={{ color: 'var(--app-text-secondary)' }}>
-                {currentOrg.name}
-              </p>
+            {orgNameError && (
+              <p className="text-xs mt-1" style={{ color: '#dc2626' }}>{orgNameError}</p>
             )}
             {orgNameError && (
               <p className="text-xs mt-1" style={{ color: '#dc2626' }}>{orgNameError}</p>
