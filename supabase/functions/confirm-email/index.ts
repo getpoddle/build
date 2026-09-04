@@ -90,27 +90,30 @@ Deno.serve(async (req: Request) => {
       .update({ confirmed_at: new Date().toISOString() })
       .eq("id", tokenRow.id);
 
-    // Generate a one-time magic link token so the frontend can auto-sign-in
-    // the user immediately after confirmation, without requiring a manual
-    // sign-in. If this fails for any reason, we still return success and the
+    // Generate a one-time hashed token so the frontend can auto-sign-in the
+    // user immediately after confirmation, without requiring a manual
+    // sign-in. We use `hashed_token` from the generateLink response
+    // directly (rather than parsing it out of the action_link URL) and pass
+    // it to the client for verifyOtp({ token_hash, type: 'magiclink' }) —
+    // NOT the { email, token } form, which expects the plain OTP code, not
+    // a hash, and will silently fail verification if given one.
+    // If this fails for any reason, we still return success and the
     // frontend falls back to the manual sign-in screen.
-    let autoSignInToken: string | null = null;
-    let autoSignInEmail: string | null = null;
+    let autoSignInHashedToken: string | null = null;
     try {
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(tokenRow.user_id);
-      autoSignInEmail = userData.user?.email ?? null;
+      const userEmail = userData.user?.email ?? null;
 
-      if (autoSignInEmail) {
+      if (userEmail) {
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
           type: "magiclink",
-          email: autoSignInEmail,
+          email: userEmail,
         });
 
         if (linkError) {
           console.error("confirm-email: generateLink failed:", linkError.message);
-        } else if (linkData?.properties?.action_link) {
-          const url = new URL(linkData.properties.action_link);
-          autoSignInToken = url.searchParams.get("token");
+        } else if (linkData?.properties?.hashed_token) {
+          autoSignInHashedToken = linkData.properties.hashed_token;
         }
       }
     } catch (linkErr) {
@@ -120,8 +123,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        autoSignInToken,
-        email: autoSignInEmail,
+        autoSignInHashedToken,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
