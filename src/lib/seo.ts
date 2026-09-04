@@ -8,9 +8,9 @@ export interface SEOData {
 
 export const pageSEO: Record<string, SEOData> = {
   home: {
-    title: 'Poddle AI – The Decision Review Copilot',
-    description: "The layer between thinking and commitment — adversarial AI agents review your decisions while they're still forming, not after.",
-    keywords: 'decision review copilot, decision intelligence, adversarial AI agents, decision memory, assumption testing, forecasting, strategic analysis, cognitive bias detection',
+    title: 'Poddle AI – The Governance Layer for Company Decisions',
+    description: 'The Governance Layer for Company Decisions',
+    keywords: 'decision governance, decision intelligence, adversarial AI agents, decision memory, assumption testing, forecasting, strategic analysis, cognitive bias detection',
   },
   profile: {
     title: 'Profile | Poddle',
