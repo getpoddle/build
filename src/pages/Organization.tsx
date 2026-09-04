@@ -303,7 +303,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+           <div className="flex items-center gap-2">
                 <h1 className="display-heading text-2xl lg:text-3xl xl:text-4xl mb-1">
                   Decision Overview
                 </h1>
@@ -318,6 +318,11 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                   </button>
                 )}
               </div>
+            )}
+            {!editingName && currentOrg && (
+              <p className="text-sm font-semibold" style={{ color: 'var(--app-text-secondary)' }}>
+                {currentOrg.name}
+              </p>
             )}
             {orgNameError && (
               <p className="text-xs mt-1" style={{ color: '#dc2626' }}>{orgNameError}</p>
