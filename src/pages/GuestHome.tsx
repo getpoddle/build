@@ -159,14 +159,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left column: copy */}
           <div className="text-center lg:text-left">
-            <div
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-8"
-              style={{ background: 'rgba(184,134,11,0.08)', color: '#92660b', border: '1px solid rgba(184,134,11,0.2)' }}
-            >
-              <Zap className="w-3.5 h-3.5" />
-              The Governance Layer for Company Decisions
-            </div>
-
             <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold leading-[1.08] mb-5 text-slate-900 mx-auto lg:mx-0 max-w-xl tracking-tight">
               Make every important business decision{' '}
               <span style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
