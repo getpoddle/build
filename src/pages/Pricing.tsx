@@ -253,26 +253,24 @@ export default function Pricing({ onNavigate }: PricingProps) {
                     : undefined
                 }
               >
-                {/* Badge */}
-                {tier.badge && (
-                  <div className="absolute top-4 right-4">
-                    {isCurrent ? (
-                      <div className="badge badge-slate">Current plan</div>
-                    ) : (
-                      <div className={`badge ${tier.badgeClass ?? ''}`} style={isFeatured ? { background: 'var(--signal)', color: 'var(--ink-900)' } : undefined}>
-                        {tier.badge}
-                      </div>
+              <div className="mb-5">
+                  <div className="flex items-start justify-between gap-2 flex-wrap mb-2">
+                    <p className={`mono-xs font-bold uppercase tracking-widest ${isFeatured ? '' : 'text-signal'}`} style={isFeatured ? { color: 'var(--signal)' } : undefined}>
+                      {tier.name}
+                    </p>
+                    {tier.badge && (
+                      isCurrent ? (
+                        <div className="badge badge-slate flex-shrink-0">Current plan</div>
+                      ) : (
+                        <div className={`badge ${tier.badgeClass ?? ''} flex-shrink-0`} style={isFeatured ? { background: 'var(--signal)', color: 'var(--ink-900)' } : undefined}>
+                          {tier.badge}
+                        </div>
+                      )
+                    )}
+                    {isCurrent && !tier.badge && (
+                      <div className="badge badge-slate flex-shrink-0">Current plan</div>
                     )}
                   </div>
-                )}
-                {isCurrent && !tier.badge && (
-                  <div className="absolute top-4 right-4 badge badge-slate">Current plan</div>
-                )}
-
-                <div className="mb-5">
-                  <p className={`mono-xs font-bold uppercase tracking-widest mb-2 ${isFeatured ? '' : 'text-signal'}`} style={isFeatured ? { color: 'var(--signal)' } : undefined}>
-                    {tier.name}
-                  </p>
                   <div className="flex items-end gap-1 mb-1">
                     <span className="stat-card-value" style={isFeatured ? { color: '#ffffff' } : undefined}>{tier.price}</span>
                     <span className="text-sm mb-1.5" style={isFeatured ? { color: 'rgba(255,255,255,0.7)' } : { color: 'var(--app-text-muted)' }}>{tier.period}</span>
