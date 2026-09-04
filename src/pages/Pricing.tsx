@@ -105,12 +105,13 @@ export default function Pricing({ onNavigate }: PricingProps) {
     'Board Brief PDF export (trial)',
     'AI agent analysis on workspace content',
     'Pattern Intelligence',
+    'Organization Decision Control',
+    'Cross-workspace Decision Map',
   ];
 
   const proBenefits = [
     'Everything in Free',
-    'Up to 3 seats',
-    'Poddle Voice',
+    '1–3 seats',
     'Board Brief PDF export',
     'Document upload',
     'Priority AI analysis',
@@ -119,19 +120,16 @@ export default function Pricing({ onNavigate }: PricingProps) {
 
   const teamBenefits = [
     'Everything in Pro Individual',
-    '1–10 seats included',
+    '1–10 seats',
     'Multiplayer War Rooms',
     'Shared decision history',
     'Team-wide AI synthesis',
-    'Pattern Intelligence',
     'Priority support',
   ];
 
-   const businessBenefits = [
+  const businessBenefits = [
     'Everything in Team Workspace',
     '11–100 seats',
-     
-    'SSO authentication',
     'Workspace governance & analytics',
     'Decision ownership',
     'Dedicated support channel',
@@ -139,10 +137,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
 
   const enterpriseBenefits = [
     'Everything in Business',
-    'Custom agent orchestration',
-    'Pattern Intelligence',
-    'Decision ownership',
-    'Full audit trails',
+    '100+ seats',
     'Dedicated SLAs',
     'Custom onboarding & training',
   ];
