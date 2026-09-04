@@ -127,9 +127,10 @@ export default function Pricing({ onNavigate }: PricingProps) {
     'Priority support',
   ];
 
-  const businessBenefits = [
+   const businessBenefits = [
     'Everything in Team Workspace',
-    'Up to 100 seats',
+    '11–100 seats',
+     
     'SSO authentication',
     'Workspace governance & analytics',
     'Decision ownership',
