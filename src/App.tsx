@@ -226,12 +226,11 @@ function AppContent() {
             // Auto-sign-in: if the backend provided a magic-link token,
             // verify it to establish a session immediately. On any failure,
             // fall back to the manual sign-in screen.
-            if (data.autoSignInToken && data.email) {
+            if (data.autoSignInHashedToken) {
               try {
                 const { error: otpError } = await supabase.auth.verifyOtp({
                   type: 'magiclink',
-                  email: data.email,
-                  token: data.autoSignInToken,
+                  token_hash: data.autoSignInHashedToken,
                 });
                 if (!otpError) {
                   // Session established — the onAuthStateChange listener
