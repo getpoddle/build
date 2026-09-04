@@ -210,7 +210,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
       name: 'Enterprise',
       price: 'Starting at $2,500',
       period: '/ month',
-      audience: 'For large organizations (200+ seats)',
+      audience: 'For large organizations (100+ seats)',
       benefits: enterpriseBenefits,
       cta: 'enterprise',
     },
