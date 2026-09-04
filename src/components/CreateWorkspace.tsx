@@ -48,7 +48,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
   const [name, setName] = useState(initialName);
   const [description, setDescription] = useState(initialDescription);
   const [domain, setDomain] = useState('general');
-  const [plan, setPlan] = useState<'pro' | 'team'>('pro');
+  const [plan, setPlan] = useState<'team' | 'business'>('team');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
@@ -113,7 +113,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
         body: JSON.stringify({
           plan,
           workspace_name: name.trim() || 'My Workspace',
-          seats: plan === 'team' ? 10 : 3,
+          seats: plan === 'business' ? 100 : 10,
           success_url: `${window.location.origin}/?payment_success=1&plan=${plan}`,
           cancel_url: window.location.href,
         }),
@@ -263,8 +263,8 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
             <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Plan</label>
             <div className="grid grid-cols-2 gap-3">
               {([
-                { value: 'pro', label: 'Pro Individual', seats: 3, desc: 'Up to 3 members' },
                 { value: 'team', label: 'Poddle Team', seats: 10, desc: 'Up to 10 members' },
+                { value: 'business', label: 'Business', seats: 100, desc: 'Up to 100 members' },
               ] as const).map(p => (
                 <button
                   key={p.value}
