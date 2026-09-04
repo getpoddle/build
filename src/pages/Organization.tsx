@@ -214,22 +214,30 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     }
   }
 
-  async function handleDeleteOrg() {
+    async function handleDeleteOrg() {
     if (!currentOrg || deleteOrgConfirmText !== currentOrg.name || deletingOrg) return;
     if (overview.length > 0) {
       setDeleteOrgError('Unlink all workspaces from this organization first, from each workspace\'s Settings page.');
       return;
     }
+    const deletedId = currentOrg.id;
     setDeletingOrg(true);
     setDeleteOrgError(null);
     try {
-      await supabase.from('organization_members').delete().eq('organization_id', currentOrg.id);
-      const { error: deleteErr } = await supabase.from('organizations').delete().eq('id', currentOrg.id);
+      await supabase.from('organization_members').delete().eq('organization_id', deletedId);
+      const { error: deleteErr } = await supabase.from('organizations').delete().eq('id', deletedId);
       if (deleteErr) throw deleteErr;
+
       setShowDeleteOrgConfirm(false);
       setDeleteOrgConfirmText('');
-      await loadOrgs();
-      setSelectedOrgId(null);
+
+      // Update local state immediately instead of waiting on a full
+      // re-fetch, so deletion feels instant rather than "rolling."
+      setOrgs(prev => {
+        const remaining = prev.filter(o => o.id !== deletedId);
+        setSelectedOrgId(remaining.length > 0 ? remaining[0].id : null);
+        return remaining;
+      });
     } catch (err: any) {
       setDeleteOrgError(err?.message || 'Could not delete this organization.');
     } finally {
