@@ -164,7 +164,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               style={{ background: 'rgba(184,134,11,0.08)', color: '#92660b', border: '1px solid rgba(184,134,11,0.2)' }}
             >
               <Zap className="w-3.5 h-3.5" />
-              The Decision Review Copilot
+              The Governance Layer for Company Decisions
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold leading-[1.08] mb-5 text-slate-900 mx-auto lg:mx-0 max-w-xl tracking-tight">
