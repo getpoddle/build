@@ -7,7 +7,8 @@ interface PricingProps {
   onNavigate: (page: string) => void;
 }
 
-type Tier = 'free' | 'pro' | 'team' | 'business' | 'enterprise';
+type Tier = 'free' | 'team' | 'business' | 'enterprise';
+type BillingInterval = 'monthly' | 'annual';
 
 export default function Pricing({ onNavigate }: PricingProps) {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
   const [error, setError] = useState('');
   const [currentTier, setCurrentTier] = useState<Tier>('free');
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
 
   useEffect(() => {
     if (!user) { setCurrentTier('free'); return; }
@@ -77,7 +79,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         },
         body: JSON.stringify({
           plan,
-          seats: plan === 'business' ? 100 : 10,
+          interval: billingInterval,
           success_url: `${origin}/?payment_success=1&plan=${plan}`,
           cancel_url: `${origin}/#pricing`,
         }),
@@ -133,6 +135,25 @@ export default function Pricing({ onNavigate }: PricingProps) {
     'Custom onboarding & training',
   ];
 
+  const MONTHLY_PRICES: Record<string, number> = { team: 249, business: 999 };
+  const ANNUAL_PRICES: Record<string, number> = { team: 2499, business: 9999 };
+
+  function savingsPct(planKey: string): number {
+    const monthlyTotal = MONTHLY_PRICES[planKey] * 12;
+    const annual = ANNUAL_PRICES[planKey];
+    return Math.round(((monthlyTotal - annual) / monthlyTotal) * 100);
+  }
+
+  function priceDisplay(planKey: string) {
+    if (billingInterval === 'annual') {
+      return { price: `$${ANNUAL_PRICES[planKey].toLocaleString()}`, period: '/ year' };
+    }
+    return { price: `$${MONTHLY_PRICES[planKey]}`, period: '/ month' };
+  }
+
+  const teamPrice = priceDisplay('team');
+  const businessPrice = priceDisplay('business');
+
   const tiers: {
     id: Tier;
     name: string;
@@ -145,6 +166,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
     badgeClass?: string;
     cta: 'checkout' | 'enterprise' | 'none';
     checkoutPlan?: 'team' | 'business';
+    savingsBadge?: string;
   }[] = [
     {
       id: 'free',
@@ -158,26 +180,28 @@ export default function Pricing({ onNavigate }: PricingProps) {
     {
       id: 'team',
       name: 'Team Workspace',
-      price: '$249',
-      period: '/ month',
-      audience: 'For small teams',
+      price: teamPrice.price,
+      period: teamPrice.period,
+      audience: 'For small teams only',
       benefits: teamBenefits,
-      badge: 'For teams',
-      badgeClass: 'badge-amber',
+      featured: true,
+      badge: 'Most popular',
       cta: 'checkout',
       checkoutPlan: 'team',
+      savingsBadge: billingInterval === 'annual' ? `Save ${savingsPct('team')}%` : undefined,
     },
     {
       id: 'business',
       name: 'Business',
-      price: '$999',
-      period: '/ month',
+      price: businessPrice.price,
+      period: businessPrice.period,
       audience: 'For mid-market departments',
       benefits: businessBenefits,
-      featured: true,
-      badge: 'Most popular',
+      badge: 'For departments',
+      badgeClass: 'badge-amber',
       cta: 'checkout',
       checkoutPlan: 'business',
+      savingsBadge: billingInterval === 'annual' ? `Save ${savingsPct('business')}%` : undefined,
     },
     {
       id: 'enterprise',
@@ -194,7 +218,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
     <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 
-        <div className="text-center mb-14">
+        <div className="text-center mb-10">
           <div
             className="inline-flex items-center gap-2 px-3 py-1.5 mb-4"
             style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
@@ -206,6 +230,39 @@ export default function Pricing({ onNavigate }: PricingProps) {
           <p className="text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
             Private encrypted workspaces and AI decision intelligence for professionals and teams.
           </p>
+        </div>
+
+        {/* Monthly / Annual toggle */}
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex p-1" style={{ background: 'var(--app-border-subtle, #f1f5f9)', border: '1px solid var(--app-border)' }}>
+            <button
+              onClick={() => setBillingInterval('monthly')}
+              className="text-sm font-semibold px-4 py-2 transition-colors"
+              style={billingInterval === 'monthly'
+                ? { background: 'var(--signal, #2563eb)', color: '#fff' }
+                : { color: 'var(--app-text-secondary)' }}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingInterval('annual')}
+              className="flex items-center gap-2 text-sm font-semibold px-4 py-2 transition-colors"
+              style={billingInterval === 'annual'
+                ? { background: 'var(--signal, #2563eb)', color: '#fff' }
+                : { color: 'var(--app-text-secondary)' }}
+            >
+              Annual
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                style={{
+                  background: billingInterval === 'annual' ? 'rgba(255,255,255,0.2)' : 'var(--signal-bg)',
+                  color: billingInterval === 'annual' ? '#fff' : 'var(--signal)',
+                }}
+              >
+                Save up to {Math.max(savingsPct('team'), savingsPct('business'))}%
+              </span>
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -232,27 +289,37 @@ export default function Pricing({ onNavigate }: PricingProps) {
                     : undefined
                 }
               >
-              <div className="mb-5">
-                  <div className="flex items-start justify-between gap-2 flex-wrap mb-2">
-                    <p className={`mono-xs font-bold uppercase tracking-widest ${isFeatured ? '' : 'text-signal'}`} style={isFeatured ? { color: 'var(--signal)' } : undefined}>
-                      {tier.name}
-                    </p>
-                    {tier.badge && (
-                      isCurrent ? (
-                        <div className="badge badge-slate flex-shrink-0">Current plan</div>
-                      ) : (
-                        <div className={`badge ${tier.badgeClass ?? ''} flex-shrink-0`} style={isFeatured ? { background: 'var(--signal)', color: 'var(--ink-900)' } : undefined}>
-                          {tier.badge}
-                        </div>
-                      )
-                    )}
-                    {isCurrent && !tier.badge && (
-                      <div className="badge badge-slate flex-shrink-0">Current plan</div>
+                {/* Badge */}
+                {tier.badge && (
+                  <div className="absolute top-4 right-4">
+                    {isCurrent ? (
+                      <div className="badge badge-slate">Current plan</div>
+                    ) : (
+                      <div className={`badge ${tier.badgeClass ?? ''}`} style={isFeatured ? { background: 'var(--signal)', color: 'var(--ink-900)' } : undefined}>
+                        {tier.badge}
+                      </div>
                     )}
                   </div>
-                  <div className="flex items-end gap-1 mb-1">
+                )}
+                {isCurrent && !tier.badge && (
+                  <div className="absolute top-4 right-4 badge badge-slate">Current plan</div>
+                )}
+
+                <div className="mb-5">
+                  <p className={`mono-xs font-bold uppercase tracking-widest mb-2 ${isFeatured ? '' : 'text-signal'}`} style={isFeatured ? { color: 'var(--signal)' } : undefined}>
+                    {tier.name}
+                  </p>
+                  <div className="flex items-end gap-1 mb-1 flex-wrap">
                     <span className="stat-card-value" style={isFeatured ? { color: '#ffffff' } : undefined}>{tier.price}</span>
                     <span className="text-sm mb-1.5" style={isFeatured ? { color: 'rgba(255,255,255,0.7)' } : { color: 'var(--app-text-muted)' }}>{tier.period}</span>
+                    {tier.savingsBadge && (
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded mb-1.5"
+                        style={{ background: 'var(--signal-bg)', color: 'var(--signal)' }}
+                      >
+                        {tier.savingsBadge}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm" style={isFeatured ? { color: 'rgba(255,255,255,0.8)' } : { color: 'var(--app-text-secondary)' }}>{tier.audience}</p>
                 </div>
@@ -278,7 +345,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
                   </button>
                 ) : tier.cta === 'checkout' && tier.checkoutPlan ? (
                   <button
-                    onClick={() => handleCheckout(tier.checkoutPlan)}
+                    onClick={() => handleCheckout(tier.checkoutPlan!)}
                     disabled={loadingPlan === tier.id || isCurrent}
                     className="btn-primary w-full"
                   >
@@ -318,7 +385,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
               { icon: Lock, title: 'Private Workspaces', desc: 'Encrypted, invite-only spaces for founders and teams to structure decisions with AI — never publicly discoverable.', badge: null },
               { icon: Bot, title: 'AI War Room', desc: 'Bring a decision to the War Room and 7 specialized AI agents debate it — surfacing risks, blind spots, and alternative paths.', badge: null },
               { icon: BarChart2, title: 'Workspace Synthesis', desc: 'AI periodically synthesizes everything in your workspace — surfacing patterns, contradictions, and strategic signals you might miss.', badge: null },
-              { icon: Users, title: 'Team Collaboration', desc: 'Free supports 1 member. Team supports 10. Business supports 100. AI agents challenge all your assumptions collectively.', badge: 'Team+' },
+              { icon: Users, title: 'Team Collaboration', desc: 'Team supports 10 seats. Business supports 100. AI agents challenge all your assumptions collectively.', badge: 'Team+' },
               { icon: Shield, title: 'Workspace Memory', desc: 'Every insight, decision, and War Room session builds a persistent memory layer that makes future AI analysis sharper over time.', badge: null },
               { icon: Zap, title: 'PDF Export', desc: 'Export your workspace decisions, War Room sessions, and AI synthesis into clean, shareable PDFs for stakeholders.', badge: null },
             ].map(({ icon: Icon, title, desc, badge }) => (
@@ -339,7 +406,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
         {/* FAQ */}
         <div className="grid sm:grid-cols-3 gap-6 mb-16">
           {[
-            { q: 'Can I cancel anytime?', a: 'Absolutely. All plans are monthly subscriptions with no lock-in. Cancel anytime from your workspace billing settings and you keep access until the end of the billing period.' },
+            { q: 'Can I cancel anytime?', a: 'Absolutely. All plans are subscriptions with no lock-in. Cancel anytime from your workspace billing settings and you keep access until the end of the billing period.' },
             { q: 'What is Team Workspace for?', a: "Small teams who need to collaborate with AI agents on proprietary ideas. 1–10 seats, multiplayer War Rooms, and shared decision history." },
             { q: 'What happens to my data if I cancel?', a: 'Your workspace data is retained for 30 days after cancellation. You can export your decisions and War Room intelligence before downgrading. Nothing is deleted without notice.' },
           ].map(({ q, a }) => (
@@ -366,9 +433,9 @@ export default function Pricing({ onNavigate }: PricingProps) {
                 Manage subscription
               </button>
             ) : (
-              <button onClick={() => handleCheckout('business')} disabled={loadingPlan === 'business'} className="btn-primary">
-                {loadingPlan === 'business' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                Get Business — $999/mo
+              <button onClick={() => handleCheckout('team')} disabled={loadingPlan === 'team'} className="btn-primary">
+                {loadingPlan === 'team' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                Get Team — {teamPrice.price}{teamPrice.period}
               </button>
             )}
             <button onClick={handleEnterprise} className="btn-secondary" style={{ background: 'transparent', color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)' }}>
