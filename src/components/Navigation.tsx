@@ -31,7 +31,6 @@ const NAV_ITEMS_AUTH = [
 const NAV_ITEMS_GUEST = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'team', label: 'Team', icon: Users },
-  { id: 'ai-feed', label: 'AI Feed', icon: Bot },
 ];
 
 export default function Navigation({ currentPage, onNavigate, collapsed = false, onToggleCollapsed, hideDashboard = false }: NavigationProps) {
