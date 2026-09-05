@@ -29,6 +29,7 @@ const SystemHealth = lazy(() => import('./pages/SystemHealth'));
 const Workspaces = lazy(() => import('./pages/Workspaces'));
 const Organization = lazy(() => import('./pages/Organization'));
 const DecisionMapPage = lazy(() => import('./pages/DecisionMapPage'));
+const DecisionTrailPage = lazy(() => import('./pages/DecisionTrailPage'));
 const JoinOrganization = lazy(() => import('./pages/JoinOrganization'));
 const Advisory = lazy(() => import('./pages/Advisory'));
 const WorkspaceHub = lazy(() => import('./pages/WorkspaceHub'));
@@ -347,6 +348,12 @@ function AppContent() {
       if (hash === 'decision-map') {
         setCurrentPage('decision-map');
         sessionStorage.setItem('currentPage', 'decision-map');
+        return;
+      }
+
+      if (hash === 'decision-trail') {
+        setCurrentPage('decision-trail');
+        sessionStorage.setItem('currentPage', 'decision-trail');
         return;
       }
 
@@ -947,6 +954,7 @@ function AppContent() {
               {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
               {activePage === 'organization' && <Organization key="organization" onNavigate={handleNavigate} />}
               {activePage === 'decision-map' && <DecisionMapPage key="decision-map" onNavigate={handleNavigate} />}
+              {activePage === 'decision-trail' && <DecisionTrailPage key="decision-trail" onNavigate={handleNavigate} />}
               {activePage === 'workspace-hub' && workspaceId && (
                 <WorkspaceHub
                   key={`workspace-hub-${workspaceId}`}
