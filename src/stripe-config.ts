@@ -1,43 +1,40 @@
 export interface StripeProduct {
   id: string;
-  priceId: string;
+  monthlyPriceId: string;
+  annualPriceId: string;
   name: string;
   description: string;
-  price: number;
+  monthlyPrice: number;
+  annualPrice: number;
   currency: string;
   mode: 'subscription' | 'payment';
 }
 
 export const STRIPE_PRODUCTS: StripeProduct[] = [
   {
-    id: 'prod_UXcbO4NuuJRE5A',
-    priceId: 'price_1U0R8YFKEEYiEgTrjn5zEL7m',
-    name: 'Individual',
-    description: 'Up to 3 seats, Voice, Board Brief Export, Document Upload',
-    price: 39.00,
-    currency: '$',
-    mode: 'subscription',
-  },
-  {
     id: 'prod_UYgnADbpMs1fyz',
-    priceId: 'price_1U0R9RFKEEYiEgTrWR6cUt3g',
+    monthlyPriceId: 'price_1U0R9RFKEEYiEgTrWR6cUt3g',
+    annualPriceId: 'price_1UCHrlFKEEYiEgTrzQaengEV',
     name: 'Team',
     description: 'For small teams only. 1–10 seats, Multiplayer War Rooms, shared decision history',
-    price: 249.00,
+    monthlyPrice: 249.00,
+    annualPrice: 2499.00,
     currency: '$',
     mode: 'subscription',
   },
   {
     id: 'prod_UYhkfi8tsa4NJu',
-    priceId: 'price_1U0RAeFKEEYiEgTrMMbnoLA8',
+    monthlyPriceId: 'price_1U0RAeFKEEYiEgTrMMbnoLA8',
+    annualPriceId: 'price_1UCHpKFKEEYiEgTr0tR2rp29',
     name: 'Business',
-    description: '11–100 seats, SSO, workspace governance, analytics & decision ownership',
-    price: 999.00,
+    description: '11–100 seats, workspace governance, analytics & decision ownership',
+    monthlyPrice: 999.00,
+    annualPrice: 9999.00,
     currency: '$',
     mode: 'subscription',
   },
 ];
 
 export function getProductByPriceId(priceId: string): StripeProduct | undefined {
-  return STRIPE_PRODUCTS.find(p => p.priceId === priceId);
+  return STRIPE_PRODUCTS.find(p => p.monthlyPriceId === priceId || p.annualPriceId === priceId);
 }
