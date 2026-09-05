@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, AlertTriangle, RefreshCw, ChevronRight, Plus, ShieldCheck, Check, X as XIcon, Pencil, Trash2 } from 'lucide-react';
+import { Building2, AlertTriangle, RefreshCw, ChevronRight, Plus, ShieldCheck, Check, X as XIcon, Pencil, Trash2, Mail, Copy, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface OrganizationProps {
@@ -80,6 +80,14 @@ export default function Organization({ onNavigate }: OrganizationProps) {
   const [deletingOrg, setDeletingOrg] = useState(false);
   const [deleteOrgError, setDeleteOrgError] = useState<string | null>(null);
 
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteEmails, setInviteEmails] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteResults, setInviteResults] = useState<{ email: string; link: string }[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<{ id: string; invited_email: string; token: string; created_at: string }[]>([]);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id || null));
     loadOrgs();
@@ -89,6 +97,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     if (selectedOrgId) {
       loadOrgData(selectedOrgId);
       loadApprovalRequests(selectedOrgId);
+      loadPendingInvites(selectedOrgId);
     }
   }, [selectedOrgId]);
 
@@ -140,7 +149,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     }
   }
 
-    async function loadApprovalRequests(orgId: string) {
+  async function loadApprovalRequests(orgId: string) {
     const { data } = await supabase
       .from('decision_approvals')
       .select('id, workspace_id, requested_by, status, created_at, workspaces(name, description), profiles!decision_approvals_requested_by_fkey(full_name)')
@@ -160,6 +169,72 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     }));
 
     setApprovalRequests(requests);
+  }
+
+  async function loadPendingInvites(orgId: string) {
+    const { data } = await supabase
+      .from('organization_invites')
+      .select('id, invited_email, token, created_at')
+      .eq('organization_id', orgId)
+      .is('accepted_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false });
+    setPendingInvites(data || []);
+  }
+
+  async function handleBulkInvite() {
+    if (!selectedOrgId || !inviteEmails.trim()) return;
+    setInviting(true);
+    setInviteError(null);
+    setInviteResults([]);
+
+    const emails = inviteEmails
+      .split(/[,\n]/)
+      .map(e => e.trim().toLowerCase())
+      .filter(e => e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+
+    if (emails.length === 0) {
+      setInviteError('Please enter at least one valid email address.');
+      setInviting(false);
+      return;
+    }
+
+    const results: { email: string; link: string }[] = [];
+    let failCount = 0;
+
+    for (const email of emails) {
+      const { data, error } = await supabase.rpc('create_organization_invite', {
+        p_organization_id: selectedOrgId,
+        p_email: email,
+        p_role: 'member',
+      });
+      if (error || !data) {
+        failCount += 1;
+        continue;
+      }
+      const row = Array.isArray(data) ? data[0] : data;
+      results.push({ email, link: `${window.location.origin}/#join-org/${row.token}` });
+    }
+
+    setInviteResults(results);
+    if (failCount > 0) {
+      setInviteError(`${failCount} invite${failCount !== 1 ? 's' : ''} could not be sent.`);
+    }
+    setInviteEmails('');
+    setInviting(false);
+    loadPendingInvites(selectedOrgId);
+  }
+
+  async function copyInviteLink(token: string) {
+    const url = `${window.location.origin}/#join-org/${token}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
+  }
+
+  async function handleRevokeInvite(inviteId: string) {
+    await supabase.from('organization_invites').delete().eq('id', inviteId);
+    setPendingInvites(prev => prev.filter(i => i.id !== inviteId));
   }
 
   async function handleToggleGovernance(orgId: string, currentValue: boolean) {
@@ -214,7 +289,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     }
   }
 
-    async function handleDeleteOrg() {
+  async function handleDeleteOrg() {
     if (!currentOrg || deleteOrgConfirmText !== currentOrg.name || deletingOrg) return;
     if (overview.length > 0) {
       setDeleteOrgError('Unlink all workspaces from this organization first, from each workspace\'s Settings page.');
@@ -281,7 +356,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       >
         <div className="mb-6 lg:mb-10 flex items-center justify-between flex-wrap gap-3">
           <div>
-        <p className="section-label mb-2">Organization</p>
+            <p className="section-label mb-2">Organization</p>
             <h1 className="display-heading text-2xl lg:text-3xl xl:text-4xl mb-1">
               Decision Overview
             </h1>
@@ -331,9 +406,6 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                   )}
                 </div>
               )
-            )}
-            {orgNameError && (
-              <p className="text-xs mt-1" style={{ color: '#dc2626' }}>{orgNameError}</p>
             )}
             {orgNameError && (
               <p className="text-xs mt-1" style={{ color: '#dc2626' }}>{orgNameError}</p>
@@ -463,6 +535,113 @@ export default function Organization({ onNavigate }: OrganizationProps) {
               </div>
             )}
 
+            {/* Invite members */}
+            {canManageGovernance && (
+              <div className="mb-6 p-4" style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2" style={{ color: 'var(--app-text-secondary)' }}>
+                    <Mail className="w-4 h-4" />
+                    Invite Members
+                  </h2>
+                  {!showInviteForm && (
+                    <button
+                      onClick={() => setShowInviteForm(true)}
+                      className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5"
+                      style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-primary)' }}
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Add people
+                    </button>
+                  )}
+                </div>
+
+                {showInviteForm && (
+                  <div className="space-y-2 mb-3">
+                    <textarea
+                      value={inviteEmails}
+                      onChange={e => setInviteEmails(e.target.value)}
+                      placeholder="Enter email addresses, one per line or comma-separated"
+                      rows={3}
+                      className="w-full text-sm px-3 py-2"
+                      style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)', color: 'var(--app-text-primary)' }}
+                    />
+                    {inviteError && (
+                      <p className="text-xs" style={{ color: '#dc2626' }}>{inviteError}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleBulkInvite}
+                        disabled={inviting || !inviteEmails.trim()}
+                        className="text-sm font-semibold px-4 py-2 text-white disabled:opacity-50"
+                        style={{ background: 'var(--signal, #2563eb)' }}
+                      >
+                        {inviting ? 'Sending…' : 'Send invites'}
+                      </button>
+                      <button
+                        onClick={() => { setShowInviteForm(false); setInviteError(null); setInviteEmails(''); setInviteResults([]); }}
+                        disabled={inviting}
+                        className="text-sm font-semibold px-4 py-2"
+                        style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {inviteResults.length > 0 && (
+                  <div className="mb-3 p-3 space-y-1.5" style={{ background: 'var(--app-border-subtle, rgba(0,0,0,0.03))' }}>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>
+                      {inviteResults.length} invite{inviteResults.length !== 1 ? 's' : ''} created — share these links:
+                    </p>
+                    {inviteResults.map(r => (
+                      <div key={r.email} className="flex items-center gap-2 text-xs">
+                        <span style={{ color: 'var(--app-text-secondary)' }}>{r.email}</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(r.link)}
+                          className="flex items-center gap-1 font-semibold"
+                          style={{ color: 'var(--signal, #2563eb)' }}
+                        >
+                          <Copy className="w-3 h-3" />
+                          Copy link
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {pendingInvites.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--app-text-muted, var(--app-text-secondary))' }}>
+                      Pending invites
+                    </p>
+                    <div className="space-y-1.5">
+                      {pendingInvites.map(inv => (
+                        <div key={inv.id} className="flex items-center gap-3 px-3 py-2" style={{ background: 'var(--app-border-subtle, rgba(0,0,0,0.03))' }}>
+                          <Mail className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--app-text-muted)' }} />
+                          <span className="text-xs flex-1 truncate" style={{ color: 'var(--app-text-primary)' }}>{inv.invited_email}</span>
+                          <button
+                            onClick={() => copyInviteLink(inv.token)}
+                            className="p-1"
+                            title="Copy invite link"
+                          >
+                            {copiedToken === inv.token ? <Check className="w-3.5 h-3.5" style={{ color: '#16a34a' }} /> : <Copy className="w-3.5 h-3.5" style={{ color: 'var(--app-text-secondary)' }} />}
+                          </button>
+                          <button
+                            onClick={() => handleRevokeInvite(inv.id)}
+                            className="p-1"
+                            title="Revoke invite"
+                          >
+                            <XIcon className="w-3.5 h-3.5" style={{ color: '#dc2626' }} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Pending approval requests */}
             {canManageGovernance && approvalRequests.length > 0 && (
               <div className="mb-6">
@@ -476,7 +655,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                       className="flex items-center justify-between gap-4 px-4 py-3"
                       style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)' }}
                     >
-                       <div className="min-w-0">
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>{req.workspace_name}</p>
                         {req.workspace_description && (
                           <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--app-text-secondary)' }}>
