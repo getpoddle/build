@@ -182,7 +182,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     setPendingInvites(data || []);
   }
 
-  async function handleBulkInvite() {
+   async function handleBulkInvite() {
     if (!selectedOrgId || !inviteEmails.trim()) return;
     setInviting(true);
     setInviteError(null);
@@ -199,27 +199,37 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       return;
     }
 
-    const results: { email: string; link: string }[] = [];
-    let failCount = 0;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
-    for (const email of emails) {
-      const { data, error } = await supabase.rpc('create_organization_invite', {
-        p_organization_id: selectedOrgId,
-        p_email: email,
-        p_role: 'member',
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-workspace-invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ organization_id: selectedOrgId, emails }),
       });
-      if (error || !data) {
-        failCount += 1;
-        continue;
+
+      const json = await res.json();
+
+      if (json.error) {
+        setInviteError(json.error);
+      } else {
+        const succeeded = (json.results || []).filter((r: { success: boolean }) => r.success).length;
+        const failed = (json.results || []).length - succeeded;
+        setInviteResults([]);
+        if (succeeded > 0) {
+          setInviteError(failed > 0 ? `${succeeded} email${succeeded !== 1 ? 's' : ''} sent, ${failed} failed.` : null);
+        } else {
+          setInviteError('No invites could be sent.');
+        }
       }
-      const row = Array.isArray(data) ? data[0] : data;
-      results.push({ email, link: `${window.location.origin}/#join-org/${row.token}` });
+    } catch {
+      setInviteError('Failed to send invites. Please try again.');
     }
 
-    setInviteResults(results);
-    if (failCount > 0) {
-      setInviteError(`${failCount} invite${failCount !== 1 ? 's' : ''} could not be sent.`);
-    }
     setInviteEmails('');
     setInviting(false);
     loadPendingInvites(selectedOrgId);
