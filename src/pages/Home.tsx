@@ -1,4 +1,4 @@
-import { Bot, Brain, Lock, Sparkles, ArrowRight, Shield, TrendingUp, Users, Zap, ChevronRight, MessageSquare, UsersRound } from 'lucide-react';
+import { Bot, Brain, Lock, Sparkles, ArrowRight, Shield, TrendingUp, Users, Zap, ChevronRight, MessageSquare, UsersRound, Building2, Map, Fingerprint, Hash, ShieldCheck } from 'lucide-react';
 
 interface HomeProps {
   onNavigate: (page: string, podId?: string, userId?: string, editMode?: boolean, initialTab?: string, threadId?: string, initialAssumptionId?: string) => void;
@@ -17,6 +17,8 @@ const QUICK_ACTIONS = [
   { icon: Lock, title: 'Private Workspaces', desc: 'Encrypted spaces where your team debates proprietary ideas with AI agents.', cta: 'Open Workspaces', action: 'workspaces' },
   { icon: Brain, title: 'AI War Room', desc: 'Synthesize discussions into structured intelligence — risks, consensus, and action items.', cta: 'View War Room', action: 'workspaces' },
   { icon: TrendingUp, title: 'Decision Intelligence', desc: 'Get multiple AI perspectives that challenge assumptions and surface blind spots.', cta: 'Start Analyzing', action: 'workspaces' },
+  { icon: Building2, title: 'Organization', desc: 'Create or join an organization, link workspaces, and require approval before decisions commit.', cta: 'Open Organization', action: 'organization' },
+  { icon: Map, title: 'Decision Map', desc: 'See every decision across every workspace — status, category, and owner in one view.', cta: 'View Decision Map', action: 'decision-map' },
 ];
 
 export default function Home({ onNavigate }: HomeProps) {
@@ -150,6 +152,28 @@ export default function Home({ onNavigate }: HomeProps) {
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Decision Governance & Trail */}
+            <div className="panel p-4 lg:p-6">
+              <p className="section-label mb-4">Decision Governance & Trail</p>
+              <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-5">
+                {[
+                  { icon: ShieldCheck, text: 'Decision Control', sub: 'Require formal approval before a decision can commit. Org owners and admins review every pending request.' },
+                  { icon: Fingerprint, text: 'Immutable audit trail', sub: 'Every step is logged permanently, from the first question to the final call. Nothing can be quietly edited.' },
+                  { icon: Hash, text: 'Evidence IDs', sub: 'AI conclusions become citable claims like FIN-01, tagged as fact, assumption, inference, or opinion.' },
+                ].map(({ icon: Icon, text, sub }) => (
+                  <div key={text} className="flex items-start gap-3">
+                    <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
+                      <Icon className="w-4 h-4" style={{ color: 'var(--signal)' }} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--app-text-primary)' }}>{text}</p>
+                      <p className="text-[11px] lg:text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--app-text-muted)' }}>{sub}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
