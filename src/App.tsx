@@ -831,6 +831,10 @@ function AppContent() {
     return wrap(<JoinWorkspace token={joinToken} onNavigate={handleNavigate} />);
   }
 
+  if (currentPage === 'join-organization' && joinToken) {
+    return wrap(<JoinOrganization token={joinToken} onNavigate={handleNavigate} />);
+  }
+
   if (currentPage === 'blog') {
     return wrap(<Blog onNavigate={handleNavigate} />);
   }
