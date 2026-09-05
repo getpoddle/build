@@ -371,11 +371,20 @@ function AppContent() {
         return;
       }
 
-      if (hash.startsWith('join/')) {
+        if (hash.startsWith('join/')) {
         const token = hash.split('/')[1];
         if (token && token.trim()) {
           setJoinToken(token.trim());
           setCurrentPage('join-workspace');
+        }
+        return;
+      }
+
+      if (hash.startsWith('join-org/')) {
+        const token = hash.split('/')[1];
+        if (token && token.trim()) {
+          setJoinToken(token.trim());
+          setCurrentPage('join-organization');
         }
         return;
       }
