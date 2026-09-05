@@ -109,9 +109,9 @@ Deno.serve(async (req: Request) => {
       const inviterName = inviterProfile?.full_name || inviterProfile?.email || "A team member";
       const results: { email: string; success: boolean; error?: string }[] = [];
 
-      for (const email of emails) {
+        for (const email of emails) {
         try {
-          const { data: inviteRows, error: inviteError } = await serviceSupabase
+          const { data: inviteRows, error: inviteError } = await supabase
             .rpc("create_organization_invite", {
               p_organization_id: organization_id,
               p_email: email,
