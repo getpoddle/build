@@ -29,6 +29,7 @@ const SystemHealth = lazy(() => import('./pages/SystemHealth'));
 const Workspaces = lazy(() => import('./pages/Workspaces'));
 const Organization = lazy(() => import('./pages/Organization'));
 const DecisionMapPage = lazy(() => import('./pages/DecisionMapPage'));
+const JoinOrganization = lazy(() => import('./pages/JoinOrganization'));
 const DecisionTrailPage = lazy(() => import('./pages/DecisionTrailPage'));
 const WorkspaceHub = lazy(() => import('./pages/WorkspaceHub'));
 const WorkspaceSettings = lazy(() => import('./pages/WorkspaceSettings'));
