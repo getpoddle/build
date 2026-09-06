@@ -200,7 +200,7 @@ async function syncCustomerFromStripe(customerId: string) {
         .is('deleted_at', null)
         .maybeSingle();
 
-      if (customerRow?.user_id) {
+        if (customerRow?.user_id) {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({ subscription_tier: tier })
@@ -210,6 +210,26 @@ async function syncCustomerFromStripe(customerId: string) {
           console.error(`Failed to update subscription_tier for user ${customerRow.user_id}:`, profileError);
         } else {
           console.info(`Updated subscription_tier to '${tier}' for user ${customerRow.user_id}`);
+        }
+
+        // Reactivate any of this user's workspaces that are trial-locked or
+        // expired — becoming a paying subscriber should immediately restore
+        // access, not leave already-created workspaces permanently read-only.
+        const resolvedPlan = tier === 'business' ? 'business' : tier === 'team' ? 'team' : undefined;
+        const { error: reactivateError } = await supabase
+          .from('workspaces')
+          .update({
+            subscription_status: 'active',
+            trial_workspace_expires_at: null,
+            ...(resolvedPlan ? { plan: resolvedPlan } : {}),
+          })
+          .eq('owner_id', customerRow.user_id)
+          .is('stripe_subscription_id', null);
+
+        if (reactivateError) {
+          console.error(`Failed to reactivate workspaces for user ${customerRow.user_id}:`, reactivateError);
+        } else {
+          console.info(`Reactivated trial workspaces for user ${customerRow.user_id}`);
         }
       }
     } else if (subscription.status === 'canceled' || subscription.status === 'unpaid' || subscription.status === 'incomplete_expired') {
