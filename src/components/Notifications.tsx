@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply, Bot, UserCheck, Users, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply, Bot, UserCheck, Users, AlertTriangle, RotateCcw, ShieldAlert, ShieldCheck, Building2 } from 'lucide-react';
 import { SkeletonNotification } from './Skeleton';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
