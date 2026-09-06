@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
     const profileTier = profileRes.data?.subscription_tier;
     const trialCount = profileRes.data?.trial_workspace_count ?? 0;
 
-    const hasPaidProfile = profileTier === "pro" || profileTier === "enterprise";
+    const hasPaidProfile = profileTier === "team" || profileTier === "business" || profileTier === "enterprise";
     const hasPaidWorkspace = (paidWsRes.data?.length ?? 0) > 0;
 
     // Beta access grants unlimited workspace creation for the grant duration
