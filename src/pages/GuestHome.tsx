@@ -168,7 +168,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             </h1>
 
             <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0" style={{ color: '#4b5563' }}>
-              Poddle helps teams pressure-test, govern, and track important decisions so everyone knows what was decided, why it was decided, who owns it, and how it evolved.
+              Poddle AI turns critical decisions into auditable, repeatable, and organization-wide intelligence.
             </p>
 
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-10">
