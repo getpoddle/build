@@ -257,12 +257,14 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       } else {
         onNavigate('workspaces');
       }
-    } else if (notification.type === 'workspace_ai_activity') {
+      } else if (notification.type === 'workspace_ai_activity') {
       if (notification.related_id) {
         onNavigate('workspace-hub', notification.related_id);
       } else {
         onNavigate('workspaces');
       }
+    } else if (notification.type === 'organization_invite_accepted') {
+      onNavigate('organization');
     }
   }
 
@@ -300,6 +302,8 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
         return <AlertTriangle className="w-4 h-4" />;
       case 'account_restored':
         return <RotateCcw className="w-4 h-4" />;
+      case 'organization_invite_accepted':
+        return <Building2 className="w-4 h-4" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
