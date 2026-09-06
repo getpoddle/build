@@ -530,8 +530,8 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
 
   let lastDateKey = '';
 
-  return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--app-surface-raised)' }}>
+    return (
+    <div className="flex-1 min-h-0 flex flex-col" style={{ background: 'var(--app-surface-raised)' }}>
       {/* Header */}
       <div
         className="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5"
