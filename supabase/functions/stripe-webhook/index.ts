@@ -232,7 +232,7 @@ async function syncCustomerFromStripe(customerId: string) {
           console.info(`Reactivated trial workspaces for user ${customerRow.user_id}`);
         }
       }
-    } else if (subscription.status === 'canceled' || subscription.status === 'unpaid' || subscription.status === 'incomplete_expired') {
+        } else if (subscription.status === 'canceled' || subscription.status === 'unpaid' || subscription.status === 'incomplete_expired') {
       const { data: customerRow } = await supabase
         .from('stripe_customers')
         .select('user_id')
@@ -245,6 +245,24 @@ async function syncCustomerFromStripe(customerId: string) {
           .from('profiles')
           .update({ subscription_tier: 'free' })
           .eq('id', customerRow.user_id);
+
+        // The subscription has genuinely ended (not just "cancel scheduled
+        // for period end" — Stripe keeps status 'active' with
+        // cancel_at_period_end: true until the paid period actually runs
+        // out). Only lock workspaces once status itself flips to one of
+        // these terminal states, so a customer keeps what they already
+        // paid for until it's truly over.
+        const { error: lockError } = await supabase
+          .from('workspaces')
+          .update({ subscription_status: 'inactive' })
+          .eq('owner_id', customerRow.user_id)
+          .is('stripe_subscription_id', null);
+
+        if (lockError) {
+          console.error(`Failed to lock workspaces for user ${customerRow.user_id}:`, lockError);
+        } else {
+          console.info(`Locked workspaces for user ${customerRow.user_id} after subscription ended`);
+        }
 
         if (profileError) {
           console.error(`Failed to downgrade subscription_tier for user ${customerRow.user_id}:`, profileError);
