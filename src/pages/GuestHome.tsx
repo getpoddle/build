@@ -160,18 +160,15 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           {/* Left column: copy */}
           <div className="text-center lg:text-left">
             <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold leading-[1.08] mb-5 text-slate-900 mx-auto lg:mx-0 max-w-xl tracking-tight">
-              Make every important business decision{' '}
+              Make high-stakes decisions{' '}
               <span style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                 defensible
               </span>
+              .
             </h1>
 
-            <p className="text-base sm:text-lg leading-relaxed mb-4 max-w-xl mx-auto lg:mx-0" style={{ color: '#4b5563' }}>
-              Poddle is an AI-powered decision intelligence platform that helps organizations analyze, challenge, govern, and trace high-stakes decisions from initial thinking to final execution.
-            </p>
-
-            <p className="text-sm leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0" style={{ color: '#6b7280' }}>
-              Know what was decided. Why it was decided. Who owns it. What supports it. And how the decision evolved.
+            <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0" style={{ color: '#4b5563' }}>
+              Poddle helps teams pressure-test, govern, and track important decisions so everyone knows what was decided, why it was decided, who owns it, and how it evolved.
             </p>
 
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-10">
