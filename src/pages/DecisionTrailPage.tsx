@@ -75,6 +75,18 @@ const CLAIM_TYPE_COLORS: Record<string, string> = {
   opinion: '#7c3aed',
 };
 
+type Freshness = 'current' | 'aging' | 'stale';
+
+function freshnessFor(claim: DecisionClaim): { status: Freshness; label: string; color: string; daysSinceVerified: number } {
+  const verifiedAt = new Date(claim.last_verified_at).getTime();
+  const daysSinceVerified = Math.floor((Date.now() - verifiedAt) / (1000 * 60 * 60 * 24));
+  const pctElapsed = daysSinceVerified / claim.validity_period_days;
+
+  if (pctElapsed > 1) return { status: 'stale', label: 'Stale', color: '#dc2626', daysSinceVerified };
+  if (pctElapsed >= 0.5) return { status: 'aging', label: 'Aging', color: '#d97706', daysSinceVerified };
+  return { status: 'current', label: 'Current', color: '#16a34a', daysSinceVerified };
+}
+
 const ACTOR_AVATAR_EVENTS = new Set(['final_decision', 'team_note', 'human_override']);
 
 function initialsFor(name: string | null | undefined): string {
