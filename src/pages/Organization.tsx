@@ -41,7 +41,6 @@ const STATUS_LABELS: Record<string, string> = {
   in_debate: 'In Debate',
   committed: 'Committed',
   implemented: 'Implemented',
-  reviewed: 'Reviewed',
 };
 
 const STATUS_COLORS: Record<string, string> = {
