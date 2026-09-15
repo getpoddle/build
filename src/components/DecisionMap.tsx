@@ -43,7 +43,6 @@ const STATUSES = [
   { key: 'in_debate',   label: 'In Debate',   color: '#1d4ed8', bg: 'rgba(37,99,235,0.09)',   border: 'rgba(37,99,235,0.22)',  activeBg: 'rgba(37,99,235,0.16)'  },
   { key: 'committed',   label: 'Committed',   color: '#6d28d9', bg: 'rgba(124,58,237,0.09)',  border: 'rgba(124,58,237,0.22)', activeBg: 'rgba(124,58,237,0.16)' },
   { key: 'implemented', label: 'Implemented', color: '#047857', bg: 'rgba(5,150,105,0.09)',   border: 'rgba(5,150,105,0.22)',  activeBg: 'rgba(5,150,105,0.16)'  },
-  { key: 'reviewed',    label: 'Reviewed',    color: '#92400e', bg: 'rgba(180,83,9,0.09)',    border: 'rgba(180,83,9,0.22)',   activeBg: 'rgba(180,83,9,0.16)'   },
 ] as const;
 
 const CATEGORIES = [
