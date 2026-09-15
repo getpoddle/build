@@ -48,7 +48,6 @@ const STATUS_COLORS: Record<string, string> = {
   in_debate: '#d97706',
   committed: '#2563eb',
   implemented: '#16a34a',
-  reviewed: '#7c3aed',
 };
 
 export default function Organization({ onNavigate }: OrganizationProps) {
