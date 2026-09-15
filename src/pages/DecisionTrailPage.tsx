@@ -819,6 +819,20 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
     window.setTimeout(() => setHighlightClaimId(null), 2200);
   }
 
+  const [reverifyingId, setReverifyingId] = useState<string | null>(null);
+
+  async function handleReverify(claimId: string) {
+    setReverifyingId(claimId);
+    try {
+      const { error } = await supabase.rpc('reverify_decision_claim', { p_claim_id: claimId });
+      if (!error) {
+        setClaims(prev => prev.map(c => c.id === claimId ? { ...c, last_verified_at: new Date().toISOString() } : c));
+      }
+    } finally {
+      setReverifyingId(null);
+    }
+  }
+
   async function handlePostNote(text: string) {
     if (!user) return;
     const { data, error } = await supabase
