@@ -998,7 +998,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
             </>
           )}
 
-          {!replayActive && (
+        {!replayActive && (
             <ClaimsPanel
               claims={claims}
               challenges={challenges}
@@ -1006,6 +1006,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
               setExpandedId={setExpandedClaimId}
               highlightId={highlightClaimId}
               claimRefs={claimRefs}
+              onReverify={handleReverify}
+              reverifyingId={reverifyingId}
             />
           )}
         </>
