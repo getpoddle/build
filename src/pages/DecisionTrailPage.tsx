@@ -34,6 +34,8 @@ interface DecisionClaim {
   assumptions: unknown;
   confidence: number;
   created_at: string;
+  last_verified_at: string;
+  validity_period_days: number;
 }
 
 interface DecisionChallenge {
