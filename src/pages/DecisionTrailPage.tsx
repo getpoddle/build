@@ -591,32 +591,7 @@ function DecisionStory({
   );
 }
 
-function ClaimsPanel({
-  claims, challenges, expandedId, setExpandedId, highlightId, claimRefs,
-}: {
-  claims: DecisionClaim[];
-  challenges: DecisionChallenge[];
-  expandedId: string | null;
-  setExpandedId: (id: string | null) => void;
-  highlightId: string | null;
-  claimRefs: React.MutableRefObject<Record<string, HTMLButtonElement | null>>;
-}) {
-  if (claims.length === 0) return null;
-
-  const challengesByClaim = new Map<string, DecisionChallenge[]>();
-  for (const ch of challenges) {
-    if (!challengesByClaim.has(ch.target_claim_id)) challengesByClaim.set(ch.target_claim_id, []);
-    challengesByClaim.get(ch.target_claim_id)!.push(ch);
-  }
-
-  return (
-    <div className="mb-6 p-4" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
-      <div className="flex items-center gap-2 mb-3">
-        <h3 className="text-sm font-bold uppercase" style={{ color: 'var(--signal)', letterSpacing: '0.06em' }}>
-          Evidence IDs ({claims.length})
-        </h3>
-        <span className="text-xs ml-auto" style={{ color: 'var(--app-text-secondary)' }}>Evidence-linked, citable by code</span>
-      </div>
+function ClaimsPanel({   claims, challenges, expandedId, setExpandedId, highlightId, claimRefs, onReverify, reverifyingId, }: {   claims: DecisionClaim[];   challenges: DecisionChallenge[];   expandedId: string | null;   setExpandedId: (id: string | null) => void;   highlightId: string | null;   claimRefs: React.MutableRefObject<Record<string, HTMLButtonElement | null>>;   onReverify: (claimId: string) => void;   reverifyingId: string | null; }) {   if (claims.length === 0) return null;    const challengesByClaim = new Map<string, DecisionChallenge[]>();   for (const ch of challenges) {     if (!challengesByClaim.has(ch.target_claim_id)) challengesByClaim.set(ch.target_claim_id, []);     challengesByClaim.get(ch.target_claim_id)!.push(ch);   }    const staleCount = claims.filter(c => freshnessFor(c).status === 'stale').length;    return (     <div className="mb-6 p-4" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>       <div className="flex items-center gap-2 mb-3">         <h3 className="text-sm font-bold uppercase" style={{ color: 'var(--signal)', letterSpacing: '0.06em' }}>           Evidence IDs ({claims.length})         </h3>         <span className="text-xs ml-auto" style={{ color: 'var(--app-text-secondary)' }}>Evidence-linked, citable by code</span>       </div>       {staleCount > 0 && (         <div className="flex items-center gap-2 mb-3 p-2.5" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)' }}>           <span style={{ fontSize: '14px' }}>🔴</span>           <p className="text-xs font-medium" style={{ color: '#dc2626' }}>             This decision relies on {staleCount} piece{staleCount !== 1 ? 's' : ''} of stale evidence — worth re-verifying before committing.           </p>         </div>       )}
       <div className="space-y-2">
         {claims.map(claim => {
           const isOpen = expandedId === claim.id;
