@@ -638,9 +638,20 @@ function ClaimsPanel({   claims, challenges, expandedId, setExpandedId, highligh
                         </span>
                       )}
                     </div>
-                    <p className="text-xs mt-1" style={{ color: 'var(--app-text-secondary)' }}>
-                      {claim.agent_name} · <span className="capitalize">{claim.claim_type}</span> · {Math.round(claim.confidence * 100)}% confidence
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap mt-1">
+                      <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
+                        {claim.agent_name} · <span className="capitalize">{claim.claim_type}</span> · {Math.round(claim.confidence * 100)}% confidence
+                      </p>
+                      {(() => {
+                        const f = freshnessFor(claim);
+                        const dot = f.status === 'current' ? '🟢' : f.status === 'aging' ? '🟡' : '🔴';
+                        return (
+                          <span className="text-[10px] font-bold" style={{ color: f.color }}>
+                            {dot} {f.label} · verified {f.daysSinceVerified}d ago
+                          </span>
+                        );
+                      })()}
+                    </div>
                     {isOpen && (
                       <div className="mt-2.5 pt-2.5 space-y-2 text-xs" style={{ borderTop: '1px solid var(--app-border)' }}>
                         {evidenceRefs.length > 0 && (
