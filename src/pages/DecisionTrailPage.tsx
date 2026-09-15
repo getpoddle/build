@@ -740,7 +740,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         .order('created_at', { ascending: true }),
       supabase
         .from('decision_claims')
-        .select('id, workspace_id, claim_code, agent_role, agent_name, statement, claim_type, evidence_refs, assumptions, confidence, created_at')
+        .select('id, workspace_id, claim_code, agent_role, agent_name, statement, claim_type, evidence_refs, assumptions, confidence, created_at, last_verified_at, validity_period_days')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: true }),
       supabase
