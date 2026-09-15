@@ -668,8 +668,7 @@ function ClaimsPanel({   claims, challenges, expandedId, setExpandedId, highligh
                             ))}
                           </div>
                         )}
-                        {evidenceRefs.length === 0 && assumptions.length === 0 && claimChallenges.length === 0 && (
-                          <p style={{ color: 'var(--app-text-secondary)' }}>No evidence or assumptions recorded for this claim.</p>
+                                                {evidenceRefs.length === 0 && assumptions.length === 0 && claimChallenges.length === 0 && (                           <p style={{ color: 'var(--app-text-secondary)' }}>No evidence or assumptions recorded for this claim.</p>                         )}                         <div className="pt-1">                           <button                             onClick={(e) => { e.stopPropagation(); onReverify(claim.id); }}                             disabled={reverifyingId === claim.id}                             className="text-xs font-semibold px-2.5 py-1.5 disabled:opacity-50"                             style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-primary)' }}                           >                             {reverifyingId === claim.id ? 'Re-verifying…' : 'Mark as re-verified today'}                           </button>                         </div>
                         )}
                         {claimChallenges.length > 0 && (
                           <div>
