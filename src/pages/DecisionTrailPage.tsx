@@ -714,10 +714,17 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
   const [highlightClaimId, setHighlightClaimId] = useState<string | null>(null);
   const claimRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
+  const [workspaceMeta, setWorkspaceMeta] = useState<{ decision_category: string | null; decision_status: string | null }>({ decision_category: null, decision_status: null });
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     Promise.all([
+      supabase
+        .from('workspaces')
+        .select('decision_category, decision_status')
+        .eq('id', workspaceId)
+        .maybeSingle(),
       supabase
         .from('decision_events')
         .select('id, workspace_id, event_type, actor_type, actor_id, payload, created_at')
