@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ArrowLeft, Clock, X, List, PlayCircle, PauseCircle,
   ChevronLeft, ChevronRight, UserCog, FileText, MessageSquare, MessageCircle,
-  GitBranch, Edit3, CheckCircle2, TrendingUp, Send,
+  GitBranch, Edit3, CheckCircle2, TrendingUp, Send, Download,
 } from 'lucide-react';
+import { exportDecisionTrailToPDF } from '../lib/pdfExport';
 import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
