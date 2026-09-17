@@ -197,19 +197,34 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     setLoadingMembers(true);
     setMemberActionError(null);
     try {
-      const { data, error: membersErr } = await supabase
+      const { data: memberRows, error: membersErr } = await supabase
         .from('organization_members')
-        .select('user_id, role, profiles(full_name, email)')
-        .eq('organization_id', orgId)
-        .order('role');
+        .select('user_id, role')
+        .eq('organization_id', orgId);
 
       if (membersErr) throw membersErr;
 
-      const mapped: OrgMember[] = (data || []).map((row: any) => ({
+      const userIds = (memberRows || []).map(r => r.user_id);
+      let profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
+
+      if (userIds.length > 0) {
+        const { data: profileRows, error: profilesErr } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+
+        if (profilesErr) throw profilesErr;
+
+        for (const p of profileRows || []) {
+          profileMap[p.id] = { full_name: p.full_name, email: p.email };
+        }
+      }
+
+      const mapped: OrgMember[] = (memberRows || []).map(row => ({
         user_id: row.user_id,
         role: row.role,
-        full_name: row.profiles?.full_name || null,
-        email: row.profiles?.email || null,
+        full_name: profileMap[row.user_id]?.full_name || null,
+        email: profileMap[row.user_id]?.email || null,
       }));
 
       const roleOrder: Record<string, number> = { owner: 0, admin: 1, member: 2 };
