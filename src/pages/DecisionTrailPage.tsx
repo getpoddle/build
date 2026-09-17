@@ -745,8 +745,9 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         .select('id, domain, owner_user_id, backup_owner_user_id')
         .eq('workspace_id', workspaceId)
         .order('domain'),
-    ]).then(([evRes, claimsRes, challengesRes, ownersRes]) => {
+  ]).then(([wsRes, evRes, claimsRes, challengesRes, ownersRes]) => {
       if (cancelled) return;
+      if (!wsRes.error && wsRes.data) setWorkspaceMeta(wsRes.data as { decision_category: string | null; decision_status: string | null });
       if (!evRes.error && evRes.data) setEvents(evRes.data as DecisionEvent[]);
       if (!claimsRes.error && claimsRes.data) setClaims(claimsRes.data as DecisionClaim[]);
       if (!challengesRes.error && challengesRes.data) setChallenges(challengesRes.data as DecisionChallenge[]);
