@@ -826,6 +826,35 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
     }
   }
 
+  function describeOverride(ev: DecisionEvent): string {
+    const p = ev.payload as Record<string, unknown>;
+    const field = typeof p?.field === 'string' ? p.field : '';
+    switch (field) {
+      case 'name':
+        return `Renamed the workspace from "${(p.before as Record<string, unknown>)?.name ?? ''}" to "${(p.after as Record<string, unknown>)?.name ?? ''}".`;
+      case 'description':
+        return `Updated the workspace description.`;
+      case 'name_and_description':
+        return `Updated the workspace name and description.`;
+      case 'member_role':
+        return `Changed a member's role from ${p.before} to ${p.after}.`;
+      case 'member_removed':
+        return `Removed a ${p.role || 'member'} from the workspace.`;
+      case 'organization':
+        return p.action === 'linked' ? 'Linked this workspace to an organization.' : 'Unlinked this workspace from its organization.';
+      case 'action_item_assignee':
+        return `Assigned the action item "${p.action_item ?? ''}".`;
+      case 'manual_action_item_added':
+        return `Manually added the action item "${p.action_item ?? ''}".`;
+      case 'conflict_commit':
+        return `Committed to a position on "${p.conflict_topic ?? ''}".`;
+      case 'conflict_uncommit':
+        return `Reversed a prior commitment on "${p.conflict_topic ?? ''}".`;
+      default:
+        return 'Made a manual change to this decision.';
+    }
+  }
+
   function handleExportPDF() {
     const evidence = claims.map(c => {
       const f = freshnessFor(c);
@@ -848,6 +877,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         (typeof p?.recommendation === 'string' && p.recommendation) ||
         (typeof p?.text === 'string' && p.text) ||
         (typeof p?.statement === 'string' && p.statement) ||
+        (ev.event_type === 'human_override' && describeOverride(ev)) ||
         (typeof p?.status === 'string' && `Status: ${p.status}`) ||
         '';
       return {
@@ -858,11 +888,76 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
       };
     });
 
+    const creationEvent = events.find(e => e.event_type === 'decision_created');
+    const openingQuestion = creationEvent?.detail || null;
+
+    const analysisEvents = displayedEvents.filter(ev => ev.event_type === 'agent_analysis');
+    const initialRecommendation = analysisEvents.length > 0
+      ? (typeof (analysisEvents[0].payload as Record<string, unknown>)?.recommendation === 'string'
+          ? String((analysisEvents[0].payload as Record<string, unknown>).recommendation) : null)
+      : null;
+
+    const finalDecisionEvents = displayedEvents.filter(ev => ev.event_type === 'final_decision');
+    const lastFinal = finalDecisionEvents[finalDecisionEvents.length - 1];
+    const finalDecision = lastFinal ? {
+      status: String((lastFinal.payload as Record<string, unknown>)?.status || 'unknown'),
+      actorName: lastFinal.actor_type === 'user' && lastFinal.actor_id ? (actorNames[lastFinal.actor_id] || null) : null,
+      timestamp: lastFinal.created_at,
+    } : null;
+
+    const cutoff = lastFinal ? new Date(lastFinal.created_at).getTime() : Infinity;
+    const rationaleSource = [...analysisEvents].reverse().find(ev => new Date(ev.created_at).getTime() <= cutoff);
+    const rationale = rationaleSource
+      ? (typeof (rationaleSource.payload as Record<string, unknown>)?.recommendation === 'string'
+          ? String((rationaleSource.payload as Record<string, unknown>).recommendation) : null)
+      : null;
+
+    const humanInterventions = displayedEvents
+      .filter(ev => ev.event_type === 'human_override')
+      .map(ev => ({
+        description: describeOverride(ev),
+        actorName: ev.actor_type === 'user' && ev.actor_id ? (actorNames[ev.actor_id] || 'A team member') : 'A team member',
+        created_at: ev.created_at,
+      }));
+
+    const challengeItems = challenges.map(ch => {
+      const targetClaim = claims.find(c => c.id === ch.target_claim_id);
+      return {
+        statement: ch.challenge_text,
+        challengerRole: ch.challenger_agent_name,
+        targetClaimCode: targetClaim?.claim_code || null,
+        created_at: ch.created_at,
+        resolved: ch.status !== 'open',
+      };
+    });
+
+    const openRisks = challenges.filter(ch => ch.status === 'open').map(ch => ch.challenge_text);
+
+    const outcomes = displayedEvents
+      .filter(ev => ev.event_type === 'outcome_logged')
+      .map(ev => {
+        const p = ev.payload as Record<string, unknown>;
+        return {
+          description: `"${p?.action_item ?? ''}" — ${p?.outcome ?? ''}`,
+          created_at: ev.created_at,
+        };
+      });
+
     exportDecisionTrailToPDF({
       workspaceName,
       workspaceId,
+      category: workspaceMeta.decision_category,
+      currentStatus: workspaceMeta.decision_status,
       generatedAt: new Date().toISOString(),
+      openingQuestion,
+      finalDecision,
+      rationale,
+      initialRecommendation,
       evidence,
+      humanInterventions,
+      challenges: challengeItems,
+      openRisks,
+      outcomes,
       events,
     });
   }
