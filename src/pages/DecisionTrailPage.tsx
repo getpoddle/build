@@ -806,7 +806,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
 
   const [reverifyingId, setReverifyingId] = useState<string | null>(null);
 
-  async function handleReverify(claimId: string) {
+    async function handleReverify(claimId: string) {
     setReverifyingId(claimId);
     try {
       const { error } = await supabase.rpc('reverify_decision_claim', { p_claim_id: claimId });
@@ -816,6 +816,47 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
     } finally {
       setReverifyingId(null);
     }
+  }
+
+  function handleExportPDF() {
+    const evidence = claims.map(c => {
+      const f = freshnessFor(c);
+      return {
+        claim_code: c.claim_code,
+        agent_name: c.agent_name,
+        statement: c.statement,
+        claim_type: c.claim_type,
+        confidence: c.confidence,
+        freshness: f.status,
+        daysSinceVerified: f.daysSinceVerified,
+      };
+    });
+
+    const events = displayedEvents.map(ev => {
+      const meta = EVENT_META[ev.event_type];
+      const p = ev.payload as Record<string, unknown>;
+      const detail =
+        (typeof p?.question === 'string' && p.question) ||
+        (typeof p?.recommendation === 'string' && p.recommendation) ||
+        (typeof p?.text === 'string' && p.text) ||
+        (typeof p?.statement === 'string' && p.statement) ||
+        (typeof p?.status === 'string' && `Status: ${p.status}`) ||
+        '';
+      return {
+        event_type: ev.event_type,
+        label: meta?.label || ev.event_type,
+        created_at: ev.created_at,
+        detail: String(detail).slice(0, 300),
+      };
+    });
+
+    exportDecisionTrailToPDF({
+      workspaceName,
+      workspaceId,
+      generatedAt: new Date().toISOString(),
+      evidence,
+      events,
+    });
   }
 
   async function handlePostNote(text: string) {
