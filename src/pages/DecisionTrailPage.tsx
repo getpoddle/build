@@ -924,7 +924,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
                 Story
               </button>
             </div>
-            {viewMode === 'list' && !replayActive && (
+          {viewMode === 'list' && !replayActive && (
               <button
                 onClick={startReplay}
                 className="btn-secondary flex-shrink-0"
@@ -934,6 +934,14 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
                 Point-in-time
               </button>
             )}
+            <button
+              onClick={handleExportPDF}
+              className="btn-secondary flex-shrink-0"
+              style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export
+            </button>
           </div>
         )}
       </div>
