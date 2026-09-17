@@ -1276,6 +1276,10 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
 }
 
 // ─── Decision Trail / Evidence Export ─────────────────────────────────────────
+// Designed so someone with zero prior context can open this PDF and answer:
+// what was considered, what was decided, by whom, why, on what evidence, how
+// strong that evidence was, what AI first recommended, what humans changed
+// or challenged, what's still unresolved, and what happened after.
 
 export interface EvidenceExportItem {
   claim_code: string;
@@ -1294,11 +1298,40 @@ export interface TrailEventExportItem {
   detail: string;
 }
 
+export interface HumanInterventionItem {
+  description: string;
+  actorName: string;
+  created_at: string;
+}
+
+export interface ChallengeItem {
+  statement: string;
+  challengerRole: string;
+  targetClaimCode: string | null;
+  created_at: string;
+  resolved: boolean;
+}
+
+export interface OutcomeItem {
+  description: string;
+  created_at: string;
+}
+
 export interface DecisionTrailExport {
   workspaceName: string;
   workspaceId?: string;
+  category?: string | null;
+  currentStatus?: string | null;
   generatedAt: string;
+  openingQuestion: string | null;
+  finalDecision: { status: string; actorName: string | null; timestamp: string } | null;
+  rationale: string | null;
+  initialRecommendation: string | null;
   evidence: EvidenceExportItem[];
+  humanInterventions: HumanInterventionItem[];
+  challenges: ChallengeItem[];
+  openRisks: string[];
+  outcomes: OutcomeItem[];
   events: TrailEventExportItem[];
 }
 
@@ -1308,6 +1341,15 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     const cls = f === 'current' ? 'bb-sev-low' : f === 'aging' ? 'bb-sev-medium' : 'bb-sev-high';
     return `<span class="bb-badge ${cls}">${label}</span>`;
   };
+
+  const statusLabel = (s: string) =>
+    ({ exploring: 'Exploring', in_debate: 'In Debate', committed: 'Committed', implemented: 'Implemented' } as Record<string, string>)[s] || s;
+
+  const avgConfidence = data.evidence.length > 0
+    ? Math.round((data.evidence.reduce((sum, c) => sum + c.confidence, 0) / data.evidence.length) * 100)
+    : null;
+  const staleCount = data.evidence.filter(c => c.freshness === 'stale').length;
+  const agingCount = data.evidence.filter(c => c.freshness === 'aging').length;
 
   const evidenceHtml = data.evidence.map((c) => `
     <div class="bb-row">
@@ -1321,7 +1363,43 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
       ${freshnessBadge(c.freshness)}
     </div>`).join('');
 
-  const eventsHtml = data.events.map((e, i) => `
+  const interventionsHtml = data.humanInterventions.map((h, i) => `
+    <div class="bb-row">
+      <span class="bb-num">${i + 1}.</span>
+      <div style="flex:1;">
+        <div class="bb-text">${escapeHtml(h.description)}</div>
+        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">${escapeHtml(h.actorName)} · ${new Date(h.created_at).toLocaleString()}</div>
+      </div>
+    </div>`).join('');
+
+  const challengesHtml = data.challenges.map((c, i) => `
+    <div class="bb-row">
+      <span class="bb-num">${i + 1}.</span>
+      <div style="flex:1;">
+        <div class="bb-text">${escapeHtml(c.statement)}</div>
+        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
+          Raised by ${escapeHtml(c.challengerRole)}${c.targetClaimCode ? ` · targets ${escapeHtml(c.targetClaimCode)}` : ''} · ${new Date(c.created_at).toLocaleString()}
+        </div>
+      </div>
+      <span class="bb-badge ${c.resolved ? 'bb-sev-low' : 'bb-sev-medium'}">${c.resolved ? 'Resolved' : 'Open'}</span>
+    </div>`).join('');
+
+  const risksHtml = data.openRisks.map((r, i) => `
+    <div class="bb-row">
+      <span class="bb-num">${i + 1}.</span>
+      <div class="bb-text">${escapeHtml(r)}</div>
+    </div>`).join('');
+
+  const outcomesHtml = data.outcomes.map((o, i) => `
+    <div class="bb-row">
+      <span class="bb-num">${i + 1}.</span>
+      <div style="flex:1;">
+        <div class="bb-text">${escapeHtml(o.description)}</div>
+        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">${new Date(o.created_at).toLocaleString()}</div>
+      </div>
+    </div>`).join('');
+
+  const fullEventsHtml = data.events.map((e, i) => `
     <div class="bb-row">
       <span class="bb-num">${i + 1}.</span>
       <div style="flex:1;">
@@ -1331,34 +1409,73 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
       </div>
     </div>`).join('');
 
-  const staleCount = data.evidence.filter(c => c.freshness === 'stale').length;
-
   const body = `
     <div class="bb-page">
       <div class="bb-header">
-        <h1>Decision Trail & Evidence Log</h1>
-        <p class="bb-sub">${escapeHtml(data.workspaceName)} · Generated ${new Date(data.generatedAt).toLocaleString()}</p>
+        <h1>Decision Record: ${escapeHtml(data.workspaceName)}</h1>
+        <p class="bb-sub">
+          ${data.category ? escapeHtml(data.category) + ' · ' : ''}${data.currentStatus ? statusLabel(data.currentStatus) : ''} · Generated ${new Date(data.generatedAt).toLocaleString()}
+        </p>
       </div>
 
-      ${staleCount > 0 ? `
-        <div class="bb-section" style="background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.25);">
-          <p class="bb-text" style="color:#a8292a;font-weight:700;">
-            ⚠ This decision relies on ${staleCount} piece${staleCount !== 1 ? 's' : ''} of stale evidence.
-          </p>
-        </div>` : ''}
+      <div class="bb-section">
+        <h2>1. Decision Under Consideration</h2>
+        <p class="bb-text">${data.openingQuestion ? escapeHtml(data.openingQuestion) : 'No framing question was recorded for this decision.'}</p>
+      </div>
 
       <div class="bb-section">
-        <h2>Evidence IDs (${data.evidence.length})</h2>
+        <h2>2. Final Decision</h2>
+        ${data.finalDecision ? `
+          <p class="bb-text" style="font-weight:700;">Status: ${statusLabel(data.finalDecision.status)}</p>
+          <p class="bb-text" style="font-size:7pt;color:#94a3b8;">
+            ${data.finalDecision.actorName ? `Recorded by ${escapeHtml(data.finalDecision.actorName)} · ` : ''}${new Date(data.finalDecision.timestamp).toLocaleString()}
+          </p>` : '<p class="bb-text">This decision has not reached a final, locked-in status yet.</p>'}
+      </div>
+
+      <div class="bb-section">
+        <h2>3. Why This Decision Was Made</h2>
+        <p class="bb-text">${data.rationale ? escapeHtml(data.rationale) : 'No synthesized rationale was recorded leading into this decision.'}</p>
+        <p class="bb-text" style="font-size:7pt;color:#94a3b8;margin-top:4px;">Reconstructed from the AI synthesis immediately preceding the final decision.</p>
+      </div>
+
+      <div class="bb-section">
+        <h2>4. What AI Agents Initially Recommended</h2>
+        <p class="bb-text">${data.initialRecommendation ? escapeHtml(data.initialRecommendation) : 'No initial AI recommendation was recorded.'}</p>
+      </div>
+
+      <div class="bb-section">
+        <h2>5. Supporting Evidence (${data.evidence.length} items${avgConfidence !== null ? `, ${avgConfidence}% avg. confidence` : ''})</h2>
+        ${(staleCount + agingCount) > 0 ? `<p class="bb-text" style="color:#a8292a;font-weight:700;margin-bottom:6px;">⚠ ${staleCount} stale, ${agingCount} aging — worth re-verifying.</p>` : ''}
         ${evidenceHtml || '<p class="bb-text">No evidence recorded.</p>'}
       </div>
 
       <div class="bb-section">
-        <h2>Audit Trail (${data.events.length} events)</h2>
-        ${eventsHtml || '<p class="bb-text">No events recorded.</p>'}
+        <h2>6. Human Overrides & Changes (${data.humanInterventions.length})</h2>
+        ${interventionsHtml || '<p class="bb-text">No manual human overrides were recorded.</p>'}
+      </div>
+
+      <div class="bb-section">
+        <h2>7. Challenges Raised (${data.challenges.length})</h2>
+        ${challengesHtml || '<p class="bb-text">No challenges were raised against the evidence.</p>'}
+      </div>
+
+      <div class="bb-section">
+        <h2>8. Open Risks & Unresolved Uncertainty</h2>
+        ${risksHtml || '<p class="bb-text">No unresolved risks identified from current evidence.</p>'}
+      </div>
+
+      <div class="bb-section">
+        <h2>9. What Happened After</h2>
+        ${outcomesHtml || '<p class="bb-text">No outcome has been logged for this decision yet.</p>'}
+      </div>
+
+      <div class="bb-section">
+        <h2>10. Full Chronological Audit Trail (${data.events.length} events)</h2>
+        ${fullEventsHtml || '<p class="bb-text">No events recorded.</p>'}
       </div>
     </div>
   `;
 
-  openPrintWindow(body, `Decision Trail — ${data.workspaceName}`);
+  openPrintWindow(body, `Decision Record — ${data.workspaceName}`);
   logExport('decision_trail', data.workspaceName, data.workspaceId);
 }
