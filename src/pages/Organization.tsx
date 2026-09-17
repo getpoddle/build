@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, AlertTriangle, RefreshCw, ChevronRight, Plus, ShieldCheck, Check, X as XIcon, Pencil, Trash2, Mail, Copy, UserPlus } from 'lucide-react';
+import { Building2, AlertTriangle, RefreshCw, ChevronRight, Plus, ShieldCheck, Check, X as XIcon, Pencil, Trash2, Mail, Copy, UserPlus, Users, Crown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface OrganizationProps {
@@ -34,6 +34,13 @@ interface OverviewRow {
   decision_status: string;
   decision_category: string;
   updated_at: string;
+}
+
+interface OrgMember {
+  user_id: string;
+  role: string;
+  full_name: string | null;
+  email: string | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -86,6 +93,11 @@ export default function Organization({ onNavigate }: OrganizationProps) {
   const [pendingInvites, setPendingInvites] = useState<{ id: string; invited_email: string; token: string; created_at: string }[]>([]);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
+  const [members, setMembers] = useState<OrgMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [memberActionError, setMemberActionError] = useState<string | null>(null);
+  const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id || null));
     loadOrgs();
@@ -96,6 +108,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       loadOrgData(selectedOrgId);
       loadApprovalRequests(selectedOrgId);
       loadPendingInvites(selectedOrgId);
+      loadMembers(selectedOrgId);
     }
   }, [selectedOrgId]);
 
@@ -180,7 +193,74 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     setPendingInvites(data || []);
   }
 
-   async function handleBulkInvite() {
+  async function loadMembers(orgId: string) {
+    setLoadingMembers(true);
+    setMemberActionError(null);
+    try {
+      const { data, error: membersErr } = await supabase
+        .from('organization_members')
+        .select('user_id, role, profiles(full_name, email)')
+        .eq('organization_id', orgId)
+        .order('role');
+
+      if (membersErr) throw membersErr;
+
+      const mapped: OrgMember[] = (data || []).map((row: any) => ({
+        user_id: row.user_id,
+        role: row.role,
+        full_name: row.profiles?.full_name || null,
+        email: row.profiles?.email || null,
+      }));
+
+      const roleOrder: Record<string, number> = { owner: 0, admin: 1, member: 2 };
+      mapped.sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3));
+
+      setMembers(mapped);
+    } catch (err) {
+      setMemberActionError('Could not load organization members.');
+    } finally {
+      setLoadingMembers(false);
+    }
+  }
+
+  async function handleChangeMemberRole(userId: string, newRole: 'admin' | 'member') {
+    if (!selectedOrgId) return;
+    setUpdatingMemberId(userId);
+    setMemberActionError(null);
+    try {
+      const { error: updateErr } = await supabase.rpc('update_organization_member_role', {
+        p_organization_id: selectedOrgId,
+        p_user_id: userId,
+        p_new_role: newRole,
+      });
+      if (updateErr) throw updateErr;
+      setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role: newRole } : m));
+    } catch (err: any) {
+      setMemberActionError(err?.message || 'Could not update this member\'s role.');
+    } finally {
+      setUpdatingMemberId(null);
+    }
+  }
+
+  async function handleRemoveMember(userId: string) {
+    if (!selectedOrgId) return;
+    setUpdatingMemberId(userId);
+    setMemberActionError(null);
+    try {
+      const { error: removeErr } = await supabase.rpc('remove_organization_member', {
+        p_organization_id: selectedOrgId,
+        p_user_id: userId,
+      });
+      if (removeErr) throw removeErr;
+      setMembers(prev => prev.filter(m => m.user_id !== userId));
+    } catch (err: any) {
+      setMemberActionError(err?.message || 'Could not remove this member.');
+    } finally {
+      setUpdatingMemberId(null);
+    }
+  }
+
+  async function handleBulkInvite() {
     if (!selectedOrgId || !inviteEmails.trim()) return;
     setInviting(true);
     setInviteError(null);
@@ -314,8 +394,6 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       setShowDeleteOrgConfirm(false);
       setDeleteOrgConfirmText('');
 
-      // Update local state immediately instead of waiting on a full
-      // re-fetch, so deletion feels instant rather than "rolling."
       setOrgs(prev => {
         const remaining = prev.filter(o => o.id !== deletedId);
         setSelectedOrgId(remaining.length > 0 ? remaining[0].id : null);
@@ -342,7 +420,6 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       setNewOrgName('');
       setShowCreateForm(false);
 
-      // Refresh org list, then select the newly created one
       await loadOrgs();
       if (created?.id) setSelectedOrgId(created.id);
     } catch (err: any) {
@@ -355,6 +432,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
   const totalWorkspaces = health.reduce((sum, row) => sum + Number(row.workspace_count), 0);
   const currentOrg = orgs.find(o => o.id === selectedOrgId) || null;
   const canManageGovernance = currentOrg?.role === 'owner' || currentOrg?.role === 'admin';
+  const isOrgOwner = currentOrg?.role === 'owner';
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
@@ -540,6 +618,89 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                 >
                   {togglingGovernance ? 'Saving…' : currentOrg.require_approval_for_commit ? 'On' : 'Off'}
                 </button>
+              </div>
+            )}
+
+            {/* Members */}
+            {currentOrg && (
+              <div className="mb-6 p-4" style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)' }}>
+                <h2 className="text-sm font-bold uppercase tracking-wide flex items-center gap-2 mb-3" style={{ color: 'var(--app-text-secondary)' }}>
+                  <Users className="w-4 h-4" />
+                  Members {members.length > 0 && `(${members.length})`}
+                </h2>
+
+                {memberActionError && (
+                  <p className="text-xs mb-3" style={{ color: '#dc2626' }}>{memberActionError}</p>
+                )}
+
+                {loadingMembers ? (
+                  <div className="flex items-center gap-2 py-4 justify-center" style={{ color: 'var(--app-text-secondary)' }}>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span className="text-xs">Loading members...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {members.map(m => (
+                      <div
+                        key={m.user_id}
+                        className="flex items-center gap-3 px-3 py-2.5"
+                        style={{ background: 'var(--app-border-subtle, rgba(0,0,0,0.03))' }}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                          style={{ background: 'var(--signal-bg, rgba(37,99,235,0.1))', color: 'var(--signal, #2563eb)' }}
+                        >
+                          {(m.full_name || m.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold truncate" style={{ color: 'var(--app-text-primary)' }}>
+                              {m.full_name || m.email || 'Member'}
+                            </p>
+                            {m.user_id === currentUserId && (
+                              <span className="text-xs" style={{ color: 'var(--app-text-muted, var(--app-text-secondary))' }}>(you)</span>
+                            )}
+                          </div>
+                          {m.email && m.full_name && (
+                            <p className="text-xs truncate" style={{ color: 'var(--app-text-muted, var(--app-text-secondary))' }}>{m.email}</p>
+                          )}
+                        </div>
+
+                        {m.role === 'owner' ? (
+                          <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 flex-shrink-0" style={{ color: '#b8860b', background: 'rgba(184,134,11,0.1)' }}>
+                            <Crown className="w-3 h-3" />
+                            Owner
+                          </span>
+                        ) : isOrgOwner ? (
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <select
+                              value={m.role}
+                              onChange={(e) => handleChangeMemberRole(m.user_id, e.target.value as 'admin' | 'member')}
+                              disabled={updatingMemberId === m.user_id}
+                              className="text-xs font-semibold px-2 py-1.5 disabled:opacity-50"
+                              style={{ border: '1px solid var(--app-border)', background: 'var(--app-bg)', color: 'var(--app-text-primary)' }}
+                            >
+                              <option value="member">Member</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                            <button
+                              onClick={() => handleRemoveMember(m.user_id)}
+                              disabled={updatingMemberId === m.user_id}
+                              className="p-1.5 disabled:opacity-50"
+                              title="Remove from organization"
+                            >
+                              <XIcon className="w-3.5 h-3.5" style={{ color: '#dc2626' }} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-semibold px-2 py-1 flex-shrink-0 capitalize" style={{ color: 'var(--app-text-secondary)' }}>
+                            {m.role}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
