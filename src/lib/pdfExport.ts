@@ -1274,3 +1274,91 @@ export function exportBoardBriefToPDF(data: BoardBriefExport) {
   logExport('board_brief', data.workspaceName, data.workspaceId);
   openPrintWindow(html, `${data.workspaceName} — Board Brief`);
 }
+
+// ─── Decision Trail / Evidence Export ─────────────────────────────────────────
+
+export interface EvidenceExportItem {
+  claim_code: string;
+  agent_name: string;
+  statement: string;
+  claim_type: string;
+  confidence: number;
+  freshness: 'current' | 'aging' | 'stale';
+  daysSinceVerified: number;
+}
+
+export interface TrailEventExportItem {
+  event_type: string;
+  label: string;
+  created_at: string;
+  detail: string;
+}
+
+export interface DecisionTrailExport {
+  workspaceName: string;
+  workspaceId?: string;
+  generatedAt: string;
+  evidence: EvidenceExportItem[];
+  events: TrailEventExportItem[];
+}
+
+export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
+  const freshnessBadge = (f: EvidenceExportItem['freshness']) => {
+    const label = f === 'current' ? 'Current' : f === 'aging' ? 'Aging' : 'Stale';
+    const cls = f === 'current' ? 'bb-sev-low' : f === 'aging' ? 'bb-sev-medium' : 'bb-sev-high';
+    return `<span class="bb-badge ${cls}">${label}</span>`;
+  };
+
+  const evidenceHtml = data.evidence.map((c) => `
+    <div class="bb-row">
+      <span class="bb-num" style="font-family:monospace;font-weight:800;min-width:52px;">${escapeHtml(c.claim_code)}</span>
+      <div class="bb-text" style="flex:1;">
+        ${escapeHtml(c.statement)}
+        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
+          ${escapeHtml(c.agent_name)} · ${escapeHtml(c.claim_type)} · ${Math.round(c.confidence * 100)}% confidence · verified ${c.daysSinceVerified}d ago
+        </div>
+      </div>
+      ${freshnessBadge(c.freshness)}
+    </div>`).join('');
+
+  const eventsHtml = data.events.map((e, i) => `
+    <div class="bb-row">
+      <span class="bb-num">${i + 1}.</span>
+      <div style="flex:1;">
+        <div class="bb-text" style="font-weight:700;">${escapeHtml(e.label)}</div>
+        ${e.detail ? `<div class="bb-text" style="margin-top:2px;">${escapeHtml(e.detail)}</div>` : ''}
+        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">${new Date(e.created_at).toLocaleString()}</div>
+      </div>
+    </div>`).join('');
+
+  const staleCount = data.evidence.filter(c => c.freshness === 'stale').length;
+
+  const body = `
+    <div class="bb-page">
+      <div class="bb-header">
+        <h1>Decision Trail & Evidence Log</h1>
+        <p class="bb-sub">${escapeHtml(data.workspaceName)} · Generated ${new Date(data.generatedAt).toLocaleString()}</p>
+      </div>
+
+      ${staleCount > 0 ? `
+        <div class="bb-section" style="background:rgba(220,38,38,0.06);border-color:rgba(220,38,38,0.25);">
+          <p class="bb-text" style="color:#a8292a;font-weight:700;">
+            ⚠ This decision relies on ${staleCount} piece${staleCount !== 1 ? 's' : ''} of stale evidence.
+          </p>
+        </div>` : ''}
+
+      <div class="bb-section">
+        <h2>Evidence IDs (${data.evidence.length})</h2>
+        ${evidenceHtml || '<p class="bb-text">No evidence recorded.</p>'}
+      </div>
+
+      <div class="bb-section">
+        <h2>Audit Trail (${data.events.length} events)</h2>
+        ${eventsHtml || '<p class="bb-text">No events recorded.</p>'}
+      </div>
+    </div>
+  `;
+
+  openPrintWindow(body, `Decision Trail — ${data.workspaceName}`);
+  logExport('decision_trail', data.workspaceName, data.workspaceId);
+}
