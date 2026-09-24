@@ -149,7 +149,7 @@ export default function About({ onNavigate }: AboutProps) {
         <section className="mb-14">
           <h2 className="text-xl font-bold text-slate-900 mb-4">The team behind Poddle AI</h2>
           <p className="text-sm text-slate-600 leading-relaxed mb-3">
-            Poddle AI is founder-led by <strong className="text-slate-900">Oludotun (Olu) Akinbobola</strong>, a Scrum Master and Agile delivery professional with prior experience across aviation software, insurance, and automotive-adjacent agency work. He previously co-founded Teamplana, a SaaS project management platform.
+            Poddle AI is founder-led by <strong className="text-slate-900">Oludotun Akinbobola</strong>, a digital transformation professional with prior experience across aviation software, insurance, and automotive-adjacent agency work. He previously co-founded Teamplana, a SaaS project management platform.
           </p>
           <p className="text-sm text-slate-600 leading-relaxed">
             Poddle AI grew out of a simple observation: most tools help you communicate a decision after it's made, but almost none help pressure-test it before it becomes expensive to reverse.
@@ -174,7 +174,7 @@ export default function About({ onNavigate }: AboutProps) {
             {[
               ['Company Name', 'Poddle, Inc.'],
               ['Type', 'Delaware C-Corporation, pre-seed'],
-              ['Founder', 'Oludotun (Olu) Akinbobola'],
+              ['Founder', 'Oludotun Akinbobola'],
               ['Headquarters', 'Delaware, USA (remote-first team)'],
               ['Website', 'poddleme.com'],
               ['Core Offering', 'AI-powered decision review, governance, and audit-trail platform'],
