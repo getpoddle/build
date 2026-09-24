@@ -113,13 +113,16 @@ function AppContent() {
       addToast('error', readable);
     }
   }, [addToast]);
-  const [currentPage, setCurrentPage] = useState(() => {
+    const [currentPage, setCurrentPage] = useState(() => {
     const pathname = window.location.pathname;
     if (pathname === '/extension-view') return 'extension-view';
     if (pathname === '/terms') return 'terms';
     if (pathname === '/privacy') return 'privacy';
     if (pathname === '/subprocessors') return 'subprocessors';
     if (pathname === '/pricing') return 'pricing';
+    if (pathname === '/about') return 'about';
+    if (pathname === '/advisory') return 'advisory';
+    if (pathname === '/team') return 'team';
     if (pathname === '/slack') return 'slack';
     const hash = window.location.hash.substring(1);
     if (hash === 'admin' || hash === 'admin-panel' || hash === 'app-icons') {
