@@ -627,6 +627,13 @@ function AppContent() {
       return;
     }
 
+    if (page === 'about' || page === 'advisory' || page === 'team') {
+      setCurrentPage(page);
+      sessionStorage.setItem('currentPage', page);
+      history.pushState(null, '', `/${page}`);
+      return;
+    }
+
     setCurrentPage(page);
     sessionStorage.setItem('currentPage', page);
     const hashMap: Record<string, string> = {
