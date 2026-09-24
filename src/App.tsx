@@ -281,7 +281,12 @@ function AppContent() {
       return;
     }
 
-    const checkForSpecialRoutes = () => {
+      const checkForSpecialRoutes = () => {
+      const pathname = window.location.pathname;
+      if (pathname === '/about') { setCurrentPage('about'); return; }
+      if (pathname === '/advisory') { setCurrentPage('advisory'); return; }
+      if (pathname === '/team') { setCurrentPage('team'); return; }
+
       const hash = window.location.hash.substring(1);
 
       const fswId = firstSignInRef.current;
