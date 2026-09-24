@@ -32,6 +32,7 @@ const DecisionMapPage = lazy(() => import('./pages/DecisionMapPage'));
 const DecisionTrailPage = lazy(() => import('./pages/DecisionTrailPage'));
 const JoinOrganization = lazy(() => import('./pages/JoinOrganization'));
 const Advisory = lazy(() => import('./pages/Advisory'));
+const About = lazy(() => import('./pages/About'));
 const WorkspaceHub = lazy(() => import('./pages/WorkspaceHub'));
 const WorkspaceSettings = lazy(() => import('./pages/WorkspaceSettings'));
 const JoinWorkspace = lazy(() => import('./pages/JoinWorkspace'));
@@ -313,6 +314,7 @@ function AppContent() {
       if (hash === 'subprocessors') { setCurrentPage('subprocessors'); return; }
       if (hash === 'team') { setCurrentPage('team'); return; }
       if (hash === 'advisory') { setCurrentPage('advisory'); return; }
+      if (hash === 'about') { setCurrentPage('about'); return; }
       if (hash === 'blog') { setCurrentPage('blog'); return; }
       if (hash.startsWith('blog/')) {
         const slug = hash.slice('blog/'.length);
@@ -907,6 +909,10 @@ function AppContent() {
 
   if (currentPage === 'advisory') {
     return wrap(<Advisory onNavigate={handleNavigate} />);
+  }
+
+  if (currentPage === 'about') {
+    return wrap(<About onNavigate={handleNavigate} />);
   }
 
   if (!user) {
