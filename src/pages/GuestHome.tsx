@@ -119,6 +119,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: '#6b7280' }}>
               <button onClick={() => onNavigate('team')} className="hover:text-slate-900 transition-colors">Team</button>
               <button onClick={() => onNavigate('advisory')} className="hover:text-slate-900 transition-colors">Advisory</button>
+              <button onClick={() => onNavigate('about')} className="hover:text-slate-900 transition-colors">About</button>
               <button onClick={() => onNavigate('blog')} className="hover:text-slate-900 transition-colors">Blog</button>
               <button onClick={() => onNavigate('slack')} className="hover:text-slate-900 transition-colors">Slack</button>
               <a href={LENS_URL} target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 transition-colors">Poddle Lens</a>
