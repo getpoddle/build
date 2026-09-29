@@ -182,7 +182,7 @@ export default function Home({ onNavigate }: HomeProps) {
               <p className="section-label mb-4">Built for decision-makers</p>
               <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-5">
                 {[
-                  { icon: Lock, text: 'End-to-end encrypted', sub: 'All workspace data encrypted at rest and in transit' },
+                  { icon: Lock, text: text: 'Encrypted in transit and at rest', sub: 'TLS 1.2+ in transit, encrypted database storage' },
                   { icon: Shield, text: 'Invite-only access', sub: 'Completely private — no public discovery' },
                   { icon: Sparkles, text: '7 specialized AI agents', sub: 'Risk Analyst, Financial Strategist, Execution Lead, and more' },
                 ].map(({ icon: Icon, text, sub }) => (
