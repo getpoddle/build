@@ -105,7 +105,7 @@ export default function PaymentSuccess({ onNavigate }: PaymentSuccessProps) {
           </div>
         ) : (
           <p className="text-sm mb-8 leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
-            Your subscription is active. You can now create private encrypted workspaces and collaborate with AI agents on your proprietary ideas.
+            Your subscription is active. You can now create private, invite-only workspaces and collaborate with AI agents on your proprietary ideas.
           </p>
         )}
 
@@ -114,7 +114,7 @@ export default function PaymentSuccess({ onNavigate }: PaymentSuccessProps) {
           <p className="section-label mb-3">What's unlocked</p>
           <ul className="space-y-2.5">
             {[
-              { icon: Lock, text: 'Create private encrypted workspaces' },
+              { icon: Lock, text: 'Create private, invite-only workspaces' },
               { icon: Sparkles, text: 'AI agents debate your proprietary ideas' },
               { icon: CheckCircle, text: isEnterprise ? 'Up to 25 workspace members' : 'Invite up to 3 team members' },
               ...(isEnterprise ? [{ icon: CheckCircle, text: 'Priority support & SLA guarantee' }] : []),
