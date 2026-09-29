@@ -197,7 +197,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
               </div>
               <div className="flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
-                <span className="text-xs font-medium" style={{ color: '#6b7280' }}>Private & encrypted workspaces</span>
+                <span className="text-xs font-medium" style={{ color: '#6b7280' }}>Private, invite-only workspaces</span>
               </div>
             </div>
 
@@ -402,7 +402,7 @@ const HOW_STEPS = [
     border: 'rgba(8,145,178,0.15)',
     label: 'Team Chat',
     title: 'Your team debates the decision together',
-    body: "Invite your team into a private, encrypted workspace where everyone can post their perspective, share context, and challenge each other's thinking. Upload supporting documents (PDF, DOCX, Excel) to ground the discussion in real data. The team chat is where the human debate happens before any AI ever speaks.",
+    body: "Invite your team into a private, invite-only workspace where everyone can post their perspective, share context, and challenge each other's thinking. Upload supporting documents (PDF, DOCX, Excel) to ground the discussion in real data. The team chat is where the human debate happens before any AI ever speaks.",
     callout: "Team Chat is the human layer: your team's own debate, in your own words, inside a secure workspace.",
     visual: [
       { abbr: 'SK', avatar: TEAM_AVATARS.SK, color: '#0c4a6e', name: 'Sarah (CFO)', text: 'Our burn rate gives us 8 months. We cannot afford a slow rollout, we need revenue fast.' },
@@ -1339,7 +1339,7 @@ function SocialProofSection() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
           {[
             { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Lead, People Advisor, each with a different mandate." },
-            { icon: Shield, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Your workspace is encrypted and invisible to the public. Invite your team. Nothing leaves your org. SOC 2-aligned infrastructure.' },
+            { icon: Shield, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Invite-only workspaces, never listed or searchable. Encrypted in transit and at rest. AI analysis is processed by OpenAI under a data processing agreement.' },
             { icon: FileText, color: '#059669', bg: '#ecfdf5', title: 'Board-ready exports', desc: 'The War Room PDF includes your recommendation, risk signals, action items by owner, and decision health scores, ready to share.' },
             { icon: Building2, color: '#7c3aed', bg: '#f5f3ff', title: 'Organization-wide oversight', desc: 'Link every workspace to your organization. See every decision, its status, and its owner in one view, with optional approval gates before anything commits.' },
             { icon: Fingerprint, color: '#475569', bg: 'rgba(71,85,105,0.08)', title: 'Immutable audit trail', desc: 'Every decision is logged from question to outcome, permanently. Nothing can be quietly edited or backdated.' },
