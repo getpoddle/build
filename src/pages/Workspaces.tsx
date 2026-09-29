@@ -76,7 +76,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
         <div className="mb-6 lg:mb-10">
           <p className="section-label mb-2">Private Spaces</p>
           <h1 className="display-heading text-xl lg:text-2xl xl:text-3xl">Private Workspaces</h1>
-          <p className="text-sm lg:text-base mt-1" style={{ color: 'var(--app-text-secondary)' }}>Encrypted spaces where your team debates proprietary decisions with AI agents.</p>
+          <p className="text-sm lg:text-base mt-1" style={{ color: 'var(--app-text-secondary)' }}>Invite-only spaces where your team debates proprietary decisions</p>
         </div>
 
         {/* Stats row */}
