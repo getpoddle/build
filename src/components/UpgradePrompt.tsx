@@ -11,7 +11,7 @@ export default function UpgradePrompt({ onClose, onUpgrade, context = 'generic',
   const copy = {
     workspace: {
       headline: 'Private Workspaces are a Pro feature',
-      sub: 'Create encrypted spaces where your team debates proprietary ideas with AI agents — completely private and invite-only.',
+      sub: 'Create invite-only spaces where your team debates proprietary ideas with AI agents. Visible only to people you invite.',
     },
     seats: {
       headline: `You've reached your seat limit`,
@@ -31,7 +31,7 @@ export default function UpgradePrompt({ onClose, onUpgrade, context = 'generic',
 
   const { headline, sub } = copy[context];
   const perks = [
-    { icon: Lock, label: 'Encrypted private workspace' },
+    { icon: Lock, label: 'Private, invite-only workspace' },
     { icon: Users, label: 'Invite-only team access' },
     { icon: Brain, label: 'AI agents debate your ideas' },
     { icon: Shield, label: 'Your IP stays private' },
