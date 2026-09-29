@@ -118,7 +118,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                     style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
                   >
                     <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
-                    <span className="mono-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--signal)' }}>Encrypted Team Spaces</span>
+                    <span className="mono-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--signal)' }}>Private Team Spaces</span>
                   </div>
                   <h2 className="display-heading text-lg lg:text-2xl xl:text-3xl mb-3" style={{ color: '#e8ecf2' }}>
                     Where your team's hardest decisions get debated.
@@ -193,11 +193,11 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                 </div>
                 <h2 className="display-heading text-xl mb-2">No private workspaces yet</h2>
                 <p className="text-sm max-w-sm mx-auto mb-8 leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
-                  3 free workspaces with a 7-day trial each — no credit card needed. Full Pro features including encrypted team spaces and AI War Room.
+                3 free workspaces with a 7-day trial each. No credit card needed. Full Pro features including private team spaces and AI War Room.
                 </p>
                 <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto mb-8">
                   {[
-                    { icon: Lock, label: 'End-to-end encrypted' },
+                    { icon: Lock,  label: 'Encrypted in transit and at rest'},
                     { icon: Users, label: 'Invite-only access' },
                     { icon: Brain, label: 'AI agent debates' },
                   ].map(({ icon: Icon, label }) => (
@@ -470,7 +470,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             {!isLoading && view === 'list' && (
               <div className="grid sm:grid-cols-3 gap-4">
                 {[
-                  { icon: Lock, title: 'End-to-end encrypted', desc: 'All workspace data encrypted at rest and in transit' },
+                  { icon: Lock, title: 'Encrypted in transit and at rest', desc: 'TLS 1.2+ in transit, encrypted database storage, invite-only access' },
                   { icon: Zap, title: 'AI War Room', desc: 'Synthesize discussions into structured intelligence in under 60s' },
                   { icon: Users, title: 'Team collaboration', desc: 'Invite members and assign roles — owner, admin, or member' },
                 ].map(({ icon: Icon, title, desc }) => (
