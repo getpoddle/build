@@ -14,7 +14,7 @@ const STATS = [
 ];
 
 const QUICK_ACTIONS = [
-  { icon: Lock, title: 'Private Workspaces', desc: 'Encrypted spaces where your team debates proprietary ideas with AI agents.', cta: 'Open Workspaces', action: 'workspaces' },
+  { icon: Lock, title: 'Private Workspaces', desc: 'Invite-only spaces where your team debates proprietary ideas with AI agents.', cta: 'Open Workspaces', action: 'workspaces' },
   { icon: Brain, title: 'AI War Room', desc: 'Synthesize discussions into structured intelligence — risks, consensus, and action items.', cta: 'View War Room', action: 'workspaces' },
   { icon: TrendingUp, title: 'Decision Intelligence', desc: 'Get multiple AI perspectives that challenge assumptions and surface blind spots.', cta: 'Start Analyzing', action: 'workspaces' },
   { icon: Building2, title: 'Organization', desc: 'Create or join an organization, link workspaces, and require approval before decisions commit.', cta: 'Open Organization', action: 'organization' },
