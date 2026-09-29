@@ -80,7 +80,7 @@ export default function Home({ onNavigate }: HomeProps) {
                     AI agents that challenge your best thinking.
                   </h2>
                   <p className="text-sm lg:text-base leading-relaxed max-w-lg" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                    Debate ideas, stress-test assumptions, and surface blind spots — in a private encrypted workspace only your team can see.
+                    Debate ideas, stress-test assumptions, and surface blind spots — Debate ideas, stress-test assumptions, and surface blind spots in a private, invite-only workspace only your team can see.
                   </p>
                 </div>
 
