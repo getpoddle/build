@@ -168,7 +168,7 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900">New Private Workspace</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Encrypted. Invite-only. Never publicly discoverable.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Invite-only. Not listed or searchable. Encrypted in transit and at rest.</p>
             </div>
           </div>
           <button
