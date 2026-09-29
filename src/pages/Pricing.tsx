@@ -228,7 +228,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
           </div>
           <h1 className="display-heading text-4xl sm:text-5xl mb-4">Choose your plan</h1>
           <p className="text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
-            Private encrypted workspaces and AI decision intelligence for professionals and teams.
+            Private, invite-only workspaces and AI decision intelligence
           </p>
         </div>
 
@@ -382,7 +382,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
           <h2 className="display-heading text-2xl mb-8 text-center">Everything you get from day one</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: Lock, title: 'Private Workspaces', desc: 'Encrypted, invite-only spaces for founders and teams to structure decisions with AI — never publicly discoverable.', badge: null },
+              { icon: Lock, title: 'Private Workspaces', desc: 'Invite-only spaces for founders and teams to structure decisions with AI. Never listed or searchable.', badge: null },
               { icon: Bot, title: 'AI War Room', desc: 'Bring a decision to the War Room and 7 specialized AI agents debate it — surfacing risks, blind spots, and alternative paths.', badge: null },
               { icon: BarChart2, title: 'Workspace Synthesis', desc: 'AI periodically synthesizes everything in your workspace — surfacing patterns, contradictions, and strategic signals you might miss.', badge: null },
               { icon: Users, title: 'Team Collaboration', desc: 'Team supports 10 seats. Business supports 100. AI agents challenge all your assumptions collectively.', badge: 'Team+' },
@@ -424,7 +424,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
           </div>
           <h2 className="display-heading text-2xl mb-3" style={{ color: '#ffffff' }}>Ready to sharpen your decisions?</h2>
           <p className="text-sm mb-7 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            Get private encrypted workspaces, AI War Room intelligence, and a team that thinks faster — starting today.
+          Get private, invite-only workspaces, AI War Room intelligence, and a team that thinks faster, starting today.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             {currentTier !== 'free' ? (
