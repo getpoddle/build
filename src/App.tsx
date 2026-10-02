@@ -37,7 +37,6 @@ const WorkspaceHub = lazy(() => import('./pages/WorkspaceHub'));
 const WorkspaceSettings = lazy(() => import('./pages/WorkspaceSettings'));
 const JoinWorkspace = lazy(() => import('./pages/JoinWorkspace'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
-const ExtensionView = lazy(() => import('./pages/ExtensionView'));
 const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
 const SlackLanding = lazy(() => import('./pages/SlackLanding'));
@@ -115,7 +114,6 @@ function AppContent() {
   }, [addToast]);
     const [currentPage, setCurrentPage] = useState(() => {
     const pathname = window.location.pathname;
-    if (pathname === '/extension-view') return 'extension-view';
     if (pathname === '/terms') return 'terms';
     if (pathname === '/privacy') return 'privacy';
     if (pathname === '/subprocessors') return 'subprocessors';
@@ -191,7 +189,6 @@ function AppContent() {
     }
 
     const pathname = window.location.pathname;
-    if (pathname === '/extension-view') { setCurrentPage('extension-view'); return; }
     if (pathname === '/terms') { setCurrentPage('terms'); return; }
     if (pathname === '/privacy') { setCurrentPage('privacy'); return; }
     if (pathname === '/subprocessors') { setCurrentPage('subprocessors'); return; }
@@ -827,7 +824,6 @@ function AppContent() {
   );
 
   if (currentPage === 'app-icons') return wrap(<AppIcons />);
-  if (currentPage === 'extension-view') return wrap(<ExtensionView />);
   if (currentPage === 'admin-panel') return wrap(<AdminPanel />);
   if (currentPage === 'privacy') return (
     <div className="flex bg-slate-50 min-h-screen">

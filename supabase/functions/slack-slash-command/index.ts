@@ -423,10 +423,8 @@ async function runWarRoom(
       metadata: { source: "slack_slash_command", slack_session_id: slackSessionId },
     });
 
-    // Trigger fast synthesis without awaiting — lens-synthesize uses a single
-    // gpt-4o call (no regeneration/rationale/pattern rollup) so the Board
-    // Brief is ready in ~30-60s instead of 2-5 minutes.
-    fetch(`${supabaseUrl}/functions/v1/lens-synthesize`, {
+    // Trigger synthesis without awaiting so the Board Brief can finish in the background.
+    fetch(`${supabaseUrl}/functions/v1/workspace-synthesize`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

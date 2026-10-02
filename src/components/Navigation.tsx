@@ -465,14 +465,6 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     <MessageSquare className="w-3.5 h-3.5" />
                     Slack
                   </button>
-                  
-                                        <a href="https://chromewebstore.google.com/detail/poddle-lens/pdcllidghoikeoamjebjgdlgjaccfmmn"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-none text-[var(--app-text-secondary)] text-sm font-semibold border border-[var(--app-border)] hover:border-slate-300 hover:bg-[var(--app-bg)] transition-all"
-                  >
-                    Poddle Lens
-                  </a>
                   <button
                     onClick={() => onNavigate('auth')}
                     className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-none text-[var(--app-text-secondary)] text-sm font-semibold border border-[var(--app-border)] hover:border-slate-300 hover:bg-[var(--app-bg)] transition-all"

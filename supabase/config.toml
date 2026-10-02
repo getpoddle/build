@@ -1,0 +1,2 @@
+[functions.slack-slash-command]
+verify_jwt = false
