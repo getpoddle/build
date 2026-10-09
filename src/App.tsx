@@ -10,6 +10,7 @@ import Auth from './pages/Auth';
 import GuestHome from './pages/GuestHome';
 import Navigation from './components/Navigation';
 import InstallPrompt from './components/InstallPrompt';
+import CookieConsent from './components/CookieConsent';
 import { ToastContainer, useToast } from './components/Toast';
 import { useUserWorkspaces } from './hooks/useWorkspaceAccess';
 
@@ -937,6 +938,7 @@ function AppContent() {
         <div style={{ paddingTop: 'calc(4rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
           <GuestHome onNavigate={handleNavigate} />
         </div>
+        <CookieConsent onNavigate={handleNavigate} />
       </div>
     );
   }
@@ -1015,6 +1017,7 @@ function AppContent() {
         </footer>
       </main>
       <InstallPrompt />
+      <CookieConsent onNavigate={handleNavigate} />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );

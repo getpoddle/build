@@ -1,5 +1,6 @@
 import posthog from 'posthog-js';
 import { supabase } from './supabase';
+import { hasAnalyticsConsent, onCookieConsentChange } from './cookieConsent';
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
 const POSTHOG_HOST = (import.meta.env.VITE_POSTHOG_HOST as string | undefined) || 'https://us.i.posthog.com';
@@ -10,6 +11,12 @@ export function initPostHog() {
   if (initialized) return;
   if (!POSTHOG_KEY) return;
   if (typeof window === 'undefined') return;
+  if (!hasAnalyticsConsent()) {
+    onCookieConsentChange((choice) => {
+      if (choice === 'accepted') initPostHog();
+    });
+    return;
+  }
 
   posthog.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
