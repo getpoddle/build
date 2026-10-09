@@ -16,7 +16,7 @@ export default function PrivacyPolicy() {
             <span className="inline-block bg-blue-50 text-blue-700 text-xs font-semibold tracking-wide uppercase px-3 py-1 rounded-full mb-4">Legal</span>
             <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-2 tracking-tight">Privacy Policy</h1>
             <p className="text-slate-500 text-sm">
-              Last Updated: <strong>9 October 2026</strong> &nbsp;·&nbsp; Effective Date: <strong>[requires confirmation before publication]</strong>
+              Last Updated: <strong>9 October 2026</strong> &nbsp;·&nbsp; Effective Date: <strong>9 October 2026</strong> <span className="text-slate-400">[confirm before publishing]</span>
             </p>
           </div>
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 text-sm text-blue-800 leading-relaxed">
@@ -29,10 +29,17 @@ export default function PrivacyPolicy() {
           {/* 1. Who We Are */}
           <Section id="who-we-are" title="1. Who We Are">
             <p>
-              Poddle ("Poddle", "we", "us", "our") is an AI-powered decision governance platform that helps teams pressure-test decisions before they commit. The platform includes a Seven-Agent War Room, Evidence IDs and verification, Decision Trail records, Decision Snapshots, workspace collaboration, and AI-powered decision analysis.
+              Poddle ("Poddle", "we", "us", "our") is an AI-powered decision governance platform that helps individuals and organizations analyze consequential decisions, evaluate supporting evidence, document reasoning, and maintain decision records. The platform includes a Seven-Agent War Room, Evidence IDs and verification, Decision Trail records, Decision Snapshots, workspace collaboration, and AI-powered decision analysis.
             </p>
             <p className="mt-3">
-              For the purposes of the EU General Data Protection Regulation (2016/679) ("GDPR") and applicable national data-protection laws, Poddle is the <strong>data controller</strong> of your personal data. Poddle is operated by Poddle, Inc., a Delaware corporation.
+              For the purposes of the EU General Data Protection Regulation (2016/679) ("GDPR") and applicable national data-protection laws, Poddle's role depends on the processing activity:
+            </p>
+            <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-3">
+              <li><strong>As a data controller:</strong> For processing activities where Poddle determines the purposes and means of processing — including account registration, account administration, billing, customer communications, platform security, and product analytics.</li>
+              <li><strong>As a data processor:</strong> Where business customers determine the purposes and means of processing personal information submitted to organizational workspaces — including organizational decision records, supporting evidence, uploaded documents, workspace conversations, Decision Trail records, and Decision Snapshots. In these cases, the business customer that owns the workspace is the data controller and Poddle acts as a processor on their behalf.</li>
+            </ul>
+            <p className="mt-3">
+              The actual role for a given activity depends on the applicable agreement and the nature of the data. Poddle is operated by Poddle, Inc., a Delaware corporation. <span className="text-slate-500">[Whether a Data Processing Agreement is in place with any specific customer should be confirmed through contractual review.]</span>
             </p>
             <ContactBlock />
           </Section>
@@ -104,7 +111,7 @@ export default function PrivacyPolicy() {
               ["Legal compliance", "Responding to valid legal requests; enforcing our Terms of Service; retaining financial records as required by law"],
             ]} />
             <p className="mt-3">
-              We do not use your personal data to train AI models. AI-generated outputs are produced by sending your content to external AI providers as described in Section 4. We do not imply that every item of customer content is used for model training. Service delivery, security monitoring, analytics, and any potential model-improvement activities are clearly distinguished.
+              We do not use your personal data to train AI models. AI-generated outputs are produced by sending your content to external AI providers as described in Section 4.
             </p>
           </Section>
 
@@ -149,23 +156,23 @@ export default function PrivacyPolicy() {
             </p>
             <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-3">
               <li><strong>Authenticated account access:</strong> All access requires authentication through Supabase Auth with email and password credentials.</li>
-              <li><strong>Workspace membership controls:</strong> Access to workspace data is restricted to authenticated members of that workspace. Workspace owners and admins manage membership and roles.</li>
+              <li><strong>Workspace membership controls:</strong> Access to private workspace information is restricted according to authentication, workspace membership, and applicable permissions. Workspace owners and admins manage membership and roles.</li>
               <li><strong>Role-based permissions:</strong> Workspace roles (owner, admin, member) determine what actions a user can perform within a workspace.</li>
-              <li><strong>Database Row Level Security (RLS):</strong> PostgreSQL RLS policies enforce workspace isolation at the database level. Users can only access data in workspaces they belong to. These policies have been verified through authenticated database testing.</li>
+              <li><strong>Database Row Level Security (RLS):</strong> PostgreSQL RLS policies enforce workspace isolation at the database level for private workspaces. Users can only access data in workspaces they belong to. These policies have been verified through authenticated database testing.</li>
               <li><strong>Server-side authorization:</strong> Edge functions verify user identity from JWT tokens and check workspace membership before accessing or modifying data.</li>
               <li><strong>Restricted administrative operations:</strong> Admin functions verify admin status through the database and cannot be executed by non-admin users. Privileged RPC functions raise authorization errors for unauthorized callers.</li>
               <li><strong>Protected storage access:</strong> File storage policies enforce that users can only upload, download, modify, or delete files in their own designated storage folders.</li>
               <li><strong>Server-side API credential management:</strong> API keys for external services (OpenAI, Stripe, Resend) are stored as server-side environment variables and are never exposed to client-side code.</li>
-              <li><strong>Encryption in transit:</strong> All data is transmitted over TLS 1.2+.</li>
+              <li><strong>Encryption in transit:</strong> Data is transmitted over TLS during transmission.</li>
               <li><strong>Encryption at rest:</strong> Database volumes are encrypted by Supabase infrastructure.</li>
               <li><strong>Password hashing:</strong> Passwords are stored as bcrypt hashes with per-user salts. We cannot read your password.</li>
               <li><strong>Rate limiting:</strong> API and authentication endpoints are rate-limited to prevent brute-force attacks.</li>
             </ul>
             <p className="mt-4">
-              Workspace access is controlled according to membership and permissions. A user who is not a member of a workspace cannot read, modify, or delete that workspace's decision claims, evidence, verification history, evidence versions, decision events, or decision snapshots. This has been verified through authenticated database testing using simulated user sessions.
+              Access to private workspace information is restricted according to authentication, workspace membership, and applicable permissions. A user who is not a member of a private workspace cannot read, modify, or delete that workspace's decision claims, evidence, verification history, evidence versions, decision events, or decision snapshots. This has been verified through authenticated database testing using simulated user sessions.
             </p>
             <p className="mt-3">
-              Note that some workspaces may be intentionally public or shared. Public workspaces are visible to authenticated users and, in certain configurations, to anonymous visitors. Workspace owners choose whether their workspace is public or private. The security controls described above apply to private workspace data.
+              Information intentionally made public or shared may be accessible to other users according to the relevant visibility settings. Some workspaces may be intentionally public or shared. Public workspaces are visible to authenticated users and, in certain configurations, to anonymous visitors. Workspace owners choose whether their workspace is public or private. The security controls described above apply to private workspace data.
             </p>
             <p className="mt-3">
               <strong>No internet-based service can guarantee absolute security.</strong> Despite our safeguards, no system is completely secure. We regularly review and improve our security posture. In the event of a personal data breach that poses a risk to your rights and freedoms, we will notify the relevant supervisory authority and affected individuals as required by applicable law.
@@ -254,6 +261,18 @@ export default function PrivacyPolicy() {
             <p className="mt-3">
               The permanent deletion cascades across all user-related tables, including profiles, workspace memberships, workspace messages, posts, comments, notifications, Stripe customer records, AI usage records, conversation memory, and authentication entries.
             </p>
+            <p className="mt-3">
+              <strong>Important:</strong> Deleting your individual account does not automatically delete every organizational record associated with you. The following distinctions apply:
+            </p>
+            <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-3">
+              <li><strong>Individual account information</strong> (profile, credentials, personal preferences) is deleted.</li>
+              <li><strong>Organizational information</strong> within workspaces owned by others is controlled by the workspace owner, not by your individual account deletion.</li>
+              <li><strong>Shared workspace records</strong> — including your contributions to decision events, evidence claims, and decision trails in workspaces owned by others — may be retained as part of those workspaces' governance records. Your messages in shared workspaces are deleted, but references to your contributions in audit trails and decision history may persist.</li>
+              <li><strong>Decision snapshots and evidence records</strong> in workspaces you own are removed when the workspace is deleted. In workspaces owned by others, these records are retained by the workspace owner.</li>
+              <li><strong>Pseudonymized benchmark data</strong> (decision benchmarks keyed by a hashed identifier) is structured so that it cannot be attributed back to you after deletion, but the records themselves may persist in aggregate form.</li>
+              <li><strong>Database backups</strong> may contain deleted data for up to 30 days before being purged.</li>
+              <li><strong>External AI provider records</strong> are subject to those providers' own retention practices and cannot be guaranteed to be deleted immediately.</li>
+            </ul>
 
             <SubHeading>9.2 What is deleted immediately</SubHeading>
             <ul className="list-disc ml-6 space-y-1 text-slate-700">
@@ -277,6 +296,8 @@ export default function PrivacyPolicy() {
               <li><strong>Database backups:</strong> Deleted data may remain temporarily in database backups for up to 30 days before being purged.</li>
               <li><strong>Financial records:</strong> Billing and tax records may be retained for up to 7 years to meet legal and tax obligations.</li>
               <li><strong>Shared organizational records:</strong> If you contributed to a workspace owned by another user or organization, your contributions to that workspace may be retained by the workspace owner. Deleting your account does not necessarily delete content you submitted to workspaces owned by others.</li>
+              <li><strong>Decision trail and audit records:</strong> Decision events, evidence claims, and decision snapshots in workspaces owned by others are retained as part of those workspaces' governance records. Your messages in shared workspaces are deleted, but references to your contributions in audit trails may persist.</li>
+              <li><strong>Pseudonymized benchmark data:</strong> Decision benchmark contributions stored under a hashed identifier may persist in aggregate, non-attributable form.</li>
               <li><strong>External provider records:</strong> Data previously transmitted to external AI providers (OpenAI) is subject to those providers' own retention practices. Poddle cannot guarantee immediate deletion of data held by external processors.</li>
               <li><strong>Legal holds:</strong> Certain records may be retained where legally required or otherwise permitted.</li>
             </ul>
@@ -412,9 +433,9 @@ export default function PrivacyPolicy() {
           <Section id="ai-specific" title="16. AI-Specific Disclosures">
             <ul className="list-disc ml-6 space-y-3 text-slate-700">
               <li><strong>No automated profiling for legal effects:</strong> We do not use automated decision-making to make decisions with legal or similarly significant effects on you (GDPR Art. 22). AI agents generate analysis and recommendations, but humans make the final decisions.</li>
-              <li><strong>Data minimization:</strong> We transmit only the information required for each AI operation. System prompts contain agent persona definitions and do not include personal information such as email addresses or passwords.</li>
-              <li><strong>Model training:</strong> We do not use your personal data to train AI models. Whether external AI providers retain or use transmitted data for their own purposes is governed by their published API terms and any applicable enterprise agreements. We do not claim that customer data is never used for AI model training unless verified against the applicable provider terms and configuration.</li>
-              <li><strong>Conversation memory:</strong> AI conversation memory is stored in our database, not with external providers. Conversation history is retrieved from our database and included as context for subsequent AI calls, but the memory itself is stored locally.</li>
+              <li><strong>Data minimization:</strong> We transmit information required for each AI operation. System prompts contain agent persona definitions and do not include personal information such as email addresses, user IDs, or passwords. User-authored content — including workspace messages, decision questions, uploaded document text, and self-described context (goals, industry) — is transmitted to generate relevant AI responses.</li>
+              <li><strong>Model training:</strong> We do not use your personal data to train AI models. Whether external AI providers retain or use transmitted data for their own purposes is governed by their published API terms and any applicable enterprise agreements. We do not claim that OpenAI retains no data, that OpenAI always trains on customer information, or that OpenAI never trains on customer information. <span className="text-slate-500">[The specific retention and training configuration for your OpenAI account should be confirmed operationally against current API terms and settings.]</span></li>
+              <li><strong>Conversation memory:</strong> AI conversation memory is stored in our database. Conversation history is retrieved from our database and included as context for subsequent AI calls. This memory is stored in our database, not with external providers — though conversation history is transmitted to external providers as part of each AI request.</li>
               <li><strong>Feedback signals:</strong> When you provide feedback on AI agent responses (thumbs up/down), that feedback signal is used to improve the quality of AI outputs on the platform.</li>
             </ul>
           </Section>

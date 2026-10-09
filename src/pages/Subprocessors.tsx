@@ -3,7 +3,7 @@ export default function Subprocessors() {
     {
       name: 'Supabase',
       purpose: 'Database hosting, backend infrastructure, and authentication',
-      location: 'United States (AWS us-east-1, North Virginia)',
+      location: 'EU (Frankfurt, Germany — AWS eu-central-1)',
     },
     {
       name: 'Stripe',
