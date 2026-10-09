@@ -16,7 +16,7 @@ export default function PrivacyPolicy() {
             <span className="inline-block bg-blue-50 text-blue-700 text-xs font-semibold tracking-wide uppercase px-3 py-1 rounded-full mb-4">Legal</span>
             <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-2 tracking-tight">Privacy Policy</h1>
             <p className="text-slate-500 text-sm">
-              Last Updated: <strong>9 October 2026</strong> &nbsp;·&nbsp; Effective Date: <strong>9 October 2026</strong> <span className="text-slate-400">[confirm before publishing]</span>
+              Last Updated: <strong>9 October 2026</strong> &nbsp;·&nbsp; Effective Date: <strong>9 October 2026</strong>
             </p>
           </div>
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 text-sm text-blue-800 leading-relaxed">
