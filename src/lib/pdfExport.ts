@@ -1298,6 +1298,33 @@ export interface EvidenceExportItem {
   verification_method?: string | null;
 }
 
+export interface EvidenceVersionExportItem {
+  claim_code: string;
+  version_number: number;
+  previous_statement: string | null;
+  updated_statement: string | null;
+  previous_classification: string | null;
+  updated_classification: string | null;
+  previous_verification_status: string | null;
+  updated_verification_status: string | null;
+  source_reference: string | null;
+  reason_for_modification: string;
+  modified_by_name: string | null;
+  modified_at: string;
+}
+
+export interface SnapshotExportItem {
+  decision_question: string | null;
+  decision_status: string | null;
+  snapshot_timestamp: string;
+  created_by_name: string | null;
+  verified_facts_count: number;
+  reported_facts_count: number;
+  assumptions_count: number;
+  ai_inferences_count: number;
+  ai_recommendation: string | null;
+}
+
 export interface TrailEventExportItem {
   event_type: string;
   label: string;
@@ -1340,6 +1367,8 @@ export interface DecisionTrailExport {
   openRisks: string[];
   outcomes: OutcomeItem[];
   events: TrailEventExportItem[];
+  evidenceVersions?: EvidenceVersionExportItem[];
+  snapshots?: SnapshotExportItem[];
 }
 
 export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
@@ -1477,6 +1506,39 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
       </div>
     </div>`).join('');
 
+  const versionsHtml = (data.evidenceVersions || []).map((v) => {
+    const prevClass = classLabel(v.previous_classification);
+    const newClass = classLabel(v.updated_classification);
+    const prevStatus = vStatusLabel(v.previous_verification_status);
+    const newStatus = vStatusLabel(v.updated_verification_status);
+    return `
+    <div class="bb-row">
+      <span class="bb-num" style="font-family:monospace;font-weight:800;min-width:52px;">${escapeHtml(v.claim_code)} v${v.version_number}</span>
+      <div class="bb-text" style="flex:1;">
+        <div style="font-weight:700;margin-bottom:2px;">Reason: ${escapeHtml(v.reason_for_modification)}</div>
+        ${v.previous_statement ? `<div style="font-size:8pt;color:#94a3b8;">Before: ${escapeHtml(v.previous_statement)}</div>` : ''}
+        ${v.updated_statement ? `<div style="font-size:8pt;color:#334155;">After: ${escapeHtml(v.updated_statement)}</div>` : ''}
+        ${(v.previous_classification || v.updated_classification) ? `<div style="font-size:7pt;color:#94a3b8;margin-top:2px;">Classification: ${escapeHtml(prevClass)} &rarr; ${escapeHtml(newClass)}</div>` : ''}
+        ${(v.previous_verification_status || v.updated_verification_status) ? `<div style="font-size:7pt;color:#94a3b8;">Verification: ${escapeHtml(prevStatus)} &rarr; ${escapeHtml(newStatus)}</div>` : ''}
+        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">${v.modified_by_name ? escapeHtml(v.modified_by_name) + ' · ' : ''}${new Date(v.modified_at).toLocaleString()}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const snapshotsHtml = (data.snapshots || []).map((s, i) => `
+    <div class="bb-row">
+      <span class="bb-num">${i + 1}.</span>
+      <div style="flex:1;">
+        <div class="bb-text" style="font-weight:700;">${s.decision_question ? escapeHtml(s.decision_question) : 'Snapshot'}</div>
+        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
+          Status: ${escapeHtml(s.decision_status || 'unknown')} ·
+          Evidence: ${s.verified_facts_count} verified, ${s.reported_facts_count} reported, ${s.assumptions_count} assumptions, ${s.ai_inferences_count} AI inferences
+          ${s.ai_recommendation ? ` · AI Rec: ${escapeHtml(s.ai_recommendation).slice(0, 120)}${s.ai_recommendation.length > 120 ? '…' : ''}` : ''}
+        </div>
+        <div style="font-size:7pt;color:#94a3b8;">${s.created_by_name ? escapeHtml(s.created_by_name) + ' · ' : ''}${new Date(s.snapshot_timestamp).toLocaleString()}</div>
+      </div>
+    </div>`).join('');
+
   const body = `
     <div class="bb-page">
       <div class="bb-header">
@@ -1498,17 +1560,19 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
           <p class="bb-text" style="font-size:7pt;color:#94a3b8;">
             ${data.finalDecision.actorName ? `Recorded by ${escapeHtml(data.finalDecision.actorName)} · ` : ''}${new Date(data.finalDecision.timestamp).toLocaleString()}
           </p>` : '<p class="bb-text">This decision has not reached a final, locked-in status yet.</p>'}
+        ${!data.finalDecision ? '<p class="bb-text" style="font-size:8pt;color:#b35c10;font-style:italic;margin-top:6px;">This decision is still under review. The information below reflects the current state of deliberation and may change.</p>' : ''}
       </div>
 
       <div class="bb-section">
         <h2>3. Why This Decision Was Made</h2>
         <p class="bb-text">${data.rationale ? escapeHtml(data.rationale) : 'No synthesized rationale was recorded leading into this decision.'}</p>
-        <p class="bb-text" style="font-size:7pt;color:#94a3b8;margin-top:4px;">Reconstructed from the AI synthesis immediately preceding the final decision.</p>
+        <p class="bb-text" style="font-size:7pt;color:#94a3b8;margin-top:4px;">${data.finalDecision ? 'The rationale above is the AI synthesis that preceded the final human decision. The human decision-maker may have agreed with, modified, or rejected this recommendation.' : 'Reconstructed from the AI synthesis immediately preceding the current state.'}</p>
       </div>
 
       <div class="bb-section">
         <h2>4. What AI Agents Initially Recommended</h2>
         <p class="bb-text">${data.initialRecommendation ? escapeHtml(data.initialRecommendation) : 'No initial AI recommendation was recorded.'}</p>
+        <p class="bb-text" style="font-size:7pt;color:#94a3b8;margin-top:4px;">This is the AI-generated recommendation. It does not represent the final decision, which is made by a human team member.</p>
       </div>
 
       <div class="bb-section">
@@ -1542,6 +1606,20 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
         <h2>10. Full Chronological Audit Trail (${data.events.length} events)</h2>
         ${fullEventsHtml || '<p class="bb-text">No events recorded.</p>'}
       </div>
+
+      ${(data.evidenceVersions || []).length > 0 ? `
+      <div class="bb-section">
+        <h2>11. Evidence Version History (${(data.evidenceVersions || []).length} revisions)</h2>
+        <p class="bb-text" style="font-size:7pt;color:#94a3b8;margin-bottom:8px;">Each revision preserves the previous state of the evidence, ensuring the decision trail remains auditable even as evidence is updated.</p>
+        ${versionsHtml}
+      </div>` : ''}
+
+      ${(data.snapshots || []).length > 0 ? `
+      <div class="bb-section">
+        <h2>12. Decision Snapshots (${(data.snapshots || []).length} snapshots)</h2>
+        <p class="bb-text" style="font-size:7pt;color:#94a3b8;margin-bottom:8px;">Snapshots capture the full state of the decision at a point in time, including all evidence classifications and the AI recommendation at that moment.</p>
+        ${snapshotsHtml || '<p class="bb-text">No snapshots recorded.</p>'}
+      </div>` : ''}
     </div>
   `;
 

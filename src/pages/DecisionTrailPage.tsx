@@ -3,6 +3,7 @@ import {
   ArrowLeft, Clock, X, List, PlayCircle, PauseCircle,
   ChevronLeft, ChevronRight, UserCog, FileText, MessageSquare, MessageCircle,
   GitBranch, Edit3, CheckCircle2, TrendingUp, Send, Download, ShieldCheck,
+  History, Camera, AlertCircle,
 } from 'lucide-react';
 import { exportDecisionTrailToPDF } from '../lib/pdfExport';
 import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
@@ -62,6 +63,40 @@ interface VerificationHistoryEntry {
   created_at: string;
 }
 
+interface EvidenceVersion {
+  id: string;
+  claim_id: string;
+  workspace_id: string;
+  version_number: number;
+  previous_statement: string | null;
+  updated_statement: string | null;
+  previous_classification: string | null;
+  updated_classification: string | null;
+  previous_verification_status: string | null;
+  updated_verification_status: string | null;
+  source_reference: string | null;
+  reason_for_modification: string;
+  modified_by: string | null;
+  modified_at: string;
+}
+
+interface DecisionSnapshot {
+  id: string;
+  workspace_id: string;
+  decision_question: string | null;
+  decision_status: string | null;
+  evidence_snapshot: unknown;
+  verified_facts: unknown;
+  reported_facts: unknown;
+  assumptions: unknown;
+  ai_inferences: unknown;
+  outstanding_uncertainties: unknown;
+  ai_recommendation: string | null;
+  human_approvals: unknown;
+  snapshot_timestamp: string;
+  created_by: string | null;
+}
+
 interface DecisionChallenge {
   id: string;
   workspace_id: string;
@@ -90,6 +125,9 @@ const EVENT_META: Record<string, { icon: React.ElementType | null; color: string
   final_decision:    { icon: CheckCircle2,  color: '#16a34a', label: 'Final Decision' },
   outcome_logged:    { icon: TrendingUp,    color: '#0d9488', label: 'Outcome Logged' },
   team_note:         { icon: MessageCircle, color: '#64748b', label: 'Team Note' },
+  evidence_revised:  { icon: History,       color: '#7c3aed', label: 'Evidence Revised' },
+  evidence_verified: { icon: ShieldCheck,   color: '#16a34a', label: 'Evidence Verified' },
+  snapshot_created:  { icon: Camera,        color: '#0891b2', label: 'Snapshot Created' },
 };
 
 const CLAIM_TYPE_COLORS: Record<string, string> = {
@@ -167,7 +205,7 @@ function freshnessFor(claim: DecisionClaim): { status: Freshness; label: string;
   return { status: 'current', label: 'Current', color: '#16a34a', daysSinceVerified };
 }
 
-const ACTOR_AVATAR_EVENTS = new Set(['final_decision', 'team_note', 'human_override']);
+const ACTOR_AVATAR_EVENTS = new Set(['final_decision', 'team_note', 'human_override', 'evidence_revised', 'evidence_verified', 'snapshot_created']);
 
 function initialsFor(name: string | null | undefined): string {
   if (!name) return 'A';
@@ -230,6 +268,9 @@ function stageForEvent(ev: DecisionEvent): StageKey | null {
     case 'outcome_logged': return 'outcome';
     case 'challenge_raised': return 'challenged';
     case 'team_note': return null;
+    case 'evidence_revised': return 'revised';
+    case 'evidence_verified': return 'revised';
+    case 'snapshot_created': return null;
     case 'human_override': {
       const field = typeof ev.payload?.field === 'string' ? ev.payload.field : '';
       if (field === 'conflict_commit' || field === 'conflict_uncommit') return 'challenged';
@@ -674,6 +715,7 @@ function DecisionStory({
 function ClaimsPanel({
   claims, challenges, expandedId, setExpandedId, highlightId, claimRefs,
   onReverify, onRequestReverification, reverifyingId,
+  evidenceVersions, onRevise, onViewVersionHistory, versionHistoryClaimId, onCloseVersionHistory,
 }: {
   claims: DecisionClaim[];
   challenges: DecisionChallenge[];
@@ -684,6 +726,11 @@ function ClaimsPanel({
   onReverify: (claim: DecisionClaim) => void;
   onRequestReverification: (claimId: string) => void;
   reverifyingId: string | null;
+  evidenceVersions: EvidenceVersion[];
+  onRevise: (claim: DecisionClaim) => void;
+  onViewVersionHistory: (claimId: string) => void;
+  versionHistoryClaimId: string | null;
+  onCloseVersionHistory: () => void;
 }) {
   if (claims.length === 0) return null;
 
@@ -872,7 +919,74 @@ function ClaimsPanel({
                               Request Reverification
                             </button>
                           )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onRevise(claim); }}
+                            className="text-xs font-semibold px-2.5 py-1.5"
+                            style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
+                          >
+                            <History className="w-3 h-3 inline mr-1" />
+                            Revise
+                          </button>
+                          {evidenceVersions.filter(v => v.claim_id === claim.id).length > 0 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onViewVersionHistory(claim.id); }}
+                              className="text-xs font-semibold px-2.5 py-1.5"
+                              style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
+                            >
+                              <History className="w-3 h-3 inline mr-1" />
+                              Version History ({evidenceVersions.filter(v => v.claim_id === claim.id).length})
+                            </button>
+                          )}
                         </div>
+                        {versionHistoryClaimId === claim.id && (
+                          <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--app-border)' }}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <History className="w-3.5 h-3.5" style={{ color: 'var(--app-text-muted)' }} />
+                              <p className="text-[10px] font-bold uppercase" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Version History</p>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onCloseVersionHistory(); }}
+                                className="ml-auto"
+                                style={{ color: 'var(--app-text-muted)' }}
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="space-y-2">
+                              {evidenceVersions.filter(v => v.claim_id === claim.id).map(v => (
+                                <div key={v.id} className="p-2 text-xs" style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-bold" style={{ color: '#7c3aed' }}>v{v.version_number}</span>
+                                    <span style={{ color: 'var(--app-text-muted)' }}>{new Date(v.modified_at).toLocaleString()}</span>
+                                  </div>
+                                  <p style={{ color: 'var(--app-text-secondary)' }}>
+                                    <span className="font-semibold">Reason:</span> {v.reason_for_modification}
+                                  </p>
+                                  {v.previous_statement && v.updated_statement && (
+                                    <p className="mt-1" style={{ color: 'var(--app-text-muted)' }}>
+                                      <span className="line-through">{v.previous_statement}</span>
+                                      <br />
+                                      <span style={{ color: 'var(--app-text-primary)' }}>{v.updated_statement}</span>
+                                    </p>
+                                  )}
+                                  {(v.previous_classification || v.updated_classification) && (
+                                    <p className="mt-1" style={{ color: 'var(--app-text-muted)' }}>
+                                      {v.previous_classification ? classificationLabel(v.previous_classification) : '—'}
+                                      {' → '}
+                                      {v.updated_classification ? classificationLabel(v.updated_classification) : '—'}
+                                    </p>
+                                  )}
+                                  {(v.previous_verification_status || v.updated_verification_status) && (
+                                    <p className="mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
+                                      {v.previous_verification_status ? verificationStatusLabel(v.previous_verification_status) : '—'}
+                                      {' → '}
+                                      {v.updated_verification_status ? verificationStatusLabel(v.updated_verification_status) : '—'}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         {claimChallenges.length > 0 && (
                           <div>
                             <p className="text-[10px] font-bold uppercase mb-1" style={{ color: '#b45309', letterSpacing: '0.08em' }}>Challenges</p>
@@ -907,6 +1021,18 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
   const [claims, setClaims] = useState<DecisionClaim[]>([]);
   const [challenges, setChallenges] = useState<DecisionChallenge[]>([]);
   const [domainOwners, setDomainOwners] = useState<DomainOwnerRow[]>([]);
+  const [evidenceVersions, setEvidenceVersions] = useState<EvidenceVersion[]>([]);
+  const [snapshots, setSnapshots] = useState<DecisionSnapshot[]>([]);
+  const [versionHistoryClaimId, setVersionHistoryClaimId] = useState<string | null>(null);
+  const [viewingSnapshot, setViewingSnapshot] = useState<DecisionSnapshot | null>(null);
+  const [reviseDialogClaim, setReviseDialogClaim] = useState<DecisionClaim | null>(null);
+  const [reviseStatement, setReviseStatement] = useState('');
+  const [reviseClassification, setReviseClassification] = useState('');
+  const [reviseReason, setReviseReason] = useState('');
+  const [reviseSource, setReviseSource] = useState('');
+  const [reviseError, setReviseError] = useState<string | null>(null);
+  const [reviseLoading, setReviseLoading] = useState(false);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
@@ -948,13 +1074,25 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         .select('id, domain, owner_user_id, backup_owner_user_id')
         .eq('workspace_id', workspaceId)
         .order('domain'),
-  ]).then(([wsRes, evRes, claimsRes, challengesRes, ownersRes]) => {
+      supabase
+        .from('evidence_versions')
+        .select('id, claim_id, workspace_id, version_number, previous_statement, updated_statement, previous_classification, updated_classification, previous_verification_status, updated_verification_status, source_reference, reason_for_modification, modified_by, modified_at')
+        .eq('workspace_id', workspaceId)
+        .order('modified_at', { ascending: false }),
+      supabase
+        .from('decision_snapshots')
+        .select('id, workspace_id, decision_question, decision_status, evidence_snapshot, verified_facts, reported_facts, assumptions, ai_inferences, outstanding_uncertainties, ai_recommendation, human_approvals, snapshot_timestamp, created_by')
+        .eq('workspace_id', workspaceId)
+        .order('snapshot_timestamp', { ascending: false }),
+  ]).then(([wsRes, evRes, claimsRes, challengesRes, ownersRes, versionsRes, snapshotsRes]) => {
       if (cancelled) return;
       if (!wsRes.error && wsRes.data) setWorkspaceMeta(wsRes.data as { decision_category: string | null; decision_status: string | null });
       if (!evRes.error && evRes.data) setEvents(evRes.data as DecisionEvent[]);
       if (!claimsRes.error && claimsRes.data) setClaims(claimsRes.data as DecisionClaim[]);
       if (!challengesRes.error && challengesRes.data) setChallenges(challengesRes.data as DecisionChallenge[]);
       if (!ownersRes.error && ownersRes.data) setDomainOwners(ownersRes.data as DomainOwnerRow[]);
+      if (!versionsRes.error && versionsRes.data) setEvidenceVersions(versionsRes.data as EvidenceVersion[]);
+      if (!snapshotsRes.error && snapshotsRes.data) setSnapshots(snapshotsRes.data as DecisionSnapshot[]);
       setLoading(false);
     });
     return () => { cancelled = true; };
@@ -1090,6 +1228,87 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
       }
     } finally {
       setReverifyingId(null);
+    }
+  }
+
+  function openReviseDialog(claim: DecisionClaim) {
+    setReviseDialogClaim(claim);
+    setReviseStatement(claim.statement || '');
+    setReviseClassification(claim.evidence_classification || '');
+    setReviseReason('');
+    setReviseSource('');
+    setReviseError(null);
+  }
+
+  function closeReviseDialog() {
+    setReviseDialogClaim(null);
+    setReviseStatement('');
+    setReviseClassification('');
+    setReviseReason('');
+    setReviseSource('');
+    setReviseError(null);
+  }
+
+  async function handleReviseSubmit() {
+    if (!reviseDialogClaim) return;
+    if (!reviseReason.trim()) { setReviseError('A reason for the modification is required.'); return; }
+    setReviseLoading(true);
+    setReviseError(null);
+    try {
+      const { error } = await supabase.rpc('revise_evidence_claim', {
+        p_claim_id: reviseDialogClaim.id,
+        p_reason: reviseReason.trim(),
+        p_new_statement: reviseStatement.trim() !== reviseDialogClaim.statement ? reviseStatement.trim() : null,
+        p_new_classification: reviseClassification || null,
+        p_source_reference: reviseSource.trim() || null,
+      });
+      if (!error) {
+        setClaims(prev => prev.map(c => c.id === reviseDialogClaim.id ? {
+          ...c,
+          statement: reviseStatement.trim() || c.statement,
+          evidence_classification: reviseClassification || c.evidence_classification,
+          source_reference: reviseSource.trim() || c.source_reference,
+        } : c));
+        const { data: newVersions } = await supabase
+          .from('evidence_versions')
+          .select('id, claim_id, workspace_id, version_number, previous_statement, updated_statement, previous_classification, updated_classification, previous_verification_status, updated_verification_status, source_reference, reason_for_modification, modified_by, modified_at')
+          .eq('workspace_id', workspaceId)
+          .order('modified_at', { ascending: false });
+        if (newVersions) setEvidenceVersions(newVersions as EvidenceVersion[]);
+        closeReviseDialog();
+      } else {
+        const msg = error.message || '';
+        if (msg.includes('not authorized')) {
+          setReviseError('You are not authorized to revise evidence in this workspace.');
+        } else if (msg.includes('reason is required')) {
+          setReviseError('A reason for the modification is required.');
+        } else {
+          setReviseError('Revision failed. Please try again.');
+        }
+      }
+    } catch {
+      setReviseError('Revision failed. Please try again.');
+    } finally {
+      setReviseLoading(false);
+    }
+  }
+
+  async function handleCreateSnapshot() {
+    setSnapshotLoading(true);
+    try {
+      const { error } = await supabase.rpc('create_decision_snapshot', {
+        p_workspace_id: workspaceId,
+      });
+      if (!error) {
+        const { data: newSnapshots } = await supabase
+          .from('decision_snapshots')
+          .select('id, workspace_id, decision_question, decision_status, evidence_snapshot, verified_facts, reported_facts, assumptions, ai_inferences, outstanding_uncertainties, ai_recommendation, human_approvals, snapshot_timestamp, created_by')
+          .eq('workspace_id', workspaceId)
+          .order('snapshot_timestamp', { ascending: false });
+        if (newSnapshots) setSnapshots(newSnapshots as DecisionSnapshot[]);
+      }
+    } finally {
+      setSnapshotLoading(false);
     }
   }
 
@@ -1233,6 +1452,40 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
       openRisks,
       outcomes,
       events,
+      evidenceVersions: evidenceVersions.map(v => {
+        const claim = claims.find(c => c.id === v.claim_id);
+        return {
+          claim_code: claim?.claim_code || 'unknown',
+          version_number: v.version_number,
+          previous_statement: v.previous_statement,
+          updated_statement: v.updated_statement,
+          previous_classification: v.previous_classification,
+          updated_classification: v.updated_classification,
+          previous_verification_status: v.previous_verification_status,
+          updated_verification_status: v.updated_verification_status,
+          source_reference: v.source_reference,
+          reason_for_modification: v.reason_for_modification,
+          modified_by_name: v.modified_by ? (actorNames[v.modified_by] || null) : null,
+          modified_at: v.modified_at,
+        };
+      }),
+      snapshots: snapshots.map(s => {
+        const vf = Array.isArray(s.verified_facts) ? s.verified_facts as unknown[] : [];
+        const rf = Array.isArray(s.reported_facts) ? s.reported_facts as unknown[] : [];
+        const as = Array.isArray(s.assumptions) ? s.assumptions as unknown[] : [];
+        const ai = Array.isArray(s.ai_inferences) ? s.ai_inferences as unknown[] : [];
+        return {
+          decision_question: s.decision_question,
+          decision_status: s.decision_status,
+          snapshot_timestamp: s.snapshot_timestamp,
+          created_by_name: s.created_by ? (actorNames[s.created_by] || null) : null,
+          verified_facts_count: vf.length,
+          reported_facts_count: rf.length,
+          assumptions_count: as.length,
+          ai_inferences_count: ai.length,
+          ai_recommendation: s.ai_recommendation,
+        };
+      }),
     });
   }
 
@@ -1309,6 +1562,17 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
               >
                 <Clock className="w-3.5 h-3.5" />
                 Point-in-time
+              </button>
+            )}
+          {viewMode === 'list' && !replayActive && (
+              <button
+                onClick={handleCreateSnapshot}
+                disabled={snapshotLoading}
+                className="btn-secondary flex-shrink-0 disabled:opacity-40"
+                style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
+              >
+                <Camera className="w-3.5 h-3.5" />
+                {snapshotLoading ? 'Capturing…' : 'Snapshot'}
               </button>
             )}
             <button
@@ -1420,8 +1684,69 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
               onReverify={openReverifyDialog}
               onRequestReverification={handleRequestReverification}
               reverifyingId={reverifyingId}
+              evidenceVersions={evidenceVersions}
+              onRevise={openReviseDialog}
+              onViewVersionHistory={setVersionHistoryClaimId}
+              versionHistoryClaimId={versionHistoryClaimId}
+              onCloseVersionHistory={() => setVersionHistoryClaimId(null)}
             />
           )}
+        {!replayActive && (
+          <div className="mt-4 p-4" style={{ background: 'var(--app-surface-raised, #fff)', border: '1px solid var(--app-border)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Camera className="w-4 h-4" style={{ color: '#0891b2' }} />
+              <h3 className="text-sm font-bold uppercase" style={{ color: 'var(--app-text-secondary)', letterSpacing: '0.06em' }}>
+                Decision Snapshots ({snapshots.length})
+              </h3>
+              <button
+                onClick={handleCreateSnapshot}
+                disabled={snapshotLoading}
+                className="text-xs font-semibold px-2.5 py-1.5 ml-auto disabled:opacity-50"
+                style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-primary)' }}
+              >
+                {snapshotLoading ? 'Capturing…' : 'Capture Snapshot'}
+              </button>
+            </div>
+            <p className="text-xs mb-3" style={{ color: 'var(--app-text-secondary)' }}>
+              Snapshots capture the full state of the decision at a point in time — evidence, classifications, AI recommendation, and approvals — preserving a read-only record even as the decision evolves.
+            </p>
+            {snapshots.length > 0 && (
+              <div className="space-y-2">
+                {snapshots.map(s => {
+                  const vf = Array.isArray(s.verified_facts) ? s.verified_facts as unknown[] : [];
+                  const rf = Array.isArray(s.reported_facts) ? s.reported_facts as unknown[] : [];
+                  const as = Array.isArray(s.assumptions) ? s.assumptions as unknown[] : [];
+                  const ai = Array.isArray(s.ai_inferences) ? s.ai_inferences as unknown[] : [];
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setViewingSnapshot(s)}
+                      className="w-full text-left p-3"
+                      style={{ border: '1px solid var(--app-border)', background: 'var(--app-surface)' }}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold" style={{ color: '#0891b2' }}>
+                          {new Date(s.snapshot_timestamp).toLocaleString()}
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5" style={{ color: 'var(--app-text-secondary)', background: 'var(--app-surface-raised, #fff)', borderRadius: '4px' }}>
+                          {s.decision_status || 'unknown'}
+                        </span>
+                      </div>
+                      <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
+                        {vf.length} verified · {rf.length} reported · {as.length} assumptions · {ai.length} AI inferences
+                      </p>
+                      {s.ai_recommendation && (
+                        <p className="text-xs mt-1" style={{ color: 'var(--app-text-muted)' }}>
+                          AI Rec: {s.ai_recommendation.slice(0, 120)}{s.ai_recommendation.length > 120 ? '…' : ''}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
         {reverifyDialogClaim && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1496,6 +1821,160 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
                     Cancel
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {reviseDialogClaim && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+            onClick={closeReviseDialog}
+          >
+            <div
+              className="panel max-w-md w-full p-5"
+              style={{ background: 'var(--app-surface-raised, #fff)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <History className="w-4 h-4" style={{ color: '#7c3aed' }} />
+                <h3 className="text-sm font-bold">Revise Evidence {reviseDialogClaim.claim_code}</h3>
+                <button onClick={closeReviseDialog} className="ml-auto" style={{ color: 'var(--app-text-muted)' }}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs mb-3" style={{ color: 'var(--app-text-secondary)' }}>
+                Current: {reviseDialogClaim.statement}
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Updated Statement</label>
+                  <textarea
+                    value={reviseStatement}
+                    onChange={e => setReviseStatement(e.target.value)}
+                    className="input-modern w-full"
+                    style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem', minHeight: '60px' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Classification</label>
+                  <select
+                    value={reviseClassification}
+                    onChange={e => setReviseClassification(e.target.value)}
+                    className="input-modern w-full"
+                    style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem' }}
+                  >
+                    <option value="">Unchanged</option>
+                    {VALID_CLASSIFICATIONS.map(c => (
+                      <option key={c} value={c}>{EVIDENCE_CLASSIFICATION_LABELS[c]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Source Reference</label>
+                  <input
+                    type="text"
+                    value={reviseSource}
+                    onChange={e => setReviseSource(e.target.value)}
+                    placeholder="URL or citation (optional)"
+                    className="input-modern w-full"
+                    style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Reason for Modification *</label>
+                  <input
+                    type="text"
+                    value={reviseReason}
+                    onChange={e => setReviseReason(e.target.value)}
+                    placeholder="Why is this evidence being revised?"
+                    className="input-modern w-full"
+                    style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem' }}
+                  />
+                </div>
+                {reviseError && (
+                  <p className="text-xs font-medium" style={{ color: '#dc2626' }}>{reviseError}</p>
+                )}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={handleReviseSubmit}
+                    disabled={!reviseReason.trim() || reviseLoading}
+                    className="btn-primary disabled:opacity-40"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem' }}
+                  >
+                    {reviseLoading ? 'Saving…' : 'Save Revision'}
+                  </button>
+                  <button
+                    onClick={closeReviseDialog}
+                    className="btn-secondary"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {viewingSnapshot && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+            onClick={() => setViewingSnapshot(null)}
+          >
+            <div
+              className="panel max-w-lg w-full p-5"
+              style={{ background: 'var(--app-surface-raised, #fff)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Camera className="w-4 h-4" style={{ color: '#0891b2' }} />
+                <h3 className="text-sm font-bold">Decision Snapshot</h3>
+                <button onClick={() => setViewingSnapshot(null)} className="ml-auto" style={{ color: 'var(--app-text-muted)' }}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Captured</p>
+                  <p style={{ color: 'var(--app-text-primary)' }}>{new Date(viewingSnapshot.snapshot_timestamp).toLocaleString()}</p>
+                </div>
+                {viewingSnapshot.decision_question && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Decision Question</p>
+                    <p style={{ color: 'var(--app-text-primary)' }}>{viewingSnapshot.decision_question}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Status</p>
+                  <p style={{ color: 'var(--app-text-primary)' }}>{viewingSnapshot.decision_status || 'unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase mb-1" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Evidence at Time of Snapshot</p>
+                  {(() => {
+                    const vf = Array.isArray(viewingSnapshot.verified_facts) ? viewingSnapshot.verified_facts as unknown[] : [];
+                    const rf = Array.isArray(viewingSnapshot.reported_facts) ? viewingSnapshot.reported_facts as unknown[] : [];
+                    const as = Array.isArray(viewingSnapshot.assumptions) ? viewingSnapshot.assumptions as unknown[] : [];
+                    const ai = Array.isArray(viewingSnapshot.ai_inferences) ? viewingSnapshot.ai_inferences as unknown[] : [];
+                    return (
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5" style={{ color: '#16a34a', background: '#16a34a14', borderRadius: '4px' }}>{vf.length} Verified Facts</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5" style={{ color: '#0891b2', background: '#0891b214', borderRadius: '4px' }}>{rf.length} Reported Facts</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5" style={{ color: '#d97706', background: '#d9770614', borderRadius: '4px' }}>{as.length} Assumptions</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5" style={{ color: '#2563eb', background: '#2563eb14', borderRadius: '4px' }}>{ai.length} AI Inferences</span>
+                      </div>
+                    );
+                  })()}
+                </div>
+                {viewingSnapshot.ai_recommendation && (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>AI Recommendation at Time</p>
+                    <p style={{ color: 'var(--app-text-secondary)' }}>{viewingSnapshot.ai_recommendation}</p>
+                  </div>
+                )}
+                <p className="text-[10px] pt-2" style={{ color: 'var(--app-text-muted)', borderTop: '1px solid var(--app-border)' }}>
+                  This snapshot is a read-only record. It captures the state of the decision at the moment it was taken and does not change.
+                </p>
               </div>
             </div>
           </div>
