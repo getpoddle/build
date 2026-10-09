@@ -1,37 +1,79 @@
-
 import { useState, useEffect, useRef } from 'react';
 import {
-  ArrowRight, CheckCircle, Lock, Brain,
-  Swords, Zap,
-  Download, AlertTriangle, Target, BarChart3, TrendingUp,
-  ChevronRight, Users, MessageSquare, FileText, Shield,
-  ArrowDown, ChevronDown, Send, Building2,
-  Fingerprint, Hash, History, ShieldCheck,
+  ArrowRight,
+  CheckCircle,
+  Lock,
+  Brain,
+  Shield,
+  History,
+  FileText,
+  AlertTriangle,
+  Target,
+  ChevronRight,
+  Users,
+  ShieldCheck,
+  TrendingUp,
+  Building2,
+  Scale,
+  Briefcase,
+  Handshake,
+  Network,
+  Eye,
+  CheckCircle2,
+  Clock,
+  ChevronDown,
 } from 'lucide-react';
-import JoinPromptModal from '../components/JoinPromptModal';
 import PoddleMark from '../components/PoddleMark';
+import type { LucideIcon } from 'lucide-react';
 
 interface GuestHomeProps {
   onNavigate: (page: string) => void;
 }
 
-function useScrollReveal() {
-  const ref = useRef<HTMLDivElement>(null);
+// ─── Brand tokens ────────────────────────────────────────────────────────────
+const GOLD = '#b8860b';
+const GOLD_LIGHT = '#d4a535';
+const BLUE = '#2563eb';
+const INK = '#0f172a';
+const SLATE = '#475569';
+const SLATE_MID = '#64748b';
+const SLATE_LIGHT = '#94a3b8';
+const BORDER = '#e2e8f0';
+const BORDER_SOFT = '#f1f5f9';
+const BG_ALT = '#f8fafc';
+const WHITE = '#ffffff';
+
+// ─── Scroll reveal ───────────────────────────────────────────────────────────
+function useScrollReveal<T extends HTMLElement = HTMLDivElement>() {
+  const ref = useRef<T | null>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
-      { threshold: 0.08 }
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.08 },
     );
-    observer.observe(el);
-    return () => observer.disconnect();
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
   return { ref, visible };
 }
 
-function RevealSection({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+function RevealSection({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
   const { ref, visible } = useScrollReveal();
   return (
     <div
@@ -40,7 +82,8 @@ function RevealSection({ children, className = '', delay = 0 }: { children: Reac
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0)' : 'translateY(28px)',
-        transition: `opacity 0.65s ease ${delay}ms, transform 0.65s ease ${delay}ms`,
+        transition: 'opacity 0.65s ease, transform 0.65s ease',
+        transitionDelay: `${delay}ms`,
       }}
     >
       {children}
@@ -48,659 +91,515 @@ function RevealSection({ children, className = '', delay = 0 }: { children: Reac
   );
 }
 
-export default function GuestHome({ onNavigate }: GuestHomeProps) {
-  const [joinModal, setJoinModal] = useState<{ open: boolean; trigger: string }>({ open: false, trigger: 'default' });
-  const openJoin = (trigger: string) => setJoinModal({ open: true, trigger });
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+const CAPABILITIES: {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  points: string[];
+}[] = [
+  {
+    icon: Brain,
+    title: 'Decision Intelligence',
+    body: 'Analyze trade-offs, risks, and competing perspectives using specialized AI agents that examine decisions from multiple angles.',
+    points: ['Multi-agent analysis', 'Risk identification', 'Trade-off evaluation'],
+  },
+  {
+    icon: Eye,
+    title: 'Evidence Intelligence',
+    body: 'Classify evidence, document provenance, and distinguish verified information from assumptions. Surface uncertainty before it becomes costly.',
+    points: ['Evidence classification', 'Provenance tracking', 'Assumption detection'],
+  },
+  {
+    icon: Shield,
+    title: 'Decision Governance',
+    body: 'Assign ownership, document approvals, and preserve accountability so every decision is defensible and auditable.',
+    points: ['Ownership assignment', 'Approval workflows', 'Accountability records'],
+  },
+  {
+    icon: History,
+    title: 'Decision History',
+    body: 'Maintain evidence revisions, decision trails, and historical snapshots that let you reconstruct how any decision was made.',
+    points: ['Evidence versioning', 'Decision trails', 'Point-in-time snapshots'],
+  },
+];
+
+const PROCESS_STEPS: {
+  num: string;
+  icon: LucideIcon;
+  title: string;
+  body: string;
+}[] = [
+  {
+    num: '01',
+    icon: FileText,
+    title: 'Capture the Decision',
+    body: 'Define the decision, its context, and the questions it needs to answer. Invite the right people into a shared workspace.',
+  },
+  {
+    num: '02',
+    icon: Eye,
+    title: 'Examine the Evidence',
+    body: 'Gather supporting evidence, classify it by verification status, and tag assumptions. Every source is documented with provenance.',
+  },
+  {
+    num: '03',
+    icon: Brain,
+    title: 'Evaluate Perspectives',
+    body: 'Deploy specialized AI agents to analyze risks, challenge assumptions, and surface conflicting evidence from different viewpoints.',
+  },
+  {
+    num: '04',
+    icon: ShieldCheck,
+    title: 'Document the Decision',
+    body: 'Record the outcome, ownership, and reasoning. Generate a decision trail and snapshot that preserves the full context for future review.',
+  },
+];
+
+const USE_CASES: {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+}[] = [
+  {
+    icon: TrendingUp,
+    title: 'Strategic Investments',
+    body: 'Evaluate capital allocation decisions with structured evidence assessment and risk analysis before committing resources.',
+  },
+  {
+    icon: Building2,
+    title: 'Market Entry',
+    body: 'Assess new market opportunities by assembling evidence, testing assumptions, and documenting the reasoning behind go or no-go.',
+  },
+  {
+    icon: Briefcase,
+    title: 'Mergers & Acquisitions',
+    body: 'Structure due diligence with classified evidence, identified risks, and a clear record of what was known and what was assumed.',
+  },
+  {
+    icon: Network,
+    title: 'Technology Investments',
+    body: 'Evaluate technology adoption decisions with trade-off analysis, competing perspectives, and a documented evaluation trail.',
+  },
+  {
+    icon: Scale,
+    title: 'Organizational Restructuring',
+    body: 'Approve structural changes with documented evidence, stakeholder input, and a defensible record of how the decision was reached.',
+  },
+  {
+    icon: Handshake,
+    title: 'Strategic Partnerships',
+    body: 'Assess partnership proposals with evidence-based analysis, risk identification, and a clear ownership trail for accountability.',
+  },
+];
+
+const SECURITY_FEATURES: {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+}[] = [
+  {
+    icon: Lock,
+    title: 'Workspace Access Controls',
+    body: 'Decisions live in private workspaces with role-based access. Only invited members can view, contribute to, or manage a decision.',
+  },
+  {
+    icon: FileText,
+    title: 'Evidence Traceability',
+    body: 'Every piece of evidence carries a unique identifier and provenance record, so you can trace any claim back to its source.',
+  },
+  {
+    icon: History,
+    title: 'Historical Records',
+    body: 'Decision trails and evidence revisions are preserved over time, creating an immutable record of how decisions evolved.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Privacy-Conscious Processing',
+    body: 'Workspace data is processed with attention to privacy. Your decision content is not used for public model training.',
+  },
+];
+
+// Demo data for product showcase — illustrative only
+const DEMO_EVIDENCE: { id: string; title: string; type: string; status: 'Verified' | 'Assumption' | 'Unverified' }[] = [
+  { id: 'EV-001', title: 'Q3 market revenue analysis', type: 'Financial Report', status: 'Verified' },
+  { id: 'EV-002', title: 'Customer retention assumption', type: 'Internal Estimate', status: 'Assumption' },
+  { id: 'EV-003', title: 'Competitor pricing survey', type: 'Market Research', status: 'Verified' },
+  { id: 'EV-004', title: 'Regulatory approval timeline', type: 'External Source', status: 'Unverified' },
+];
+
+const DEMO_RISKS: { level: 'High' | 'Medium' | 'Low'; title: string }[] = [
+  { level: 'High', title: 'Regulatory delay may push launch beyond Q1' },
+  { level: 'Medium', title: 'Competitor may respond with aggressive pricing' },
+  { level: 'Low', title: 'Integration costs could exceed initial estimate' },
+];
+
+const DEMO_TRAIL: { time: string; event: string; actor: string }[] = [
+  { time: 'Oct 2, 14:20', event: 'Decision created', actor: 'O. Akinbobola' },
+  { time: 'Oct 3, 09:15', event: 'Evidence EV-001 verified', actor: 'Risk Analyst' },
+  { time: 'Oct 3, 11:30', event: 'Assumption identified in EV-002', actor: 'Financial Strategist' },
+  { time: 'Oct 4, 16:45', event: 'Decision snapshot recorded', actor: 'System' },
+  { time: 'Oct 5, 10:00', event: 'Ownership assigned to O. Akinbobola', actor: 'O. Akinbobola' },
+];
+
+const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  Verified: { bg: 'rgba(22,163,74,0.08)', text: '#15803d', border: 'rgba(22,163,74,0.2)' },
+  Assumption: { bg: 'rgba(217,119,6,0.08)', text: '#a16207', border: 'rgba(217,119,6,0.2)' },
+  Unverified: { bg: 'rgba(220,38,38,0.08)', text: '#b91c1c', border: 'rgba(220,38,38,0.2)' },
+};
+
+const RISK_COLORS: Record<string, { bg: string; text: string }> = {
+  High: { bg: 'rgba(220,38,38,0.08)', text: '#b91c1c' },
+  Medium: { bg: 'rgba(217,119,6,0.08)', text: '#a16207' },
+  Low: { bg: 'rgba(22,163,74,0.08)', text: '#15803d' },
+};
+
+// ─── Header nav ──────────────────────────────────────────────────────────────
+
+function HeaderNav({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen" style={{ background: '#f8fafc' }}>
-      {joinModal.open && (
-        <JoinPromptModal
-          onClose={() => setJoinModal({ open: false, trigger: 'default' })}
-          onNavigate={onNavigate}
-          trigger={joinModal.trigger as 'comment' | 'react' | 'thread' | 'save' | 'pod' | 'ai' | 'default'}
-        />
-      )}
-
-      <HeroSection onNavigate={onNavigate} />
-      <AsSeenOnSection />
-      <HowItWorksSection onNavigate={onNavigate} />
-      <DecisionTrailSection onNavigate={onNavigate} />
-      <LiveDemoSection onNavigate={onNavigate} />
-      <SocialProofSection />
-      <FinalCTA onNavigate={onNavigate} />
-
-      <footer style={{ background: '#ffffff', borderTop: '1px solid #e5e7eb' }} className="py-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <PoddleMark size={28} />
-              <span className="font-black text-lg tracking-tight">
-                <span style={{ color: '#2563eb', fontWeight: 700 }}>Poddle</span><span style={{ color: '#b8860b', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: '#6b7280' }}>
-              <button onClick={() => onNavigate('team')} className="hover:text-slate-900 transition-colors">Team</button>
-              <button onClick={() => onNavigate('advisory')} className="hover:text-slate-900 transition-colors">Advisory</button>
-              <button onClick={() => onNavigate('about')} className="hover:text-slate-900 transition-colors">About</button>
-              <button onClick={() => onNavigate('blog')} className="hover:text-slate-900 transition-colors">Blog</button>
-              <button onClick={() => onNavigate('slack')} className="hover:text-slate-900 transition-colors">Slack</button>
-              <a href="#privacy" className="hover:text-slate-900 transition-colors">Privacy</a>
-              <a href="#terms" className="hover:text-slate-900 transition-colors">Terms</a>
-              <a href="#subprocessors" className="hover:text-slate-900 transition-colors">Sub-processors</a>
-              <a href="#contact-us" className="hover:text-slate-900 transition-colors">Contact</a>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 text-center text-xs" style={{ color: '#9ca3af', borderTop: '1px solid #e5e7eb' }}>
-            &copy; 2026 Poddle, Inc. All rights reserved.
-          </div>
-        </div>
-      </footer>
+    <div
+      className="hidden md:flex items-center gap-1"
+      style={{ transition: 'all 0.2s ease' }}
+    >
+      <a href="#capabilities" className="px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-slate-100" style={{ color: SLATE }}>
+        Platform
+      </a>
+      <a href="#use-cases" className="px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-slate-100" style={{ color: SLATE }}>
+        Solutions
+      </a>
+      <a href="#how-it-works" className="px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-slate-100" style={{ color: SLATE }}>
+        How It Works
+      </a>
+      <button
+        onClick={() => onNavigate('pricing')}
+        className="px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-slate-100"
+        style={{ color: SLATE }}
+      >
+        Pricing
+      </button>
     </div>
   );
 }
 
-// ─── Hero ─────────────────────────────────────────────────────────────────────
+// ─── Hero ────────────────────────────────────────────────────────────────────
 
 function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section
-      className="relative overflow-hidden"
-      style={{
-        background: '#ffffff',
-        minHeight: '88vh',
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.06) 0%, transparent 65%)', transform: 'translate(30%, -30%)' }} />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle at center, rgba(184,134,11,0.03) 0%, transparent 65%)', transform: 'translate(-30%, 30%)' }} />
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full relative z-10">
+    <section style={{ background: WHITE, position: 'relative', overflow: 'hidden' }} className="pt-16 pb-20 sm:pt-24 sm:pb-28">
+      {/* Subtle background gradient */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37,99,235,0.06), transparent 70%)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left column: copy */}
-          <div className="text-center lg:text-left">
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold leading-[1.08] mb-5 text-slate-900 mx-auto lg:mx-0 max-w-xl tracking-tight">
-              Make high-stakes decisions{' '}
-              <span style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                defensible
+          {/* Left column */}
+          <div>
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6"
+              style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: BLUE }} />
+              <span className="text-xs font-semibold tracking-[0.15em] uppercase" style={{ color: BLUE }}>
+                Decision Intelligence & Governance
               </span>
-              .
+            </div>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.1] mb-6" style={{ color: INK }}>
+              Better decisions.
+              <br />
+              <span style={{ color: BLUE }}>Built on evidence.</span>
             </h1>
 
-            <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0" style={{ color: '#4b5563' }}>
-              Poddle AI turns critical decisions into auditable, repeatable, and organization-wide intelligence.
+            <p className="text-base sm:text-lg leading-relaxed mb-8 max-w-xl" style={{ color: SLATE }}>
+              Poddle AI helps organizations evaluate consequential decisions, challenge assumptions,
+              verify supporting evidence, and preserve a clear record of how decisions are made.
             </p>
 
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-10">
+            <div className="flex flex-col sm:flex-row gap-3 mb-10">
               <button
                 onClick={() => onNavigate('auth')}
-                className="px-8 py-3.5 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-                style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.25)' }}
+                className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg text-white font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5"
+                style={{ background: BLUE, boxShadow: '0 4px 14px rgba(37,99,235,0.25)' }}
               >
-                Get started
+                Try Poddle AI
+                <ArrowRight className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => onNavigate('pricing')}
-                className="flex items-center gap-2 text-sm font-semibold transition-colors hover:text-slate-900"
-                style={{ color: '#6b7280' }}
+              <a
+                href="#how-it-works"
+                className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 hover:bg-slate-50"
+                style={{ color: INK, border: `1px solid ${BORDER}` }}
               >
-                View pricing
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+                See How It Works
+                <ChevronDown className="w-4 h-4" />
+              </a>
             </div>
 
-            <div className="flex items-center justify-center lg:justify-start gap-6 flex-wrap mb-10">
+            <div className="flex items-center gap-5 flex-wrap text-xs" style={{ color: SLATE_MID }}>
               <div className="flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
-                <span className="text-xs font-medium" style={{ color: '#6b7280' }}>Free. No card required.</span>
+                <CheckCircle className="w-4 h-4" style={{ color: '#16a34a' }} />
+                No credit card required
               </div>
               <div className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
-                <span className="text-xs font-medium" style={{ color: '#6b7280' }}>Private, invite-only workspaces</span>
+                <CheckCircle className="w-4 h-4" style={{ color: '#16a34a' }} />
+                Free to start
               </div>
-            </div>
-
-            <div className="flex flex-col items-center lg:items-start gap-3">
-              <div className="flex items-center gap-1">
-                {[
-                  { abbr: 'RA', label: 'Risk Analyst' },
-                  { abbr: 'DA', label: "Devil's Advocate" },
-                  { abbr: 'FS', label: 'Financial Strategist' },
-                  { abbr: 'MA', label: 'Market Analyst' },
-                  { abbr: 'EL', label: 'Execution Lead' },
-                  { abbr: 'IS', label: 'Innovation Lead' },
-                  { abbr: 'PA', label: 'People Advisor' },
-                ].map((a, i) => (
-                  <img
-                    key={a.abbr}
-                    src={AGENT_AVATARS[a.abbr]}
-                    alt={a.label}
-                    title={a.label}
-                    className="w-8 h-8 rounded-xl object-cover transition-transform hover:-translate-y-1 cursor-default"
-                    style={{ zIndex: 7 - i, marginLeft: i > 0 ? -8 : 0, boxShadow: '0 0 0 2px #ffffff' }}
-                  />
-                ))}
+              <div className="flex items-center gap-1.5">
+                <CheckCircle className="w-4 h-4" style={{ color: '#16a34a' }} />
+                Invite your team
               </div>
-              <p className="text-xs font-medium" style={{ color: '#6b7280' }}>7 specialized agents · each with a different mandate</p>
             </div>
           </div>
 
-          {/* Right column: two stacked preview panels (shown on all breakpoints) */}
-          <div className="flex flex-col gap-4 max-w-md mx-auto lg:max-w-none w-full">
-            {/* Panel 1: Multiplayer AI */}
-            <div
-              className="rounded-3xl overflow-hidden"
-              style={{ background: '#FFFFFF', border: '1px solid #e5e7eb', boxShadow: '0 20px 48px rgba(17,24,39,0.12)' }}
-            >
-              <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
-                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Multiplayer AI</span>
-                <div className="ml-auto flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
-                  <span className="text-[10px]" style={{ color: '#5D6B82' }}>Live</span>
-                </div>
-              </div>
-
-              <div className="p-4 space-y-3" style={{ background: '#FFFFFF' }}>
-                <div className="flex gap-2.5">
-                  <img src={TEAM_AVATARS.ML} alt="Maya (Head of Risk)" className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
-                  <div className="flex flex-col max-w-[85%]">
-                    <div className="flex items-baseline gap-2 mb-0.5">
-                      <span className="text-[10px] font-semibold" style={{ color: '#0f766e' }}>Maya (Head of Risk)</span>
-                    </div>
-                    <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed" style={{ background: 'rgba(8,145,178,0.12)', color: '#111827', border: '1px solid rgba(8,145,178,0.18)', borderBottomLeftRadius: '4px' }}>
-                      Should we go multi-market across Europe now, or stage the rollout?
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2.5">
-                  <img src={AGENT_AVATARS.RA} alt="Risk Analyst" className="w-7 h-7 rounded-xl object-cover flex-shrink-0 mt-0.5" style={{ border: '1px solid rgba(124,45,18,0.22)' }} />
-                  <div className="flex flex-col max-w-[85%]">
-                    <div className="flex items-baseline gap-2 mb-0.5">
-                      <span className="text-[10px] font-semibold" style={{ color: '#7c2d12' }}>Risk Analyst</span>
-                    </div>
-                    <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed" style={{ background: 'rgba(124,45,18,0.07)', color: '#111827', border: '1px solid rgba(124,45,18,0.22)', borderBottomLeftRadius: '4px' }}>
-                      Distribution shift risk in EU markets could cause 40-60% prediction errors in year one.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Panel 2: War Room */}
-            <div
-              className="rounded-3xl overflow-hidden"
-              style={{ background: '#FFFFFF', border: '1px solid #e5e7eb', boxShadow: '0 20px 48px rgba(17,24,39,0.12)' }}
-            >
-              <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                <Swords className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
-                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>War Room</span>
-                <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— Synthesis</span>
-              </div>
-
-              <div className="p-4 space-y-3" style={{ background: '#FFFFFF' }}>
-                <div className="rounded-2xl p-3.5" style={{ background: '#F7F9FC', border: '1px solid #D8DDE8' }}>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(184,134,11,0.12)' }}>
-                      <Brain className="w-3 h-3" style={{ color: '#b8860b' }} />
-                    </div>
-                    <span className="text-[11px] font-bold" style={{ color: '#b8860b' }}>War Room Synthesis</span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed" style={{ color: '#111827' }}>
-                    <strong>Stage the rollout. Start Germany.</strong> BaFin approval de-risks the rest of the continent.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5"
-                    style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: '#2563eb', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.3)' }}
-                  >
-                    FIN-01
-                  </span>
-                  <span className="text-[10px]" style={{ color: '#9BA6B8' }}>Evidence-linked, citable by code</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-center mt-14">
-          <a href="#how-it-works" className="flex flex-col items-center gap-2 group" style={{ color: '#9ca3af' }}>
-            <span className="text-xs font-medium group-hover:text-slate-600 transition-colors">See how it works</span>
-            <ChevronDown className="w-4 h-4 animate-bounce" />
-          </a>
+          {/* Right column — product preview */}
+          <HeroPreview />
         </div>
       </div>
     </section>
   );
 }
 
-// ─── As Seen On ────────────────────────────────────────────────────────────────
-
-function AsSeenOnSection() {
-  const logos = (
-    <>
-      <a href="https://www.prnewswire.com/news-releases/poddle-ai-launches-worlds-first-self-service-adversarial-ai-platform-302837161.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
-        <svg viewBox="0 0 120 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="16" cy="20" r="13" fill="#c8102e" />
-          <text x="16" y="25" textAnchor="middle" fill="#fff" fontSize="13" fontWeight="800" fontFamily="Arial, sans-serif">PR</text>
-          <text x="34" y="18" fill="#1e293b" fontSize="11" fontWeight="700" fontFamily="Arial, sans-serif">PR Newswire</text>
-          <text x="34" y="30" fill="#64748b" fontSize="7" fontWeight="600" fontFamily="Arial, sans-serif" letterSpacing="1.5">PRESS RELEASE DISTRIBUTION</text>
-        </svg>
-      </a>
-      <a href="https://finance.yahoo.com/technology/ai/articles/poddle-ai-launches-worlds-first-123700881.html" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
-        <svg viewBox="0 0 140 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <text x="0" y="20" fill="#6001d2" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif" fontStyle="italic">Yahoo!</text>
-          <text x="62" y="20" fill="#1e293b" fontSize="14" fontWeight="700" fontFamily="Arial, sans-serif">Finance</text>
-          <rect x="0" y="26" width="120" height="2" fill="#6001d2" rx="1" />
-        </svg>
-      </a>
-      <a href="https://www.benzinga.com/pressreleases/26/07/n60758133/poddle-ai-launches-world-s-first-self-service-adversarial-ai-platform" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
-        <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <text x="0" y="28" fill="#1e293b" fontSize="22" fontWeight="800" fontFamily="Arial, sans-serif">Benzinga</text>
-        </svg>
-      </a>
-      <a href="https://aijourn.com/poddle-ai-launches-worlds-first-self-service-adversarial-ai-platform/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
-        <svg viewBox="0 0 150 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <text x="0" y="18" fill="#2563eb" fontSize="16" fontWeight="800" fontFamily="Arial, sans-serif">AI</text>
-          <text x="30" y="18" fill="#1e293b" fontSize="16" fontWeight="700" fontFamily="Arial, sans-serif">Journal</text>
-          <rect x="0" y="24" width="92" height="2" fill="#2563eb" rx="1" />
-        </svg>
-      </a>
-      <a href="https://calbizjournal.com/latest-tech-news/?rkey=20260729PH13856&filter=26804" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-100 flex-shrink-0" style={{ opacity: 0.85 }}>
-        <svg viewBox="0 0 200 40" className="h-14 sm:h-16 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <text x="0" y="18" fill="#0f766e" fontSize="13" fontWeight="800" fontFamily="Arial, sans-serif">California</text>
-          <text x="0" y="32" fill="#1e293b" fontSize="13" fontWeight="700" fontFamily="Arial, sans-serif">Business Journal</text>
-        </svg>
-      </a>
-    </>
-  );
-
+function HeroPreview() {
   return (
-    <section style={{ background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-14">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <p className="text-center text-sm font-bold uppercase tracking-widest mb-8" style={{ color: 'rgba(100,116,139,0.7)' }}>
-          As seen on
-        </p>
-        <div className="relative overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, #000 12%, #000 88%, transparent)' }}>
-          <div className="flex items-center gap-16 sm:gap-24 w-max" style={{ animation: 'marqueeScroll 28s linear infinite' }}>
-            {logos}
-            {logos}
+    <div className="relative" style={{ perspective: '1200px' }}>
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          background: WHITE,
+          border: `1px solid ${BORDER}`,
+          boxShadow: '0 20px 50px rgba(15,23,42,0.12), 0 8px 20px rgba(15,23,42,0.06)',
+          transform: 'rotateY(-2deg) rotateX(1deg)',
+          transition: 'transform 0.4s ease',
+        }}
+      >
+        {/* Preview header */}
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: `1px solid ${BORDER_SOFT}`, background: BG_ALT }}>
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#e2e8f0' }} />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#e2e8f0' }} />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#e2e8f0' }} />
           </div>
+          <span className="text-xs font-medium" style={{ color: SLATE_LIGHT }}>
+            Poddle AI — Decision Workspace (Illustrative)
+          </span>
+        </div>
+
+        {/* Preview body */}
+        <div className="p-5">
+          {/* Decision title */}
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: 'rgba(37,99,235,0.08)', color: BLUE }}>
+                In Review
+              </span>
+              <span className="text-xs" style={{ color: SLATE_LIGHT }}>Decision Owner: O. Akinbobola</span>
+            </div>
+            <h3 className="text-base font-bold" style={{ color: INK }}>
+              Market Entry: European Expansion Strategy
+            </h3>
+          </div>
+
+          {/* Evidence chips */}
+          <div className="mb-4">
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: SLATE_LIGHT }}>
+              Evidence
+            </p>
+            <div className="space-y-2">
+              {DEMO_EVIDENCE.slice(0, 3).map((ev) => (
+                <div key={ev.id} className="flex items-center gap-3 px-3 py-2 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+                  <span className="text-xs font-mono" style={{ color: SLATE_LIGHT }}>{ev.id}</span>
+                  <span className="text-xs font-medium flex-1 truncate" style={{ color: INK }}>{ev.title}</span>
+                  <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded"
+                    style={STATUS_COLORS[ev.status]}
+                  >
+                    {ev.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Risk summary */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: SLATE_LIGHT }}>
+              Key Risks
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {DEMO_RISKS.slice(0, 2).map((r, i) => (
+                <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ background: RISK_COLORS[r.level].bg }}>
+                  <AlertTriangle className="w-3 h-3" style={{ color: RISK_COLORS[r.level].text }} />
+                  <span className="text-xs font-medium" style={{ color: RISK_COLORS[r.level].text }}>{r.level}</span>
+                  <span className="text-xs" style={{ color: SLATE }}>— {r.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating accent */}
+      <div
+        className="absolute -bottom-4 -right-4 w-32 h-32 rounded-full"
+        style={{ background: 'radial-gradient(circle, rgba(184,134,11,0.08), transparent 70%)', pointerEvents: 'none' }}
+      />
+    </div>
+  );
+}
+
+// ─── Problem / Value ─────────────────────────────────────────────────────────
+
+function ProblemSection() {
+  return (
+    <section style={{ background: BG_ALT, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }} className="py-20 sm:py-28">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <RevealSection>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-6" style={{ color: INK }}>
+            Decisions are only as strong as the evidence behind them.
+          </h2>
+          <p className="text-base sm:text-lg leading-relaxed max-w-2xl mx-auto" style={{ color: SLATE }}>
+            Important organizational decisions often depend on fragmented information, untested assumptions,
+            competing perspectives, and reasoning that becomes difficult to reconstruct after the fact.
+          </p>
+          <p className="text-base sm:text-lg leading-relaxed max-w-2xl mx-auto mt-4" style={{ color: SLATE }}>
+            Poddle AI brings structure to that process — so teams can evaluate decisions with clarity,
+            challenge them with evidence, and preserve a record that stands up to scrutiny.
+          </p>
+        </RevealSection>
+      </div>
+    </section>
+  );
+}
+
+// ─── Capabilities ────────────────────────────────────────────────────────────
+
+function CapabilitiesSection() {
+  return (
+    <section id="capabilities" style={{ background: WHITE }} className="py-20 sm:py-28">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection>
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: BLUE }}>
+              Platform
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4" style={{ color: INK }}>
+              One platform. Four layers of intelligence.
+            </h2>
+            <p className="text-base max-w-xl mx-auto" style={{ color: SLATE }}>
+              Poddle AI connects evidence, analysis, governance, and history into a single decision workflow.
+            </p>
+          </div>
+        </RevealSection>
+
+        <div className="grid sm:grid-cols-2 gap-5">
+          {CAPABILITIES.map((cap, i) => (
+            <RevealSection key={cap.title} delay={i * 80}>
+              <div
+                className="h-full p-7 rounded-xl transition-all duration-300 hover:-translate-y-1"
+                style={{ background: WHITE, border: `1px solid ${BORDER}`, boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}
+              >
+                <div
+                  className="w-11 h-11 rounded-lg flex items-center justify-center mb-5"
+                  style={{ background: 'rgba(37,99,235,0.06)' }}
+                >
+                  <cap.icon className="w-5 h-5" style={{ color: BLUE }} />
+                </div>
+                <h3 className="text-lg font-bold mb-3" style={{ color: INK }}>{cap.title}</h3>
+                <p className="text-sm leading-relaxed mb-4" style={{ color: SLATE }}>{cap.body}</p>
+                <div className="flex flex-wrap gap-2">
+                  {cap.points.map((pt) => (
+                    <span
+                      key={pt}
+                      className="text-xs font-medium px-2.5 py-1 rounded-md"
+                      style={{ background: BG_ALT, color: SLATE_MID, border: `1px solid ${BORDER_SOFT}` }}
+                    >
+                      {pt}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </RevealSection>
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
-// ─── How It Works ─────────────────────────────────────────────────────────────
-
-const AGENT_AVATARS: Record<string, string> = {
-  RA: 'https://images.pexels.com/photos/8312669/pexels-photo-8312669.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-  DA: 'https://images.pexels.com/photos/5308640/pexels-photo-5308640.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-  FS: 'https://images.pexels.com/photos/25651531/pexels-photo-25651531.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-  MA: 'https://images.pexels.com/photos/26150470/pexels-photo-26150470.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-  EL: 'https://images.pexels.com/photos/35490803/pexels-photo-35490803.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-  IS: 'https://images.pexels.com/photos/7752788/pexels-photo-7752788.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-  PA: 'https://images.pexels.com/photos/33148747/pexels-photo-33148747.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-};
-
-const TEAM_AVATARS: Record<string, string> = {
-  SK: 'https://images.pexels.com/photos/7860654/pexels-photo-7860654.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-  JT: 'https://images.pexels.com/photos/28442318/pexels-photo-28442318.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-  ML: 'https://images.pexels.com/photos/38453638/pexels-photo-38453638.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=200&h=200',
-};
-
-const HOW_STEPS = [
-  {
-    number: '01',
-    icon: Users,
-    color: '#0891b2',
-    bg: 'rgba(8,145,178,0.07)',
-    border: 'rgba(8,145,178,0.15)',
-    label: 'Team Chat',
-    title: 'Your team debates the decision together',
-    body: "Invite your team into a private, invite-only workspace where everyone can post their perspective, share context, and challenge each other's thinking. Upload supporting documents (PDF, DOCX, Excel) to ground the discussion in real data. The team chat is where the human debate happens before any AI ever speaks.",
-    callout: "Team Chat is the human layer: your team's own debate, in your own words, inside a secure workspace.",
-    visual: [
-      { abbr: 'SK', avatar: TEAM_AVATARS.SK, color: '#0c4a6e', name: 'Sarah (CFO)', text: 'Our burn rate gives us 8 months. We cannot afford a slow rollout, we need revenue fast.' },
-      { abbr: 'JT', avatar: TEAM_AVATARS.JT, color: '#14532d', name: 'James (COO)', text: 'But rushing into 6 markets simultaneously is how we lost the APAC launch. Sequencing matters.' },
-      { abbr: 'ML', avatar: TEAM_AVATARS.ML, color: '#7c2d12', name: 'Maya (Head of Risk)', text: 'Agreed. Let us get the AI agents in here to stress-test both options before we decide.' },
-    ],
-  },
-  {
-    number: '02',
-    icon: MessageSquare,
-    color: '#b8860b',
-    bg: 'rgba(184,134,11,0.08)',
-    border: 'rgba(184,134,11,0.18)',
-    label: 'Multiplayer AI',
-    title: 'Bring AI agents into the debate in real time',
-    body: "Seven specialized agents (Risk Analyst, Devil's Advocate, Financial Strategist, Market Analyst, Execution Lead, Innovation Lead, and People Advisor) join the conversation alongside your team. Each agent responds from a completely different angle, challenging both your team's assumptions and each other. Your team can reply, push back, and steer the debate. This is multiplayer AI: humans and agents debating together in one shared thread.",
-    callout: 'Multiplayer AI is where humans and agents debate together: not agents talking at you, but a real-time, multi-perspective conversation.',
-    visual: [
-      { abbr: 'RA', avatar: AGENT_AVATARS.RA, bg: 'rgba(124,45,18,0.07)', color: '#7c2d12', text: 'Distribution shift risk in EU markets could cause 40-60% prediction errors in year one.' },
-      { abbr: 'FS', avatar: AGENT_AVATARS.FS, bg: 'rgba(12,74,110,0.07)', color: '#0c4a6e', text: 'EU AI Act requires per-decision explainability. Adds 6-9 months to your launch timeline.' },
-      { abbr: 'DA', avatar: AGENT_AVATARS.DA, bg: 'rgba(20,83,45,0.07)', color: '#14532d', text: 'Klarna scaled across 6+ EU markets in under 3 years. Compliance is process, not blocker.' },
-    ],
-  },
-  {
-    number: '03',
-    icon: Swords,
-    color: '#dc2626',
-    bg: 'rgba(220,38,38,0.07)',
-    border: 'rgba(220,38,38,0.15)',
-    label: 'War Room',
-    title: 'The intelligence layer that synthesizes everything',
-    body: 'Once the debate is underway, the War Room reads every message from your team and from the agents, and synthesizes it all. It identifies consensus points, conflict zones, blind spots, and cognitive biases across the entire Multiplayer AI. It produces a single strategic recommendation with a Decision Health Score, risk signals, and prioritized action items, all grounded in the actual conversation from your workspace.',
-    callout: 'The War Room is not a separate conversation. It is the intelligence layer built on top of your Multiplayer AI.',
-    visual: [
-      { label: 'Decision Health Score', value: '68', sub: 'Developing', color: '#f59e0b' },
-      { label: 'Risk Signals', value: '3', sub: '2 critical', color: '#dc2626' },
-      { label: 'Action Items', value: '4', sub: 'Prioritized', color: '#b8860b' },
-    ],
-  },
-  {
-    number: '04',
-    icon: Fingerprint,
-    color: '#475569',
-    bg: 'rgba(71,85,105,0.08)',
-    border: 'rgba(71,85,105,0.16)',
-    label: 'Decision Trail',
-    title: 'Every step is recorded, permanently',
-    body: 'From the first question to the final call, Poddle logs an immutable audit trail: who said what, what the agents concluded, and what changed along the way. AI claims become citable Evidence IDs like FIN-01, tagged as fact, assumption, inference, or opinion. Rewind to any past moment with Point-in-Time Replay to see exactly what the team knew then.',
-    callout: 'Nothing here can be quietly edited or backdated, not even by us. That is what makes a decision defensible.',
-    visual: [
-      { label: 'decision_created', code: null },
-      { label: 'agent_analysis', code: 'FIN-01' },
-      { label: 'human_override', code: null },
-      { label: 'final_decision', code: null },
-    ],
-  },
-  {
-    number: '05',
-    icon: ShieldCheck,
-    color: '#7c3aed',
-    bg: 'rgba(124,58,237,0.08)',
-    border: 'rgba(124,58,237,0.16)',
-    label: 'Decision Map',
-    title: 'See every decision across your organization',
-    body: 'The Decision Map gives leadership a portfolio view: every decision across every workspace, its status, and its owner, all in one place. Pair it with Decision Control to require formal approval before a decision can move to Committed. Org owners and admins see every pending request and sign off before anything becomes final.',
-    callout: 'Individual decisions get a trail. The Decision Map is how an organization sees all of them at once.',
-    visual: [
-      { status: 'Exploring', count: 4, color: '#64748b' },
-      { status: 'In Debate', count: 2, color: '#d97706' },
-      { status: 'Committed', count: 3, color: '#2563eb' },
-      { status: 'Pending approval', count: 1, color: '#7c3aed' },
-    ],
-  },
-]
+// ─── How It Works ────────────────────────────────────────────────────────────
 
 function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section id="how-it-works" style={{ background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-24">
+    <section id="how-it-works" style={{ background: BG_ALT, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }} className="py-20 sm:py-28">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <RevealSection className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(0,0,0,0.05)', color: '#475569', border: '1px solid rgba(0,0,0,0.09)' }}>
-            How Poddle works
+        <RevealSection>
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: BLUE }}>
+              How Poddle Works
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4" style={{ color: INK }}>
+              A structured path from question to record.
+            </h2>
+            <p className="text-base max-w-xl mx-auto" style={{ color: SLATE }}>
+              Every decision follows the same disciplined workflow — so nothing is lost and everything is traceable.
+            </p>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
-            Teams talk it through. AI challenges the thinking.<br className="hidden sm:block" /> The War Room puts the decision under pressure. The Decision Trail keeps the reasoning. The Decision Map keeps ownership clear.
-          </h2>
-          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Five connected features, not separate tools. Here is exactly how they work together.
-          </p>
         </RevealSection>
 
-        <div className="space-y-6">
-          {HOW_STEPS.map((step, idx) => {
-            const Icon = step.icon;
-            return (
-              <RevealSection key={step.number} delay={idx * 100}>
+        <div className="relative">
+          {/* Vertical connector line */}
+          <div
+            className="hidden sm:block absolute left-[2.25rem] top-0 bottom-0 w-px"
+            style={{ background: BORDER }}
+          />
+
+          {PROCESS_STEPS.map((step, i) => (
+            <RevealSection key={step.num} delay={i * 100}>
+              <div className="flex gap-6 mb-8 last:mb-0 relative">
+                {/* Step circle */}
                 <div
-                  className="rounded-3xl overflow-hidden"
-                  style={{ border: `1px solid ${step.border}`, background: '#fff', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}
+                  className="flex-shrink-0 w-[4.5rem] h-[4.5rem] rounded-xl flex items-center justify-center relative z-10"
+                  style={{ background: WHITE, border: `2px solid ${BORDER}` }}
                 >
-                  <div className="p-8 sm:p-10">
-                    <div className="flex flex-col lg:flex-row gap-10">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-5">
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: step.bg }}>
-                            <Icon className="w-4.5 h-4.5" style={{ color: step.color }} />
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: step.color }}>{step.label}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold" style={{ color: 'rgba(100,116,139,0.5)' }}>STEP {step.number}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4 leading-tight tracking-tight">{step.title}</h3>
-                        <p className="text-sm sm:text-base text-slate-500 leading-relaxed mb-5">{step.body}</p>
-                        <div
-                          className="flex items-start gap-2.5 rounded-xl px-4 py-3"
-                          style={{ background: step.bg, border: `1px solid ${step.border}` }}
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: step.color }} />
-                          <p className="text-xs font-semibold leading-relaxed" style={{ color: step.color }}>{step.callout}</p>
-                        </div>
-                      </div>
-
-                      <div className="lg:w-80 flex-shrink-0">
-                        {idx === 0 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                              <Users className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
-                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Team Chat</span>
-                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— European Expansion</span>
-                              <div className="ml-auto flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
-                                <span className="text-[10px]" style={{ color: '#5D6B82' }}>Live</span>
-                              </div>
-                            </div>
-                            <div className="flex-1 p-4 space-y-3" style={{ background: '#FFFFFF' }}>
-                              {(step.visual as { abbr: string; avatar: string; color: string; name: string; text: string }[]).map((v) => (
-                                <div key={v.abbr} className="flex gap-2.5">
-                                  <img src={v.avatar} alt={v.name} className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
-                                  <div className="flex flex-col max-w-[80%]">
-                                    <div className="flex items-baseline gap-2 mb-0.5">
-                                      <span className="text-[10px] font-semibold" style={{ color: v.color }}>{v.name}</span>
-                                      <span className="text-[9px]" style={{ color: '#9BA6B8' }}>10:24 AM</span>
-                                    </div>
-                                    <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed break-words" style={{ background: '#F7F9FC', color: '#111827', border: '1px solid #D8DDE8', borderBottomLeftRadius: '4px' }}>
-                                      {v.text}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex-shrink-0 p-3" style={{ borderTop: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                              <div className="flex items-end gap-2">
-                                <div className="flex-1 rounded-xl px-3 py-2 text-[10px]" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', color: '#9BA6B8', minHeight: '36px', display: 'flex', alignItems: 'center' }}>
-                                  Message your team... (use @ to mention)
-                                </div>
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#b8860b', color: '#F0F3F7' }}>
-                                  <MessageSquare className="w-4 h-4" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {idx === 1 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                              <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
-                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Multiplayer AI</span>
-                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— Agents + Team</span>
-                              <div className="ml-auto flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
-                                <span className="text-[10px]" style={{ color: '#5D6B82' }}>Live</span>
-                              </div>
-                            </div>
-                            <div className="flex-1 p-4 space-y-3" style={{ background: '#FFFFFF' }}>
-                              <div className="flex gap-2.5">
-                                <img src={TEAM_AVATARS.ML} alt="Maya (Head of Risk)" className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
-                                <div className="flex flex-col max-w-[80%]">
-                                  <div className="flex items-baseline gap-2 mb-0.5">
-                                    <span className="text-[10px] font-semibold" style={{ color: '#0f766e' }}>Maya (Head of Risk)</span>
-                                    <span className="text-[9px]" style={{ color: '#9BA6B8' }}>10:25 AM</span>
-                                  </div>
-                                  <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed" style={{ background: 'rgba(8,145,178,0.12)', color: '#111827', border: '1px solid rgba(8,145,178,0.18)', borderBottomLeftRadius: '4px' }}>
-                                    Let's get the agents in here to stress-test both options.
-                                  </div>
-                                </div>
-                              </div>
-                              {(step.visual as { abbr: string; avatar: string; bg: string; color: string; text: string }[]).map((v) => (
-                                <div key={v.abbr} className="flex gap-2.5">
-                                  <img src={v.avatar} alt={v.abbr} className="w-7 h-7 rounded-xl object-cover flex-shrink-0 mt-0.5" style={{ border: `1px solid ${v.color}22` }} />
-                                  <div className="flex flex-col max-w-[80%]">
-                                    <div className="flex items-baseline gap-2 mb-0.5">
-                                      <span className="text-[10px] font-semibold" style={{ color: v.color }}>{v.abbr === 'RA' ? 'Risk Analyst' : v.abbr === 'FS' ? 'Financial Strategist' : "Devil's Advocate"}</span>
-                                      <span className="text-[9px]" style={{ color: '#9BA6B8' }}>10:26 AM</span>
-                                    </div>
-                                    <div className="px-3 py-2 rounded-2xl text-[11px] leading-relaxed" style={{ background: v.bg, color: '#111827', border: `1px solid ${v.color}22`, borderBottomLeftRadius: '4px' }}>
-                                      {v.text}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex-shrink-0 p-3" style={{ borderTop: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                              <div className="flex items-end gap-2">
-                                <div className="flex-1 rounded-xl px-3 py-2 text-[10px]" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', color: '#9BA6B8', minHeight: '36px', display: 'flex', alignItems: 'center' }}>
-                                  Ask a follow-up or challenge an agent...
-                                </div>
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#b8860b', color: '#F0F3F7' }}>
-                                  <Send className="w-4 h-4" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {idx === 2 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                              <Swords className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
-                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>War Room</span>
-                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— Synthesis</span>
-                            </div>
-                            <div className="flex-1 p-5" style={{ background: '#F0F3F7' }}>
-                              <div className="flex justify-around mb-5">
-                                {(step.visual as { label: string; value: string; sub: string; color: string }[]).map((v) => (
-                                  <div key={v.label} className="flex flex-col items-center gap-1">
-                                    <div className="text-2xl font-black" style={{ color: v.color }}>{v.value}</div>
-                                    <div className="text-[9px] font-bold uppercase tracking-wide" style={{ color: v.color }}>{v.sub}</div>
-                                    <div className="text-[9px]" style={{ color: '#5D6B82' }}>{v.label}</div>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="rounded-xl p-3.5" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                                <p className="text-[10px] font-black uppercase tracking-wide mb-1.5" style={{ color: '#b8860b' }}>Strategic Recommendation</p>
-                                <p className="text-[11px] leading-relaxed" style={{ color: '#111827' }}>
-                                  <strong style={{ color: '#111827' }}>Stage the rollout. Start Germany.</strong> BaFin approval is the hardest and most valuable first stamp. Target Q3 Germany, Q1 next year France and Netherlands.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {idx === 3 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                              <Fingerprint className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#475569' }} />
-                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Decision Trail</span>
-                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— European Expansion</span>
-                            </div>
-                            <div className="flex-1 p-4 space-y-2.5" style={{ background: '#FFFFFF' }}>
-                              {(step.visual as { label: string; code: string | null }[]).map((v, vi) => (
-                                <div key={v.label} className="flex items-center gap-2.5">
-                                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: vi === 0 ? '#475569' : vi === 1 ? '#2563eb' : vi === 2 ? '#7c3aed' : '#16a34a' }} />
-                                  <span className="text-[10px] font-mono flex-shrink-0" style={{ color: '#374151' }}>{v.label}</span>
-                                  {v.code && (
-                                    <span
-                                      className="text-[9px] font-bold px-1.5 py-0.5 ml-auto"
-                                      style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: '#2563eb', background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.3)' }}
-                                    >
-                                      {v.code}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                              <div className="flex items-center gap-2 pt-2 mt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
-                                <History className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
-                                <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Rewind to any point-in-time · never edited or backdated</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {idx === 4 && step.visual && (
-                          <div className="rounded-2xl overflow-hidden flex flex-col" style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                            <div className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-                              <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#7c3aed' }} />
-                              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Decision Map</span>
-                              <span className="text-[10px]" style={{ color: '#9BA6B8' }}>— Organization</span>
-                            </div>
-                            <div className="flex-1 p-4 space-y-2.5" style={{ background: '#FFFFFF' }}>
-                              {(step.visual as { status: string; count: number; color: string }[]).map((v) => (
-                                <div key={v.status} className="flex items-center gap-2.5">
-                                  <span
-                                    className="text-[10px] font-bold px-2 py-0.5 flex-shrink-0"
-                                    style={{ color: v.color, background: `${v.color}14` }}
-                                  >
-                                    {v.status}
-                                  </span>
-                                  <div className="flex-1 h-1.5 rounded-full" style={{ background: '#F0F3F7' }}>
-                                    <div className="h-1.5 rounded-full" style={{ background: v.color, width: `${Math.min(100, v.count * 20)}%` }} />
-                                  </div>
-                                  <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: '#5D6B82' }}>{v.count}</span>
-                                </div>
-                              ))}
-                              <div className="flex items-center gap-2 pt-2 mt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
-                                <ShieldCheck className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
-                                <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Decision Control: CFO approval required before commit</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <step.icon className="w-6 h-6" style={{ color: BLUE }} />
                 </div>
 
-                {idx < HOW_STEPS.length - 1 && (
-                  <div className="flex flex-col items-center py-3">
-                    <div className="w-px h-6" style={{ background: 'rgba(0,0,0,0.1)' }} />
-                    <ArrowDown className="w-4 h-4" style={{ color: 'rgba(0,0,0,0.2)' }} />
+                {/* Content */}
+                <div className="flex-1 pt-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xs font-bold tracking-wider" style={{ color: SLATE_LIGHT }}>{step.num}</span>
+                    <span className="text-xs font-medium" style={{ color: BLUE }}>—</span>
                   </div>
-                )}
-              </RevealSection>
-            );
-          })}
+                  <h3 className="text-lg font-bold mb-2" style={{ color: INK }}>{step.title}</h3>
+                  <p className="text-sm leading-relaxed max-w-lg" style={{ color: SLATE }}>{step.body}</p>
+                </div>
+              </div>
+            </RevealSection>
+          ))}
         </div>
 
-        <RevealSection delay={300} className="mt-12">
-          <div
-            className="rounded-3xl p-8 sm:p-10 text-center"
-            style={{ background: 'linear-gradient(135deg,rgba(184,134,11,0.07),rgba(212,165,53,0.05))', border: '1px solid rgba(184,134,11,0.14)' }}
-          >
-            <p className="text-base sm:text-lg font-bold text-slate-800 mb-2">
-              The sequence matters.
-            </p>
-            <p className="text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
-              Start a Team Chat → bring in the AI agents → open the War Room → get your recommendation. Every feature builds on the last.
-            </p>
+        <RevealSection delay={200}>
+          <div className="text-center mt-12">
             <button
               onClick={() => onNavigate('auth')}
-              className="inline-flex items-center mt-6 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
-              style={{ background: 'linear-gradient(135deg,#111111,#b8860b)', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5"
+              style={{ background: BLUE, boxShadow: '0 4px 14px rgba(37,99,235,0.25)' }}
             >
               Try the full workflow
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </RevealSection>
@@ -709,623 +608,442 @@ function HowItWorksSection({ onNavigate }: { onNavigate: (p: string) => void }) 
   );
 }
 
-// ─── Decision Trail ───────────────────────────────────────────────────────────
+// ─── Product Showcase ────────────────────────────────────────────────────────
 
-const TRAIL_FEATURES = [
-  {
-    icon: Fingerprint,
-    color: '#475569',
-    bg: 'rgba(71,85,105,0.08)',
-    title: 'Immutable audit trail',
-    desc: 'From the first question to the final call, every step is logged permanently. Nothing can be quietly edited or backdated, not even by us.',
-  },
-  {
-    icon: Hash,
-    color: '#2563eb',
-    bg: 'rgba(37,99,235,0.08)',
-    title: 'Evidence IDs',
-    desc: "AI conclusions aren't just paragraphs. They're labeled, citable claims like FIN-01, each tagged as a fact, assumption, inference, or opinion, with its evidence attached.",
-  },
-  {
-    icon: History,
-    color: '#0d9488',
-    bg: 'rgba(13,148,136,0.08)',
-    title: 'Point-in-time replay',
-    desc: 'Rewind any decision to a past moment and see exactly what the team knew then, before hindsight rewrote the story.',
-  },
-  {
-    icon: ShieldCheck,
-    color: '#7c3aed',
-    bg: 'rgba(124,58,237,0.08)',
-    title: 'Decision Control',
-    desc: 'Require formal approval before a decision commits. Org owners and admins see every pending request and sign off before anything becomes final.',
-  },
-];
-
-function DecisionTrailSection({ onNavigate }: { onNavigate: (p: string) => void }) {
+function ProductShowcaseSection() {
   return (
-    <section style={{ background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-24">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <RevealSection className="text-center mb-14">
-          <div
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4"
-            style={{ background: 'rgba(37,99,235,0.08)', color: '#2563eb', border: '1px solid rgba(37,99,235,0.18)' }}
-          >
-            New: Decision Governance
+    <section style={{ background: WHITE }} className="py-20 sm:py-28">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection>
+          <div className="text-center mb-12">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: BLUE }}>
+              Product Showcase
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4" style={{ color: INK }}>
+              A complete view of every decision.
+            </h2>
+            <p className="text-base max-w-xl mx-auto" style={{ color: SLATE }}>
+              From evidence classification to ownership, risk identification to historical trails —
+              all in one workspace.
+            </p>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
-            Every decision, permanently traceable.
-          </h2>
-          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Poddle doesn't just help you decide. It remembers exactly how you got there, and gives your organization control over when a decision is allowed to become final.
-          </p>
         </RevealSection>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-          {TRAIL_FEATURES.map(({ icon: Icon, color, bg, title, desc }, i) => (
-            <RevealSection key={title} delay={i * 100}>
-              <div
-                className="h-full p-6 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
-              >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: bg }}>
-                  <Icon className="w-5 h-5" style={{ color }} />
-                </div>
-                <h3 className="text-sm font-bold text-slate-900 mb-2">{title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
-              </div>
-            </RevealSection>
-          ))}
-        </div>
-
-        <RevealSection delay={300} className="text-center">
-          <button
-            onClick={() => onNavigate('auth')}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold text-sm transition-all hover:-translate-y-0.5"
-            style={{ background: 'linear-gradient(135deg,#111111,#2563eb)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
+        <RevealSection delay={100}>
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ background: WHITE, border: `1px solid ${BORDER}`, boxShadow: '0 12px 40px rgba(15,23,42,0.08)' }}
           >
-            See your decisions, traced
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+            {/* Dashboard header */}
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${BORDER}`, background: BG_ALT }}>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded" style={{ background: 'rgba(37,99,235,0.08)', color: BLUE }}>
+                  In Review
+                </span>
+                <span className="text-sm font-bold" style={{ color: INK }}>Market Entry: European Expansion</span>
+              </div>
+              <span className="text-xs" style={{ color: SLATE_LIGHT }}>Illustrative demo data</span>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-0">
+              {/* Left — Evidence & Risks */}
+              <div className="lg:col-span-2 p-6" style={{ borderRight: `1px solid ${BORDER_SOFT}` }}>
+                {/* Evidence */}
+                <div className="mb-6">
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: SLATE_LIGHT }}>
+                    Evidence Classification
+                  </p>
+                  <div className="space-y-2">
+                    {DEMO_EVIDENCE.map((ev) => (
+                      <div key={ev.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+                        <span className="text-xs font-mono shrink-0" style={{ color: SLATE_LIGHT }}>{ev.id}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ color: INK }}>{ev.title}</p>
+                          <p className="text-xs" style={{ color: SLATE_LIGHT }}>{ev.type}</p>
+                        </div>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded shrink-0" style={STATUS_COLORS[ev.status]}>
+                          {ev.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Risks */}
+                <div className="mb-6">
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: SLATE_LIGHT }}>
+                    Risks & Unresolved Uncertainties
+                  </p>
+                  <div className="space-y-2">
+                    {DEMO_RISKS.map((r, i) => (
+                      <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-lg" style={{ background: RISK_COLORS[r.level].bg }}>
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: RISK_COLORS[r.level].text }} />
+                        <div className="flex-1">
+                          <span className="text-xs font-bold mr-2" style={{ color: RISK_COLORS[r.level].text }}>{r.level}</span>
+                          <span className="text-sm" style={{ color: SLATE }}>{r.title}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Decision snapshot */}
+                <div className="p-4 rounded-lg" style={{ background: 'rgba(37,99,235,0.03)', border: `1px solid rgba(37,99,235,0.1)` }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-4 h-4" style={{ color: BLUE }} />
+                    <span className="text-sm font-bold" style={{ color: INK }}>Decision Snapshot</span>
+                    <span className="text-xs ml-auto" style={{ color: SLATE_LIGHT }}>v2 — Oct 5, 2026</span>
+                  </div>
+                  <p className="text-xs leading-relaxed" style={{ color: SLATE }}>
+                    Proceed with phased entry into DACH market. Evidence EV-001 and EV-003 verified;
+                    EV-002 remains an assumption requiring post-launch validation. High risk: regulatory timeline.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right — Ownership & Trail */}
+              <div className="p-6">
+                {/* Ownership */}
+                <div className="mb-6">
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: SLATE_LIGHT }}>
+                    Decision Ownership
+                  </p>
+                  <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                      style={{ background: BLUE }}
+                    >
+                      OA
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: INK }}>Oludotun Akinbobola</p>
+                      <p className="text-xs" style={{ color: SLATE_LIGHT }}>Decision Owner</p>
+                    </div>
+                    <ShieldCheck className="w-4 h-4 ml-auto shrink-0" style={{ color: '#16a34a' }} />
+                  </div>
+                </div>
+
+                {/* Decision Trail */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: SLATE_LIGHT }}>
+                    Decision Trail
+                  </p>
+                  <div className="relative">
+                    {DEMO_TRAIL.map((t, i) => (
+                      <div key={i} className="flex gap-3 mb-3 last:mb-0 relative">
+                        {i < DEMO_TRAIL.length - 1 && (
+                          <div className="absolute left-[7px] top-5 bottom-0 w-px" style={{ background: BORDER }} />
+                        )}
+                        <div
+                          className="w-[15px] h-[15px] rounded-full shrink-0 mt-0.5 border-2"
+                          style={{
+                            background: i === 0 ? BLUE : WHITE,
+                            borderColor: i === 0 ? BLUE : BORDER,
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium" style={{ color: INK }}>{t.event}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <Clock className="w-3 h-3" style={{ color: SLATE_LIGHT }} />
+                            <span className="text-xs" style={{ color: SLATE_LIGHT }}>{t.time}</span>
+                            <span className="text-xs" style={{ color: SLATE_LIGHT }}>· {t.actor}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </RevealSection>
       </div>
     </section>
   );
 }
 
-// ─── Live Demo ────────────────────────────────────────────────────────────────
+// ─── Use Cases ───────────────────────────────────────────────────────────────
 
-const DEMO_MESSAGES = [
-  {
-    agent: 'RA', avatar: AGENT_AVATARS.RA, bg: 'rgba(124,45,18,0.07)', color: '#7c2d12', label: 'Risk Analyst',
-    msg: "AI credit scoring models trained on US or UK data carry severe distribution shift risk in Southern and Eastern European markets. Default rate predictions could be off by 40-60% in the first 12 months. You need local training data before you lend at scale.",
-  },
-  {
-    agent: 'FS', avatar: AGENT_AVATARS.FS, bg: 'rgba(12,74,110,0.07)', color: '#0c4a6e', label: 'Financial Strategist',
-    msg: "The EU AI Act classifies AI-driven credit decisions as high-risk. Article 10 requires explainability per decision, not just model-level. Building a compliant audit trail adds 6-9 months to your launch timeline and ongoing cost per decision. Factor that into your unit economics.",
-  },
-  {
-    agent: 'DA', avatar: AGENT_AVATARS.DA, bg: 'rgba(20,83,45,0.07)', color: '#14532d', label: "Devil's Advocate",
-    msg: 'Every incumbent cites compliance complexity as a moat. But Klarna and Monzo scaled across 6+ European jurisdictions in under 3 years. The regtech tooling is genuinely better now. The question is not whether compliance is hard. It is whether your team treats it as a blocker or a process.',
-  },
-  {
-    agent: 'EL', avatar: AGENT_AVATARS.EL, bg: 'rgba(30,27,75,0.07)', color: '#1e1b4b', label: 'Execution Lead',
-    msg: "Passport your product through Germany first: strictest regulator, highest trust signal. A BaFin approval with clean model documentation unlocks France, Netherlands, and the Nordics far faster than parallel filings. Sequence this. Do not parallelize.",
-  },
-];
-
-const DEMO_RISKS = [
-  { label: 'Model Distribution Shift', sev: 'critical', desc: 'AI credit models trained on UK/US data may mispredict EU default rates by 40-60% in year one.' },
-  { label: 'EU AI Act Compliance Gap', sev: 'high', desc: 'Article 10 requires per-decision explainability. Building audit trails adds 6-9 months to launch.' },
-  { label: 'Parallel Regulatory Filing', sev: 'high', desc: 'Simultaneous multi-market filings increase rejection risk and slow time-to-revenue.' },
-];
-
-const DEMO_ACTIONS = [
-  { who: 'Legal', task: 'Commission a BaFin pre-submission explainability review for the credit model. Target Q2 submission window.', priority: 'critical' },
-  { who: 'Engineering', task: 'Build a per-decision audit trail compliant with EU AI Act Article 10 before Germany launch.', priority: 'critical' },
-  { who: 'CEO', task: 'Sequence market entry: Germany (Q3), France and Netherlands (Q1 next year). Halt parallel filings.', priority: 'high' },
-  { who: 'Risk', task: 'Collect EU-local training data from German open banking sources to reduce model distribution shift by launch.', priority: 'high' },
-];
-
-const SEV_COLORS: Record<string, { bg: string; text: string }> = {
-  critical: { bg: 'rgba(220,38,38,0.1)', text: '#b91c1c' },
-  high:     { bg: 'rgba(245,158,11,0.1)', text: '#b45309' },
-  medium:   { bg: 'rgba(184,134,11,0.1)',  text: '#b8860b' },
-};
-
-const PRI_COLORS: Record<string, { bg: string; text: string }> = {
-  critical: { bg: 'rgba(220,38,38,0.08)', text: '#b91c1c' },
-  high:     { bg: 'rgba(245,158,11,0.08)', text: '#b45309' },
-  medium:   { bg: 'rgba(184,134,11,0.07)',  text: '#b8860b' },
-};
-
-function ScoreArc({ score, label, color }: { score: number; label: string; color: string }) {
-  const r = 22; const c = 2 * Math.PI * r;
-  const dash = (score / 100) * c;
+function UseCasesSection() {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative w-14 h-14">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 56 56">
-          <circle cx="28" cy="28" r={r} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="5" />
-          <circle cx="28" cy="28" r={r} fill="none" stroke={color} strokeWidth="5"
-            strokeDasharray={`${dash} ${c}`} strokeLinecap="round" />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm font-black" style={{ color }}>{score}</span>
+    <section id="use-cases" style={{ background: BG_ALT, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }} className="py-20 sm:py-28">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection>
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: BLUE }}>
+              Enterprise Use Cases
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4" style={{ color: INK }}>
+              For decisions where the stakes are real.
+            </h2>
+            <p className="text-base max-w-xl mx-auto" style={{ color: SLATE }}>
+              Poddle AI brings structure and accountability to the decisions that shape your organization's future.
+            </p>
+          </div>
+        </RevealSection>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {USE_CASES.map((uc, i) => (
+            <RevealSection key={uc.title} delay={i * 60}>
+              <div
+                className="h-full p-6 rounded-xl transition-all duration-300 hover:-translate-y-1"
+                style={{ background: WHITE, border: `1px solid ${BORDER}` }}
+              >
+                <div
+                  className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
+                  style={{ background: 'rgba(37,99,235,0.05)' }}
+                >
+                  <uc.icon className="w-5 h-5" style={{ color: BLUE }} />
+                </div>
+                <h3 className="text-base font-bold mb-2" style={{ color: INK }}>{uc.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: SLATE }}>{uc.body}</p>
+              </div>
+            </RevealSection>
+          ))}
         </div>
       </div>
-      <span className="text-[10px] font-semibold text-center leading-tight" style={{ color: '#64748b', maxWidth: 56 }}>{label}</span>
+    </section>
+  );
+}
+
+// ─── Security & Trust ────────────────────────────────────────────────────────
+
+function SecuritySection({ onNavigate }: { onNavigate: (p: string) => void }) {
+  return (
+    <section style={{ background: WHITE }} className="py-20 sm:py-28">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RevealSection>
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: BLUE }}>
+              Security & Trust
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4" style={{ color: INK }}>
+              Built for decisions that matter.
+            </h2>
+            <p className="text-base max-w-xl mx-auto" style={{ color: SLATE }}>
+              Access controls, evidence traceability, and historical records — designed for organizations
+              that need defensible decision-making.
+            </p>
+          </div>
+        </RevealSection>
+
+        <div className="grid sm:grid-cols-2 gap-5 mb-12">
+          {SECURITY_FEATURES.map((feat, i) => (
+            <RevealSection key={feat.title} delay={i * 80}>
+              <div className="flex gap-4 p-6 rounded-xl" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+                <div
+                  className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{ background: 'rgba(37,99,235,0.06)' }}
+                >
+                  <feat.icon className="w-5 h-5" style={{ color: BLUE }} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold mb-2" style={{ color: INK }}>{feat.title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: SLATE }}>{feat.body}</p>
+                </div>
+              </div>
+            </RevealSection>
+          ))}
+        </div>
+
+        <RevealSection delay={200}>
+          <div className="flex items-center justify-center gap-5 flex-wrap">
+            <button onClick={() => onNavigate('privacy')} className="text-sm font-medium hover:underline" style={{ color: BLUE }}>
+              Privacy Policy
+            </button>
+            <span style={{ color: BORDER }}>·</span>
+            <button onClick={() => onNavigate('terms')} className="text-sm font-medium hover:underline" style={{ color: BLUE }}>
+              Terms of Service
+            </button>
+            <span style={{ color: BORDER }}>·</span>
+            <button onClick={() => onNavigate('subprocessors')} className="text-sm font-medium hover:underline" style={{ color: BLUE }}>
+              Sub-processors
+            </button>
+          </div>
+        </RevealSection>
+      </div>
+    </section>
+  );
+}
+
+// ─── Final CTA ───────────────────────────────────────────────────────────────
+
+function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
+  return (
+    <section
+      style={{ background: `linear-gradient(180deg, ${WHITE} 0%, ${BG_ALT} 100%)`, borderTop: `1px solid ${BORDER}` }}
+      className="py-24"
+    >
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <RevealSection>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-5" style={{ color: INK }}>
+            Bring clarity and accountability to your next important decision.
+          </h2>
+          <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: SLATE }}>
+            Start with a free workspace. Invite your team. See how evidence-based decision governance works in practice.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
+            <button
+              onClick={() => onNavigate('auth')}
+              className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg text-white font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5"
+              style={{ background: BLUE, boxShadow: '0 4px 14px rgba(37,99,235,0.25)' }}
+            >
+              Try Poddle AI
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => onNavigate('pricing')}
+              className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 hover:bg-slate-50"
+              style={{ color: INK, border: `1px solid ${BORDER}` }}
+            >
+              Explore the Platform
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center gap-5 flex-wrap text-xs" style={{ color: SLATE_MID }}>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
+              No credit card required
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
+              Free to start
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
+              Invite your team
+            </div>
+          </div>
+        </RevealSection>
+      </div>
+    </section>
+  );
+}
+
+// ─── Footer ──────────────────────────────────────────────────────────────────
+
+function Footer({ onNavigate }: { onNavigate: (p: string) => void }) {
+  return (
+    <footer style={{ background: INK }} className="py-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+          {/* Brand */}
+          <div className="lg:col-span-1">
+            <div className="flex items-center gap-2 mb-4">
+              <PoddleMark size={28} />
+              <span className="text-lg font-black tracking-tight text-white">
+                Poddle<span style={{ color: GOLD_LIGHT, fontWeight: 400 }}>AI</span>
+              </span>
+            </div>
+            <p className="text-sm leading-relaxed max-w-xs" style={{ color: '#94a3b8' }}>
+              AI-powered decision governance for organizations that need evidence-based, defensible decisions.
+            </p>
+          </div>
+
+          {/* Platform */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#64748b' }}>Platform</p>
+            <div className="flex flex-col gap-2.5">
+              <a href="#capabilities" className="text-sm transition-colors hover:text-white" style={{ color: '#94a3b8' }}>Capabilities</a>
+              <a href="#how-it-works" className="text-sm transition-colors hover:text-white" style={{ color: '#94a3b8' }}>How It Works</a>
+              <button onClick={() => onNavigate('pricing')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Pricing</button>
+            </div>
+          </div>
+
+          {/* Company */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#64748b' }}>Company</p>
+            <div className="flex flex-col gap-2.5">
+              <button onClick={() => onNavigate('team')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Team</button>
+              <button onClick={() => onNavigate('about')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>About</button>
+              <button onClick={() => onNavigate('advisory')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Advisory</button>
+              <button onClick={() => onNavigate('blog')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Blog</button>
+            </div>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: '#64748b' }}>Legal</p>
+            <div className="flex flex-col gap-2.5">
+              <button onClick={() => onNavigate('privacy')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Privacy Policy</button>
+              <button onClick={() => onNavigate('terms')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Terms of Service</button>
+              <button onClick={() => onNavigate('subprocessors')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Sub-processors</button>
+              <button onClick={() => onNavigate('slack')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Slack Integration</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <span className="text-xs" style={{ color: '#64748b' }}>&copy; 2026 Poddle, Inc.</span>
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: '#64748b' }}>
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Privacy-conscious data processing</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
+
+export default function GuestHome({ onNavigate }: GuestHomeProps) {
+  return (
+    <div className="min-h-screen" style={{ background: WHITE }}>
+      {/* Top navigation bar (visible above the existing Navigation top bar on md+) */}
+      <div
+        className="hidden md:flex items-center justify-between px-6 py-3 sticky top-0 z-30"
+        style={{
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderBottom: `1px solid ${BORDER}`,
+        }}
+      >
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2">
+            <PoddleMark size={24} />
+            <span className="text-base font-black tracking-tight" style={{ color: INK }}>
+              Poddle<span style={{ color: GOLD, fontWeight: 400 }}>AI</span>
+            </span>
+          </div>
+          <HeaderNav onNavigate={onNavigate} />
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onNavigate('auth')}
+            className="text-sm font-medium transition-colors hover:opacity-70"
+            style={{ color: INK }}
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => onNavigate('auth')}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
+            style={{ background: BLUE, boxShadow: '0 2px 8px rgba(37,99,235,0.2)' }}
+          >
+            Try Poddle AI
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <HeroSection onNavigate={onNavigate} />
+      <ProblemSection />
+      <CapabilitiesSection />
+      <HowItWorksSection onNavigate={onNavigate} />
+      <ProductShowcaseSection />
+      <UseCasesSection />
+      <SecuritySection onNavigate={onNavigate} />
+      <FinalCTA onNavigate={onNavigate} />
+      <Footer onNavigate={onNavigate} />
     </div>
   );
 }
 
-function LiveDemoSection({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const [revealed, setRevealed] = useState(0);
-  const [showTrail, setShowTrail] = useState(false);
-  const [showPDF, setShowPDF] = useState(false);
-  const { ref, visible } = useScrollReveal();
-
-  useEffect(() => {
-    if (!visible) return;
-    let i = 0;
-    const tick = () => {
-      i += 1;
-      setRevealed(i);
-      if (i < DEMO_MESSAGES.length) setTimeout(tick, 900);
-    };
-    setTimeout(tick, 300);
-  }, [visible]);
-
-  const [showMap, setShowMap] = useState(false);
-
-  useEffect(() => {
-    if (revealed >= DEMO_MESSAGES.length) {
-      const t1 = setTimeout(() => setShowTrail(true), 1400);
-      const t2 = setTimeout(() => setShowMap(true), 2400);
-      const t3 = setTimeout(() => setShowPDF(true), 3600);
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-    }
-  }, [revealed]);
-
-  return (
-    <section ref={ref} style={{ background: '#f8fafc', borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)' }} className="py-24">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-4" style={{ background: 'rgba(184,134,11,0.07)', color: '#b8860b', border: '1px solid rgba(184,134,11,0.12)' }}>
-            Live example
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
-            Watch the full workflow.
-          </h2>
-          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-            A fintech team asks: <strong className="text-slate-700">"Should we launch our AI lending product across Europe now?"</strong> Agents debate it, the War Room synthesizes it, and the Decision Trail records it, permanently.
-          </p>
-        </div>
-
-        <div className="flex items-center justify-center gap-4 mb-6 flex-wrap">
-          {[
-            { step: '1', label: 'Team Chat', color: '#0891b2', bg: 'rgba(8,145,178,0.07)' },
-            { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
-            { step: '2', label: 'Multiplayer AI', color: '#b8860b', bg: 'rgba(184,134,11,0.08)' },
-            { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
-            { step: '3', label: 'War Room Synthesis', color: '#dc2626', bg: 'rgba(220,38,38,0.07)' },
-            { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
-            { step: '4', label: 'Decision Trail', color: '#475569', bg: 'rgba(71,85,105,0.08)' },
-            { step: '→', label: '', color: '#94a3b8', bg: 'transparent' },
-            { step: '5', label: 'Decision Map', color: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
-          ].map((item, i) => item.label ? (
-            <span key={i} className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: item.bg, color: item.color }}>
-              {item.step} · {item.label}
-            </span>
-          ) : (
-            <span key={i} className="text-sm font-bold" style={{ color: '#cbd5e1' }}>→</span>
-          ))}
-        </div>
-
-        <div
-          className="rounded-3xl overflow-hidden mx-auto"
-          style={{ maxWidth: 800, background: '#FFFFFF', boxShadow: '0 8px 32px rgba(0,0,0,0.10)', border: '1px solid #D8DDE8' }}
-        >
-          <div className="flex items-center gap-2 px-5 py-3.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-            <div className="w-3 h-3 rounded-full" style={{ background: '#ef4444' }} />
-            <div className="w-3 h-3 rounded-full" style={{ background: '#f59e0b' }} />
-            <div className="w-3 h-3 rounded-full" style={{ background: '#10b981' }} />
-            <div className="flex items-center gap-2 ml-4 flex-1">
-              <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
-              <span className="text-xs font-medium" style={{ color: '#5D6B82' }}>Private Workspace · European Expansion</span>
-            </div>
-            <Lock className="w-3 h-3" style={{ color: '#9BA6B8' }} />
-          </div>
-
-          <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-            <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#b8860b' }} />
-            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#5D6B82' }}>Multiplayer AI</span>
-            <div className="ml-auto flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#1e7a52' }} />
-              <span className="text-[10px]" style={{ color: '#5D6B82' }}>Live</span>
-            </div>
-          </div>
-
-          <div className="px-5 pt-5 pb-4" style={{ background: '#FFFFFF' }}>
-            <div
-              className="flex items-start gap-3 rounded-2xl p-4 mb-1"
-              style={{ background: '#F7F9FC', border: '1px solid #D8DDE8' }}
-            >
-              <div
-                className="w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5"
-                style={{ background: '#b8860b', color: '#F0F3F7' }}
-              >
-                YO
-              </div>
-              <div>
-                <p className="text-[11px] font-bold mb-1" style={{ color: '#b8860b' }}>You</p>
-                <p className="text-sm leading-relaxed font-medium" style={{ color: '#111827' }}>We're ready to launch our AI-powered lending product. Should we go multi-market across Europe now, or stage the rollout?</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-3 mb-4 flex-wrap">
-              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9BA6B8' }}>Responding:</span>
-              {DEMO_MESSAGES.map((m, i) => (
-                <span
-                  key={m.agent}
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full transition-all duration-300"
-                  style={i < revealed
-                    ? { background: m.bg, color: m.color, opacity: 1 }
-                    : { background: '#F7F9FC', color: '#9BA6B8' }}
-                >
-                  {m.label}
-                </span>
-              ))}
-            </div>
-
-            <div className="space-y-3 pb-1">
-              {DEMO_MESSAGES.map((m, i) => (
-                <div
-                  key={m.agent}
-                  className="flex gap-3 transition-all duration-500"
-                  style={{
-                    opacity: i < revealed ? 1 : 0,
-                    transform: i < revealed ? 'translateY(0)' : 'translateY(10px)',
-                  }}
-                >
-                  <img
-                    src={m.avatar}
-                    alt={m.label}
-                    className="w-7 h-7 rounded-xl object-cover flex-shrink-0 mt-0.5"
-                    style={{ border: `1px solid ${m.color}22` }}
-                  />
-                  <div
-                    className="flex-1 rounded-2xl p-3.5"
-                    style={{ background: m.bg, border: `1px solid ${m.color}22`, borderBottomLeftRadius: '4px' }}
-                  >
-                    <p className="text-[11px] font-bold mb-1.5" style={{ color: m.color }}>{m.label}</p>
-                    <p className="text-[12px] leading-relaxed" style={{ color: '#111827' }}>{m.msg}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {revealed >= DEMO_MESSAGES.length && (
-              <div
-                className="mt-4 rounded-2xl p-4 transition-all duration-700"
-                style={{
-                  background: '#FFFFFF',
-                  border: '1px solid #D8DDE8',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                  opacity: 1,
-                }}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: 'rgba(184,134,11,0.12)' }}>
-                    <Brain className="w-3 h-3" style={{ color: '#b8860b' }} />
-                  </div>
-                  <span className="text-[11px] font-bold" style={{ color: '#b8860b' }}>War Room Synthesis</span>
-                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(184,134,11,0.12)', color: '#b8860b' }}>Built from your Multiplayer AI</span>
-                </div>
-                <p className="text-[12px] leading-relaxed" style={{ color: '#111827' }}>
-                  <strong style={{ color: '#111827' }}>Verdict: Stage the rollout, starting Germany.</strong> The EU AI Act compliance burden is real but sequenceable. BaFin approval is the hardest and most valuable first stamp. It de-risks the rest of the continent. Launch Germany in Q3, use the model audit trail as a template, then fast-follow France and Netherlands by Q1 next year.
-                </p>
-              </div>
-            )}
-
-            {showTrail && (
-              <div
-                className="mt-4 rounded-2xl p-4 transition-all duration-700"
-                style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', opacity: 1 }}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Fingerprint className="w-3.5 h-3.5" style={{ color: '#475569' }} />
-                  <span className="text-[11px] font-bold" style={{ color: '#475569' }}>Decision Trail</span>
-                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(71,85,105,0.1)', color: '#475569' }}>Immutable</span>
-                </div>
-                <div className="space-y-2 mb-3">
-                  {[
-                    { label: 'decision_created', code: null, color: '#475569' },
-                    { label: 'agent_analysis', code: 'FIN-01', color: '#2563eb' },
-                    { label: 'agent_analysis', code: 'RISK-01', color: '#2563eb' },
-                  ].map((ev, i) => (
-                    <div key={i} className="flex items-center gap-2.5">
-                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: ev.color }} />
-                      <span className="text-[10px] font-mono" style={{ color: '#374151' }}>{ev.label}</span>
-                      {ev.code && (
-                        <span
-                          className="text-[9px] font-bold px-1.5 py-0.5 ml-auto"
-                          style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', color: ev.color, background: `${ev.color}14`, border: `1px solid ${ev.color}4d` }}
-                        >
-                          {ev.code}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
-                  <History className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
-                  <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Point-in-Time Replay: rewind to see exactly what the team knew, then</span>
-                </div>
-              </div>
-            )}
-
-            {showMap && (
-              <div
-                className="mt-4 rounded-2xl p-4 transition-all duration-700"
-                style={{ background: '#FFFFFF', border: '1px solid #D8DDE8', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', opacity: 1 }}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <ShieldCheck className="w-3.5 h-3.5" style={{ color: '#7c3aed' }} />
-                  <span className="text-[11px] font-bold" style={{ color: '#7c3aed' }}>Decision Map</span>
-                  <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(124,58,237,0.1)', color: '#7c3aed' }}>Org-wide</span>
-                </div>
-                <div className="space-y-2 mb-3">
-                  {[
-                    { status: 'Exploring', count: 4, color: '#64748b' },
-                    { status: 'In Debate', count: 2, color: '#d97706' },
-                    { status: 'Committed', count: 3, color: '#2563eb' },
-                  ].map((v) => (
-                    <div key={v.status} className="flex items-center gap-2.5">
-                      <span className="text-[10px] font-bold px-2 py-0.5 flex-shrink-0" style={{ color: v.color, background: `${v.color}14` }}>{v.status}</span>
-                      <div className="flex-1 h-1.5 rounded-full" style={{ background: '#F0F3F7' }}>
-                        <div className="h-1.5 rounded-full" style={{ background: v.color, width: `${Math.min(100, v.count * 20)}%` }} />
-                      </div>
-                      <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: '#5D6B82' }}>{v.count}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid #D8DDE8' }}>
-                  <ShieldCheck className="w-3 h-3 flex-shrink-0" style={{ color: '#9BA6B8' }} />
-                  <span className="text-[9px]" style={{ color: '#9BA6B8' }}>Decision Control: this decision is pending CFO approval before it can commit</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="px-5 py-3.5" style={{ borderTop: '1px solid #D8DDE8', background: '#F7F9FC' }}>
-            <div className="flex items-center gap-3">
-              <div
-                className="flex-1 h-9 rounded-xl px-3.5 flex items-center gap-2"
-                style={{ background: '#FFFFFF', border: '1px solid #D8DDE8' }}
-              >
-                <span className="text-xs" style={{ color: '#9BA6B8' }}>Ask a follow-up or challenge an agent...</span>
-              </div>
-              {revealed >= DEMO_MESSAGES.length && (
-                <button
-                  onClick={() => setShowPDF(true)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5"
-                  style={{ background: '#F7F9FC', color: '#5D6B82', border: '1px solid #D8DDE8' }}
-                >
-                  <Download className="w-3 h-3" />
-                  Export PDF
-                </button>
-              )}
-              <button
-                onClick={() => onNavigate('auth')}
-                className="px-4 py-2 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5"
-                style={{ background: '#b8860b', color: '#F0F3F7', boxShadow: '0 2px 8px rgba(184,134,11,0.3)' }}
-              >
-                Try it
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="mx-auto mt-6 overflow-hidden transition-all duration-700"
-          style={{
-            maxWidth: 800,
-            maxHeight: showPDF ? '2000px' : 0,
-            opacity: showPDF ? 1 : 0,
-          }}
-        >
-          <div className="flex flex-col items-center mb-4">
-            <div className="w-0.5 h-6" style={{ background: 'rgba(0,0,0,0.12)' }} />
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold" style={{ background: 'rgba(0,0,0,0.06)', color: '#64748b', border: '1px solid rgba(0,0,0,0.08)' }}>
-              <Download className="w-3 h-3" />
-              Exported War Room report · Step 3 of 3
-            </div>
-            <div className="w-0.5 h-4" style={{ background: 'rgba(0,0,0,0.12)' }} />
-            <div className="w-2 h-2 rotate-45" style={{ background: 'rgba(0,0,0,0.12)', marginTop: -4 }} />
-          </div>
-
-          <div className="rounded-3xl overflow-hidden" style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
-            <div className="px-8 pt-8 pb-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: 'linear-gradient(135deg,#000000,#111111)' }}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
-                      <Brain className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'rgba(148,163,184,0.7)' }}>Poddle · War Room Report</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">European AI Lending Expansion</h3>
-                  <p className="text-xs" style={{ color: 'rgba(148,163,184,0.65)' }}>
-                    Private Workspace · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · 12 messages analyzed
-                  </p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-3xl font-black text-white">68</div>
-                  <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: '#f59e0b' }}>Developing</div>
-                  <div className="text-[10px]" style={{ color: 'rgba(148,163,184,0.5)' }}>Decision Health</div>
-                </div>
-              </div>
-              <div className="flex gap-4 mt-5">
-                <ScoreArc score={74} label="Strategic Alignment" color="#16a34a" />
-                <ScoreArc score={61} label="Operational Readiness" color="#f59e0b" />
-              </div>
-            </div>
-
-            <div className="px-8 py-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: 'rgba(184,134,11,0.03)' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4" style={{ color: '#111111' }} />
-                <span className="text-xs font-black uppercase tracking-wider" style={{ color: '#111111' }}>Strategic Recommendation</span>
-              </div>
-              <p className="text-sm leading-relaxed text-slate-700">
-                <strong className="text-slate-900">Stage the rollout. Start with Germany.</strong> BaFin approval is the hardest and most valuable first stamp. It de-risks France, Netherlands, and the Nordics. Target Germany in Q3 with a compliant audit trail in place. Parallel multi-market filing will cost more time than it saves.
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', borderColor: 'rgba(0,0,0,0.06)' }}>
-              <div className="px-8 py-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-800">Risk Signals</span>
-                  <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(220,38,38,0.08)', color: '#b91c1c' }}>3 identified</span>
-                </div>
-                <div className="space-y-3">
-                  {DEMO_RISKS.map((r) => (
-                    <div key={r.label} className="flex gap-2.5">
-                      <span className="mt-0.5 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0" style={SEV_COLORS[r.sev]}>{r.sev}</span>
-                      <div>
-                        <p className="text-[11px] font-bold text-slate-800 leading-tight">{r.label}</p>
-                        <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">{r.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="px-8 py-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Target className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-800">Action Items</span>
-                  <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(184,134,11,0.08)', color: '#b8860b' }}>4 items</span>
-                </div>
-                <div className="space-y-3">
-                  {DEMO_ACTIONS.map((a) => (
-                    <div key={a.task.slice(0, 20)} className="flex gap-2.5">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide" style={PRI_COLORS[a.priority]}>{a.priority}</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-black uppercase tracking-wide" style={{ color: '#94a3b8' }}>{a.who}</span>
-                        <p className="text-[11px] text-slate-600 leading-relaxed mt-0.5">{a.task}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-8 py-4 flex items-center justify-between" style={{ background: '#fafafa' }}>
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-3.5 h-3.5" style={{ color: '#94a3b8' }} />
-                <span className="text-[10px] font-semibold" style={{ color: '#94a3b8' }}>3 conflict zones. 6 open questions. 5 blind spots flagged.</span>
-              </div>
-              <button
-                onClick={() => onNavigate('auth')}
-                className="flex items-center gap-1.5 text-[10px] font-bold transition-colors hover:text-blue-700"
-                style={{ color: '#b8860b' }}
-              >
-                Get your own report
-                <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Social Proof ─────────────────────────────────────────────────────────────
-
-const TESTIMONIALS = [
-  {
-    quote: "We used the War Room before a board presentation. The Devil's Advocate agent surfaced a risk our CFO had not considered. We caught it in time.",
-    role: "Head of Strategy · Series B SaaS",
-    initial: "S",
-    color: '#b8860b',
-  },
-  {
-    quote: "I did not realize the PDF came from the War Room until I read the walkthrough. Once I understood the flow, the reports became 10x more useful.",
-    role: "Founder · FinTech",
-    initial: "F",
-    color: '#059669',
-  },
-  {
-    quote: "The Multiplayer AI is where the debate happens. The War Room is where decisions get made. That distinction took me a day to learn, but now I would not skip it.",
-    role: "VP Operations · Scale-up",
-    initial: "V",
-    color: '#dc2626',
-  },
-];
-
-function SocialProofSection() {
-  return (
-    <section style={{ background: '#fff', borderTop: '1px solid rgba(0,0,0,0.06)' }} className="py-20">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <RevealSection className="text-center mb-12">
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">What teams say</p>
-        </RevealSection>
-
-        <div className="grid sm:grid-cols-3 gap-5">
-          {TESTIMONIALS.map((t, i) => (
-            <RevealSection key={i} delay={i * 100}>
-              <div
-                className="h-full p-6 rounded-2xl flex flex-col gap-4"
-                style={{ background: '#fafafa', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
-              >
-                <p className="text-sm text-slate-600 leading-relaxed flex-1">"{t.quote}"</p>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black text-white flex-shrink-0"
-                    style={{ background: t.color }}
-                  >
-                    {t.initial}
-                  </div>
-                  <p className="text-xs font-semibold text-slate-500">{t.role}</p>
-                </div>
-              </div>
-            </RevealSection>
-          ))}
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
-          {[
-            { icon: Brain, color: '#b8860b', bg: 'rgba(184,134,11,0.08)', title: '7 specialized agents', desc: "Risk Analyst, Devil's Advocate, Market Analyst, Execution Lead, Financial Strategist, Innovation Lead, People Advisor, each with a different mandate." },
-            { icon: Shield, color: '#0891b2', bg: '#ecfeff', title: 'Private by default', desc: 'Invite-only workspaces, never listed or searchable. Encrypted in transit and at rest. AI analysis is processed by OpenAI under a data processing agreement.' },
-            { icon: FileText, color: '#059669', bg: '#ecfdf5', title: 'Board-ready exports', desc: 'The War Room PDF includes your recommendation, risk signals, action items by owner, and decision health scores, ready to share.' },
-            { icon: Building2, color: '#7c3aed', bg: '#f5f3ff', title: 'Organization-wide oversight', desc: 'Link every workspace to your organization. See every decision, its status, and its owner in one view, with optional approval gates before anything commits.' },
-            { icon: Fingerprint, color: '#475569', bg: 'rgba(71,85,105,0.08)', title: 'Immutable audit trail', desc: 'Every decision is logged from question to outcome, permanently. Nothing can be quietly edited or backdated.' },
-            { icon: Hash, color: '#2563eb', bg: 'rgba(37,99,235,0.08)', title: 'Evidence IDs', desc: "AI claims are labeled and citable, like FIN-01, tagged as fact, assumption, inference, or opinion, with evidence attached." },
-          ].map(({ icon: Icon, color, bg, title, desc }, i) => (
-            <RevealSection key={title} delay={i * 80}>
-              <div
-                className="h-full p-6 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}
-              >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: bg }}>
-                  <Icon className="w-5 h-5" style={{ color }} />
-                </div>
-                <h3 className="text-sm font-bold text-slate-900 mb-2">{title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
-              </div>
-            </RevealSection>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Team ────────────────────────────────────────────────────────────────────
+// ─── Team Section (used by Team page) ────────────────────────────────────────
 
 export function TeamSection() {
   const members = [
@@ -1383,60 +1101,6 @@ export function TeamSection() {
               </div>
             ))}
           </div>
-        </RevealSection>
-      </div>
-    </section>
-  );
-}
-
-// ─── Final CTA ────────────────────────────────────────────────────────────────
-
-function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
-  return (
-    <section style={{ background: '#ffffff', borderTop: '1px solid #e5e7eb' }} className="py-24">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <RevealSection>
-          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl" style={{ background: 'rgba(184,134,11,0.08)' }} />
-          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
-            Your next big decision<br />deserves a proper challenge.
-          </h2>
-          <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: '#4b5563' }}>
-            Start a Team Chat. Bring in the AI agents. Run the War Room. Export the report. Free to start, no card required.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
-            <button
-              onClick={() => onNavigate('auth')}
-              className="px-8 py-4 rounded-2xl text-white font-bold text-sm transition-all duration-200 hover:-translate-y-0.5"
-              style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', boxShadow: '0 4px 14px rgba(184,134,11,0.3)' }}
-            >
-              Create free account
-            </button>
-            <button
-              onClick={() => onNavigate('pricing')}
-              className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm transition-all hover:-translate-y-0.5"
-              style={{ background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb' }}
-            >
-              View pricing
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-center gap-6 flex-wrap text-xs" style={{ color: '#6b7280' }}>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
-              Free forever plan
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
-              No credit card required
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
-              Invite your team
-            </div>
-          </div>
-
         </RevealSection>
       </div>
     </section>
