@@ -15,7 +15,7 @@ export default function TermsOfService() {
           <div className="mb-6">
             <span className="inline-block bg-slate-100 text-slate-700 text-xs font-semibold tracking-wide uppercase px-3 py-1 rounded-full mb-4">Legal</span>
             <h1 className="text-4xl font-bold text-slate-900 mb-2 tracking-tight">Terms of Service</h1>
-            <p className="text-slate-500 text-sm">Last Updated: <strong>4 June 2026</strong> &nbsp;·&nbsp; Effective Date: <strong>1 January 2026</strong></p>
+            <p className="text-slate-500 text-sm">Last Updated: <strong>9 October 2026</strong> &nbsp;·&nbsp; Effective Date: <strong>1 January 2026</strong></p>
           </div>
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-sm text-slate-700 leading-relaxed">
             <strong>Please read carefully.</strong> These Terms form a binding legal agreement between you and Poddle. By creating an account or using the platform you confirm you have read, understood, and accepted these Terms. Questions? Email <a href="mailto:legal@poddleme.com" className="text-blue-600 underline font-medium">legal@poddleme.com</a>.
