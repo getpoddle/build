@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   ArrowLeft, Clock, X, List, PlayCircle, PauseCircle,
   ChevronLeft, ChevronRight, UserCog, FileText, MessageSquare, MessageCircle,
-  GitBranch, Edit3, CheckCircle2, TrendingUp, Send, Download,
+  GitBranch, Edit3, CheckCircle2, TrendingUp, Send, Download, ShieldCheck,
 } from 'lucide-react';
 import { exportDecisionTrailToPDF } from '../lib/pdfExport';
 import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
@@ -37,6 +37,29 @@ interface DecisionClaim {
   created_at: string;
   last_verified_at: string;
   validity_period_days: number;
+  evidence_classification: string | null;
+  source_name: string | null;
+  source_reference: string | null;
+  supporting_document_ref: string | null;
+  last_reviewed_at: string | null;
+  verification_status: string | null;
+  verification_method: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  ai_confidence_score: number | null;
+  supporting_notes: string | null;
+}
+
+interface VerificationHistoryEntry {
+  id: string;
+  claim_id: string;
+  previous_status: string | null;
+  new_status: string;
+  reviewer_id: string | null;
+  verification_method: string | null;
+  source_reference: string | null;
+  notes: string | null;
+  created_at: string;
 }
 
 interface DecisionChallenge {
@@ -75,6 +98,62 @@ const CLAIM_TYPE_COLORS: Record<string, string> = {
   inference: '#2563eb',
   opinion: '#7c3aed',
 };
+
+const EVIDENCE_CLASSIFICATION_LABELS: Record<string, string> = {
+  verified_fact: 'Verified Fact',
+  reported_fact: 'Reported Fact',
+  assumption: 'Assumption',
+  ai_inference: 'AI Inference',
+  unverified_claim: 'Unverified Claim',
+};
+
+const EVIDENCE_CLASSIFICATION_COLORS: Record<string, string> = {
+  verified_fact: '#16a34a',
+  reported_fact: '#0891b2',
+  assumption: '#d97706',
+  ai_inference: '#2563eb',
+  unverified_claim: '#dc2626',
+};
+
+const VERIFICATION_STATUS_LABELS: Record<string, string> = {
+  not_verified: 'Not Verified',
+  pending: 'Verification Pending',
+  verified: 'Verified',
+  failed: 'Verification Failed',
+  expired: 'Verification Expired',
+};
+
+const VERIFICATION_STATUS_COLORS: Record<string, string> = {
+  not_verified: '#64748b',
+  pending: '#d97706',
+  verified: '#16a34a',
+  failed: '#dc2626',
+  expired: '#b45309',
+};
+
+const VALID_CLASSIFICATIONS = [
+  'verified_fact', 'reported_fact', 'assumption', 'ai_inference', 'unverified_claim',
+] as const;
+
+function classificationLabel(c: string | null): string {
+  if (!c) return 'Unclassified';
+  return EVIDENCE_CLASSIFICATION_LABELS[c] || c;
+}
+
+function classificationColor(c: string | null): string {
+  if (!c) return '#64748b';
+  return EVIDENCE_CLASSIFICATION_COLORS[c] || '#64748b';
+}
+
+function verificationStatusLabel(s: string | null): string {
+  if (!s) return 'Not Verified';
+  return VERIFICATION_STATUS_LABELS[s] || s;
+}
+
+function verificationStatusColor(s: string | null): string {
+  if (!s) return '#64748b';
+  return VERIFICATION_STATUS_COLORS[s] || '#64748b';
+}
 
 type Freshness = 'current' | 'aging' | 'stale';
 
@@ -592,15 +671,57 @@ function DecisionStory({
   );
 }
 
-function ClaimsPanel({   claims, challenges, expandedId, setExpandedId, highlightId, claimRefs, onReverify, reverifyingId, }: {   claims: DecisionClaim[];   challenges: DecisionChallenge[];   expandedId: string | null;   setExpandedId: (id: string | null) => void;   highlightId: string | null;   claimRefs: React.MutableRefObject<Record<string, HTMLButtonElement | null>>;   onReverify: (claimId: string) => void;   reverifyingId: string | null; }) {   if (claims.length === 0) return null;    const challengesByClaim = new Map<string, DecisionChallenge[]>();   for (const ch of challenges) {     if (!challengesByClaim.has(ch.target_claim_id)) challengesByClaim.set(ch.target_claim_id, []);     challengesByClaim.get(ch.target_claim_id)!.push(ch);   }    const staleCount = claims.filter(c => freshnessFor(c).status === 'stale').length;    return (     <div className="mb-6 p-4" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>       <div className="flex items-center gap-2 mb-3">         <h3 className="text-sm font-bold uppercase" style={{ color: 'var(--signal)', letterSpacing: '0.06em' }}>           Evidence IDs ({claims.length})         </h3>         <span className="text-xs ml-auto" style={{ color: 'var(--app-text-secondary)' }}>Evidence-linked, citable by code</span>       </div>       {staleCount > 0 && (         <div className="flex items-center gap-2 mb-3 p-2.5" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)' }}>           <span style={{ fontSize: '14px' }}>🔴</span>           <p className="text-xs font-medium" style={{ color: '#dc2626' }}>             This decision relies on {staleCount} piece{staleCount !== 1 ? 's' : ''} of stale evidence — worth re-verifying before committing.           </p>         </div>       )}
+function ClaimsPanel({
+  claims, challenges, expandedId, setExpandedId, highlightId, claimRefs,
+  onReverify, onRequestReverification, reverifyingId,
+}: {
+  claims: DecisionClaim[];
+  challenges: DecisionChallenge[];
+  expandedId: string | null;
+  setExpandedId: (id: string | null) => void;
+  highlightId: string | null;
+  claimRefs: React.MutableRefObject<Record<string, HTMLButtonElement | null>>;
+  onReverify: (claim: DecisionClaim) => void;
+  onRequestReverification: (claimId: string) => void;
+  reverifyingId: string | null;
+}) {
+  if (claims.length === 0) return null;
+
+  const challengesByClaim = new Map<string, DecisionChallenge[]>();
+  for (const ch of challenges) {
+    if (!challengesByClaim.has(ch.target_claim_id)) challengesByClaim.set(ch.target_claim_id, []);
+    challengesByClaim.get(ch.target_claim_id)!.push(ch);
+  }
+
+  const staleCount = claims.filter(c => freshnessFor(c).status === 'stale').length;
+
+  return (
+    <div className="mb-6 p-4" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
+      <div className="flex items-center gap-2 mb-3">
+        <h3 className="text-sm font-bold uppercase" style={{ color: 'var(--signal)', letterSpacing: '0.06em' }}>
+          Evidence IDs ({claims.length})
+        </h3>
+        <span className="text-xs ml-auto" style={{ color: 'var(--app-text-secondary)' }}>Evidence-linked, citable by code</span>
+      </div>
+      {staleCount > 0 && (
+        <div className="flex items-center gap-2 mb-3 p-2.5" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)' }}>
+          <span style={{ fontSize: '14px' }}>🔴</span>
+          <p className="text-xs font-medium" style={{ color: '#dc2626' }}>
+            This decision relies on {staleCount} piece{staleCount !== 1 ? 's' : ''} of stale evidence — worth re-verifying before committing.
+          </p>
+        </div>
+      )}
       <div className="space-y-2">
         {claims.map(claim => {
           const isOpen = expandedId === claim.id;
           const isHighlighted = highlightId === claim.id;
           const typeColor = CLAIM_TYPE_COLORS[claim.claim_type] || '#64748b';
+          const classColor = classificationColor(claim.evidence_classification);
+          const vStatusColor = verificationStatusColor(claim.verification_status);
           const evidenceRefs = Array.isArray(claim.evidence_refs) ? claim.evidence_refs as string[] : [];
           const assumptions = Array.isArray(claim.assumptions) ? claim.assumptions as { key: string; value: string }[] : [];
           const claimChallenges = challengesByClaim.get(claim.id) || [];
+          const aiConfidence = claim.ai_confidence_score ?? claim.confidence;
           return (
             <button
               key={claim.id}
@@ -640,9 +761,41 @@ function ClaimsPanel({   claims, challenges, expandedId, setExpandedId, highligh
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap mt-1">
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5"
+                        style={{ color: classColor, background: `${classColor}14`, borderRadius: '4px' }}
+                      >
+                        {classificationLabel(claim.evidence_classification)}
+                      </span>
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5"
+                        style={{ color: vStatusColor, background: `${vStatusColor}14`, borderRadius: '4px' }}
+                      >
+                        {verificationStatusLabel(claim.verification_status)}
+                      </span>
                       <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
-                        {claim.agent_name} · <span className="capitalize">{claim.claim_type}</span> · {Math.round(claim.confidence * 100)}% confidence
+                        {claim.agent_name} · {Math.round(claim.confidence * 100)}% confidence
+                        {claim.ai_confidence_score != null && claim.ai_confidence_score !== claim.confidence
+                          ? ` (AI: ${Math.round(claim.ai_confidence_score * 100)}%)`
+                          : ''}
                       </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                      {claim.source_name && (
+                        <span className="text-[10px]" style={{ color: 'var(--app-text-secondary)' }}>
+                          Source: {claim.source_name}
+                        </span>
+                      )}
+                      {claim.source_reference && (
+                        <span className="text-[10px]" style={{ color: 'var(--app-text-secondary)' }}>
+                          Ref: {claim.source_reference.length > 40 ? claim.source_reference.slice(0, 37) + '...' : claim.source_reference}
+                        </span>
+                      )}
+                      {claim.last_reviewed_at && (
+                        <span className="text-[10px]" style={{ color: 'var(--app-text-muted)' }}>
+                          Reviewed {new Date(claim.last_reviewed_at).toLocaleDateString()}
+                        </span>
+                      )}
                       {(() => {
                         const f = freshnessFor(claim);
                         const dot = f.status === 'current' ? '🟢' : f.status === 'aging' ? '🟡' : '🔴';
@@ -655,10 +808,38 @@ function ClaimsPanel({   claims, challenges, expandedId, setExpandedId, highligh
                     </div>
                     {isOpen && (
                       <div className="mt-2.5 pt-2.5 space-y-2 text-xs" style={{ borderTop: '1px solid var(--app-border)' }}>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Classification</p>
+                          <div className="flex items-center gap-2">
+                            <span style={{ color: classColor, fontWeight: 600 }}>
+                              {classificationLabel(claim.evidence_classification)}
+                            </span>
+                            <span style={{ color: vStatusColor, fontWeight: 600 }}>
+                              · {verificationStatusLabel(claim.verification_status)}
+                            </span>
+                          </div>
+                          {claim.verification_method && (
+                            <p className="mt-0.5" style={{ color: 'var(--app-text-secondary)' }}>
+                              Method: {claim.verification_method}
+                            </p>
+                          )}
+                        </div>
                         {evidenceRefs.length > 0 && (
                           <div>
                             <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Evidence</p>
                             <p style={{ color: 'var(--app-text-secondary)' }}>{evidenceRefs.join(', ')}</p>
+                          </div>
+                        )}
+                        {claim.source_reference && (
+                          <div>
+                            <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Source Reference</p>
+                            <p style={{ color: 'var(--app-text-secondary)', wordBreak: 'break-all' }}>{claim.source_reference}</p>
+                          </div>
+                        )}
+                        {claim.supporting_notes && (
+                          <div>
+                            <p className="text-[10px] font-bold uppercase mb-0.5" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Notes</p>
+                            <p style={{ color: 'var(--app-text-secondary)' }}>{claim.supporting_notes}</p>
                           </div>
                         )}
                         {assumptions.length > 0 && (
@@ -669,7 +850,29 @@ function ClaimsPanel({   claims, challenges, expandedId, setExpandedId, highligh
                             ))}
                           </div>
                         )}
-                                                {evidenceRefs.length === 0 && assumptions.length === 0 && claimChallenges.length === 0 && (                           <p style={{ color: 'var(--app-text-secondary)' }}>No evidence or assumptions recorded for this claim.</p>                         )}                         <div className="pt-1">                           <button                             onClick={(e) => { e.stopPropagation(); onReverify(claim.id); }}                             disabled={reverifyingId === claim.id}                             className="text-xs font-semibold px-2.5 py-1.5 disabled:opacity-50"                             style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-primary)' }}                           >                             {reverifyingId === claim.id ? 'Re-verifying…' : 'Mark as re-verified today'}                           </button>                         </div>
+                        {evidenceRefs.length === 0 && assumptions.length === 0 && claimChallenges.length === 0 && !claim.source_reference && (
+                          <p style={{ color: 'var(--app-text-secondary)' }}>No evidence or assumptions recorded for this claim.</p>
+                        )}
+                        <div className="pt-1 flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onReverify(claim); }}
+                            disabled={reverifyingId === claim.id}
+                            className="text-xs font-semibold px-2.5 py-1.5 disabled:opacity-50"
+                            style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-primary)' }}
+                          >
+                            {reverifyingId === claim.id ? 'Verifying…' : 'Verify'}
+                          </button>
+                          {claim.verification_status !== 'pending' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onRequestReverification(claim.id); }}
+                              disabled={reverifyingId === claim.id}
+                              className="text-xs font-semibold px-2.5 py-1.5 disabled:opacity-50"
+                              style={{ border: '1px solid var(--app-border)', color: 'var(--app-text-secondary)' }}
+                            >
+                              Request Reverification
+                            </button>
+                          )}
+                        </div>
                         {claimChallenges.length > 0 && (
                           <div>
                             <p className="text-[10px] font-bold uppercase mb-1" style={{ color: '#b45309', letterSpacing: '0.08em' }}>Challenges</p>
@@ -732,7 +935,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         .order('created_at', { ascending: true }),
       supabase
         .from('decision_claims')
-        .select('id, workspace_id, claim_code, agent_role, agent_name, statement, claim_type, evidence_refs, assumptions, confidence, created_at, last_verified_at, validity_period_days')
+        .select('id, workspace_id, claim_code, agent_role, agent_name, statement, claim_type, evidence_refs, assumptions, confidence, created_at, last_verified_at, validity_period_days, evidence_classification, source_name, source_reference, supporting_document_ref, last_reviewed_at, verification_status, verification_method, verified_by, verified_at, ai_confidence_score, supporting_notes')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: true }),
       supabase
@@ -813,13 +1016,70 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
   }
 
   const [reverifyingId, setReverifyingId] = useState<string | null>(null);
+  const [reverifyDialogClaim, setReverifyDialogClaim] = useState<DecisionClaim | null>(null);
+  const [reverifyMethod, setReverifyMethod] = useState('');
+  const [reverifySource, setReverifySource] = useState('');
+  const [reverifyNotes, setReverifyNotes] = useState('');
+  const [reverifyError, setReverifyError] = useState<string | null>(null);
 
-    async function handleReverify(claimId: string) {
+  function openReverifyDialog(claim: DecisionClaim) {
+    setReverifyDialogClaim(claim);
+    setReverifyMethod('');
+    setReverifySource('');
+    setReverifyNotes('');
+    setReverifyError(null);
+  }
+
+  function closeReverifyDialog() {
+    setReverifyDialogClaim(null);
+    setReverifyMethod('');
+    setReverifySource('');
+    setReverifyNotes('');
+    setReverifyError(null);
+  }
+
+  async function handleReverifySubmit() {
+    if (!reverifyDialogClaim) return;
+    if (!reverifyMethod.trim()) { setReverifyError('Verification method is required.'); return; }
+    if (!reverifySource.trim()) { setReverifyError('Source reference is required.'); return; }
+    setReverifyingId(reverifyDialogClaim.id);
+    setReverifyError(null);
+    try {
+      const { error } = await supabase.rpc('reverify_decision_claim', {
+        p_claim_id: reverifyDialogClaim.id,
+        p_verification_method: reverifyMethod.trim(),
+        p_source_reference: reverifySource.trim(),
+        p_notes: reverifyNotes.trim() || null,
+      });
+      if (!error) {
+        const now = new Date().toISOString();
+        setClaims(prev => prev.map(c => c.id === reverifyDialogClaim.id ? {
+          ...c,
+          last_verified_at: now,
+          last_reviewed_at: now,
+          verification_status: 'verified',
+          verification_method: reverifyMethod.trim(),
+          source_reference: reverifySource.trim(),
+          verified_at: now,
+          supporting_notes: reverifyNotes.trim() || null,
+        } : c));
+        closeReverifyDialog();
+      } else {
+        setReverifyError('Verification failed. Please try again.');
+      }
+    } catch {
+      setReverifyError('Verification failed. Please try again.');
+    } finally {
+      setReverifyingId(null);
+    }
+  }
+
+  async function handleRequestReverification(claimId: string) {
     setReverifyingId(claimId);
     try {
-      const { error } = await supabase.rpc('reverify_decision_claim', { p_claim_id: claimId });
+      const { error } = await supabase.rpc('request_reverification', { p_claim_id: claimId });
       if (!error) {
-        setClaims(prev => prev.map(c => c.id === claimId ? { ...c, last_verified_at: new Date().toISOString() } : c));
+        setClaims(prev => prev.map(c => c.id === claimId ? { ...c, verification_status: 'pending', last_reviewed_at: new Date().toISOString() } : c));
       }
     } finally {
       setReverifyingId(null);
@@ -863,9 +1123,16 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         agent_name: c.agent_name,
         statement: c.statement,
         claim_type: c.claim_type,
+        evidence_classification: c.evidence_classification,
+        verification_status: c.verification_status,
+        source_name: c.source_name,
+        source_reference: c.source_reference,
         confidence: c.confidence,
+        ai_confidence_score: c.ai_confidence_score,
         freshness: f.status,
         daysSinceVerified: f.daysSinceVerified,
+        last_reviewed_at: c.last_reviewed_at,
+        verification_method: c.verification_method,
       };
     });
 
@@ -1143,10 +1410,89 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
               setExpandedId={setExpandedClaimId}
               highlightId={highlightClaimId}
               claimRefs={claimRefs}
-              onReverify={handleReverify}
+              onReverify={openReverifyDialog}
+              onRequestReverification={handleRequestReverification}
               reverifyingId={reverifyingId}
             />
           )}
+        {reverifyDialogClaim && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+            onClick={closeReverifyDialog}
+          >
+            <div
+              className="panel max-w-md w-full p-5"
+              style={{ background: 'var(--app-surface-raised, #fff)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck className="w-4 h-4" style={{ color: 'var(--signal)' }} />
+                <h3 className="text-sm font-bold">Verify Evidence {reverifyDialogClaim.claim_code}</h3>
+                <button onClick={closeReverifyDialog} className="ml-auto" style={{ color: 'var(--app-text-muted)' }}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs mb-3" style={{ color: 'var(--app-text-secondary)' }}>
+                {reverifyDialogClaim.statement}
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Verification Method *</label>
+                  <input
+                    type="text"
+                    value={reverifyMethod}
+                    onChange={e => setReverifyMethod(e.target.value)}
+                    placeholder="e.g. Manual review, Source cross-check"
+                    className="input-modern w-full"
+                    style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Source Reference *</label>
+                  <input
+                    type="text"
+                    value={reverifySource}
+                    onChange={e => setReverifySource(e.target.value)}
+                    placeholder="URL or citation"
+                    className="input-modern w-full"
+                    style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem' }}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Notes</label>
+                  <textarea
+                    value={reverifyNotes}
+                    onChange={e => setReverifyNotes(e.target.value)}
+                    placeholder="Optional supporting notes"
+                    className="input-modern w-full"
+                    style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem', minHeight: '60px' }}
+                  />
+                </div>
+                {reverifyError && (
+                  <p className="text-xs font-medium" style={{ color: '#dc2626' }}>{reverifyError}</p>
+                )}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={handleReverifySubmit}
+                    disabled={!reverifyMethod.trim() || !reverifySource.trim() || reverifyingId === reverifyDialogClaim.id}
+                    className="btn-primary disabled:opacity-40"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem' }}
+                  >
+                    {reverifyingId === reverifyDialogClaim.id ? 'Verifying…' : 'Confirm Verification'}
+                  </button>
+                  <button
+                    onClick={closeReverifyDialog}
+                    className="btn-secondary"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         </>
       )}
     </div>

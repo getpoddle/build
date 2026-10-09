@@ -1286,9 +1286,16 @@ export interface EvidenceExportItem {
   agent_name: string;
   statement: string;
   claim_type: string;
+  evidence_classification?: string | null;
+  verification_status?: string | null;
+  source_name?: string | null;
+  source_reference?: string | null;
   confidence: number;
+  ai_confidence_score?: number | null;
   freshness: 'current' | 'aging' | 'stale';
   daysSinceVerified: number;
+  last_reviewed_at?: string | null;
+  verification_method?: string | null;
 }
 
 export interface TrailEventExportItem {
@@ -1342,6 +1349,52 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     return `<span class="bb-badge ${cls}">${label}</span>`;
   };
 
+  const classLabel = (c: string | null | undefined) => {
+    if (!c) return 'Unclassified';
+    const map: Record<string, string> = {
+      verified_fact: 'Verified Fact',
+      reported_fact: 'Reported Fact',
+      assumption: 'Assumption',
+      ai_inference: 'AI Inference',
+      unverified_claim: 'Unverified Claim',
+    };
+    return map[c] || c;
+  };
+
+  const classColor = (c: string | null | undefined) => {
+    const map: Record<string, string> = {
+      verified_fact: '#16a34a',
+      reported_fact: '#0891b2',
+      assumption: '#d97706',
+      ai_inference: '#2563eb',
+      unverified_claim: '#dc2626',
+    };
+    return (c && map[c]) || '#64748b';
+  };
+
+  const vStatusLabel = (s: string | null | undefined) => {
+    if (!s) return 'Not Verified';
+    const map: Record<string, string> = {
+      not_verified: 'Not Verified',
+      pending: 'Pending',
+      verified: 'Verified',
+      failed: 'Failed',
+      expired: 'Expired',
+    };
+    return map[s] || s;
+  };
+
+  const vStatusColor = (s: string | null | undefined) => {
+    const map: Record<string, string> = {
+      not_verified: '#64748b',
+      pending: '#d97706',
+      verified: '#16a34a',
+      failed: '#dc2626',
+      expired: '#b45309',
+    };
+    return (s && map[s]) || '#64748b';
+  };
+
   const statusLabel = (s: string) =>
     ({ exploring: 'Exploring', in_debate: 'In Debate', committed: 'Committed', implemented: 'Implemented' } as Record<string, string>)[s] || s;
 
@@ -1351,17 +1404,32 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
   const staleCount = data.evidence.filter(c => c.freshness === 'stale').length;
   const agingCount = data.evidence.filter(c => c.freshness === 'aging').length;
 
-  const evidenceHtml = data.evidence.map((c) => `
+  const evidenceHtml = data.evidence.map((c) => {
+    const cls = classLabel(c.evidence_classification);
+    const clsColor = classColor(c.evidence_classification);
+    const vs = vStatusLabel(c.verification_status);
+    const vsColor = vStatusColor(c.verification_status);
+    const aiConf = c.ai_confidence_score != null ? ` · AI Confidence: ${Math.round(c.ai_confidence_score * 100)}%` : '';
+    const sourceInfo = c.source_name ? ` · Source: ${escapeHtml(c.source_name)}` : '';
+    const refInfo = c.source_reference ? ` · Ref: ${escapeHtml(c.source_reference)}` : '';
+    const reviewInfo = c.last_reviewed_at ? ` · Reviewed ${new Date(c.last_reviewed_at).toLocaleDateString()}` : '';
+    return `
     <div class="bb-row">
       <span class="bb-num" style="font-family:monospace;font-weight:800;min-width:52px;">${escapeHtml(c.claim_code)}</span>
       <div class="bb-text" style="flex:1;">
         ${escapeHtml(c.statement)}
-        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
-          ${escapeHtml(c.agent_name)} · ${escapeHtml(c.claim_type)} · ${Math.round(c.confidence * 100)}% confidence · verified ${c.daysSinceVerified}d ago
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;">
+          <span style="font-size:7pt;font-weight:700;padding:1px 6px;border-radius:999px;background:${clsColor}1a;color:${clsColor};">${escapeHtml(cls)}</span>
+          <span style="font-size:7pt;font-weight:700;padding:1px 6px;border-radius:999px;background:${vsColor}1a;color:${vsColor};">${escapeHtml(vs)}</span>
         </div>
+        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
+          ${escapeHtml(c.agent_name)} · ${escapeHtml(c.claim_type)} · ${Math.round(c.confidence * 100)}% confidence${aiConf} · verified ${c.daysSinceVerified}d ago${sourceInfo}${refInfo}${reviewInfo}
+        </div>
+        ${c.verification_method ? `<div style="font-size:7pt;color:#94a3b8;margin-top:1px;">Method: ${escapeHtml(c.verification_method)}</div>` : ''}
       </div>
       ${freshnessBadge(c.freshness)}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const interventionsHtml = data.humanInterventions.map((h, i) => `
     <div class="bb-row">
@@ -1446,6 +1514,7 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
       <div class="bb-section">
         <h2>5. Supporting Evidence (${data.evidence.length} items${avgConfidence !== null ? `, ${avgConfidence}% avg. confidence` : ''})</h2>
         ${(staleCount + agingCount) > 0 ? `<p class="bb-text" style="color:#a8292a;font-weight:700;margin-bottom:6px;">⚠ ${staleCount} stale, ${agingCount} aging — worth re-verifying.</p>` : ''}
+        <p class="bb-text" style="font-size:7pt;color:#94a3b8;margin-bottom:8px;">Evidence is classified as Verified Fact, Reported Fact, Assumption, AI Inference, or Unverified Claim. AI confidence scores do not constitute independent verification.</p>
         ${evidenceHtml || '<p class="bb-text">No evidence recorded.</p>'}
       </div>
 
