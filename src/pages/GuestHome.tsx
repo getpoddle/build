@@ -17,17 +17,12 @@ import {
   Handshake,
   Network,
   Eye,
-  CheckCircle2,
-  Clock,
   ChevronDown,
   MessageSquare,
   GitBranch,
   Camera,
-  TrendingDown,
-  Lightbulb,
   Target,
   UserCog,
-  Sparkles,
 } from 'lucide-react';
 import PoddleMark from '../components/PoddleMark';
 import type { LucideIcon } from 'lucide-react';
@@ -255,44 +250,44 @@ function ProductPreview() {
       style={{
         background: WHITE,
         border: `1px solid ${BORDER}`,
-        boxShadow: '0 24px 64px rgba(15,23,42,0.14), 0 8px 24px rgba(15,23,42,0.06)',
+        boxShadow: '0 20px 56px rgba(15,23,42,0.12), 0 4px 16px rgba(15,23,42,0.04)',
       }}
     >
       {/* App frame top bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: `1px solid ${BORDER}`, background: BG_ALT }}>
+      <div className="flex items-center gap-3 px-3 sm:px-4 py-2" style={{ borderBottom: `1px solid ${BORDER}`, background: BG_ALT }}>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#e2e8f0' }} />
           <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#e2e8f0' }} />
           <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#e2e8f0' }} />
         </div>
-        <div className="flex items-center gap-2 ml-2">
-          <div className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-black" style={{ background: INK, color: WHITE }}>M</div>
+        <div className="flex items-center gap-2 ml-1 sm:ml-2">
+          <div className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-black" style={{ background: INK, color: WHITE }}>M</div>
           <span className="text-xs font-semibold truncate" style={{ color: INK }}>Market Entry: DACH Expansion</span>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: C.blueBg, color: C.blue }}>IN DEBATE</span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap" style={{ background: C.blueBg, color: C.blue }}>IN DEBATE</span>
         </div>
-        <span className="ml-auto text-[10px] hidden sm:block" style={{ color: SLATE_LIGHT }}>Illustrative demo data</span>
+        <span className="ml-auto text-[10px] hidden lg:block" style={{ color: SLATE_LIGHT }}>Illustrative demo data</span>
       </div>
 
       {/* Body — sidebar + main */}
-      <div className="flex" style={{ minHeight: '460px' }}>
+      <div className="flex" style={{ minHeight: '440px' }}>
         {/* Sidebar */}
-        <div className="hidden sm:flex flex-col gap-1 p-3 shrink-0" style={{ width: '200px', borderRight: `1px solid ${BORDER_SOFT}`, background: BG_ALT }}>
-          <p className="text-[10px] font-bold uppercase mb-2 px-2" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Workspace</p>
+        <div className="hidden md:flex flex-col gap-0.5 p-2.5 shrink-0" style={{ width: '184px', borderRight: `1px solid ${BORDER_SOFT}`, background: BG_ALT }}>
+          <p className="text-[10px] font-bold uppercase mb-1.5 px-2" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Workspace</p>
           {[
             { label: 'Team Chat', icon: MessageSquare },
-            { label: 'War Room', icon: Brain },
+            { label: 'War Room', icon: Brain, active: true },
             { label: 'Decision Map', icon: Target },
             { label: 'Decision Trail', icon: History },
             { label: 'Ownership', icon: UserCog },
           ].map((item) => (
-            <div key={item.label} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs" style={{ color: SLATE }}>
-              <item.icon className="w-3.5 h-3.5" style={{ color: SLATE_LIGHT }} />
+            <div key={item.label} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors" style={{ color: item.active ? INK : SLATE, background: item.active ? WHITE : 'transparent', fontWeight: item.active ? 600 : 400, border: item.active ? `1px solid ${BORDER_SOFT}` : '1px solid transparent' }}>
+              <item.icon className="w-3.5 h-3.5 shrink-0" style={{ color: item.active ? BLUE : SLATE_LIGHT }} />
               {item.label}
             </div>
           ))}
 
-          <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${BORDER_SOFT}` }}>
-            <p className="text-[10px] font-bold uppercase mb-2 px-2" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Agents</p>
+          <div className="mt-3 pt-2.5" style={{ borderTop: `1px solid ${BORDER_SOFT}` }}>
+            <p className="text-[10px] font-bold uppercase mb-1.5 px-2" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Agents</p>
             {DEMO_AGENTS.slice(0, 4).map((a) => (
               <div key={a.role} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs" style={{ color: SLATE }}>
                 <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ background: C.blueBg }}>
@@ -307,7 +302,7 @@ function ProductPreview() {
         {/* Main panel */}
         <div className="flex-1 min-w-0">
           {/* Tab bar */}
-          <div className="flex items-center gap-1 px-4 py-2" style={{ borderBottom: `1px solid ${BORDER_SOFT}` }}>
+          <div className="flex items-center gap-0.5 px-3 sm:px-4 py-1.5" style={{ borderBottom: `1px solid ${BORDER_SOFT}` }}>
             {([
               { key: 'overview' as TabKey, label: 'Decision Overview' },
               { key: 'evidence' as TabKey, label: 'Evidence Intelligence' },
@@ -316,12 +311,13 @@ function ProductPreview() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className="px-3 py-1.5 text-xs font-semibold rounded-md transition-all"
+                className="px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-200"
                 style={{
                   background: tab === t.key ? C.blueBg : 'transparent',
                   color: tab === t.key ? C.blue : SLATE_MID,
                   border: 'none',
                   cursor: 'pointer',
+                  boxShadow: tab === t.key ? 'inset 0 -2px 0 0 ' + C.blue : 'none',
                 }}
               >
                 {t.label}
@@ -330,7 +326,7 @@ function ProductPreview() {
           </div>
 
           {/* Tab content */}
-          <div className="p-4 sm:p-5" style={{ minHeight: '380px' }}>
+          <div className="p-3 sm:p-4" style={{ minHeight: '360px' }}>
             {tab === 'overview' && <OverviewTab />}
             {tab === 'evidence' && <EvidenceTab />}
             {tab === 'trail' && <TrailTab />}
@@ -346,16 +342,16 @@ function ProductPreview() {
 function OverviewTab() {
   return (
     <div style={{ animation: 'tabFade 0.3s ease' }}>
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-3">
         {/* Decision context */}
-        <div className="p-4 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
-          <p className="text-[10px] font-bold uppercase mb-2" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision</p>
-          <h3 className="text-sm font-bold mb-2" style={{ color: INK }}>Should we enter the DACH market in Q1 2026?</h3>
-          <div className="flex items-center gap-2 flex-wrap mb-3">
+        <div className="p-3.5 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+          <p className="text-[10px] font-bold uppercase mb-1.5" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision</p>
+          <h3 className="text-sm font-bold leading-snug mb-2.5" style={{ color: INK }}>Should we enter the DACH market in Q1 2026?</h3>
+          <div className="flex items-center gap-1.5 flex-wrap mb-3">
             <Pill label="Strategic" color={C.slate} />
             <Pill label="In Debate" color={C.blue} />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span style={{ color: SLATE_MID }}>Decision Owner</span>
               <span className="font-medium" style={{ color: INK }}>O. Akinbobola</span>
@@ -376,8 +372,8 @@ function OverviewTab() {
         </div>
 
         {/* Health score visual */}
-        <div className="p-4 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
-          <p className="text-[10px] font-bold uppercase mb-3" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision Health</p>
+        <div className="p-3.5 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+          <p className="text-[10px] font-bold uppercase mb-2.5" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision Health</p>
           <div className="flex items-center gap-4">
             <ScoreRing score={62} label="Developing" color={C.amber} />
             <div className="flex-1 space-y-2">
@@ -390,21 +386,21 @@ function OverviewTab() {
       </div>
 
       {/* Agent analysis preview */}
-      <div className="mt-4">
-        <p className="text-[10px] font-bold uppercase mb-3" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Specialized AI Agents</p>
-        <div className="grid sm:grid-cols-2 gap-3">
+      <div className="mt-3">
+        <p className="text-[10px] font-bold uppercase mb-2.5" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Specialized AI Agents</p>
+        <div className="grid sm:grid-cols-2 gap-2.5">
           {DEMO_AGENTS.map((agent) => (
             <div key={agent.role} className="p-3 rounded-lg" style={{ background: WHITE, border: `1px solid ${BORDER_SOFT}` }}>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: C.blueBg }}>
-                  <agent.icon className="w-4 h-4" style={{ color: C.blue }} />
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: C.blueBg }}>
+                  <agent.icon className="w-3.5 h-3.5" style={{ color: C.blue }} />
                 </div>
                 <span className="text-xs font-bold" style={{ color: INK }}>{agent.role}</span>
                 <span className="ml-auto text-[10px] font-bold" style={{ color: agent.confidence >= 70 ? C.green : agent.confidence >= 50 ? C.amber : C.red }}>
                   {agent.confidence}% conf.
                 </span>
               </div>
-              <p className="text-xs leading-relaxed mb-2" style={{ color: SLATE }}>{agent.position}</p>
+              <p className="text-xs leading-relaxed mb-1.5" style={{ color: SLATE }}>{agent.position}</p>
               {agent.risks.length > 0 && (
                 <div className="flex flex-col gap-1">
                   {agent.risks.map((r, i) => (
@@ -424,24 +420,24 @@ function OverviewTab() {
 }
 
 function ScoreRing({ score, label, color }: { score: number; label: string; color: string }) {
-  const circumference = 2 * Math.PI * 28;
+  const circumference = 2 * Math.PI * 26;
   const offset = circumference - (score / 100) * circumference;
   return (
-    <div className="relative shrink-0" style={{ width: '72px', height: '72px' }}>
-      <svg width="72" height="72" viewBox="0 0 72 72">
-        <circle cx="36" cy="36" r="28" fill="none" stroke={BORDER} strokeWidth="5" />
+    <div className="relative shrink-0" style={{ width: '64px', height: '64px' }}>
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="26" fill="none" stroke={BORDER} strokeWidth="4" />
         <circle
-          cx="36" cy="36" r="28" fill="none" stroke={color} strokeWidth="5"
+          cx="32" cy="32" r="26" fill="none" stroke={color} strokeWidth="4"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          transform="rotate(-90 36 36)"
+          transform="rotate(-90 32 32)"
           style={{ transition: 'stroke-dashoffset 0.6s ease' }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg font-bold" style={{ color: INK }}>{score}</span>
-        <span className="text-[8px] font-bold uppercase" style={{ color: SLATE_LIGHT }}>{label}</span>
+        <span className="text-base font-bold leading-none" style={{ color: INK }}>{score}</span>
+        <span className="text-[8px] font-bold uppercase mt-0.5" style={{ color: SLATE_LIGHT }}>{label}</span>
       </div>
     </div>
   );
@@ -467,13 +463,13 @@ function EvidenceTab() {
   return (
     <div style={{ animation: 'tabFade 0.3s ease' }}>
       {/* Stale warning */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3 text-xs" style={{ background: C.redBg, color: C.red }}>
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2.5 text-xs" style={{ background: C.redBg, color: C.red }}>
         <span>🔴</span>
         This decision relies on 1 piece of stale evidence — worth re-verifying before committing.
       </div>
 
       {/* Evidence list */}
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         {DEMO_EVIDENCE.map((ev) => {
           const cls = CLASSIFICATION_LABELS[ev.classification];
           const ver = VERIFICATION_LABELS[ev.verification];
@@ -483,7 +479,7 @@ function EvidenceTab() {
           return (
             <div
               key={ev.code}
-              className="flex items-start gap-3 p-3 rounded-lg"
+              className="flex items-start gap-2.5 p-2.5 rounded-lg"
               style={{
                 background: WHITE,
                 border: `1px solid ${BORDER_SOFT}`,
@@ -491,9 +487,9 @@ function EvidenceTab() {
               }}
             >
               {/* Claim code */}
-              <div className="shrink-0">
+              <div className="shrink-0 pt-0.5">
                 <span
-                  className="inline-block px-2 py-1 rounded text-[10px] font-bold"
+                  className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold"
                   style={{ fontFamily: MONO, background: `${cls.color}1a`, color: cls.color }}
                 >
                   {ev.code}
@@ -502,17 +498,17 @@ function EvidenceTab() {
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <p className="text-xs leading-relaxed mb-2" style={{ color: INK }}>{ev.statement}</p>
-                <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                <p className="text-xs leading-relaxed mb-1.5" style={{ color: INK }}>{ev.statement}</p>
+                <div className="flex items-center gap-1.5 flex-wrap mb-1">
                   <Pill label={cls.label} color={cls.color} />
                   <Pill label={ver.label} color={ver.color} />
                   <span className="text-[10px]" style={{ color: SLATE_LIGHT }}>
-                    {ev.agent} · {ev.confidence}% confidence
+                    {ev.agent} · {ev.confidence}%
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-[10px]" style={{ color: SLATE_LIGHT }}>
+                <div className="flex items-center gap-2 text-[10px]" style={{ color: SLATE_LIGHT }}>
                   <span>{ev.source}</span>
-                  <span style={{ color: fresh.color }}>{emoji} {fresh.label} · verified {ev.verifiedDays}d ago</span>
+                  <span style={{ color: fresh.color }}>{emoji} {fresh.label} · {ev.verifiedDays}d ago</span>
                 </div>
               </div>
             </div>
@@ -528,7 +524,7 @@ function EvidenceTab() {
 function TrailTab() {
   return (
     <div style={{ animation: 'tabFade 0.3s ease' }}>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2.5">
         <p className="text-[10px] font-bold uppercase" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Audit Trail ({DEMO_TRAIL.length})</p>
         <span className="text-[10px]" style={{ color: SLATE_LIGHT }}>Point-in-time · Snapshot · Export</span>
       </div>
@@ -539,25 +535,25 @@ function TrailTab() {
           const isLast = i === DEMO_TRAIL.length - 1;
 
           return (
-            <div key={i} className="flex gap-3 mb-3 last:mb-0 relative">
+            <div key={i} className="flex gap-2.5 mb-2 last:mb-0 relative">
               {!isLast && (
-                <div className="absolute left-[13px] top-6 bottom-0 w-px" style={{ background: BORDER }} />
+                <div className="absolute left-[12px] top-7 bottom-0 w-px" style={{ background: BORDER }} />
               )}
               <div
-                className="w-[27px] h-[27px] rounded-full flex items-center justify-center shrink-0 relative z-10"
+                className="w-[25px] h-[25px] rounded-full flex items-center justify-center shrink-0 relative z-10"
                 style={{ background: `${meta.color}18` }}
               >
-                <meta.icon className="w-3.5 h-3.5" style={{ color: meta.color }} />
+                <meta.icon className="w-3 h-3" style={{ color: meta.color }} />
               </div>
               <div
-                className="flex-1 p-2.5 rounded-lg"
+                className="flex-1 p-2 rounded-lg"
                 style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}
               >
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2">
                   <span className="text-xs font-bold" style={{ color: meta.color }}>{evt.label}</span>
                   <span className="text-[10px] ml-auto" style={{ fontFamily: MONO, color: SLATE_LIGHT }}>{evt.time}</span>
                 </div>
-                <div className="flex items-center gap-2 text-[10px]" style={{ color: SLATE_MID }}>
+                <div className="flex items-center gap-2 text-[10px] mt-0.5" style={{ color: SLATE_MID }}>
                   <span>by {evt.actor}</span>
                   {evt.claim && (
                     <span
@@ -581,7 +577,7 @@ function TrailTab() {
 
 function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section style={{ background: WHITE, position: 'relative', overflow: 'hidden' }} className="pt-12 pb-16 sm:pt-16 sm:pb-20">
+    <section style={{ background: WHITE, position: 'relative', overflow: 'hidden' }} className="pt-8 pb-12 sm:pt-12 sm:pb-16">
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
         background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(37,99,235,0.05), transparent 70%)',
@@ -589,9 +585,9 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
       }} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Headline + CTAs */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
+        <div className="text-center max-w-3xl mx-auto mb-6">
           <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
             style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)' }}
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: BLUE }} />
@@ -600,21 +596,21 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             </span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight leading-[1.1] mb-5" style={{ color: INK }}>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-3" style={{ color: INK }}>
             Better decisions.
             <br />
             <span style={{ color: BLUE }}>Built on evidence.</span>
           </h1>
 
-          <p className="text-base sm:text-lg leading-relaxed mb-7 max-w-2xl mx-auto" style={{ color: SLATE }}>
+          <p className="text-sm sm:text-base leading-relaxed mb-5 max-w-2xl mx-auto" style={{ color: SLATE }}>
             Poddle AI brings evidence, intelligence, and accountability together — helping organizations
             evaluate consequential decisions and maintain a clear record of how and why they were made.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+          <div className="flex flex-col sm:flex-row gap-2.5 justify-center mb-4">
             <button
               onClick={() => onNavigate('auth')}
-              className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg text-white font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5"
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5"
               style={{ background: BLUE, boxShadow: '0 4px 14px rgba(37,99,235,0.25)' }}
             >
               Try Poddle AI
@@ -622,7 +618,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             </button>
             <a
               href="#workflow"
-              className="flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 hover:bg-slate-50"
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 hover:bg-slate-50"
               style={{ color: INK, border: `1px solid ${BORDER}` }}
             >
               Explore the Platform
@@ -630,17 +626,17 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             </a>
           </div>
 
-          <div className="flex items-center justify-center gap-5 flex-wrap text-xs" style={{ color: SLATE_MID }}>
+          <div className="flex items-center justify-center gap-4 sm:gap-5 flex-wrap text-xs" style={{ color: SLATE_MID }}>
             <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4" style={{ color: '#16a34a' }} />
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
               No credit card required
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4" style={{ color: '#16a34a' }} />
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
               Free to start
             </div>
             <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-4 h-4" style={{ color: '#16a34a' }} />
+              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
               Invite your team
             </div>
           </div>
@@ -775,7 +771,7 @@ function UseCasesSection() {
           </div>
         </RevealSection>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {USE_CASES.map((uc, i) => (
             <RevealSection key={uc.title} delay={i * 60}>
               <div className="h-full p-6 rounded-xl transition-all duration-300 hover:-translate-y-1" style={{ background: WHITE, border: `1px solid ${BORDER}` }}>
@@ -814,10 +810,10 @@ function SecuritySection({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
         </RevealSection>
 
-        <div className="grid sm:grid-cols-2 gap-5 mb-12">
+        <div className="grid sm:grid-cols-2 gap-4 mb-10">
           {SECURITY_FEATURES.map((feat, i) => (
             <RevealSection key={feat.title} delay={i * 80}>
-              <div className="flex gap-4 p-6 rounded-xl" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+              <div className="flex gap-4 p-5 rounded-xl" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
                 <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: C.blueBg }}>
                   <feat.icon className="w-5 h-5" style={{ color: BLUE }} />
                 </div>
