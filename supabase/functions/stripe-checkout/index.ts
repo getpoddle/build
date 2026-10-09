@@ -15,7 +15,7 @@ function corsResponse(body: string | object | null, status = 200) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
   };
 
   if (status === 204) {
@@ -56,6 +56,27 @@ Deno.serve(async (req) => {
 
     if (error) {
       return corsResponse({ error }, 400);
+    }
+
+    const allowedRedirectOrigins = [
+      Deno.env.get('SITE_URL'),
+      'https://poddleme.com',
+      'https://www.poddleme.com',
+    ].filter(Boolean) as string[];
+
+    function isAllowedRedirect(url: string): boolean {
+      try {
+        const parsed = new URL(url);
+        return allowedRedirectOrigins.some(
+          (origin) => parsed.origin === new URL(origin).origin,
+        );
+      } catch {
+        return false;
+      }
+    }
+
+    if (!isAllowedRedirect(success_url) || !isAllowedRedirect(cancel_url)) {
+      return corsResponse({ error: 'Invalid redirect URL' }, 400);
     }
 
     const authHeader = req.headers.get('Authorization')!;
@@ -200,7 +221,7 @@ Deno.serve(async (req) => {
     return corsResponse({ sessionId: session.id, url: session.url });
   } catch (error: any) {
     console.error(`Checkout error: ${error.message}`);
-    return corsResponse({ error: error.message }, 500);
+    return corsResponse({ error: 'An unexpected error occurred' }, 500);
   }
 });
 

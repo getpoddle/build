@@ -44,11 +44,27 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse multipart form data containing the audio file
+    const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+    const MAX_AUDIO_SIZE = 25 * 1024 * 1024;
+    if (contentLength > MAX_AUDIO_SIZE) {
+      return new Response(JSON.stringify({ error: 'Audio file too large. Maximum size is 25MB.' }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const formData = await req.formData();
     const audioFile = formData.get("audio");
     if (!audioFile || typeof audioFile === "string") {
       return new Response(JSON.stringify({ error: "No audio file provided" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if ((audioFile as File).size > MAX_AUDIO_SIZE) {
+      return new Response(JSON.stringify({ error: 'Audio file too large. Maximum size is 25MB.' }), {
+        status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

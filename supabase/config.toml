@@ -1,2 +1,122 @@
 [functions.slack-slash-command]
 verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.signup-user]
+verify_jwt = false
+
+[functions.confirm-email]
+verify_jwt = false
+
+[functions.slack-oauth-install]
+verify_jwt = false
+
+[functions.slack-session-callback]
+verify_jwt = false
+
+[functions.generate-sitemap]
+verify_jwt = false
+
+[functions.get-stripe-prices]
+verify_jwt = false
+
+[functions.send-contact-email]
+verify_jwt = false
+
+[functions.send-password-reset]
+verify_jwt = false
+
+[functions.send-signup-confirmation]
+verify_jwt = false
+
+[functions.send-weekly-digest]
+verify_jwt = false
+
+[functions.send-notifications]
+verify_jwt = false
+
+[functions.send-invoice-email]
+verify_jwt = false
+
+[functions.send-mention-email]
+verify_jwt = false
+
+[functions.send-payment-failed]
+verify_jwt = false
+
+[functions.send-renewal-reminder]
+verify_jwt = false
+
+[functions.send-subscription-cancelled]
+verify_jwt = false
+
+[functions.send-subscription-confirmation]
+verify_jwt = false
+
+[functions.cleanup-deleted-accounts]
+verify_jwt = false
+
+[functions.generate-reengagement-candidates]
+verify_jwt = false
+
+[functions.accept-workspace-invite]
+verify_jwt = true
+
+[functions.admin-delete-user]
+verify_jwt = true
+
+[functions.admin-upgrade-requests]
+verify_jwt = true
+
+[functions.ai-agents]
+verify_jwt = true
+
+[functions.check-beta-access]
+verify_jwt = true
+
+[functions.create-billing-portal]
+verify_jwt = true
+
+[functions.create-checkout-session]
+verify_jwt = true
+
+[functions.create-workspace]
+verify_jwt = true
+
+[functions.extract-document]
+verify_jwt = true
+
+[functions.first-sign-in]
+verify_jwt = true
+
+[functions.redeem-invite-code]
+verify_jwt = true
+
+[functions.request-account-deletion]
+verify_jwt = true
+
+[functions.restore-account]
+verify_jwt = true
+
+[functions.send-workspace-invite]
+verify_jwt = true
+
+[functions.slack-start-oauth]
+verify_jwt = true
+
+[functions.stripe-checkout]
+verify_jwt = true
+
+[functions.transcribe-audio]
+verify_jwt = true
+
+[functions.workspace-ai-chat]
+verify_jwt = true
+
+[functions.workspace-synthesize]
+verify_jwt = true
+
+[functions.workspace-usage]
+verify_jwt = true

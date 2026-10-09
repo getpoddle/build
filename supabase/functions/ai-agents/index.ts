@@ -379,7 +379,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "post-challenge-reply") {
-      return await handlePostChallengeReply(body, supabase, userCountry);
+      return await handlePostChallengeReply(body, supabase, userCountry, user.id);
     }
 
     return new Response(JSON.stringify({ error: "Missing or unknown action", action, path: url.pathname }), {
@@ -712,6 +712,70 @@ async function checkAssumptionAccess(
   return null;
 }
 
+async function checkThreadAccess(
+  threadId: string,
+  userId: string,
+  supabase: ReturnType<typeof createClient>,
+): Promise<Response | null> {
+  const { data: thread } = await supabase
+    .from("decision_threads")
+    .select("pod_id, pods(is_public)")
+    .eq("id", threadId)
+    .maybeSingle();
+
+  if (!thread) return null;
+
+  const pod = thread.pods as { is_public: boolean } | null;
+  if (pod?.is_public) return null;
+
+  const { data: membership } = await supabase
+    .from("pod_members")
+    .select("id")
+    .eq("pod_id", thread.pod_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!membership) {
+    return new Response(
+      JSON.stringify({ error: "Access denied: not a member of this pod" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+  return null;
+}
+
+async function checkPostAccess(
+  postId: string,
+  userId: string,
+  supabase: ReturnType<typeof createClient>,
+): Promise<Response | null> {
+  const { data: post } = await supabase
+    .from("posts")
+    .select("pod_id, pods(is_public)")
+    .eq("id", postId)
+    .maybeSingle();
+
+  if (!post) return null;
+
+  const pod = post.pods as { is_public: boolean } | null;
+  if (pod?.is_public) return null;
+
+  const { data: membership } = await supabase
+    .from("pod_members")
+    .select("id")
+    .eq("pod_id", post.pod_id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!membership) {
+    return new Response(
+      JSON.stringify({ error: "Access denied: not a member of this pod" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+  return null;
+}
+
 const TOKEN_LIMITS: Record<string, number> = {
   challenge: 500,
   risk: 500,
@@ -897,6 +961,9 @@ async function handleSaveUserContext(body: Record<string, unknown>, supabase: Re
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  const accessDenied = await checkAssumptionAccess(assumptionId, userId, supabase);
+  if (accessDenied) return accessDenied;
 
   const { data, error } = await supabase
     .from("user_assumption_context")
@@ -1434,6 +1501,9 @@ async function handleRecommend(body: Record<string, unknown>, supabase: ReturnTy
     });
   }
 
+  const accessDenied = await checkThreadAccess(threadId, userId, supabase);
+  if (accessDenied) return accessDenied;
+
   if (!forceRegenerate) {
     const { data: existing } = await supabase
       .from("ai_thread_recommendations")
@@ -1707,6 +1777,9 @@ async function handleAnalyzePost(body: Record<string, unknown>, supabase: Return
     });
   }
 
+  const accessDenied = await checkPostAccess(postId, _userId, supabase);
+  if (accessDenied) return accessDenied;
+
   if (!forceRegenerate) {
     const { data: existing } = await supabase
       .from("post_ai_insights")
@@ -1961,7 +2034,7 @@ Write their weekly summary.`;
   });
 }
 
-async function handlePostChallengeReply(body: Record<string, unknown>, supabase: ReturnType<typeof createClient>, userCountry?: string | null) {
+async function handlePostChallengeReply(body: Record<string, unknown>, supabase: ReturnType<typeof createClient>, userCountry?: string | null, userId?: string) {
   const { commentId, postId, discussionId, challengeContent, postContent, topicTitle } = body as {
     commentId: string;
     postId: string;
@@ -1976,6 +2049,11 @@ async function handlePostChallengeReply(body: Record<string, unknown>, supabase:
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+
+  if (userId) {
+    const accessDenied = await checkPostAccess(postId, userId, supabase);
+    if (accessDenied) return accessDenied;
   }
 
   const { data: existing } = await supabase

@@ -1241,13 +1241,10 @@ Respond in 300-400 words. Be direct and specific. No hedging, and no reflexive d
     if (err && typeof err === "object") {
       try { console.error("workspace-ai-chat: error JSON:", JSON.stringify(err, Object.getOwnPropertyNames(err))); } catch { console.error("workspace-ai-chat: error (not serializable)"); }
     }
-    console.error("workspace-ai-chat: raw request body (first 3000 chars):", rawBody?.slice(0, 3000) ?? "<null>");
     console.error("workspace-ai-chat: END UNHANDLED ERROR ========================");
     const isAbort = err instanceof TypeError && /aborted|network|connection/i.test(err.message);
     return new Response(JSON.stringify({
       error: isAbort ? "The AI agents took too long to respond. Please try again." : "Internal server error",
-      detail: errStr,
-      stage: (err as { _stage?: string })._stage || "unhandled",
     }), {
       status: isAbort ? 504 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
