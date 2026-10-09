@@ -1377,7 +1377,7 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     const map: Record<string, string> = {
       not_verified: 'Not Verified',
       pending: 'Pending',
-      verified: 'Verified',
+      verified: 'Human Verified',
       failed: 'Failed',
       expired: 'Expired',
     };

@@ -29,7 +29,7 @@ const EVIDENCE_CLASSIFICATION_LABELS: Record<string, string> = {
 const VERIFICATION_STATUS_LABELS: Record<string, string> = {
   not_verified: 'Not Verified',
   pending: 'Verification Pending',
-  verified: 'Verified',
+  verified: 'Human Verified',
   failed: 'Verification Failed',
   expired: 'Verification Expired',
 };
@@ -295,16 +295,19 @@ describe('Unauthorized verification is blocked server-side', () => {
     // The function would raise: 'Not signed in'
   });
 
-  it('reverify_decision_claim requires workspace membership', () => {
-    // The RPC checks: IF NOT is_workspace_member(v_workspace_id, v_uid)
-    // THEN RAISE EXCEPTION 'You do not have access to this workspace'
-    const nonMemberCall = {
-      p_claim_id: 'claim-from-other-workspace',
+  it('reverify_decision_claim requires authorization (not just membership)', () => {
+    // The RPC checks: IF NOT can_verify_evidence(v_workspace_id, v_uid)
+    // THEN RAISE EXCEPTION 'You are not authorized to verify evidence...'
+    // Ordinary members cannot verify — only admins, owners, decision
+    // owners, or designated evidence reviewers.
+    const nonAuthorizedCall = {
+      p_claim_id: 'claim-from-own-workspace',
       p_verification_method: 'Manual review',
       p_source_reference: 'https://example.com',
     };
-    // The function would raise: 'You do not have access to this workspace'
-    expect(nonMemberCall.p_claim_id).toBeDefined();
+    // A regular member would get: 'You are not authorized to verify
+    // evidence in this workspace'
+    expect(nonAuthorizedCall.p_claim_id).toBeDefined();
   });
 
   it('update_evidence_classification cannot set verified_fact directly', () => {

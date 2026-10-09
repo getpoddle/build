@@ -118,7 +118,7 @@ const EVIDENCE_CLASSIFICATION_COLORS: Record<string, string> = {
 const VERIFICATION_STATUS_LABELS: Record<string, string> = {
   not_verified: 'Not Verified',
   pending: 'Verification Pending',
-  verified: 'Verified',
+  verified: 'Human Verified',
   failed: 'Verification Failed',
   expired: 'Verification Expired',
 };
@@ -1065,7 +1065,14 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         } : c));
         closeReverifyDialog();
       } else {
-        setReverifyError('Verification failed. Please try again.');
+        const msg = error.message || '';
+        if (msg.includes('not authorized')) {
+          setReverifyError('You are not authorized to verify evidence in this workspace. Only workspace administrators, decision owners, and designated evidence reviewers can verify.');
+        } else if (msg.includes('method is required') || msg.includes('source reference is required')) {
+          setReverifyError('A verification method and supporting source are required.');
+        } else {
+          setReverifyError('Verification failed. Please try again.');
+        }
       }
     } catch {
       setReverifyError('Verification failed. Please try again.');
