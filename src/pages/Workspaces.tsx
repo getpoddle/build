@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, MessageSquare, ExternalLink, LayoutList, Map, Bot, TrendingUp } from 'lucide-react';
+import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, LayoutList, Map, Bot, TrendingUp } from 'lucide-react';
 import { useUserWorkspaces, useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { useBetaAccess } from '../hooks/useBetaAccess';
@@ -47,8 +47,6 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const isLoading = loading || trialLoading;
 
   const appWorkspaces = workspaces.filter(w => w.source !== 'slack');
-  const slackWorkspaces = workspaces.filter(w => w.source === 'slack')
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const activeCount = appWorkspaces.filter(w => w.subscription_status === 'active' || w.subscription_status === 'trialing').length;
   const totalSeats = appWorkspaces.reduce((sum, w) => sum + (w.seats || 0), 0);
@@ -58,7 +56,6 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
     { label: 'Workspaces', value: String(appWorkspaces.length || 0), sub: `${activeCount} active`, icon: Lock },
     { label: 'Total seats', value: String(totalSeats), sub: 'Across all plans', icon: Users },
     { label: 'You own', value: String(ownerCount), sub: 'Owner role', icon: Crown },
-    { label: 'Slack sessions', value: String(slackWorkspaces.length), sub: 'From /poddle', icon: MessageSquare },
   ];
 
   function formatDate(dateStr: string) {
@@ -394,70 +391,6 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                 <button onClick={() => setShowUpgrade(true)} className="btn-primary flex-shrink-0">
                   Upgrade
                 </button>
-              </div>
-            )}
-
-            {/* Slack Sessions */}
-            {!isLoading && view === 'list' && (
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--app-border-subtle)' }}>
-                    <MessageSquare className="w-4 h-4" style={{ color: 'var(--app-text-muted)' }} />
-                  </div>
-                  <div>
-                    <p className="section-label">Slack Sessions</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-muted)' }}>War Rooms generated from <code className="mono-xs">/poddle</code> commands — each question gets its own isolated workspace.</p>
-                  </div>
-                </div>
-
-                {slackWorkspaces.length === 0 ? (
-                  <div className="panel p-6 flex items-center gap-4" style={{ borderStyle: 'dashed' }}>
-                    <div className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ background: 'var(--app-border-subtle)' }}>
-                      <MessageSquare className="w-5 h-5" style={{ color: 'var(--app-text-muted)' }} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>No Slack sessions yet</p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--app-text-muted)' }}>
-                        Use <code className="mono-xs" style={{ background: 'var(--app-border-subtle)', padding: '0.125rem 0.375rem' }}>/poddle &lt;your question&gt;</code> in Slack to generate a fresh War Room for any decision.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {slackWorkspaces.map(ws => {
-                      const daysLeft = daysUntil(ws.trial_workspace_expires_at);
-                      const isExpired = ws.subscription_status === 'inactive' || (daysLeft !== null && daysLeft <= 0);
-                      return (
-                        <div
-                          key={ws.id}
-                          className="group flex items-center gap-4 px-5 py-4 panel cursor-pointer transition-all duration-150 hover:-translate-y-0.5"
-                          style={{ opacity: isExpired ? 0.65 : 1 }}
-                          onClick={() => onNavigate('workspace-hub', ws.id)}
-                        >
-                          <div className="w-9 h-9 flex items-center justify-center flex-shrink-0" style={{ background: isExpired ? 'var(--app-border)' : 'var(--app-border-subtle)' }}>
-                            <MessageSquare className="w-4 h-4" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--app-text-secondary)' }} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate" style={{ color: isExpired ? 'var(--app-text-muted)' : 'var(--app-text-primary)' }}>{ws.name}</p>
-                            <div className="flex items-center gap-3 mt-0.5">
-                              <span className="mono-xs" style={{ color: 'var(--app-text-muted)' }}>{formatDate(ws.created_at)}</span>
-                              {daysLeft !== null && daysLeft > 0 && (
-                                <span className="mono-xs" style={{ color: 'var(--app-text-muted)' }}>· expires in {daysLeft}d</span>
-                              )}
-                              {isExpired && (
-                                <span className="mono-xs" style={{ color: 'var(--negative)' }}>· expired</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="hidden sm:inline badge badge-slate">Slack</span>
-                            <ExternalLink className="w-3.5 h-3.5" style={{ color: 'var(--app-text-muted)' }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             )}
 

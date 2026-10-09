@@ -923,7 +923,6 @@ function Footer({ onNavigate }: { onNavigate: (p: string) => void }) {
               <button onClick={() => onNavigate('privacy')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Privacy Policy</button>
               <button onClick={() => onNavigate('terms')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Terms of Service</button>
               <button onClick={() => onNavigate('subprocessors')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Sub-processors</button>
-              <button onClick={() => onNavigate('slack')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Slack Integration</button>
             </div>
           </div>
         </div>

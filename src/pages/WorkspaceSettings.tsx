@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Zap, Link2, Unlink, Building2 } from 'lucide-react';
+import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Link2, Unlink, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
@@ -46,13 +46,6 @@ interface Workspace {
   organization_id: string | null;
 }
 
-interface SlackConnection {
-  id: string;
-  slack_team_id: string;
-  slack_team_name: string | null;
-  created_at: string;
-}
-
 interface OrgOption {
   id: string;
   name: string;
@@ -95,18 +88,13 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [loadingCancel, setLoadingCancel] = useState(false);
 
-  const [slackConnection, setSlackConnection] = useState<SlackConnection | null>(null);
-  const [disconnectingSlack, setDisconnectingSlack] = useState(false);
-    const [connectingSlack, setConnectingSlack] = useState(false);
-  const [slackError, setSlackError] = useState('');
-
   const [myOrgs, setMyOrgs] = useState<OrgOption[]>([]);
   const [orgUpdating, setOrgUpdating] = useState(false);
   const [orgError, setOrgError] = useState('');
   const [selectedOrgToLink, setSelectedOrgToLink] = useState('');
 
   const fetchData = useCallback(async () => {
-    const [wsRes, membersRes, invitesRes, slackRes] = await Promise.all([
+    const [wsRes, membersRes, invitesRes] = await Promise.all([
       supabase.from('workspaces').select('*').eq('id', workspaceId).maybeSingle(),
       supabase
         .from('workspace_members')
@@ -120,11 +108,6 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
         .is('accepted_at', null)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false }),
-      supabase
-        .from('slack_workspaces')
-        .select('id, slack_team_id, slack_team_name, created_at')
-        .eq('poddle_workspace_id', workspaceId)
-        .maybeSingle(),
     ]);
 
     if (wsRes.data) {
@@ -140,7 +123,6 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
       })) as Member[]
     );
     setInvites(invitesRes.data || []);
-    setSlackConnection(slackRes.data ?? null);
     setLoading(false);
   }, [workspaceId]);
 
@@ -342,7 +324,6 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
         supabase.from('workspace_synthesis').delete().eq('workspace_id', workspaceId),
         supabase.from('workspace_chat_threads').delete().eq('workspace_id', workspaceId),
         supabase.from('workspace_decision_links').delete().eq('workspace_id', workspaceId),
-        supabase.from('slack_workspaces').delete().eq('poddle_workspace_id', workspaceId),
       ]);
       const { error } = await supabase.from('workspaces').delete().eq('id', workspaceId);
       if (error) throw error;
@@ -379,41 +360,6 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
 
   const handleBillingPortal = () => openBillingPortal(setLoadingBilling);
   const handleCancelPortal = () => openBillingPortal(setLoadingCancel);
-
-  async function handleSlackConnect() {
-    setConnectingSlack(true);
-    setSlackError('');
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const { data: { session } } = await supabase.auth.getSession();
-    try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/slack-start-oauth`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ workspace_id: workspaceId, user_id: user?.id }),
-      });
-      const json = await res.json();
-      if (json.url) {
-        window.location.href = json.url;
-      } else {
-        setSlackError(json.error ?? 'Failed to start Slack connection.');
-        setConnectingSlack(false);
-      }
-    } catch {
-      setSlackError('Network error. Please try again.');
-      setConnectingSlack(false);
-    }
-  }
-
-  async function handleSlackDisconnect() {
-    if (!slackConnection) return;
-    setDisconnectingSlack(true);
-    await supabase.from('slack_workspaces').delete().eq('id', slackConnection.id);
-    setSlackConnection(null);
-    setDisconnectingSlack(false);
-  }
 
   async function copyInviteLink(token: string) {
     const url = `${window.location.origin}/#join/${token}`;
@@ -795,88 +741,6 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
                 </button>
               </div>
             )}
-          </section>
-        )}
-
-        {/* Slack integration — visible to owners and admins */}
-        {isAdmin && (
-          <section className="panel p-6 mb-4">
-            <h2 className="section-label flex items-center gap-2 mb-1">
-              <Zap className="w-4 h-4" />
-              Integrations
-            </h2>
-            <p className="text-xs mb-4" style={{ color: 'var(--app-text-muted)' }}>Connect external tools to your workspace.</p>
-
-            <div className="p-4 panel">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 flex items-center justify-center flex-shrink-0" style={{ background: '#4a154b' }}>
-                  <Zap className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-bold" style={{ color: 'var(--app-text-primary)' }}>Slack</p>
-                    {slackConnection && (
-                      <span className="badge badge-green">Connected</span>
-                    )}
-                  </div>
-                  {slackConnection ? (
-                    <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
-                      {slackConnection.slack_team_name
-                        ? `${slackConnection.slack_team_name} · `
-                        : ''}
-                      Connected {new Date(slackConnection.created_at).toLocaleDateString()}
-                    </p>
-                  ) : (
-                    <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
-                      Use <code className="mono-xs" style={{ background: 'var(--app-border-subtle)', padding: '0.125rem 0.375rem' }}>/poddle</code> in any channel to kick off a War Room session.
-                    </p>
-                  )}
-                </div>
-                {slackConnection ? (
-                  <button
-                    onClick={handleSlackDisconnect}
-                    disabled={disconnectingSlack}
-                    className="btn-secondary flex-shrink-0"
-                    style={{ borderColor: 'var(--negative)', color: 'var(--negative)', padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
-                  >
-                    <Unlink className="w-3.5 h-3.5" />
-                    {disconnectingSlack ? 'Disconnecting…' : 'Disconnect'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSlackConnect}
-                    disabled={connectingSlack}
-                    className="btn-primary flex-shrink-0"
-                    style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
-                  >
-                    {connectingSlack ? (
-                      <span className="w-3.5 h-3.5 border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--ink-900)', borderTopColor: 'transparent' }} />
-                    ) : (
-                      <Link2 className="w-3.5 h-3.5" />
-                    )}
-                    {connectingSlack ? 'Connecting…' : 'Connect Slack'}
-                  </button>
-                )}
-              </div>
-
-              {slackError && (
-                <p className="mt-2 text-xs font-medium" style={{ color: 'var(--negative)' }}>{slackError}</p>
-              )}
-
-              {slackConnection && (
-                <div className="mt-3 p-3" style={{ background: 'var(--app-border-subtle)' }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: 'var(--app-text-secondary)' }}>Slash command</p>
-                  <div className="flex items-center gap-2">
-                    <code className="mono-xs flex-1 px-2.5 py-1.5 overflow-x-auto" style={{ background: 'var(--app-surface-raised)', color: 'var(--app-text-primary)' }}>
-                      /poddle should we raise the enterprise price by 15%?
-                    </code>
-                  </div>
-                  <p className="text-xs mt-2" style={{ color: 'var(--app-text-muted)' }}>
-                    Type <code className="mono-xs">/poddle</code> followed by your decision question in any channel. Poddle will run a full War Room analysis and post the Board Brief back to that channel.
-                  </p>
-                </div>
-              )}
-            </div>
           </section>
         )}
 

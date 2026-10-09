@@ -1,4 +1,4 @@
-import { User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, MessageSquare, Building2, Map, BookOpen } from 'lucide-react';
+import { User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, Building2, Map, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import PoddleMark from './PoddleMark';
@@ -458,13 +458,6 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onNavigate('slack')}
-                    className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-none text-[var(--app-text-secondary)] text-sm font-semibold border border-[var(--app-border)] hover:border-slate-300 hover:bg-[var(--app-bg)] transition-all"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    Slack
-                  </button>
                   <button
                     onClick={() => onNavigate('auth')}
                     className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-none text-[var(--app-text-secondary)] text-sm font-semibold border border-[var(--app-border)] hover:border-slate-300 hover:bg-[var(--app-bg)] transition-all"

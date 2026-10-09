@@ -40,7 +40,6 @@ export default function Team({ onNavigate }: TeamPageProps) {
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
               <button onClick={() => onNavigate('home')} className="hover:text-white transition-colors">Home</button>
               <button onClick={() => onNavigate('blog')} className="hover:text-white transition-colors">Blog</button>
-              <button onClick={() => onNavigate('slack')} className="hover:text-white transition-colors">Slack</button>
               <a href="#privacy" className="hover:text-white transition-colors">Privacy</a>
               <a href="#terms" className="hover:text-white transition-colors">Terms</a>
               <a href="#contact-us" className="hover:text-white transition-colors">Contact</a>

@@ -40,8 +40,6 @@ const JoinWorkspace = lazy(() => import('./pages/JoinWorkspace'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
-const SlackLanding = lazy(() => import('./pages/SlackLanding'));
-const SlackSuccess = lazy(() => import('./pages/SlackSuccess'));
 const Subprocessors = lazy(() => import('./pages/Subprocessors'));
 const Team = lazy(() => import('./pages/Team'));
 
@@ -94,25 +92,6 @@ function AppContent() {
   }, []);
   const { toasts, dismissToast, addToast } = useToast();
 
-  useEffect(() => {
-    const connected = sessionStorage.getItem('slackConnectedToast');
-    const error = sessionStorage.getItem('slackErrorToast');
-    if (connected) {
-      sessionStorage.removeItem('slackConnectedToast');
-      addToast('success', 'Slack connected successfully!');
-    } else if (error) {
-      sessionStorage.removeItem('slackErrorToast');
-      const readable =
-        error === 'not_configured' ? 'Slack is not configured yet.' :
-        error === 'access_denied' ? 'Slack connection was cancelled.' :
-        error === 'oauth_failed' ? 'Slack authorization failed. Please try again.' :
-        error === 'db_error' ? 'Something went wrong saving your Slack connection. Please try again.' :
-        error === 'invalid_state' ? 'Slack connection session expired. Please try again.' :
-        error === 'missing_token' ? 'Slack authorization failed. Please try again.' :
-        'Slack connection failed. Please try again.';
-      addToast('error', readable);
-    }
-  }, [addToast]);
     const [currentPage, setCurrentPage] = useState(() => {
     const pathname = window.location.pathname;
     if (pathname === '/terms') return 'terms';
@@ -122,13 +101,10 @@ function AppContent() {
     if (pathname === '/about') return 'about';
     if (pathname === '/advisory') return 'advisory';
     if (pathname === '/team') return 'team';
-    if (pathname === '/slack') return 'slack';
     const hash = window.location.hash.substring(1);
     if (hash === 'admin' || hash === 'admin-panel' || hash === 'app-icons') {
       return hash;
     }
-    if (hash === 'slack') return 'slack';
-    if (hash === 'slack-success') return 'slack-success';
     if (hash === 'subprocessors') return 'subprocessors';
     if (hash === 'team') return 'team';
     if (hash === 'blog') return 'blog';
@@ -194,7 +170,6 @@ function AppContent() {
     if (pathname === '/privacy') { setCurrentPage('privacy'); return; }
     if (pathname === '/subprocessors') { setCurrentPage('subprocessors'); return; }
     if (pathname === '/pricing') { setCurrentPage('pricing'); return; }
-    if (pathname === '/slack') { setCurrentPage('slack'); return; }
 
     if (urlParams.get('payment_success') === '1') {
       setCurrentPage('payment-success');
@@ -256,25 +231,8 @@ function AppContent() {
       return;
     }
 
-    const slackConnected = urlParams.get('slack_connected');
-    const slackError = urlParams.get('slack_error');
-    const slackWorkspaceId = urlParams.get('workspace');
-    if (slackConnected === '1' && slackWorkspaceId) {
-      history.replaceState(null, '', `#workspace-settings/${slackWorkspaceId}`);
-      setWorkspaceId(slackWorkspaceId);
-      setCurrentPage('workspace-settings');
-      sessionStorage.setItem('slackConnectedToast', '1');
-      return;
-    }
-    if (slackError && slackError !== 'missing_code') {
-      history.replaceState(null, '', '/');
-      sessionStorage.setItem('slackErrorToast', slackError);
-    } else if (slackError === 'missing_code') {
-      history.replaceState(null, '', '/');
-    }
-
     const deepLinkWorkspaceId = urlParams.get('workspace');
-    if (deepLinkWorkspaceId && !slackConnected) {
+    if (deepLinkWorkspaceId) {
       history.replaceState(null, '', `#workspace/${deepLinkWorkspaceId}`);
       setWorkspaceId(deepLinkWorkspaceId);
       setCurrentPage('workspace-hub');
@@ -315,8 +273,6 @@ function AppContent() {
       if (hash === 'pricing') { setCurrentPage('pricing'); return; }
       if (hash.startsWith('payment-success')) { setCurrentPage('payment-success'); return; }
       if (hash === 'system-health') { setCurrentPage('system-health'); return; }
-      if (hash === 'slack') { setCurrentPage('slack'); return; }
-      if (hash === 'slack-success') { setCurrentPage('slack-success'); return; }
       if (hash === 'subprocessors') { setCurrentPage('subprocessors'); return; }
       if (hash === 'team') { setCurrentPage('team'); return; }
       if (hash === 'advisory') { setCurrentPage('advisory'); return; }
@@ -597,18 +553,6 @@ function AppContent() {
       setCurrentPage('workspace-settings');
       sessionStorage.setItem('currentPage', 'workspace-settings');
       history.pushState(null, '', `#workspace-settings/${idParam}`);
-      return;
-    }
-
-    if (page === 'slack') {
-      setCurrentPage('slack');
-      history.pushState(null, '', '#slack');
-      return;
-    }
-
-    if (page === 'slack-success') {
-      setCurrentPage('slack-success');
-      history.pushState(null, '', '#slack-success');
       return;
     }
 
@@ -905,14 +849,6 @@ function AppContent() {
 
   if (currentPage === 'blog-post' && blogSlug) {
     return wrap(<BlogPost slug={blogSlug} onNavigate={handleNavigate} />);
-  }
-
-  if (currentPage === 'slack') {
-    return wrap(<SlackLanding onNavigate={handleNavigate} />);
-  }
-
-  if (currentPage === 'slack-success') {
-    return wrap(<SlackSuccess onNavigate={handleNavigate} />);
   }
 
   if (currentPage === 'team') {
