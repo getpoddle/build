@@ -324,7 +324,7 @@ export default function PrivacyPolicy() {
               Poddle serves users internationally. Your primary application data is stored in the European Union — our Supabase database is hosted in Frankfurt, Germany (AWS <code className="text-[13px] bg-slate-100 px-1.5 py-0.5 rounded">eu-central-1</code>). However, certain external service providers process data in other jurisdictions, including the United States. In particular, OpenAI (AI content generation, War Room analysis, workspace synthesis, and audio transcription) processes data in the United States, and Stripe (payment processing) and Sentry (error tracking) also operate in the United States. The full list of service providers and their processing locations is in Section 12.
             </p>
             <p className="mt-3">
-              Where personal data is transferred outside the European Economic Area (EEA), we rely on appropriate transfer safeguards where available. <span className="text-slate-500">[The specific transfer mechanisms — such as Standard Contractual Clauses, adequacy decisions, or other legal safeguards — require legal confirmation before publication. Organizations should contact us to discuss available transfer safeguards.]</span>
+              Where personal data is transferred outside the European Economic Area (EEA), we rely on appropriate transfer safeguards where available.
             </p>
             <p className="mt-3">
               You may request information about applicable transfer safeguards by emailing <a href="mailto:legal@poddleme.com" className="text-blue-600 hover:underline">legal@poddleme.com</a>.
