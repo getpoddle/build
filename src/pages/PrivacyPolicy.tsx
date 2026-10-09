@@ -39,7 +39,7 @@ export default function PrivacyPolicy() {
               <li><strong>As a data processor:</strong> Where business customers determine the purposes and means of processing personal information submitted to organizational workspaces — including organizational decision records, supporting evidence, uploaded documents, workspace conversations, Decision Trail records, and Decision Snapshots. In these cases, the business customer that owns the workspace is the data controller and Poddle acts as a processor on their behalf.</li>
             </ul>
             <p className="mt-3">
-              The actual role for a given activity depends on the applicable agreement and the nature of the data. Poddle is operated by Poddle, Inc., a Delaware corporation. <span className="text-slate-500">[Whether a Data Processing Agreement is in place with any specific customer should be confirmed through contractual review.]</span>
+              The actual role for a given activity depends on the applicable agreement and the nature of the data. Poddle is operated by Poddle, Inc., a Delaware corporation.
             </p>
             <ContactBlock />
           </Section>
@@ -53,7 +53,7 @@ export default function PrivacyPolicy() {
             <SubHeading>2.1 Information you provide directly</SubHeading>
             <Table rows={[
               ["Account registration", "Email address, password (stored as a bcrypt hash — we never see the plaintext)"],
-              ["Profile information", "Display name, username, profile picture, bio, location (city/country only), LinkedIn URL, job title, certifications, education, skills"],
+              ["Profile information", "Display name, username, profile picture, bio, location (city/country only), LinkedIn URL"],
               ["Organization and workspace information", "Workspace name, description, member list, organizational structure"],
               ["Decision questions and descriptions", "The strategic questions, decision topics, and context you submit for analysis"],
               ["Evidence and supporting documents", "Assumptions, reported facts, evidence submissions, source references, supporting documents and references you upload"],
