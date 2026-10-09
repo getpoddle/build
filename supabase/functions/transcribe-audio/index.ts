@@ -97,7 +97,8 @@ Deno.serve(async (req: Request) => {
 
     if (!whisperRes.ok) {
       const err = await whisperRes.text();
-      return new Response(JSON.stringify({ error: "Transcription failed", detail: err }), {
+      console.error("transcribe-audio: Whisper API error", err);
+      return new Response(JSON.stringify({ error: "Transcription failed" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -149,7 +150,8 @@ Rules:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal server error", detail: String(err) }), {
+    console.error("transcribe-audio: unhandled error", String(err));
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

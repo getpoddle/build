@@ -129,7 +129,8 @@ Deno.serve(async (req: Request) => {
     ]);
 
     if (memberRes.error) {
-      return new Response(JSON.stringify({ error: "Failed to add member", detail: memberRes.error.message }), {
+      console.error("accept-workspace-invite: member insert error", memberRes.error.message);
+      return new Response(JSON.stringify({ error: "Failed to add member" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -202,7 +203,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal server error", detail: String(err) }), {
+    console.error("accept-workspace-invite: unhandled error", String(err));
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

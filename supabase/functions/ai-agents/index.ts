@@ -584,7 +584,7 @@ Based on all of the above, deliver your verdict.`;
       .update({ status: "failed" })
       .eq("assumption_id", assumptionId);
 
-    return new Response(JSON.stringify({ error: "Failed to save outcome", detail: outcomeError.message }), {
+    return new Response(JSON.stringify({ error: "Failed to save outcome" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

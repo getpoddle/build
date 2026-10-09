@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: "Internal server error", detail: String(err) }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

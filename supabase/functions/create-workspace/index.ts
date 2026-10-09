@@ -134,7 +134,8 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (wsError || !ws) {
-      return new Response(JSON.stringify({ error: "Failed to create workspace.", detail: wsError?.message }), {
+      console.error("create-workspace: workspace insert error", wsError?.message);
+      return new Response(JSON.stringify({ error: "Failed to create workspace." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -151,7 +152,8 @@ Deno.serve(async (req: Request) => {
 
     if (memberError) {
       await service.from("workspaces").delete().eq("id", ws.id);
-      return new Response(JSON.stringify({ error: "Failed to set workspace owner.", detail: memberError.message }), {
+      console.error("create-workspace: member insert error", memberError.message);
+      return new Response(JSON.stringify({ error: "Failed to set workspace owner." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -184,7 +186,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal server error", detail: String(err) }), {
+    console.error("create-workspace: unhandled error", String(err));
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

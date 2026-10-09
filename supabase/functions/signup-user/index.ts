@@ -75,7 +75,8 @@ Deno.serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: createError.message }), {
+      console.error("signup-user: admin create error", createError.message);
+      return new Response(JSON.stringify({ error: "Failed to create user account" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -146,7 +147,7 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("signup-user error:", msg);
-    return new Response(JSON.stringify({ error: "Unexpected error", detail: msg }), {
+    return new Response(JSON.stringify({ error: "Unexpected error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -130,7 +130,6 @@ export default function Admin() {
 
       const { data, error } = await supabase.rpc('approve_verification', {
         target_user_id: userId,
-        admin_user_id: user.id,
       });
 
       if (error) throw error;
@@ -156,7 +155,6 @@ export default function Admin() {
 
       const { data, error } = await supabase.rpc('reject_verification', {
         target_user_id: userId,
-        admin_user_id: user.id,
       });
 
       if (error) throw error;

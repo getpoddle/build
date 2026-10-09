@@ -13,9 +13,18 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // This function is called by a daily cron. It uses the service role key
-    // to invoke the cleanup_expired_deletions() RPC which permanently
-    // deletes accounts whose deletion_requested_at is older than 7 days.
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const authHeader = req.headers.get("Authorization");
+    const xCronSecret = req.headers.get("x-cron-secret");
+    const isCronRequest = cronSecret != null && (authHeader === `Bearer ${cronSecret}` || xCronSecret === cronSecret);
+
+    if (!isCronRequest) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const service = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -24,8 +33,9 @@ Deno.serve(async (req: Request) => {
     const { data, error } = await service.rpc("cleanup_expired_deletions");
 
     if (error) {
+      console.error("cleanup-deleted-accounts: RPC error", error.message);
       return new Response(
-        JSON.stringify({ error: "Cleanup failed", detail: error.message }),
+        JSON.stringify({ error: "Cleanup failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -35,8 +45,9 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    console.error("cleanup-deleted-accounts: unhandled error", String(err));
     return new Response(
-      JSON.stringify({ error: "Internal server error", detail: String(err) }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

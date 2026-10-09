@@ -82,7 +82,8 @@ Deno.serve(async (req: Request) => {
           .limit(200);
 
         if (allErr) {
-          return new Response(JSON.stringify({ error: allErr.message }), {
+          console.error("admin-upgrade-requests: query error", allErr.message);
+        return new Response(JSON.stringify({ error: "Failed to fetch upgrade requests" }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -93,7 +94,8 @@ Deno.serve(async (req: Request) => {
       }
 
       if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error("admin-upgrade-requests: query error", error.message);
+        return new Response(JSON.stringify({ error: "Failed to fetch upgrade requests" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -158,7 +160,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Internal server error", detail: String(err) }), {
+    console.error("admin-upgrade-requests: unhandled error", String(err));
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
