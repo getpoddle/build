@@ -1,4 +1,4 @@
-import { Bot, Brain, Lock, Sparkles, ArrowRight, Shield, TrendingUp, Users, Zap, ChevronRight, MessageSquare, UsersRound, Building2, Map, Fingerprint, Hash, ShieldCheck } from 'lucide-react';
+import { Bot, Brain, Lock, ArrowRight, Shield, TrendingUp, Users, Zap, ChevronRight, MessageSquare, UsersRound, Building2, Map, Fingerprint, Hash, ShieldCheck } from 'lucide-react';
 
 interface HomeProps {
   onNavigate: (page: string, podId?: string, userId?: string, editMode?: boolean, initialTab?: string, threadId?: string, initialAssumptionId?: string) => void;
@@ -73,7 +73,6 @@ export default function Home({ onNavigate }: HomeProps) {
                     className="inline-flex items-center gap-2 px-3 py-1.5 mb-4"
                     style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
                   >
-                    <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
                     <span className="mono-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--signal)' }}>Decision Intelligence</span>
                   </div>
                   <h2 className="display-heading text-xl lg:text-2xl xl:text-3xl mb-3" style={{ color: '#e8ecf2' }}>
@@ -184,7 +183,7 @@ export default function Home({ onNavigate }: HomeProps) {
                 {[
                  { icon: Lock, text: 'Encrypted in transit and at rest', sub: 'TLS 1.2+ in transit, encrypted database storage' },
                   { icon: Shield, text: 'Invite-only access', sub: 'Completely private — no public discovery' },
-                  { icon: Sparkles, text: '7 specialized AI agents', sub: 'Risk Analyst, Financial Strategist, Execution Lead, and more' },
+                  { icon: Bot, text: '7 specialized AI agents', sub: 'Risk Analyst, Financial Strategist, Execution Lead, and more' },
                 ].map(({ icon: Icon, text, sub }) => (
                   <div key={text} className="flex items-start gap-3">
                     <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>

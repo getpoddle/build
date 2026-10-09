@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Search, TrendingUp, Sparkles, LineChart, Users, ArrowRight } from 'lucide-react';
+import { Search, TrendingUp, Cpu, LineChart, Users, ArrowRight } from 'lucide-react';
 import { updatePageSEO } from '../lib/seo';
 import PoddleMark from '../components/PoddleMark';
 
@@ -19,7 +19,7 @@ const SERVICES = [
     desc: 'We help organizations develop, evaluate, and stress-test strategies across growth, market expansion, product, operations, and organizational transformation.',
   },
   {
-    icon: Sparkles,
+    icon: Cpu,
     title: 'AI & Digital Transformation',
     desc: 'We advise organizations on how to identify, prioritize, and implement AI and digital opportunities that create measurable business value.',
   },
@@ -64,7 +64,6 @@ export default function Advisory({ onNavigate }: AdvisoryProps) {
             className="inline-flex items-center gap-2 px-3 py-1.5 mb-6"
             style={{ background: 'rgba(184,134,11,0.1)', border: '1px solid rgba(184,134,11,0.35)' }}
           >
-            <Sparkles className="w-3.5 h-3.5" style={{ color: '#d4a535' }} />
             <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#d4a535' }}>Poddle Advisory</span>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-3" style={{ color: '#f4f4f5' }}>
