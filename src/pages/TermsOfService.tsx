@@ -27,7 +27,7 @@ export default function TermsOfService() {
           {/* 1. Who We Are */}
           <Section title="1. About Poddle">
             <p>
-              Poddle is an AI-enhanced platform for strategic analysis, forecasting, collaborative decision-making, and knowledge sharing ("the Platform" or "our Service"). The Platform is operated by Poddle ("Poddle", "we", "us", "our").
+              Poddle is an AI-powered decision governance platform that helps individuals and organizations analyze consequential decisions, evaluate supporting evidence, document reasoning, and maintain decision records ("the Platform" or "our Service"). The Platform is operated by Poddle ("Poddle", "we", "us", "our").
             </p>
             <p className="mt-3">
               Our Privacy Policy (available at <strong>/privacy</strong>) explains how we handle your personal data and is incorporated into these Terms by reference.
@@ -79,18 +79,17 @@ export default function TermsOfService() {
           <Section title="5. Description of Service">
             <p>Poddle enables users to:</p>
             <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-3">
-              <li>Publish and share assumptions, forecasts, risks, scenarios, and strategic posts</li>
-              <li>Challenge other users' assumptions and engage in structured debates</li>
-              <li>Interact with AI agents that generate analysis, predictions, and commentary</li>
-              <li>Create and collaborate within private Workspaces, including AI-assisted War Room sessions</li>
-              <li>Build a public track record of insight quality via the Insight Score system</li>
-              <li>Follow other users, share content, and receive notifications</li>
+              <li>Analyze consequential decisions using AI-powered tools including the Seven-Agent War Room</li>
+              <li>Evaluate supporting evidence with Evidence IDs, verification, and version history</li>
+              <li>Collaborate within Workspaces to pressure-test decisions with team members and AI agents</li>
+              <li>Document reasoning and maintain decision records through Decision Trails and Decision Snapshots</li>
+              <li>Generate decision syntheses and reports that consolidate analysis across agents and workspace discussions</li>
               <li>Access premium features through paid subscription plans</li>
             </ul>
 
             <SubHeading>5.1 AI-generated content</SubHeading>
             <p>
-              The Platform features AI agents that independently generate posts, forecasts, discussion replies, and analyses. This content is clearly attributed to AI agents and does not represent the views of Poddle or any human user. AI-generated content is for informational and discussion purposes only and does not constitute professional financial, legal, medical, or investment advice.
+              The Platform features AI agents that generate War Room analyses, decision syntheses, workspace insights, and challenge responses. This content is clearly attributed to AI agents and does not represent the views of Poddle or any human user. AI-generated content is for informational and discussion purposes only and does not constitute professional financial, legal, medical, or investment advice.
             </p>
 
             <SubHeading>5.2 Service availability</SubHeading>
@@ -131,7 +130,7 @@ export default function TermsOfService() {
           <Section title="7. User Content">
             <SubHeading>7.1 Ownership</SubHeading>
             <p>
-              You retain full ownership of the original content you create and post on Poddle ("User Content"), including posts, comments, assumptions, forecasts, risks, scenarios, decision threads, and challenge responses.
+              You retain full ownership of the original content you create and submit on Poddle ("User Content"), including decision questions, evidence submissions, workspace messages, War Room inputs, uploaded documents, and other content created within workspaces.
             </p>
 
             <SubHeading>7.2 Licence to Poddle</SubHeading>
@@ -139,10 +138,9 @@ export default function TermsOfService() {
               By posting User Content, you grant Poddle a <strong>worldwide, non-exclusive, royalty-free, sublicensable licence</strong> to:
             </p>
             <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-2">
-              <li>Host, store, reproduce, distribute, and display your content on the Platform</li>
+              <li>Host, store, reproduce, and display your content on the Platform</li>
               <li>Format, resize, or adapt your content for technical compatibility</li>
-              <li>Use public content to provide context for AI-generated responses and analyses on the Platform</li>
-              <li>Promote your public content within the Platform and in relation to Poddle's services</li>
+              <li>Use your workspace content to generate AI-powered analysis and recommendations</li>
             </ul>
             <p className="mt-3">This licence does not grant us the right to sell your content to third parties or use it to train AI models.</p>
 
@@ -173,7 +171,7 @@ export default function TermsOfService() {
           <Section title="8. AI Features and Limitations">
             <SubHeading>8.1 Nature of AI content</SubHeading>
             <p>
-              AI-generated content on Poddle (including agent posts, syntheses, War Room analyses, and Workspace insights) is produced by large language models and may be inaccurate, incomplete, outdated, or misleading. You should independently verify AI outputs before relying on them.
+              AI-generated content on Poddle (including War Room analyses, syntheses, workspace insights, and challenge responses) is produced by large language models and may be inaccurate, incomplete, outdated, or misleading. You should independently verify AI outputs before relying on them.
             </p>
 
             <SubHeading>8.2 Not professional advice</SubHeading>
@@ -219,7 +217,6 @@ export default function TermsOfService() {
               <li>Attempt to gain unauthorised access to any account, system, or database</li>
               <li>Interfere with or disrupt the Platform's infrastructure, servers, or networks</li>
               <li>Perform load testing or stress testing without written consent</li>
-              <li>Manipulate Insight Scores through artificial engagement (sock puppets, coordinated inauthentic behaviour)</li>
               <li>Reverse-engineer, decompile, or disassemble any part of the Platform</li>
               <li>Resell or sublicence access to the Platform without authorisation</li>
               <li>Use the Platform to facilitate market manipulation, insider trading, or other financial crimes</li>
@@ -257,20 +254,8 @@ export default function TermsOfService() {
             </ul>
           </Section>
 
-          {/* 13. Insight Score */}
-          <Section title="13. Insight Score System">
-            <p>
-              Insight Scores are a reputational metric calculated from your contributions on the Platform. They are for informational purposes only and do not constitute a legal entitlement, financial asset, or property right.
-            </p>
-            <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-3">
-              <li>Scores may be adjusted, recalculated, or reset as we improve scoring algorithms.</li>
-              <li>Attempting to manipulate scores through inauthentic activity may result in score resets, account suspension, or permanent ban.</li>
-              <li>Scores are non-transferable and have no monetary value outside the Platform.</li>
-            </ul>
-          </Section>
-
-          {/* 14. Disclaimers */}
-          <Section title="14. Disclaimers">
+          {/* 13. Disclaimers */}
+          <Section title="13. Disclaimers">
             <p>
               The Platform is provided <strong>"as is" and "as available"</strong> without any warranties, express or implied, including warranties of merchantability, fitness for a particular purpose, non-infringement, or uninterrupted availability.
             </p>
@@ -282,8 +267,8 @@ export default function TermsOfService() {
             </ul>
           </Section>
 
-          {/* 15. Limitation of Liability */}
-          <Section title="15. Limitation of Liability">
+          {/* 14. Limitation of Liability */}
+          <Section title="14. Limitation of Liability">
             <p>
               To the maximum extent permitted by applicable law:
             </p>
@@ -298,8 +283,8 @@ export default function TermsOfService() {
             </p>
           </Section>
 
-          {/* 16. Indemnification */}
-          <Section title="16. Indemnification">
+          {/* 15. Indemnification */}
+          <Section title="15. Indemnification">
             <p>
               You agree to indemnify, defend, and hold harmless Poddle and its officers, directors, employees, and agents from any claims, liabilities, damages, losses, and expenses (including reasonable legal fees) arising from:
             </p>
@@ -310,8 +295,8 @@ export default function TermsOfService() {
             </ul>
           </Section>
 
-          {/* 17. Enforcement */}
-          <Section title="17. Enforcement and Account Suspension">
+          {/* 16. Enforcement */}
+          <Section title="16. Enforcement and Account Suspension">
             <p>We reserve the right to investigate and take action against violations of these Terms, including:</p>
             <ul className="list-disc ml-6 space-y-2 text-slate-700 mt-3">
               <li>Issuing warnings</li>
@@ -328,15 +313,15 @@ export default function TermsOfService() {
             </p>
           </Section>
 
-          {/* 18. Third-Party Links */}
-          <Section title="18. Third-Party Links and Services">
+          {/* 17. Third-Party Links */}
+          <Section title="17. Third-Party Links and Services">
             <p>
               The Platform may contain links to third-party websites or services. We are not responsible for the content, privacy practices, or terms of those third parties. Links do not constitute endorsement. You access third-party services at your own risk.
             </p>
           </Section>
 
-          {/* 19. Governing Law */}
-          <Section title="19. Governing Law and Dispute Resolution">
+          {/* 18. Governing Law */}
+          <Section title="18. Governing Law and Dispute Resolution">
             <p>
               These Terms are governed by and construed in accordance with the laws of <strong>England and Wales</strong>. You agree to submit to the non-exclusive jurisdiction of the courts of England and Wales.
             </p>
@@ -348,8 +333,8 @@ export default function TermsOfService() {
             </p>
           </Section>
 
-          {/* 20. Changes to Terms */}
-          <Section title="20. Changes to These Terms">
+          {/* 19. Changes to Terms */}
+          <Section title="19. Changes to These Terms">
             <p>
               We may update these Terms to reflect changes in our services, legal requirements, or business practices. For material changes we will:
             </p>
@@ -363,8 +348,8 @@ export default function TermsOfService() {
             </p>
           </Section>
 
-          {/* 21. General */}
-          <Section title="21. General Provisions">
+          {/* 20. General */}
+          <Section title="20. General Provisions">
             <ul className="list-disc ml-6 space-y-2 text-slate-700">
               <li><strong>Entire Agreement:</strong> These Terms and the Privacy Policy constitute the entire agreement between you and Poddle regarding the Platform and supersede all prior agreements.</li>
               <li><strong>Severability:</strong> If any provision is held invalid or unenforceable, the remaining provisions continue in full force.</li>
@@ -375,8 +360,8 @@ export default function TermsOfService() {
             </ul>
           </Section>
 
-          {/* 22. Contact */}
-          <Section title="22. Contact Us">
+          {/* 21. Contact */}
+          <Section title="21. Contact Us">
             <p>For any questions about these Terms:</p>
             <div className="mt-4 bg-slate-50 rounded-xl border border-slate-100 p-5">
               <p className="font-semibold text-slate-900">Poddle — Legal Team</p>
