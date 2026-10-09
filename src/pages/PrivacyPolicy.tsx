@@ -232,7 +232,10 @@ export default function PrivacyPolicy() {
               <li><strong>Application security controls:</strong> SECURITY DEFINER functions with pinned search paths, restricted execution grants, and deny-by-default policies on sensitive tables.</li>
             </ul>
             <p className="mt-3">
-              Supabase infrastructure is hosted on AWS in the United States (us-east-1, North Virginia). <span className="text-slate-500">[Hosting region requires verification against production configuration before publishing geographical data residency claims.]</span>
+              The primary database is hosted by Supabase on AWS in Central EU (Frankfurt), region <code className="text-[13px] bg-slate-100 px-1.5 py-0.5 rounded">eu-central-1</code>, Germany. All application data — including user profiles, workspace content, decision records, and AI-generated outputs — is stored in this region.
+            </p>
+            <p className="mt-3">
+              This database hosting location is distinct from the processing locations of external service providers, some of whom operate in the United States. See Section 10 (International Data Processing) and Section 12 (Service Providers) for details on where each provider processes data.
             </p>
           </Section>
 
@@ -297,7 +300,7 @@ export default function PrivacyPolicy() {
           {/* 10. International Data Processing */}
           <Section id="international" title="10. International Data Processing">
             <p>
-              Poddle serves users internationally. Personal information may be processed by service providers operating in different jurisdictions, including the United States and the European Union. The current service providers and their processing locations are listed in Section 12.
+              Poddle serves users internationally. Your primary application data is stored in the European Union — our Supabase database is hosted in Frankfurt, Germany (AWS <code className="text-[13px] bg-slate-100 px-1.5 py-0.5 rounded">eu-central-1</code>). However, certain external service providers process data in other jurisdictions, including the United States. In particular, OpenAI (AI content generation, War Room analysis, workspace synthesis, and audio transcription) processes data in the United States, and Stripe (payment processing) and Sentry (error tracking) also operate in the United States. The full list of service providers and their processing locations is in Section 12.
             </p>
             <p className="mt-3">
               Where personal data is transferred outside the European Economic Area (EEA), we rely on appropriate transfer safeguards where available. <span className="text-slate-500">[The specific transfer mechanisms — such as Standard Contractual Clauses, adequacy decisions, or other legal safeguards — require legal confirmation before publication. Organizations should contact us to discuss available transfer safeguards.]</span>
@@ -348,7 +351,7 @@ export default function PrivacyPolicy() {
               We share data with the following service providers who process data on our behalf. These providers have access to customer information only as necessary to deliver their services:
             </p>
             <Table headers={["Provider", "Purpose", "Data Processed", "Location"]} rows={[
-              ["Supabase", "Database, authentication, file storage, real-time subscriptions", "All application data and content", "United States (AWS us-east-1)"],
+              ["Supabase", "Database, authentication, file storage, real-time subscriptions", "All application data and content", "EU (Frankfurt, Germany — AWS eu-central-1)"],
               ["OpenAI", "AI content generation, War Room analysis, workspace synthesis, audio transcription", "Decision content, conversation history, workspace context, audio inputs", "United States"],
               ["Stripe", "Payment processing, subscription management, billing portal", "Billing details, subscription status, payment metadata", "United States"],
               ["PostHog", "Product analytics", "Usage events, anonymised identifiers", "European Union (Frankfurt)"],
