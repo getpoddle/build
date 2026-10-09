@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, rpc_warning: rpcError?.message ?? null }),
+      JSON.stringify({ success: true, rpc_warning: rpcError ? "partial" : null }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

@@ -767,16 +767,14 @@ Return ONLY valid JSON in this exact shape, no markdown:
     } catch (fetchErr) {
       const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
       console.error("Synthesis fetch failed:", fetchErr);
-      return new Response(JSON.stringify({ error: `Synthesis AI request failed: ${msg}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Synthesis AI request failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (!openAiRes.ok) {
       const err = await openAiRes.text();
       logAiOpenAICall({ distinctId: user!.id, workspaceId: workspace_id, functionName: "workspace-synthesize", callSite: "main_synthesis", model: "gpt-4.1", maxCompletionTokens: 8000, jsonMode: true, latencyMs: Date.now() - synthStartedAt, status: "errored", httpStatus: openAiRes.status });
       console.error("OpenAI error:", openAiRes.status, err);
-      let detail = "AI synthesis failed";
-      try { const parsed = JSON.parse(err); detail = parsed?.error?.message || detail; } catch { /* use default */ }
-      return new Response(JSON.stringify({ error: detail }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "AI synthesis failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const openAiJson = await openAiRes.json();
@@ -1874,8 +1872,7 @@ Return ONLY valid JSON. No markdown fences.`;
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {
-    const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     console.error("Synthesize error:", err);
-    return new Response(JSON.stringify({ error: `Synthesis failed: ${msg}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Synthesis failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

@@ -121,7 +121,7 @@ Deno.serve(async (req: Request) => {
           const inviteRow = Array.isArray(inviteRows) ? inviteRows[0] : inviteRows;
 
           if (inviteError || !inviteRow) {
-            results.push({ email, success: false, error: inviteError?.message || "Failed to create invite" });
+            results.push({ email, success: false, error: "Failed to create invite" });
             continue;
           }
 
@@ -167,7 +167,7 @@ Deno.serve(async (req: Request) => {
 
           results.push({ email, success: true });
         } catch (e) {
-          results.push({ email, success: false, error: String(e) });
+          results.push({ email, success: false, error: "Failed to send invite" });
         }
       }
 
@@ -319,7 +319,7 @@ Deno.serve(async (req: Request) => {
 
         results.push({ email, success: true });
       } catch (e) {
-        results.push({ email, success: false, error: String(e) });
+        results.push({ email, success: false, error: "Failed to send invite" });
       }
     }
 
