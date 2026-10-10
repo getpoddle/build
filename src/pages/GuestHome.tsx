@@ -199,20 +199,20 @@ const PROCESS_STEPS: { num: string; icon: LucideIcon; title: string; body: strin
   { num: '04', icon: ShieldCheck, title: 'Preserve the Reasoning', body: 'Record evidence changes, decisions, approvals, and historical snapshots that preserve the full context for future review.' },
 ];
 
-const USE_CASES: { icon: LucideIcon; title: string; body: string }[] = [
-  { icon: TrendingUp, title: 'Strategic Investments', body: 'Evaluate capital allocation decisions with structured evidence assessment and risk analysis before committing resources.' },
-  { icon: Building2, title: 'Market Entry', body: 'Assess new market opportunities by assembling evidence, testing assumptions, and documenting the reasoning behind go or no-go.' },
-  { icon: Briefcase, title: 'Mergers & Acquisitions', body: 'Structure due diligence with classified evidence, identified risks, and a clear record of what was known and what was assumed.' },
-  { icon: Network, title: 'Technology Investments', body: 'Evaluate technology adoption decisions with trade-off analysis, competing perspectives, and a documented evaluation trail.' },
-  { icon: Scale, title: 'Organizational Restructuring', body: 'Approve structural changes with documented evidence, stakeholder input, and a defensible record of how the decision was reached.' },
-  { icon: Handshake, title: 'Strategic Partnerships', body: 'Assess partnership proposals with evidence-based analysis, risk identification, and a clear ownership trail for accountability.' },
+const USE_CASES: { icon: LucideIcon; title: string; body: string; question: string }[] = [
+  { icon: TrendingUp, title: 'Strategic Investments', body: 'Evaluate capital allocation with classified evidence, risk analysis, and a documented record of what was known versus assumed.', question: 'Should we commit €2.5M to expand the DACH region in Q1 2026?' },
+  { icon: Building2, title: 'Market Entry', body: 'Assemble evidence, test demand assumptions, and capture the reasoning behind a go or no-go before entering a new market.', question: 'Which entry mode — direct, partner-led, or acquisition — fits the Southeast Asian market?' },
+  { icon: Briefcase, title: 'Mergers & Acquisitions', body: 'Structure due diligence with classified evidence, identified risks, and a clear record of what was verified and what was assumed.', question: 'Does the target company’s retention and integration plan hold up under scrutiny?' },
+  { icon: Network, title: 'Technology Investments', body: 'Evaluate technology adoption with trade-off analysis, competing AI perspectives, and a documented evaluation trail.', question: 'Should we build or buy the analytics platform — and what are we assuming about migration risk?' },
+  { icon: Scale, title: 'Organizational Restructuring', body: 'Approve structural changes with documented evidence, stakeholder input, and a defensible record of how the decision was reached.', question: 'Will consolidating three product teams into one accelerate or disrupt our roadmap?' },
+  { icon: Handshake, title: 'Strategic Partnerships', body: 'Assess partnership proposals with evidence-based analysis, risk identification, and a clear ownership trail for accountability.', question: 'Does the proposed partner’s market access justify the revenue-share terms we are offering?' },
 ];
 
 const SECURITY_FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Lock, title: 'Workspace Access Controls', body: 'Decisions live in private workspaces with role-based access. Only invited members can view, contribute to, or manage a decision.' },
   { icon: FileText, title: 'Evidence Traceability', body: 'Every piece of evidence carries a unique identifier and provenance record, so you can trace any claim back to its source.' },
-  { icon: History, title: 'Historical Records', body: 'Decision trails and evidence revisions are preserved over time, creating an immutable record of how decisions evolved.' },
-  { icon: ShieldCheck, title: 'Privacy-Conscious Processing', body: 'Workspace data is processed with attention to privacy. Your decision content is not used for public model training.' },
+  { icon: History, title: 'Historical Records', body: 'Decision trails and evidence revisions are preserved over time, creating a durable record of how decisions evolved that can be reviewed or exported.' },
+  { icon: ShieldCheck, title: 'Privacy-Conscious Processing', body: 'Workspace data is processed via the OpenAI API, which does not use API request data to train or improve its models. Your decision content is not used for public model training.' },
 ];
 
 // ─── Pill component ──────────────────────────────────────────────────────────
@@ -341,40 +341,59 @@ function ProductPreview() {
 function OverviewTab() {
   return (
     <div style={{ animation: 'tabFade 0.3s ease' }}>
-      <div className="grid lg:grid-cols-2 gap-3">
-        {/* Decision context */}
-        <div className="p-3.5 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
-          <p className="text-[10px] font-bold uppercase mb-1.5" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision</p>
-          <h3 className="text-sm font-bold leading-snug mb-2.5" style={{ color: INK }}>Should we enter the DACH market in Q1 2026?</h3>
-          <div className="flex items-center gap-1.5 flex-wrap mb-3">
-            <Pill label="Strategic" color={C.slate} />
-            <Pill label="In Debate" color={C.blue} />
+      {/* Decision title banner */}
+      <div className="p-4 rounded-lg mb-3" style={{ background: WHITE, border: `1px solid ${BORDER}` }}>
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase mb-1" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision</p>
+            <h3 className="text-base font-bold leading-snug" style={{ color: INK }}>Should we enter the DACH market in Q1 2026?</h3>
           </div>
-          <div className="space-y-2">
+          <span className="text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap shrink-0" style={{ background: C.blueBg, color: C.blue }}>IN DEBATE</span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Pill label="Strategic" color={C.slate} />
+          <Pill label="High Impact" color={C.amber} />
+          <Pill label="Q1 2026" color={C.cyan} />
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-3">
+        {/* Decision metadata */}
+        <div className="p-3.5 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span style={{ color: SLATE_MID }}>Decision Owner</span>
-              <span className="font-medium" style={{ color: INK }}>O. Akinbobola</span>
+              <span className="font-semibold" style={{ color: INK }}>O. Akinbobola</span>
             </div>
-            <div className="flex items-center justify-between text-xs">
-              <span style={{ color: SLATE_MID }}>Health Score</span>
-              <span className="font-bold" style={{ color: C.amber }}>Developing · 62</span>
-            </div>
+            <div className="h-px" style={{ background: BORDER_SOFT }} />
             <div className="flex items-center justify-between text-xs">
               <span style={{ color: SLATE_MID }}>Evidence Items</span>
-              <span className="font-medium" style={{ color: INK }}>5 ({DEMO_EVIDENCE.filter(e => e.verification === 'verified').length} verified)</span>
+              <span className="font-semibold" style={{ color: INK }}>
+                {DEMO_EVIDENCE.length} total
+                <span className="ml-1.5 font-bold" style={{ color: C.green }}>{DEMO_EVIDENCE.filter(e => e.verification === 'verified').length} verified</span>
+              </span>
             </div>
+            <div className="h-px" style={{ background: BORDER_SOFT }} />
             <div className="flex items-center justify-between text-xs">
               <span style={{ color: SLATE_MID }}>Open Challenges</span>
-              <span className="font-medium" style={{ color: C.amber }}>1 active</span>
+              <span className="font-bold" style={{ color: C.amber }}>1 active</span>
+            </div>
+            <div className="h-px" style={{ background: BORDER_SOFT }} />
+            <div className="flex items-center justify-between text-xs">
+              <span style={{ color: SLATE_MID }}>Contributors</span>
+              <span className="font-semibold" style={{ color: INK }}>4 members</span>
             </div>
           </div>
         </div>
 
         {/* Health score visual */}
         <div className="p-3.5 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
-          <p className="text-[10px] font-bold uppercase mb-2.5" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision Health</p>
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[10px] font-bold uppercase" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision Health</p>
+            <span className="text-[10px] font-bold" style={{ color: C.amber }}>Developing</span>
+          </div>
           <div className="flex items-center gap-4">
-            <ScoreRing score={62} label="Developing" color={C.amber} />
+            <ScoreRing score={62} label="Score" color={C.amber} />
             <div className="flex-1 space-y-2">
               <ScoreBar label="Financial" score={71} color={C.green} />
               <ScoreBar label="Operational" score={58} color={C.amber} />
@@ -386,7 +405,10 @@ function OverviewTab() {
 
       {/* Agent analysis preview */}
       <div className="mt-3">
-        <p className="text-[10px] font-bold uppercase mb-2.5" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Specialized AI Agents</p>
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="text-[10px] font-bold uppercase" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Specialized AI Agents</p>
+          <span className="text-[10px]" style={{ color: SLATE_LIGHT }}>4 perspectives</span>
+        </div>
         <div className="grid sm:grid-cols-2 gap-2.5">
           {DEMO_AGENTS.map((agent) => (
             <div key={agent.role} className="p-3 rounded-lg" style={{ background: WHITE, border: `1px solid ${BORDER_SOFT}` }}>
@@ -395,8 +417,8 @@ function OverviewTab() {
                   <agent.icon className="w-3.5 h-3.5" style={{ color: C.blue }} />
                 </div>
                 <span className="text-xs font-bold" style={{ color: INK }}>{agent.role}</span>
-                <span className="ml-auto text-[10px] font-bold" style={{ color: agent.confidence >= 70 ? C.green : agent.confidence >= 50 ? C.amber : C.red }}>
-                  {agent.confidence}% conf.
+                <span className="ml-auto text-[10px] font-bold shrink-0" style={{ color: agent.confidence >= 70 ? C.green : agent.confidence >= 50 ? C.amber : C.red }}>
+                  {agent.confidence}%
                 </span>
               </div>
               <p className="text-xs leading-relaxed mb-1.5" style={{ color: SLATE }}>{agent.position}</p>
@@ -463,7 +485,7 @@ function EvidenceTab() {
     <div style={{ animation: 'tabFade 0.3s ease' }}>
       {/* Stale warning */}
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2.5 text-xs" style={{ background: C.redBg, color: C.red }}>
-        <span>🔴</span>
+        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
         This decision relies on 1 piece of stale evidence — worth re-verifying before committing.
       </div>
 
@@ -473,7 +495,6 @@ function EvidenceTab() {
           const cls = CLASSIFICATION_LABELS[ev.classification];
           const ver = VERIFICATION_LABELS[ev.verification];
           const fresh = FRESHNESS_MAP[ev.freshness];
-          const emoji = ev.freshness === 'current' ? '🟢' : ev.freshness === 'aging' ? '🟡' : '🔴';
 
           return (
             <div
@@ -507,7 +528,7 @@ function EvidenceTab() {
                 </div>
                 <div className="flex items-center gap-2 text-[10px]" style={{ color: SLATE_LIGHT }}>
                   <span>{ev.source}</span>
-                  <span style={{ color: fresh.color }}>{emoji} {fresh.label} · {ev.verifiedDays}d ago</span>
+                  <span style={{ color: fresh.color }}>{ev.freshness === 'current' ? '●' : ev.freshness === 'aging' ? '◐' : '○'} {fresh.label} · {ev.verifiedDays}d ago</span>
                 </div>
               </div>
             </div>
@@ -638,12 +659,195 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   );
 }
 
+// ─── Workflow stage previews ───────────────────────────────────────────────
+
+type StageKey = 0 | 1 | 2 | 3;
+
+function PreviewFrame({ children, label }: { children: React.ReactNode; label: string }) {
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{
+        background: WHITE,
+        border: `1px solid ${BORDER}`,
+        boxShadow: '0 12px 40px rgba(15,23,42,0.10), 0 2px 8px rgba(15,23,42,0.03)',
+      }}
+    >
+      <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${BORDER_SOFT}`, background: BG_ALT }}>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full" style={{ background: '#e2e8f0' }} />
+          <div className="w-2 h-2 rounded-full" style={{ background: '#e2e8f0' }} />
+          <div className="w-2 h-2 rounded-full" style={{ background: '#e2e8f0' }} />
+        </div>
+        <span className="text-[10px] font-medium ml-2" style={{ color: SLATE_LIGHT }}>{label}</span>
+        <span className="ml-auto text-[9px] hidden sm:block" style={{ color: SLATE_LIGHT }}>Illustrative demo</span>
+      </div>
+      <div className="p-3 sm:p-4" style={{ minHeight: '380px' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function StageDefinePreview() {
+  return (
+    <div style={{ animation: 'tabFade 0.3s ease' }}>
+      <div className="p-3.5 rounded-lg mb-3" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+        <p className="text-[10px] font-bold uppercase mb-1.5" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision Question</p>
+        <h3 className="text-sm font-bold leading-snug mb-3" style={{ color: INK }}>Should we enter the DACH market in Q1 2026?</h3>
+        <div className="flex items-center gap-1.5 flex-wrap mb-3">
+          <Pill label="Strategic" color={C.slate} />
+          <Pill label="In Debate" color={C.blue} />
+          <Pill label="High Impact" color={C.amber} />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span style={{ color: SLATE_MID }}>Decision Owner</span>
+            <span className="font-medium" style={{ color: INK }}>O. Akinbobola</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span style={{ color: SLATE_MID }}>Contributors</span>
+            <span className="font-medium" style={{ color: INK }}>4 members</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span style={{ color: SLATE_MID }}>Created</span>
+            <span className="font-medium" style={{ color: INK }}>Oct 1, 2026</span>
+          </div>
+        </div>
+      </div>
+      <div className="p-3.5 rounded-lg" style={{ background: WHITE, border: `1px solid ${BORDER_SOFT}` }}>
+        <p className="text-[10px] font-bold uppercase mb-2" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Objectives</p>
+        <div className="space-y-1.5">
+          {['Establish presence in German-speaking markets', 'Achieve €5M ARR within 24 months', 'Minimize capital-at-risk through phased entry'].map((obj) => (
+            <div key={obj} className="flex items-center gap-2 text-xs" style={{ color: SLATE }}>
+              <Target className="w-3 h-3 shrink-0" style={{ color: BLUE }} />
+              {obj}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StageEvidencePreview() {
+  return (
+    <div style={{ animation: 'tabFade 0.3s ease' }}>
+      <div className="space-y-2">
+        {DEMO_EVIDENCE.slice(0, 4).map((ev) => {
+          const cls = CLASSIFICATION_LABELS[ev.classification];
+          const ver = VERIFICATION_LABELS[ev.verification];
+          const fresh = FRESHNESS_MAP[ev.freshness];
+          return (
+            <div
+              key={ev.code}
+              className="p-2.5 rounded-lg"
+              style={{ background: WHITE, border: `1px solid ${BORDER_SOFT}`, borderLeft: `3px solid ${cls.color}` }}
+            >
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ fontFamily: MONO, background: `${cls.color}1a`, color: cls.color }}>{ev.code}</span>
+                <Pill label={cls.label} color={cls.color} />
+                <Pill label={ver.label} color={ver.color} />
+              </div>
+              <p className="text-xs leading-relaxed mb-1.5" style={{ color: INK }}>{ev.statement}</p>
+              <div className="flex items-center gap-2 text-[10px]" style={{ color: SLATE_LIGHT }}>
+                <span>{ev.source}</span>
+                <span style={{ color: fresh.color }}>{ev.freshness === 'current' ? '●' : ev.freshness === 'aging' ? '◐' : '○'} {fresh.label}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StageAnalyzePreview() {
+  return (
+    <div style={{ animation: 'tabFade 0.3s ease' }}>
+      <div className="grid sm:grid-cols-2 gap-2.5 mb-2.5">
+        {DEMO_AGENTS.slice(0, 4).map((agent) => (
+          <div key={agent.role} className="p-2.5 rounded-lg" style={{ background: WHITE, border: `1px solid ${BORDER_SOFT}` }}>
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: C.blueBg }}>
+                <agent.icon className="w-3.5 h-3.5" style={{ color: C.blue }} />
+              </div>
+              <span className="text-xs font-bold truncate" style={{ color: INK }}>{agent.role}</span>
+              <span className="ml-auto text-[10px] font-bold shrink-0" style={{ color: agent.confidence >= 70 ? C.green : agent.confidence >= 50 ? C.amber : C.red }}>
+                {agent.confidence}%
+              </span>
+            </div>
+            <p className="text-[11px] leading-relaxed mb-1.5" style={{ color: SLATE }}>{agent.position}</p>
+            {agent.risks.length > 0 && (
+              <div className="flex items-center gap-1 text-[10px]" style={{ color: C.amber }}>
+                <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
+                <span className="truncate">{agent.risks[0]}</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="p-2.5 rounded-lg" style={{ background: C.amberBg, border: `1px solid ${C.amber}33` }}>
+        <div className="flex items-center gap-2 text-xs" style={{ color: C.amber }}>
+          <GitBranch className="w-3.5 h-3.5 shrink-0" />
+          <span className="font-bold">Conflict detected</span>
+        </div>
+        <p className="text-[11px] leading-relaxed mt-1" style={{ color: SLATE }}>Devil's Advocate challenges EVD-003 — retention assumption lacks supporting evidence.</p>
+      </div>
+    </div>
+  );
+}
+
+function StagePreservePreview() {
+  return (
+    <div style={{ animation: 'tabFade 0.3s ease' }}>
+      <div className="flex items-center justify-between mb-2.5">
+        <p className="text-[10px] font-bold uppercase" style={{ color: SLATE_LIGHT, letterSpacing: '0.08em' }}>Decision Trail</p>
+        <span className="text-[10px]" style={{ color: SLATE_LIGHT }}>Snapshot · Export</span>
+      </div>
+      <div className="relative">
+        {DEMO_TRAIL.slice(0, 7).map((evt, i) => {
+          const meta = TRAIL_META[evt.type];
+          const isLast = i === 6;
+          return (
+            <div key={i} className="flex gap-2.5 mb-2 last:mb-0 relative">
+              {!isLast && <div className="absolute left-[11px] top-6 bottom-0 w-px" style={{ background: BORDER }} />}
+              <div className="w-[23px] h-[23px] rounded-full flex items-center justify-center shrink-0 relative z-10" style={{ background: `${meta.color}18` }}>
+                <meta.icon className="w-2.5 h-2.5" style={{ color: meta.color }} />
+              </div>
+              <div className="flex-1 p-2 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold" style={{ color: meta.color }}>{evt.label}</span>
+                  <span className="text-[10px] ml-auto" style={{ fontFamily: MONO, color: SLATE_LIGHT }}>{evt.time}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] mt-0.5" style={{ color: SLATE_MID }}>
+                  <span>by {evt.actor}</span>
+                  {evt.claim && <span className="px-1 py-0.5 rounded font-bold" style={{ fontFamily: MONO, background: `${meta.color}1a`, color: meta.color }}>{evt.claim}</span>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const STAGE_PREVIEWS: Record<StageKey, { label: string; component: React.ReactNode }> = {
+  0: { label: 'Decision Creation · Ownership', component: <StageDefinePreview /> },
+  1: { label: 'Evidence Classification · Verification', component: <StageEvidencePreview /> },
+  2: { label: 'AI Analysis · Risks · Trade-offs', component: <StageAnalyzePreview /> },
+  3: { label: 'Decision Trail · Revisions · Snapshots', component: <StagePreservePreview /> },
+};
+
 // ─── Workflow section ────────────────────────────────────────────────────────
 
 function WorkflowSection({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const [activeStage, setActiveStage] = useState<StageKey>(0);
+
   return (
     <section id="workflow" style={{ background: BG_ALT, borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}` }} className="py-20 sm:py-28">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <RevealSection>
           <div className="text-center mb-14">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: BLUE }}>
@@ -658,24 +862,46 @@ function WorkflowSection({ onNavigate }: { onNavigate: (p: string) => void }) {
           </div>
         </RevealSection>
 
-        <div className="relative">
-          <div className="hidden sm:block absolute left-[2.25rem] top-0 bottom-0 w-px" style={{ background: BORDER }} />
-          {PROCESS_STEPS.map((step, i) => (
-            <RevealSection key={step.num} delay={i * 100}>
-              <div className="flex gap-6 mb-8 last:mb-0 relative">
-                <div className="flex-shrink-0 w-[4.5rem] h-[4.5rem] rounded-xl flex items-center justify-center relative z-10" style={{ background: WHITE, border: `2px solid ${BORDER}` }}>
-                  <step.icon className="w-6 h-6" style={{ color: BLUE }} />
-                </div>
-                <div className="flex-1 pt-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-xs font-bold tracking-wider" style={{ color: SLATE_LIGHT }}>{step.num}</span>
-                  </div>
-                  <h3 className="text-lg font-bold mb-2" style={{ color: INK }}>{step.title}</h3>
-                  <p className="text-sm leading-relaxed max-w-lg" style={{ color: SLATE }}>{step.body}</p>
-                </div>
-              </div>
-            </RevealSection>
-          ))}
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+          {/* Left: workflow steps */}
+          <div className="flex flex-col gap-3">
+            {PROCESS_STEPS.map((step, i) => {
+  const idx = i as StageKey;
+  const isActive = activeStage === idx;
+  return (
+    <RevealSection key={step.num} delay={i * 80}>
+      <button
+        onClick={() => setActiveStage(idx)}
+        className="w-full text-left flex gap-4 p-4 rounded-xl transition-all duration-200"
+        style={{
+          background: isActive ? WHITE : 'transparent',
+          border: `1px solid ${isActive ? BLUE : BORDER_SOFT}`,
+          boxShadow: isActive ? '0 4px 16px rgba(37,99,235,0.10)' : 'none',
+        }}
+      >
+        <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors" style={{ background: isActive ? C.blueBg : BG_ALT, border: `1px solid ${isActive ? BLUE : BORDER}` }}>
+          <step.icon className="w-5 h-5" style={{ color: isActive ? BLUE : SLATE_LIGHT }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-bold tracking-wider" style={{ color: SLATE_LIGHT }}>{step.num}</span>
+            {isActive && <span className="w-1.5 h-1.5 rounded-full" style={{ background: BLUE }} />}
+          </div>
+          <h3 className="text-base font-bold mb-1" style={{ color: INK }}>{step.title}</h3>
+          <p className="text-sm leading-relaxed" style={{ color: SLATE }}>{step.body}</p>
+        </div>
+      </button>
+    </RevealSection>
+  );
+})}
+          </div>
+
+          {/* Right: stage preview */}
+          <div className="lg:sticky lg:top-20">
+            <PreviewFrame label={STAGE_PREVIEWS[activeStage].label}>
+              {STAGE_PREVIEWS[activeStage].component}
+            </PreviewFrame>
+          </div>
         </div>
 
         <RevealSection delay={200}>
@@ -716,11 +942,19 @@ function CapabilitiesSection() {
         </RevealSection>
 
         <div className="grid sm:grid-cols-2 gap-5">
-          {CAPABILITIES.map((cap, i) => (
+          {CAPABILITIES.map((cap, i) => {
+            const accents = [
+              { bg: C.blueBg, color: C.blue },
+              { bg: C.greenBg, color: C.green },
+              { bg: C.amberBg, color: C.amber },
+              { bg: C.cyanBg, color: C.cyan },
+            ];
+            const a = accents[i % accents.length];
+            return (
             <RevealSection key={cap.title} delay={i * 80}>
               <div className="h-full p-7 rounded-xl transition-all duration-300 hover:-translate-y-1" style={{ background: WHITE, border: `1px solid ${BORDER}`, boxShadow: '0 1px 3px rgba(15,23,42,0.04)' }}>
-                <div className="w-11 h-11 rounded-lg flex items-center justify-center mb-5" style={{ background: C.blueBg }}>
-                  <cap.icon className="w-5 h-5" style={{ color: BLUE }} />
+                <div className="w-11 h-11 rounded-lg flex items-center justify-center mb-5" style={{ background: a.bg }}>
+                  <cap.icon className="w-5 h-5" style={{ color: a.color }} />
                 </div>
                 <h3 className="text-lg font-bold mb-3" style={{ color: INK }}>{cap.title}</h3>
                 <p className="text-sm leading-relaxed mb-4" style={{ color: SLATE }}>{cap.body}</p>
@@ -733,7 +967,8 @@ function CapabilitiesSection() {
                 </div>
               </div>
             </RevealSection>
-          ))}
+          );
+          })}
         </div>
       </div>
     </section>
@@ -763,12 +998,16 @@ function UseCasesSection() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {USE_CASES.map((uc, i) => (
             <RevealSection key={uc.title} delay={i * 60}>
-              <div className="h-full p-6 rounded-xl transition-all duration-300 hover:-translate-y-1" style={{ background: WHITE, border: `1px solid ${BORDER}` }}>
+              <div className="h-full p-6 rounded-xl transition-all duration-300 hover:-translate-y-1 flex flex-col" style={{ background: WHITE, border: `1px solid ${BORDER}` }}>
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style={{ background: C.blueBg }}>
                   <uc.icon className="w-5 h-5" style={{ color: BLUE }} />
                 </div>
                 <h3 className="text-base font-bold mb-2" style={{ color: INK }}>{uc.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: SLATE }}>{uc.body}</p>
+                <p className="text-sm leading-relaxed mb-3" style={{ color: SLATE }}>{uc.body}</p>
+                <div className="mt-auto p-3 rounded-lg" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+                  <p className="text-[10px] font-bold uppercase mb-1" style={{ color: SLATE_LIGHT, letterSpacing: '0.06em' }}>Example decision</p>
+                  <p className="text-xs leading-relaxed font-medium" style={{ color: INK }}>{uc.question}</p>
+                </div>
               </div>
             </RevealSection>
           ))}
