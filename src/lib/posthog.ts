@@ -77,31 +77,13 @@ export function phFeatureFlag(name: string): boolean | string | undefined {
   return posthog.getFeatureFlag(name);
 }
 
-export async function phFireActivation(
-  userId: string,
-  event: string,
-  properties?: Record<string, unknown>,
-) {
-  if (!isPostHogReady()) return;
-
-  const { data, error } = await supabase
-    .from('posthog_activations')
-    .insert({ user_id: userId, event })
-    .select()
-    .maybeSingle();
-
-  if (error || !data) return;
-
-  posthog.capture(event, { ...properties, activation: true });
-}
-
 export async function phSyncProfileProperties(userId: string) {
   if (!isPostHogReady()) return;
 
   const [profileRes, sensitiveRes] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, username, first_name, last_name, country, location, verified, referral_tier, referral_points, onboarded, created_at, theme_preference')
+      .select('id, first_name, last_name, country, location, onboarded, created_at, theme_preference')
       .eq('id', userId)
       .maybeSingle(),
     supabase
@@ -113,33 +95,21 @@ export async function phSyncProfileProperties(userId: string) {
   if (!profile) return;
   const is_admin = !!sensitiveRes.data?.is_admin;
 
-  const [postCount, workspaceCount, followerCount, followingCount] = await Promise.all([
-    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', userId).then(r => r.count ?? 0),
-    supabase.from('workspace_members').select('workspace_id', { count: 'exact', head: true }).eq('user_id', userId).then(r => r.count ?? 0),
-    supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('following_id', userId).then(r => r.count ?? 0),
-    supabase.from('followers').select('following_id', { count: 'exact', head: true }).eq('follower_id', userId).then(r => r.count ?? 0),
-  ]);
+  const workspaceCount = await supabase.from('workspace_members').select('workspace_id', { count: 'exact', head: true }).eq('user_id', userId).then(r => r.count ?? 0);
 
   const accountAgeDays = profile.created_at
     ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / 86_400_000)
     : 0;
 
   posthog.setPersonProperties({
-    username: profile.username ?? null,
     first_name: profile.first_name ?? null,
     last_name: profile.last_name ?? null,
     country: profile.country ?? null,
     location: profile.location ?? null,
-    verified: !!profile.verified,
     is_admin,
-    referral_tier: profile.referral_tier ?? null,
-    referral_points: profile.referral_points ?? 0,
     onboarded: !!profile.onboarded,
     theme_preference: profile.theme_preference ?? null,
-    post_count: postCount,
     workspace_count: workspaceCount,
-    follower_count: followerCount,
-    following_count: followingCount,
     account_age_days: accountAgeDays,
   });
 }

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Sentry } from '../lib/sentry';
-import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Download, Globe, Bot, Play, RefreshCw, ChevronDown, BookOpen, Database } from 'lucide-react';
+import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, Download, Globe, RefreshCw, ChevronDown, BookOpen, Database } from 'lucide-react';
 import { getAvatarUrl } from '../lib/avatarUtils';
-import VerificationBadge from '../components/VerificationBadge';
 import DomainManagement from '../components/admin/DomainManagement';
 import BlogAdmin from '../components/admin/BlogAdmin';
 
-type AdminView = 'users' | 'domains' | 'ai-discussions' | 'workspaces' | 'upgrades' | 'blog' | 'dataset' | 'beta-codes';
+type AdminView = 'users' | 'domains' | 'workspaces' | 'upgrades' | 'blog' | 'dataset';
 
 interface UpgradeRequest {
   id: string;
@@ -39,15 +38,9 @@ interface UserStats {
   workspaces_opened: number;
   workspaces_created_alltime: number;
   pdfs_exported: number;
-  pods_joined_count: number;
   account_status?: string;
   reason?: string;
   suspended_until?: string;
-  total_reports_against?: number;
-  pending_reports_against?: number;
-  referral_code?: string | null;
-  total_referrals?: number;
-  recent_referrals?: number;
 }
 
 interface ModerationAction {
@@ -80,10 +73,6 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<UserStats | null>(null);
   const [userWorkspaces, setUserWorkspaces] = useState<any[]>([]);
   const [loadingContributions, setLoadingContributions] = useState(false);
-  const [discussions, setDiscussions] = useState<any[]>([]);
-  const [loadingDiscussions, setLoadingDiscussions] = useState(false);
-  const [triggeringDiscussion, setTriggeringDiscussion] = useState(false);
-  const [discussionMessage, setDiscussionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [adminWorkspaces, setAdminWorkspaces] = useState<any[]>([]);
   const [loadingAdminWorkspaces, setLoadingAdminWorkspaces] = useState(false);
   const [upgradeRequests, setUpgradeRequests] = useState<UpgradeRequest[]>([]);
@@ -94,17 +83,6 @@ export default function AdminDashboard() {
   const [datasetStats, setDatasetStats] = useState<any>(null);
   const [datasetPairs, setDatasetPairs] = useState<any[]>([]);
   const [loadingDataset, setLoadingDataset] = useState(false);
-
-  // Beta codes state
-  const [betaCodes, setBetaCodes] = useState<any[]>([]);
-  const [betaGrants, setBetaGrants] = useState<any[]>([]);
-  const [loadingBetaCodes, setLoadingBetaCodes] = useState(false);
-  const [bulkCount, setBulkCount] = useState(10);
-  const [bulkMaxUses, setBulkMaxUses] = useState(1);
-  const [bulkNotes, setBulkNotes] = useState('');
-  const [bulkExpiryDays, setBulkExpiryDays] = useState(30);
-  const [generatingCodes, setGeneratingCodes] = useState(false);
-  const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
 
   useEffect(() => {
     loadUsers();
@@ -131,62 +109,6 @@ export default function AdminDashboard() {
       alert(e.message || 'Failed to load dataset.');
     } finally {
       setLoadingDataset(false);
-    }
-  };
-
-  const loadBetaCodes = async () => {
-    setLoadingBetaCodes(true);
-    try {
-      const [codesRes, grantsRes] = await Promise.all([
-        supabase
-          .from('invite_codes')
-          .select('*')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('beta_access_grants')
-          .select('id, user_id, granted_at, expires_at, status, invite_code_id, profiles(full_name)')
-          .order('granted_at', { ascending: false }),
-      ]);
-      if (codesRes.error) throw codesRes.error;
-      if (grantsRes.error) throw grantsRes.error;
-      setBetaCodes(codesRes.data || []);
-      setBetaGrants(grantsRes.data || []);
-    } catch (e: any) {
-      console.error('Error loading beta codes:', e);
-      Sentry.captureException(e);
-      alert(e.message || 'Failed to load beta codes.');
-    } finally {
-      setLoadingBetaCodes(false);
-    }
-  };
-
-  const generateBetaCodes = async () => {
-    setGeneratingCodes(true);
-    setGeneratedCodes([]);
-    try {
-      const expiresAt = new Date(Date.now() + bulkExpiryDays * 24 * 60 * 60 * 1000).toISOString();
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      const codes: string[] = [];
-      for (let i = 0; i < bulkCount; i++) {
-        let code = 'BETA-';
-        for (let j = 0; j < 8; j++) code += chars[Math.floor(Math.random() * chars.length)];
-        codes.push(code);
-      }
-      const rows = codes.map(code => ({
-        code,
-        max_uses: bulkMaxUses,
-        use_count: 0,
-        expires_at: expiresAt,
-        notes: bulkNotes || null,
-      }));
-      const { error } = await supabase.from('invite_codes').insert(rows);
-      if (error) { console.error('Failed to generate codes:', error); return; }
-      setGeneratedCodes(codes);
-      await loadBetaCodes();
-    } catch (e) {
-      console.error('generateBetaCodes error:', e);
-    } finally {
-      setGeneratingCodes(false);
     }
   };
 
@@ -240,15 +162,9 @@ export default function AdminDashboard() {
           workspaces_opened: st.workspaces_opened ?? 0,
           workspaces_created_alltime: st.workspaces_created_alltime ?? 0,
           pdfs_exported: st.pdfs_exported ?? 0,
-          pods_joined_count: 0,
           account_status: st.account_status ?? 'active',
           reason: st.reason,
           suspended_until: st.suspended_until,
-          total_reports_against: st.total_reports_against ?? 0,
-          pending_reports_against: st.pending_reports_against ?? 0,
-          referral_code: st.referral_code,
-          total_referrals: st.total_referrals ?? 0,
-          recent_referrals: st.recent_referrals ?? 0,
         };
       });
 
@@ -259,30 +175,6 @@ export default function AdminDashboard() {
       setLoadError(error.message || 'Failed to load users. Check browser console for details.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const toggleVerification = async (userId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ verified: !currentStatus })
-        .eq('id', userId);
-
-      if (error) {
-        console.error('Verification error details:', error);
-        throw error;
-      }
-
-
-      setUsers(users.map(user =>
-        user.id === userId ? { ...user, verified: !currentStatus } : user
-      ));
-
-      alert(`User ${!currentStatus ? 'verified' : 'unverified'} successfully`);
-    } catch (error: any) {
-      console.error('Error toggling verification:', error);
-      alert(`Failed to update verification status: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -426,12 +318,9 @@ export default function AdminDashboard() {
     }
   };
 
-  const deleteContentItem = async (_itemId: string, _deleteFunc: string, _itemType: string) => {};
-
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.username?.toLowerCase().includes(searchQuery.toLowerCase());
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = filterStatus === 'all' || user.account_status === filterStatus;
 
@@ -442,28 +331,24 @@ export default function AdminDashboard() {
     const headers = [
       'Full Name',
       'Email',
-      'Username',
       'Status',
       'Verified',
       'Workspaces Created (Now)',
       'Workspaces Opened (Now)',
       'Workspaces Created (All Time)',
       'PDFs Exported',
-      'Total Referrals',
       'Joined Date',
     ];
 
     const rows = filteredUsers.map(user => [
       user.full_name || '',
       user.email || '',
-      user.username ? `@${user.username}` : '',
       user.account_status || 'active',
       user.verified ? 'Yes' : 'No',
       user.workspaces_created ?? 0,
       user.workspaces_opened ?? 0,
       user.workspaces_created_alltime ?? 0,
       user.pdfs_exported ?? 0,
-      user.total_referrals ?? 0,
       new Date(user.created_at).toLocaleDateString(),
     ]);
 
@@ -540,58 +425,9 @@ export default function AdminDashboard() {
     }
   };
 
-  const loadDiscussions = async () => {
-    setLoadingDiscussions(true);
-    try {
-      const { data, error } = await supabase
-        .from('ai_agent_discussions')
-        .select('*, agent_topics(title, domain)')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      setDiscussions(data || []);
-    } catch (err: any) {
-      console.error('Error loading discussions:', err);
-      Sentry.captureException(err);
-      alert(err.message || 'Failed to load discussions.');
-    } finally {
-      setLoadingDiscussions(false);
-    }
-  };
-
-  const triggerDiscussion = async () => {
-    setTriggeringDiscussion(true);
-    setDiscussionMessage(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const res = await fetch(`${supabaseUrl}/functions/v1/ai-agents`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ action: 'agent-discussion' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
-      setDiscussionMessage({ type: 'success', text: `Discussion created: "${data.topicTitle}"` });
-      await loadDiscussions();
-    } catch (err: any) {
-      setDiscussionMessage({ type: 'error', text: err.message || 'Failed to trigger discussion' });
-    } finally {
-      setTriggeringDiscussion(false);
-    }
-  };
-
   const totalUsers = users.length;
-  const verifiedUsers = users.filter(u => u.verified).length;
   const suspendedUsers = users.filter(u => u.account_status === 'suspended').length;
   const bannedUsers = users.filter(u => u.account_status === 'banned').length;
-  const totalReports = users.reduce((sum, u) => sum + (u.total_reports_against || 0), 0);
-  const totalReferrals = users.reduce((sum, u) => sum + (u.total_referrals || 0), 0);
-  const recentReferrals = users.reduce((sum, u) => sum + (u.recent_referrals || 0), 0);
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -631,17 +467,6 @@ export default function AdminDashboard() {
                 >
                   <Globe className="w-4 h-4" />
                   Domains
-                </button>
-                <button
-                  onClick={() => { setAdminView('ai-discussions'); loadDiscussions(); }}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
-                    adminView === 'ai-discussions'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <Bot className="w-4 h-4" />
-                  AI Discussions
                 </button>
                 <button
                   onClick={() => { setAdminView('workspaces'); loadAdminWorkspaces(); }}
@@ -691,17 +516,6 @@ export default function AdminDashboard() {
                 >
                   <Database className="w-4 h-4" />
                   Dataset
-                </button>
-                <button
-                  onClick={() => { setAdminView('beta-codes'); loadBetaCodes(); }}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors border-l border-slate-200 ${
-                    adminView === 'beta-codes'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <Key className="w-4 h-4" />
-                  Beta Codes
                 </button>
               </div>
               {adminView === 'users' && (
@@ -931,106 +745,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {adminView === 'ai-discussions' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">AI Agent Discussions</h2>
-                    <p className="text-sm text-slate-500">Trigger multi-agent debates that publish to the feed</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={loadDiscussions}
-                    disabled={loadingDiscussions}
-                    className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${loadingDiscussions ? 'animate-spin' : ''}`} />
-                  </button>
-                  <button
-                    onClick={triggerDiscussion}
-                    disabled={triggeringDiscussion}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {triggeringDiscussion ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Play className="w-4 h-4" />
-                    )}
-                    {triggeringDiscussion ? 'Generating...' : 'Trigger Discussion'}
-                  </button>
-                </div>
-              </div>
-
-              {discussionMessage && (
-                <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
-                  discussionMessage.type === 'success'
-                    ? 'bg-green-50 text-green-700 border border-green-200'
-                    : 'bg-red-50 text-red-700 border border-red-200'
-                }`}>
-                  {discussionMessage.text}
-                </div>
-              )}
-
-              <p className="text-sm text-slate-500 mb-1">
-                Each discussion selects a topic, runs a 6-turn debate between 3 AI agents, and publishes a synthesised insight post to the main feed. The cron job runs automatically every 6 hours.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100">
-                <h3 className="font-semibold text-slate-900">Recent Discussions ({discussions.length})</h3>
-              </div>
-              {loadingDiscussions ? (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="w-6 h-6 text-blue-600 animate-spin" />
-                </div>
-              ) : discussions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                  <Bot className="w-12 h-12 mb-3 opacity-30" />
-                  <p className="font-medium">No discussions yet</p>
-                  <p className="text-sm">Click "Trigger Discussion" to generate the first one</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {discussions.map((d: any) => (
-                    <div key={d.id} className="px-6 py-4 flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900 truncate">{d.topic_title}</p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs text-slate-500">{new Date(d.created_at).toLocaleString()}</span>
-                          {d.agent_topics?.domain && (
-                            <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full capitalize">{d.agent_topics.domain}</span>
-                          )}
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            d.discussion_status === 'completed'
-                              ? 'bg-green-50 text-green-700 border border-green-100'
-                              : d.discussion_status === 'in_progress'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                              : 'bg-slate-50 text-slate-600 border border-slate-200'
-                          }`}>{d.discussion_status}</span>
-                        </div>
-                        {d.agent_names && (
-                          <p className="text-xs text-slate-400 mt-0.5">{(d.agent_names as string[]).join(' · ')}</p>
-                        )}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-semibold text-slate-700">{d.turn_count} turns</p>
-                        {d.post_id && <p className="text-xs text-green-600 mt-0.5">Post published</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {adminView === 'users' && <div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div className="bg-white rounded-lg border border-slate-200 p-6">
@@ -1039,16 +753,6 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-sm text-slate-600">Total Users</p>
                 <p className="text-2xl font-bold text-slate-900">{totalUsers}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-              <div>
-                <p className="text-sm text-slate-600">Verified</p>
-                <p className="text-2xl font-bold text-slate-900">{verifiedUsers}</p>
               </div>
             </div>
           </div>
@@ -1069,31 +773,6 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-sm text-slate-600">Banned</p>
                 <p className="text-2xl font-bold text-slate-900">{bannedUsers}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <UserPlus className="w-8 h-8 text-blue-600" />
-              <div>
-                <p className="text-sm text-slate-600">Total Referrals</p>
-                <p className="text-2xl font-bold text-slate-900">{totalReferrals}</p>
-                {recentReferrals > 0 && (
-                  <p className="text-xs text-blue-600 mt-1">{recentReferrals} this month</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
-              <div>
-                <p className="text-sm text-slate-600">User Reports</p>
-                <p className="text-2xl font-bold text-slate-900">{totalReports}</p>
               </div>
             </div>
           </div>
@@ -1131,7 +810,7 @@ export default function AdminDashboard() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search users by name, email, or username..."
+                placeholder="Search users by name or email..."
                 className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               />
             </div>
@@ -1200,8 +879,6 @@ export default function AdminDashboard() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">User</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Workspace Usage</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Referrals</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Reports</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Actions</th>
                   </tr>
                 </thead>
@@ -1227,12 +904,8 @@ export default function AdminDashboard() {
                             <div>
                               <div className="flex items-center gap-2">
                                 <p className="font-semibold text-slate-900">{user.full_name}</p>
-                                <VerificationBadge verified={user.verified} size="sm" />
                               </div>
                               <p className="text-sm text-slate-600">{user.email}</p>
-                              {user.username && (
-                                <p className="text-xs text-slate-500">@{user.username}</p>
-                              )}
                             </div>
                           </div>
                         </td>
@@ -1296,37 +969,6 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <div className="text-sm">
-                            {user.total_referrals && user.total_referrals > 0 ? (
-                              <>
-                                <p className="font-semibold text-blue-900">{user.total_referrals} total</p>
-                                {user.recent_referrals ? (
-                                  <p className="text-xs text-blue-600 mt-0.5">{user.recent_referrals} this month</p>
-                                ) : null}
-                                {user.referral_code && (
-                                  <p className="text-xs text-slate-500 mt-0.5 font-mono">{user.referral_code}</p>
-                                )}
-                              </>
-                            ) : (
-                              <span className="text-slate-400">None</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm">
-                            {user.total_reports_against ? (
-                              <>
-                                <p className="font-semibold text-red-900">{user.total_reports_against} total</p>
-                                {user.pending_reports_against ? (
-                                  <p className="text-xs text-red-600 mt-0.5">{user.pending_reports_against} pending</p>
-                                ) : null}
-                              </>
-                            ) : (
-                              <span className="text-slate-400">None</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
                           <div className="flex flex-col gap-2">
                             <button
                               onClick={() => viewUserDetails(user)}
@@ -1336,27 +978,6 @@ export default function AdminDashboard() {
                                 <Eye className="w-3 h-3" />
                                 View Details
                               </span>
-                            </button>
-
-                            <button
-                              onClick={() => toggleVerification(user.id, user.verified)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                user.verified
-                                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                              }`}
-                            >
-                              {user.verified ? (
-                                <span className="flex items-center gap-1">
-                                  <XCircle className="w-3 h-3" />
-                                  Unverify
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-1">
-                                  <CheckCircle className="w-3 h-3" />
-                                  Verify
-                                </span>
-                              )}
                             </button>
 
                             {user.account_status === 'active' && (
@@ -1519,164 +1140,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {adminView === 'beta-codes' && (
-          <div className="space-y-5">
-            {/* Generate codes */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h3 className="text-sm font-bold text-slate-900 mb-4">Generate Invite Codes</h3>
-              <div className="grid sm:grid-cols-4 gap-4 mb-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">Number of codes</label>
-                  <input type="number" min={1} max={500} value={bulkCount} onChange={e => setBulkCount(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">Max uses per code</label>
-                  <input type="number" min={1} max={1000} value={bulkMaxUses} onChange={e => setBulkMaxUses(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">Code expires in (days)</label>
-                  <input type="number" min={1} max={365} value={bulkExpiryDays} onChange={e => setBulkExpiryDays(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">Notes (optional)</label>
-                  <input type="text" value={bulkNotes} onChange={e => setBulkNotes(e.target.value)} placeholder="e.g. ProductHunt launch"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-                </div>
-              </div>
-              <button onClick={generateBetaCodes} disabled={generatingCodes}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60 transition-all"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)' }}>
-                {generatingCodes ? <><RefreshCw className="w-4 h-4 animate-spin" /> Generating…</> : <><Key className="w-4 h-4" /> Generate {bulkCount} Code{bulkCount !== 1 ? 's' : ''}</>}
-              </button>
-
-              {generatedCodes.length > 0 && (
-                <div className="mt-4 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-bold text-slate-700">Generated {generatedCodes.length} codes — copy and distribute:</p>
-                    <button onClick={() => { navigator.clipboard.writeText(generatedCodes.join('\n')); }}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-semibold">Copy all</button>
-                  </div>
-                  <div className="font-mono text-xs text-slate-600 space-y-1 max-h-48 overflow-y-auto">
-                    {generatedCodes.map(c => <div key={c} className="flex items-center gap-2"><span>{c}</span></div>)}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Code usage table */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-800">All Invite Codes ({betaCodes.length})</h3>
-                <button onClick={loadBetaCodes} disabled={loadingBetaCodes} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
-                  <RefreshCw className={`w-3 h-3 ${loadingBetaCodes ? 'animate-spin' : ''}`} /> Refresh
-                </button>
-              </div>
-              {loadingBetaCodes ? (
-                <div className="p-8 text-center text-slate-400 text-sm">Loading…</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100">
-                        {['Code', 'Uses', 'Max Uses', 'Expires', 'Notes', 'Created'].map(h => (
-                          <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {betaCodes.map(c => {
-                        const expired = c.expires_at && new Date(c.expires_at) < new Date();
-                        const maxed = c.use_count >= c.max_uses;
-                        return (
-                          <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                            <td className="px-4 py-2.5 font-mono text-xs font-bold text-slate-800">{c.code}</td>
-                            <td className="px-4 py-2.5 text-xs text-slate-600">
-                              <span className={`font-semibold ${maxed ? 'text-red-600' : 'text-slate-700'}`}>{c.use_count}</span>
-                            </td>
-                            <td className="px-4 py-2.5 text-xs text-slate-600">{c.max_uses}</td>
-                            <td className="px-4 py-2.5 text-xs">
-                              {c.expires_at
-                                ? <span className={expired ? 'text-red-500 font-semibold' : 'text-slate-600'}>
-                                    {new Date(c.expires_at).toLocaleDateString()}
-                                  </span>
-                                : <span className="text-slate-400">—</span>}
-                            </td>
-                            <td className="px-4 py-2.5 text-xs text-slate-500 max-w-[160px] truncate">{c.notes || '—'}</td>
-                            <td className="px-4 py-2.5 text-xs text-slate-400">{new Date(c.created_at).toLocaleDateString()}</td>
-                          </tr>
-                        );
-                      })}
-                      {betaCodes.length === 0 && (
-                        <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">No codes yet. Generate some above.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Grant table */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100">
-                <h3 className="text-sm font-bold text-slate-800">Beta Access Grants ({betaGrants.length})</h3>
-              </div>
-              {loadingBetaCodes ? (
-                <div className="p-8 text-center text-slate-400 text-sm">Loading…</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100">
-                        {['User', 'Status', 'Granted', 'Expires', 'Days Left'].map(h => (
-                          <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {betaGrants.map((g: any) => {
-                        const expiresAt = new Date(g.expires_at);
-                        const now = new Date();
-                        const msLeft = expiresAt.getTime() - now.getTime();
-                        const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
-                        const isExpired = msLeft <= 0;
-                        const profile = Array.isArray(g.profiles) ? g.profiles[0] : g.profiles;
-                        return (
-                          <tr key={g.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                            <td className="px-4 py-2.5">
-                              <p className="text-xs font-semibold text-slate-800">{profile?.full_name || '—'}</p>
-                              <p className="text-[11px] text-slate-400">{g.user_id.slice(0, 8) + '…'}</p>
-                            </td>
-                            <td className="px-4 py-2.5">
-                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full capitalize" style={{
-                                background: g.status === 'active' && !isExpired ? 'rgba(22,163,74,0.1)' : 'rgba(15,23,42,0.06)',
-                                color: g.status === 'active' && !isExpired ? '#15803d' : '#64748b',
-                              }}>
-                                {isExpired ? 'expired' : g.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2.5 text-xs text-slate-500">{new Date(g.granted_at).toLocaleDateString()}</td>
-                            <td className="px-4 py-2.5 text-xs text-slate-500">{expiresAt.toLocaleDateString()}</td>
-                            <td className="px-4 py-2.5 text-xs">
-                              {isExpired
-                                ? <span className="text-red-500 font-semibold">Expired</span>
-                                : <span className={`font-semibold ${daysLeft <= 7 ? 'text-amber-600' : 'text-slate-700'}`}>{daysLeft}d</span>}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {betaGrants.length === 0 && (
-                        <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">No beta grants yet.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {showPasswordModal && (
@@ -1757,12 +1220,8 @@ export default function AdminDashboard() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-2xl font-bold text-slate-900">{selectedUser.full_name}</h2>
-                      <VerificationBadge verified={selectedUser.verified} size="md" />
                     </div>
                     <p className="text-slate-600">{selectedUser.email}</p>
-                    {selectedUser.username && (
-                      <p className="text-slate-500">@{selectedUser.username}</p>
-                    )}
                   </div>
                 </div>
                 <button
@@ -1777,26 +1236,6 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              {selectedUser.total_referrals !== undefined && selectedUser.total_referrals > 0 && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm">
-                    <TrendingUp className="w-4 h-4 text-blue-600" />
-                    <span className="font-semibold text-blue-900">
-                      Referred {selectedUser.total_referrals} user{selectedUser.total_referrals !== 1 ? 's' : ''}
-                    </span>
-                    {selectedUser.recent_referrals !== undefined && selectedUser.recent_referrals > 0 && (
-                      <span className="text-blue-700">
-                        ({selectedUser.recent_referrals} this month)
-                      </span>
-                    )}
-                  </div>
-                  {selectedUser.referral_code && (
-                    <p className="text-xs text-slate-600 mt-1">
-                      Code: <span className="font-mono font-semibold">{selectedUser.referral_code}</span>
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
@@ -1955,7 +1394,6 @@ export default function AdminDashboard() {
                   <ul className="text-xs text-slate-300 space-y-1 ml-4 list-disc">
                     <li>Profile information</li>
                     <li>All assumptions, challenges, forecasts, risks, and scenarios</li>
-                    <li>All posts, comments, and messages</li>
                     <li>All decision room memberships and contributions</li>
                     <li>Authentication credentials</li>
                   </ul>

@@ -18,9 +18,7 @@ const Home = lazy(() => import('./pages/Home'));
 const Profile = lazy(() => import('./pages/Profile'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const PublicAssumption = lazy(() => import('./pages/PublicAssumption'));
-const PublicPost = lazy(() => import('./pages/PublicPost'));
 const AppIcons = lazy(() => import('./pages/AppIcons'));
-const Admin = lazy(() => import('./pages/Admin'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
@@ -102,7 +100,7 @@ function AppContent() {
     if (pathname === '/advisory') return 'advisory';
     if (pathname === '/team') return 'team';
     const hash = window.location.hash.substring(1);
-    if (hash === 'admin' || hash === 'admin-panel' || hash === 'app-icons') {
+    if (hash === 'admin-panel' || hash === 'app-icons') {
       return hash;
     }
     if (hash === 'subprocessors') return 'subprocessors';
@@ -113,15 +111,7 @@ function AppContent() {
     if (!saved || saved === 'auth' || saved === 'home') return 'workspaces';
     return saved;
   });
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(() => {
-    const saved = sessionStorage.getItem('selectedUserId');
-    return saved || null;
-  });
   const [assumptionId, setAssumptionId] = useState<string | null>(null);
-  const [publicPostId, setPublicPostId] = useState<string | null>(null);
-  const [publicDiscussionId, setPublicDiscussionId] = useState<string | null>(null);
-  const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
-  const [highlightDiscussionId, setHighlightDiscussionId] = useState<string | null>(null);
   const onboardingCheckedRef = useRef(false);
   const [firstSignInWorkspaceId, setFirstSignInWorkspaceId] = useState<string | null>(() => sessionStorage.getItem('firstSignInWorkspaceId'));
   const firstSignInRef = useRef<string | null>(sessionStorage.getItem('firstSignInWorkspaceId'));
@@ -160,11 +150,6 @@ function AppContent() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const refCode = urlParams.get('ref');
-    if (refCode) {
-      localStorage.setItem('poddle_referral', refCode);
-    }
-
     const pathname = window.location.pathname;
     if (pathname === '/terms') { setCurrentPage('terms'); return; }
     if (pathname === '/privacy') { setCurrentPage('privacy'); return; }
@@ -265,7 +250,6 @@ function AppContent() {
       }
 
       if (hash === 'app-icons') { setCurrentPage('app-icons'); return; }
-      if (hash === 'admin') { setCurrentPage('admin'); return; }
       if (hash === 'admin-panel') { setCurrentPage('admin-panel'); return; }
       if (hash === 'privacy') { setCurrentPage('privacy'); return; }
       if (hash === 'terms') { setCurrentPage('terms'); return; }
@@ -359,41 +343,6 @@ function AppContent() {
         return;
       }
 
-      if (hash.startsWith('post/')) {
-        const id = hash.split('/')[1];
-        if (id && id.trim()) {
-          setPublicPostId(id.trim());
-          setPublicDiscussionId(null);
-          setHighlightPostId(id.trim());
-          setHighlightDiscussionId(null);
-          setCurrentPage('public-post');
-        }
-        return;
-      }
-
-      if (hash.startsWith('agent-discussion/')) {
-        const id = hash.split('/')[1];
-        if (id && id.trim()) {
-          setPublicDiscussionId(id.trim());
-          setPublicPostId(null);
-          setHighlightDiscussionId(id.trim());
-          setHighlightPostId(null);
-          setCurrentPage('public-post');
-        }
-        return;
-      }
-
-      if (hash.startsWith('profile/')) {
-        const uid = hash.split('/')[1];
-        if (uid && uid.trim()) {
-          setSelectedUserId(uid.trim());
-          setCurrentPage('profile');
-          sessionStorage.setItem('selectedUserId', uid.trim());
-          sessionStorage.setItem('currentPage', 'profile');
-        }
-        return;
-      }
-
     };
 
     if (!oauthRedirectCode) {
@@ -439,7 +388,6 @@ function AppContent() {
       const pendingToken = sessionStorage.getItem('pendingInviteToken');
       if (pendingToken) {
         sessionStorage.removeItem('pendingInviteToken');
-        sessionStorage.removeItem('postLoginRedirect');
         onboardingCheckedRef.current = true;
         setJoinToken(pendingToken);
         setCurrentPage('join-workspace');
@@ -449,23 +397,16 @@ function AppContent() {
       const pendingOrgToken = sessionStorage.getItem('pendingOrgInviteToken');
       if (pendingOrgToken) {
         sessionStorage.removeItem('pendingOrgInviteToken');
-        sessionStorage.removeItem('postLoginRedirect');
         onboardingCheckedRef.current = true;
         setJoinToken(pendingOrgToken);
         setCurrentPage('join-organization');
         history.replaceState(null, '', `#join-org/${pendingOrgToken}`);
         return;
       }
-      const redirect = sessionStorage.getItem('postLoginRedirect');
-      if (redirect) {
-        sessionStorage.removeItem('postLoginRedirect');
-        const hashPart = redirect.split('#')[1];
-        if (hashPart) window.location.hash = hashPart;
-      }
       if (!onboardingCheckedRef.current) {
         onboardingCheckedRef.current = true;
         (async () => {
-          if (currentPage === 'admin' || currentPage === 'admin-panel') return;
+          if (currentPage === 'admin-panel') return;
           setFirstSignInInProgress(true);
           try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -513,7 +454,7 @@ function AppContent() {
     }
   }, [hasNoWorkspace, firstSignInWorkspaceId, currentPage, firstSignInInProgress]);
 
-  const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string, postId?: string) => {
+  const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string) => {
     if (page === 'home' && hasNoWorkspace) {
       if (firstSignInWorkspaceId) {
         setWorkspaceId(firstSignInWorkspaceId);
@@ -528,17 +469,6 @@ function AppContent() {
       }
       return;
     }
-    if (page === 'public-post' && postId) {
-      setPublicPostId(postId);
-      setPublicDiscussionId(null);
-      setHighlightPostId(postId);
-      setHighlightDiscussionId(null);
-      setCurrentPage('public-post');
-      sessionStorage.setItem('currentPage', 'public-post');
-      history.pushState(null, '', `#post/${postId}`);
-      return;
-    }
-
     if (page === 'workspace-hub' && idParam) {
       setWorkspaceId(idParam);
       setWorkspaceInitialTab(initialTab);
@@ -589,7 +519,6 @@ function AppContent() {
       const newHash = hashMap[page] || '';
       history.pushState(null, '', newHash ? `#${newHash}` : window.location.pathname + window.location.search);
     }
-    sessionStorage.removeItem('selectedUserId');
   };
 
 
@@ -769,7 +698,6 @@ function AppContent() {
   );
 
   if (currentPage === 'app-icons') return wrap(<AppIcons />);
-  if (currentPage === 'admin-panel') return wrap(<AdminPanel />);
   if (currentPage === 'privacy') return (
     <div className="flex bg-slate-50 min-h-screen">
       <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
@@ -817,19 +745,6 @@ function AppContent() {
   );
   if (currentPage === 'system-health') return wrap(<SystemHealth />);
   if (currentPage === 'payment-success') return wrap(<PaymentSuccess onNavigate={handleNavigate} />);
-
-  if (currentPage === 'public-post' && (publicPostId || publicDiscussionId)) {
-    return wrap(
-      <PublicPost
-        postId={publicPostId || undefined}
-        discussionId={publicDiscussionId || undefined}
-        onNavigate={(page) => {
-          if (page === 'home' && user) handleNavigate('home');
-          else handleNavigate(page);
-        }}
-      />
-    );
-  }
 
   if (currentPage === 'assumption' && assumptionId) {
     return wrap(<PublicAssumption assumptionId={assumptionId} onNavigate={handleNavigate} />);
@@ -879,18 +794,7 @@ function AppContent() {
     );
   }
 
-  if (currentPage === 'admin') {
-    return (
-      <div className="flex bg-slate-50 min-h-screen">
-        <Navigation currentPage={currentPage} onNavigate={handleNavigate} collapsed={sidebarCollapsed} onToggleCollapsed={handleToggleSidebar} hideDashboard={hasNoWorkspace} />
-        <div className="flex-1 xl-sidebar-margin" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-          <Suspense fallback={<RouteFallback />}>
-            <Admin key="admin" />
-          </Suspense>
-        </div>
-      </div>
-    );
-  }
+  if (currentPage === 'admin-panel') return wrap(<AdminPanel />);
 
   const activePage = currentPage === 'auth' ? 'home' : currentPage;
 
@@ -904,7 +808,7 @@ function AppContent() {
         <div className="flex-1">
           <PageErrorBoundary resetKey={`${activePage}-${workspaceId}-${workspaceInitialTab}`}>
             <Suspense fallback={<RouteFallback />}>
-              {activePage === 'home' && !hasNoWorkspace && <Home key="home" onNavigate={handleNavigate} highlightPostId={highlightPostId} highlightDiscussionId={highlightDiscussionId} />}
+              {activePage === 'home' && !hasNoWorkspace && <Home key="home" onNavigate={handleNavigate} />}
               {activePage === 'profile' && <Profile key="profile-settings" onNavigate={handleNavigate} />}
               {activePage === 'workspaces' && <Workspaces key="workspaces" onNavigate={handleNavigate} />}
               {activePage === 'organization' && <Organization key="organization" onNavigate={handleNavigate} />}

@@ -2,8 +2,6 @@ import { Bot, Brain, Lock, ArrowRight, Shield, TrendingUp, Users, Zap, ChevronRi
 
 interface HomeProps {
   onNavigate: (page: string, podId?: string, userId?: string, editMode?: boolean, initialTab?: string, threadId?: string, initialAssumptionId?: string) => void;
-  highlightPostId?: string | null;
-  highlightDiscussionId?: string | null;
 }
 
 const STATS = [

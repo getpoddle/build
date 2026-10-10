@@ -1,5 +1,4 @@
-import { phCapture, phPageview, phSetPersonProperties, phFireActivation } from './posthog';
-import { supabase } from './supabase';
+import { phCapture, phPageview, phSetPersonProperties } from './posthog';
 
 export const pageview = (url: string, title?: string) => {
   phPageview(url, title);
@@ -19,39 +18,6 @@ export const trackUserLogin = (method: string) => {
 
 export const trackPodCreation = (podName: string, isPublic: boolean) => {
   event('create_pod', { pod_name: podName, is_public: isPublic });
-};
-
-export const trackPodJoin = (podId: string) => {
-  event('join_pod', { pod_id: podId });
-  fireActivationForCurrentUser('first_pod_joined', { pod_id: podId });
-};
-
-export const trackPostCreation = (contentLength: number, hasMedia: boolean) => {
-  event('create_post', { content_length: contentLength, has_media: hasMedia });
-  fireActivationForCurrentUser('first_post_created', { content_length: contentLength, has_media: hasMedia });
-};
-
-export const trackCommentCreation = (postId: string, contentLength: number) => {
-  event('create_comment', { post_id: postId, content_length: contentLength });
-  fireActivationForCurrentUser('first_comment_posted', { post_id: postId, content_length: contentLength });
-};
-
-async function fireActivationForCurrentUser(
-  activationEvent: string,
-  properties?: Record<string, unknown>,
-) {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await phFireActivation(user.id, activationEvent, properties);
-  } catch {
-    /* no-op */
-  }
-}
-
-export const trackProfileCompleted = (userId: string) => {
-  fireActivationForCurrentUser('profile_completed');
-  event('profile_completed', { user_id: userId });
 };
 
 export const trackAssumptionCreation = (podId: string, category: string) => {
@@ -86,22 +52,6 @@ export const trackProfileUpdate = (fields: string[]) => {
   event('update_profile', { fields_updated: fields.join(',') });
 };
 
-export const trackFollow = (targetUserId: string) => {
-  event('follow_user', { target_user_id: targetUserId });
-};
-
-export const trackUnfollow = (targetUserId: string) => {
-  event('unfollow_user', { target_user_id: targetUserId });
-};
-
-export const trackLike = (contentType: 'post' | 'comment', contentId: string) => {
-  event('like_content', { content_type: contentType, content_id: contentId });
-};
-
-export const trackShare = (contentType: string, shareMethod: string) => {
-  event('share', { content_type: contentType, method: shareMethod });
-};
-
 export const trackSearch = (searchTerm: string, category: string) => {
   event('search', { search_term: searchTerm, category });
 };
@@ -112,10 +62,6 @@ export const trackNavigation = (fromPage: string, toPage: string) => {
 
 export const trackInviteSent = (method: string) => {
   event('send_invite', { method });
-};
-
-export const trackVerificationRequest = () => {
-  event('request_verification');
 };
 
 export const trackError = (errorType: string, errorMessage: string, page: string) => {
