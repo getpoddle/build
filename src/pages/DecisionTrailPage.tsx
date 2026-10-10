@@ -1033,6 +1033,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
   const [reviseError, setReviseError] = useState<string | null>(null);
   const [reviseLoading, setReviseLoading] = useState(false);
   const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotError, setSnapshotError] = useState<string | null>(null);
+  const [snapshotSuccess, setSnapshotSuccess] = useState<string | null>(null);
   const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
@@ -1295,18 +1297,38 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
 
   async function handleCreateSnapshot() {
     setSnapshotLoading(true);
+    setSnapshotError(null);
+    setSnapshotSuccess(null);
     try {
       const { error } = await supabase.rpc('create_decision_snapshot', {
         p_workspace_id: workspaceId,
       });
-      if (!error) {
-        const { data: newSnapshots } = await supabase
-          .from('decision_snapshots')
-          .select('id, workspace_id, decision_question, decision_status, evidence_snapshot, verified_facts, reported_facts, assumptions, ai_inferences, outstanding_uncertainties, ai_recommendation, human_approvals, snapshot_timestamp, created_by')
-          .eq('workspace_id', workspaceId)
-          .order('snapshot_timestamp', { ascending: false });
-        if (newSnapshots) setSnapshots(newSnapshots as DecisionSnapshot[]);
+      if (error) {
+        const msg = error.message || '';
+        if (msg.includes('not authorized') || msg.includes('do not have access')) {
+          setSnapshotError('You are not authorized to create snapshots in this workspace. Only workspace admins, decision owners, and evidence reviewers can capture snapshots.');
+        } else if (msg.includes('Not signed in')) {
+          setSnapshotError('Your session has expired. Please sign in again to capture a snapshot.');
+        } else {
+          setSnapshotError('Snapshot capture failed. Please try again.');
+        }
+        return;
       }
+
+      const { data: newSnapshots, error: fetchError } = await supabase
+        .from('decision_snapshots')
+        .select('id, workspace_id, decision_question, decision_status, evidence_snapshot, verified_facts, reported_facts, assumptions, ai_inferences, outstanding_uncertainties, ai_recommendation, human_approvals, snapshot_timestamp, created_by')
+        .eq('workspace_id', workspaceId)
+        .order('snapshot_timestamp', { ascending: false });
+      if (fetchError) {
+        setSnapshotError('Snapshot was saved but the list could not be refreshed. Reload the page to see it.');
+        return;
+      }
+      if (newSnapshots) setSnapshots(newSnapshots as DecisionSnapshot[]);
+      setSnapshotSuccess('Snapshot captured successfully.');
+      window.setTimeout(() => setSnapshotSuccess(null), 4000);
+    } catch {
+      setSnapshotError('An unexpected error occurred. Please try again.');
     } finally {
       setSnapshotLoading(false);
     }
@@ -1710,6 +1732,21 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
             <p className="text-xs mb-3" style={{ color: 'var(--app-text-secondary)' }}>
               Snapshots capture the full state of the decision at a point in time — evidence, classifications, AI recommendation, and approvals — preserving a read-only record even as the decision evolves.
             </p>
+            {snapshotError && (
+              <div className="flex items-start gap-2 mb-3 p-2.5" style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)' }}>
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
+                <p className="text-xs font-medium" style={{ color: '#dc2626' }}>{snapshotError}</p>
+                <button onClick={() => setSnapshotError(null)} className="ml-auto flex-shrink-0" style={{ color: '#dc2626' }}>
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            {snapshotSuccess && (
+              <div className="flex items-start gap-2 mb-3 p-2.5" style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.25)' }}>
+                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#16a34a' }} />
+                <p className="text-xs font-medium" style={{ color: '#16a34a' }}>{snapshotSuccess}</p>
+              </div>
+            )}
             {snapshots.length > 0 && (
               <div className="space-y-2">
                 {snapshots.map(s => {
