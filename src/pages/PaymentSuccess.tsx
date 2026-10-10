@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { CheckCircle, ArrowRight, Lock, Sparkles, Loader2 } from 'lucide-react';
+import { CheckCircle, ArrowRight, Lock, Bot, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -81,12 +81,7 @@ export default function PaymentSuccess({ onNavigate }: PaymentSuccessProps) {
           >
             <CheckCircle className="w-10 h-10" style={{ color: 'var(--ink-900)' }} />
           </div>
-          <div
-            className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--positive)' }}
-          >
-            <Sparkles className="w-3 h-3 text-white" />
-          </div>
+
         </div>
 
         <h1 className="display-heading text-3xl mb-2">
@@ -115,7 +110,7 @@ export default function PaymentSuccess({ onNavigate }: PaymentSuccessProps) {
           <ul className="space-y-2.5">
             {[
               { icon: Lock, text: 'Create private, invite-only workspaces' },
-              { icon: Sparkles, text: 'AI agents debate your proprietary ideas' },
+              { icon: Bot, text: 'AI agents debate your proprietary ideas' },
               { icon: CheckCircle, text: isEnterprise ? 'Up to 25 workspace members' : 'Invite up to 3 team members' },
               ...(isEnterprise ? [{ icon: CheckCircle, text: 'Priority support & SLA guarantee' }] : []),
             ].map(({ icon: Icon, text }) => (

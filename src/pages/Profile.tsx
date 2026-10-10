@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, MapPin, LogOut, Linkedin, CreditCard, Loader2, CheckCircle, ExternalLink, Sparkles, Trash2, AlertTriangle } from 'lucide-react';
+import { Save, MapPin, LogOut, Linkedin, CreditCard, Loader2, CheckCircle, ExternalLink, Trash2, AlertTriangle } from 'lucide-react';
 import { countries, getLocationsForCountry } from '../lib/locations';
 import { Database } from '../lib/database.types';
 import ProfilePictureUpload from '../components/ProfilePictureUpload';
@@ -312,7 +312,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
             <h2 className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>Beta Access</h2>
             {hasBetaAccess && (
               <span className="badge badge-amber">
-                <Sparkles className="w-2.5 h-2.5" /> Active
+                Active
               </span>
             )}
           </div>

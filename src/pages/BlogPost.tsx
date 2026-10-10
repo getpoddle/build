@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, Calendar, Tag, Eye, Share2, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, Tag, Eye, Share2, ChevronRight, BookOpen, ArrowRight } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { supabase } from '../lib/supabase';
 
@@ -129,7 +129,7 @@ export default function BlogPost({ slug, onNavigate }: BlogPostProps) {
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#f8fafc' }}>
         <div className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-8 h-8 text-slate-300" />
+            <BookOpen className="w-8 h-8 text-slate-300" />
           </div>
           <h2 className="text-2xl font-black text-slate-800 mb-2">Post not found</h2>
           <p className="text-slate-500 mb-6">This article doesn't exist or has been unpublished.</p>

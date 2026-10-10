@@ -1,4 +1,4 @@
-import { X, Sparkles, Brain, TrendingUp, Users, Zap } from 'lucide-react';
+import { X, Brain, TrendingUp, Users, Zap } from 'lucide-react';
 
 interface JoinPromptModalProps {
   onClose: () => void;
@@ -73,7 +73,7 @@ export default function JoinPromptModal({ onClose, onNavigate, trigger = 'defaul
             className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg,#2563eb,#06b6d4)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
           >
-            <Sparkles className="w-7 h-7 text-white" />
+            <Brain className="w-7 h-7 text-white" />
           </div>
 
           <h2 className="text-xl font-black text-slate-900 mb-2">{copy.headline}</h2>

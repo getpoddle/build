@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Brain, RefreshCw, Zap, AlertTriangle, CheckCircle2,
   HelpCircle, Eye, TrendingUp, Activity, MessageSquare,
-  Loader2, Lock, Sparkles, Target, GitBranch, ArrowRight, Download,
+  Loader2, Lock, FileText, Target, GitBranch, ArrowRight, Download,
   Users, Bot, Plus, X, Clipboard, Sword, Flame, DollarSign,
   Settings, BarChart3, Lightbulb, AlertCircle, TrendingDown, Minus,
   ThumbsUp, ThumbsDown, RotateCcw, XCircle, Clock, User, Calendar,
@@ -1310,7 +1310,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     hasOpportunities && { key: 'opportunities', label: 'Opportunities', icon: Lightbulb, count: synthesis.opportunity_signals.length,  color: 'var(--positive)',    bg: 'var(--positive-bg)' },
     hasBiases       && { key: 'biases',       label: 'Bias Flags',   icon: AlertCircle,  count: synthesis.cognitive_bias_flags.length, color: 'var(--caution)',    bg: 'var(--signal-bg)' },
     { key: 'actions',       label: 'Actions',        icon: Target,        count: actionItems.length,                      color: 'var(--agent-strat)', bg: 'var(--agent-strat-bg)' },
-    claims.length > 0 && { key: 'claims', label: 'Claims', icon: Sparkles, count: claims.length, color: 'var(--signal)', bg: 'var(--signal-bg)' },
+    claims.length > 0 && { key: 'claims', label: 'Claims', icon: FileText, count: claims.length, color: 'var(--signal)', bg: 'var(--signal-bg)' },
   ].filter(Boolean) as Array<{ key: string; label: string; icon: React.ElementType; count: number; color: string; bg: string }>;
   return (
     <div className="space-y-5 p-4 lg:p-5" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
@@ -1491,7 +1491,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       {(activeSection === null || activeSection === 'claims') && claims.length > 0 && (
         <div style={{ border: '1px solid var(--signal)', borderOpacity: 0.25 }}>
           <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: 'var(--signal-bg)', borderBottom: '1px solid var(--signal)', borderBottomOpacity: 0.3 }}>
-            <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
+            <FileText className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
             <span className="section-label" style={{ color: 'var(--signal)' }}>Claims</span>
             <span className="text-xs ml-auto hidden sm:inline" style={{ color: 'var(--app-text-muted)' }}>Evidence-linked, citable by code</span>
           </div>
@@ -1933,7 +1933,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                           style={{ textDecoration: item.status === 'done' ? 'line-through' : 'none', color: item.status === 'done' ? '#94a3b8' : '#1e293b' }}>
                           {item.text}
                         </p>
-                        {item.source === 'ai' && <span title="AI suggested"><Sparkles className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" /></span>}
+                        {item.source === 'ai' && <span title="AI suggested"><Bot className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" /></span>}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap mb-3">
                         <span className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full capitalize" style={{ background: pc.bg, color: pc.text }}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Lock, CheckCircle, AlertTriangle, ArrowRight, Sparkles } from 'lucide-react';
+import { Lock, CheckCircle, AlertTriangle, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -173,7 +173,6 @@ export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps)
             className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.3)' }}
           >
-            <Sparkles className="w-4 h-4" />
             Sign in to accept
             <ArrowRight className="w-4 h-4" />
           </button>

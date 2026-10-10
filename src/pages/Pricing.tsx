@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, Sparkles, Zap, Users, BarChart2, Shield, Bot, Lock, X, Loader2, CreditCard, Mail, ExternalLink, Building2 } from 'lucide-react';
+import { CheckCircle, Zap, Users, BarChart2, Shield, Bot, Lock, X, Loader2, CreditCard, Mail, ExternalLink, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -223,7 +223,6 @@ export default function Pricing({ onNavigate }: PricingProps) {
             className="inline-flex items-center gap-2 px-3 py-1.5 mb-4"
             style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
           >
-            <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
             <span className="mono-xs font-semibold uppercase tracking-widest text-signal">Simple, transparent pricing</span>
           </div>
           <h1 className="display-heading text-4xl sm:text-5xl mb-4">Choose your plan</h1>

@@ -1,4 +1,4 @@
-import { Lock, Sparkles, ArrowRight, X, Shield, Users, Brain } from 'lucide-react';
+import { Lock, ArrowRight, X, Shield, Users, Brain } from 'lucide-react';
 
 interface UpgradePromptProps {
   onClose?: () => void;
@@ -82,7 +82,6 @@ export default function UpgradePrompt({ onClose, onUpgrade, context = 'generic',
             className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:-translate-y-0.5"
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2563eb)', boxShadow: '0 8px 24px rgba(37,99,235,0.35)' }}
           >
-            <Sparkles className="w-4 h-4" />
             Upgrade to Pro
             <ArrowRight className="w-4 h-4" />
           </button>

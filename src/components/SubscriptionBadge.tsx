@@ -1,4 +1,4 @@
-import { Sparkles, Crown, Building2 } from 'lucide-react';
+import { User, Crown, Building2 } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 
 interface SubscriptionBadgeProps {
@@ -7,7 +7,7 @@ interface SubscriptionBadgeProps {
 }
 
 const PLAN_ICONS: Record<string, React.ElementType> = {
-  Individual: Sparkles,
+  Individual: User,
   Team: Crown,
   Business: Building2,
 };
@@ -24,7 +24,7 @@ export default function SubscriptionBadge({ userId, className = '' }: Subscripti
   if (subscription.loading || !subscription.planName) return null;
   if (subscription.status !== 'active' && subscription.status !== 'trialing') return null;
 
-  const Icon = PLAN_ICONS[subscription.planName] ?? Sparkles;
+  const Icon = PLAN_ICONS[subscription.planName] ?? User;
   const colors = PLAN_COLORS[subscription.planName] ?? PLAN_COLORS.Individual;
 
   return (

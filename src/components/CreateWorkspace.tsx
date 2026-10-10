@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Lock, Sparkles, ChevronDown, Clock } from 'lucide-react';
+import { X, Lock, ChevronDown, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { CheckCircle, ArrowRight } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -64,7 +64,6 @@ export default function SuccessPage({ onNavigate }: SuccessPageProps) {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold"
               style={{ background: 'var(--signal-bg)', color: 'var(--signal)', border: '1px solid var(--signal)' }}
             >
-              <Sparkles className="w-4 h-4" />
               {subscription.planName} plan active
             </div>
           </div>

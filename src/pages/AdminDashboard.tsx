@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Sentry } from '../lib/sentry';
-import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Download, Globe, Bot, Play, RefreshCw, Sparkles, ChevronDown, BookOpen, Database } from 'lucide-react';
+import { Shield, Users, CheckCircle, XCircle, Search, LogOut, Key, Eye, TrendingUp, Ban, AlertTriangle, Clock, UserCheck, Trash2, UserPlus, Download, Globe, Bot, Play, RefreshCw, ChevronDown, BookOpen, Database } from 'lucide-react';
 import { getAvatarUrl } from '../lib/avatarUtils';
 import VerificationBadge from '../components/VerificationBadge';
 import DomainManagement from '../components/admin/DomainManagement';
@@ -662,7 +662,7 @@ export default function AdminDashboard() {
                       : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <TrendingUp className="w-4 h-4" />
                   Upgrades
                   {upgradeRequests.filter(r => r.status === 'pending').length > 0 && adminView !== 'upgrades' && (
                     <span className="ml-1 bg-amber-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">
@@ -810,7 +810,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.1)' }}>
-                    <Sparkles className="w-5 h-5 text-amber-600" />
+                    <TrendingUp className="w-5 h-5 text-amber-600" />
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900">Upgrade Requests</h3>

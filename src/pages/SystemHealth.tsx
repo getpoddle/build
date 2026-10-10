@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import { supabase } from '../lib/supabase';
 import {
   Activity, Cpu, Database, Shield, Bot, Gauge, FileCheck, AlertTriangle,
-  CheckCircle2, Clock, ArrowUpRight, Layers, Sparkles, Lock, RefreshCw, Bug
+  CheckCircle2, Clock, ArrowUpRight, Layers, Lock, RefreshCw, Bug
 } from 'lucide-react';
 
 interface Stack {
@@ -199,7 +199,7 @@ export default function SystemHealth() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-widest uppercase" style={{ background: 'rgba(15,23,42,0.06)', color: '#0f172a' }}>
-              <Sparkles className="w-3 h-3" />
+              <Bot className="w-3 h-3" />
               Agentic Governance
             </span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -322,7 +322,7 @@ export default function SystemHealth() {
             <Panel>
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-4 h-4" style={{ color: '#3b82f6' }} />
+                  <Bot className="w-4 h-4" style={{ color: '#3b82f6' }} />
                   <p className="text-xs font-black uppercase tracking-widest text-slate-400">What AI does autonomously</p>
                 </div>
                 <BulletList items={agentic_governance.autonomous_behaviours} icon={Bot} tone="neutral" />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Bot, Loader2, Sparkles, RefreshCw, ChevronDown, Download, Mic, Square, Paperclip, FileText, X, Shield, AlertCircle, Lightbulb, TrendingUp, DollarSign, Rocket, History } from 'lucide-react';
+import { Send, Bot, Loader2, RefreshCw, ChevronDown, Download, Mic, Square, Paperclip, FileText, X, Shield, AlertCircle, Lightbulb, TrendingUp, DollarSign, Rocket, History } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { acquireChannel, releaseChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
@@ -1092,7 +1092,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
               className="w-12 h-12 flex items-center justify-center mb-4"
               style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
             >
-              <Sparkles className="w-6 h-6 text-white" />
+              <Bot className="w-6 h-6 text-white" />
             </div>
             <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--app-text-primary)' }}>Start your War Room session</h3>
             <p className="text-xs mb-6 max-w-xs text-center leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
@@ -1142,7 +1142,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                 className="btn-primary w-full mt-3 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ padding: '0.625rem 1rem', fontSize: '0.8125rem' }}
               >
-                Brief the agents <Sparkles className="w-3.5 h-3.5" />
+                Brief the agents
               </button>
             </div>
           </div>

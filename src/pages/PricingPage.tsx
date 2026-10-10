@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Sparkles, Zap, Building2, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { Check, Zap, Building2, User, ArrowLeft, Loader2 } from 'lucide-react';
 import { STRIPE_PRODUCTS, type StripeProduct } from '../stripe-config';
 import { createCheckoutSession } from '../lib/checkout';
 import { useSubscription } from '../hooks/useSubscription';
@@ -112,7 +112,6 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-5"
             style={{ background: 'var(--signal-bg)', color: 'var(--signal)', border: '1px solid var(--signal)' }}
           >
-            <Sparkles className="w-3.5 h-3.5" />
             Simple, transparent pricing
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4" style={{ color: 'var(--app-text-primary)' }}>
@@ -145,7 +144,7 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
         {/* Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {STRIPE_PRODUCTS.map(product => {
-            const Icon = PLAN_ICONS[product.name] ?? Sparkles;
+            const Icon = PLAN_ICONS[product.name] ?? User;
             const features = PLAN_FEATURES[product.name] ?? [];
             const highlighted = PLAN_HIGHLIGHT[product.name];
             const isCurrent = isCurrentPlan(product);
@@ -241,7 +240,6 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4" />
                         {user ? `Get ${product.name}` : 'Sign up to subscribe'}
                       </>
                     )}

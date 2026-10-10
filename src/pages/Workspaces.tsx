@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Sparkles, Brain, Clock, AlertTriangle, ChevronRight, Zap, LayoutList, Map, Bot, TrendingUp } from 'lucide-react';
+import { Lock, Plus, Settings, Users, ArrowRight, Crown, Shield, User, Zap, Brain, Clock, AlertTriangle, ChevronRight, LayoutList, Map } from 'lucide-react';
 import { useUserWorkspaces, useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { useBetaAccess } from '../hooks/useBetaAccess';
@@ -113,7 +113,6 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                     className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 rounded-lg"
                     style={{ background: 'var(--signal-bg)' }}
                   >
-                    <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
                     <span className="mono-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--signal)' }}>Private Team Spaces</span>
                   </div>
                   <h2 className="text-lg lg:text-2xl xl:text-3xl font-bold tracking-tight mb-3" style={{ color: 'var(--app-text-primary)' }}>
@@ -126,7 +125,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
 
                 <div className="flex flex-row sm:flex-col gap-3 sm:flex-shrink-0">
                   <button onClick={handleCreateClick} className="btn-primary flex-1 sm:flex-none">
-                    {!isPro && !hasBetaAccess && trialExhausted ? <Sparkles className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    {!isPro && !hasBetaAccess && trialExhausted ? <Zap className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                     {!isPro && !hasBetaAccess && trialExhausted ? 'Upgrade' : 'New Workspace'}
                   </button>
                   <button
@@ -205,7 +204,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                   ))}
                 </div>
                 <button onClick={handleCreateClick} className="btn-primary">
-                  {trialExhausted ? <><Sparkles className="w-4 h-4" /> Upgrade for Unlimited Workspaces</> : <><Lock className="w-4 h-4" /> Create Your Free Workspace</>}
+                  {trialExhausted ? <><Zap className="w-4 h-4" /> Upgrade for Unlimited Workspaces</> : <><Lock className="w-4 h-4" /> Create Your Free Workspace</>}
                 </button>
               </div>
             )}
@@ -380,7 +379,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             {!isLoading && !isPro && trialLimitReached && appWorkspaces.length > 0 && view === 'list' && (
               <div className="panel p-5 flex items-center gap-4" style={{ background: 'var(--signal-bg)' }}>
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--signal)' }}>
-                  <Sparkles className="w-5 h-5" style={{ color: '#ffffff' }} />
+                  <Zap className="w-5 h-5" style={{ color: '#ffffff' }} />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold" style={{ color: 'var(--app-text-primary)' }}>Upgrade for unlimited workspaces</p>

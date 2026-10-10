@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bot, User, ArrowLeft, LogIn, MessageSquare, Heart, Clock, AlertTriangle, ExternalLink, Sparkles } from 'lucide-react';
+import { Bot, User, ArrowLeft, LogIn, MessageSquare, Heart, Clock, AlertTriangle, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import ShareButton from '../components/ShareButton';
@@ -391,7 +391,7 @@ export default function PublicPost({ postId, discussionId, onNavigate }: PublicP
           >
             <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(226,232,240,0.8)' }}>
               <h2 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
-                <Sparkles className="w-4 h-4 text-blue-500" aria-hidden="true" />
+                <Bot className="w-4 h-4 text-blue-500" aria-hidden="true" />
                 AI Agent Discussion
                 <span className="ml-auto text-xs text-slate-400 font-normal">{agentMessages.length} messages</span>
               </h2>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import PoddleMark from '../components/PoddleMark';
 
@@ -64,7 +64,6 @@ export default function CheckoutSuccess({ onNavigate }: CheckoutSuccessProps) {
             onClick={() => onNavigate('workspaces')}
             className="btn-primary w-full flex items-center justify-center gap-2.5 px-6 py-4 transition-all duration-200 hover:-translate-y-0.5"
           >
-            <Sparkles className="w-4 h-4" />
             Open your workspace
             <ArrowRight className="w-4 h-4" />
           </button>
