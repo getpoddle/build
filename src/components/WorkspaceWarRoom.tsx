@@ -982,6 +982,9 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'workspace_messages', filter: `workspace_id=eq.${workspaceId}` }, () => {
         setMessageCount(prev => prev + 1);
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'workspace_messages', filter: `workspace_id=eq.${workspaceId}` }, () => {
+        setMessageCount(prev => Math.max(0, prev - 1));
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [workspaceId]);
@@ -1004,12 +1007,9 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
     return () => { supabase.removeChannel(channel); };
   }, [workspaceId, loadAll]);
 
-  // Poll the synthesis queue so we can show "synthesis pending" state even
-  // after the user navigates back to the page. When the queue clears (server
-  // finished) we reload the synthesis data.
+  // Realtime: watch the synthesis queue so we can show "synthesis pending"
+  // state after navigating back, and reload when it completes.
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null;
-
     const checkQueue = async () => {
       const { data } = await supabase
         .from('workspace_synthesis_queue')
@@ -1017,19 +1017,9 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         .eq('workspace_id', workspaceId)
         .in('status', ['pending', 'running'])
         .maybeSingle();
-
-      const isQueued = !!data;
-      setSynthQueued(isQueued);
-
-      // When the queue entry disappears the synthesis just completed — reload
-      if (!isQueued && interval) {
-        clearInterval(interval);
-        interval = null;
-        loadAll();
-      }
+      setSynthQueued(!!data);
     };
 
-    // Also subscribe to realtime on the queue table
     const queueChannel = supabase
       .channel(`synth-queue-${workspaceId}`)
       .on('postgres_changes', {
@@ -1041,23 +1031,16 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
         const status = (payload.new as { status?: string })?.status;
         if (status === 'pending' || status === 'running') {
           setSynthQueued(true);
-          // Start polling as fallback in case realtime misses the completion event
-          if (!interval) {
-            interval = setInterval(checkQueue, 8000);
-          }
         } else {
           setSynthQueued(false);
-          if (interval) { clearInterval(interval); interval = null; }
           loadAll();
         }
       })
       .subscribe();
 
-    // Initial check on mount so navigating back shows correct state
     checkQueue();
 
     return () => {
-      if (interval) clearInterval(interval);
       supabase.removeChannel(queueChannel);
     };
   }, [workspaceId, loadAll]);

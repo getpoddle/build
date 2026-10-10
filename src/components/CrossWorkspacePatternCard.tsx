@@ -272,11 +272,14 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (row) {
-      const snapshots: WorkspaceSnapshot[] = Array.isArray(row.workspace_snapshots)
-        ? row.workspace_snapshots
-        : [];
+    const snapshots: WorkspaceSnapshot[] = row && Array.isArray(row.workspace_snapshots)
+      ? row.workspace_snapshots
+      : [];
 
+    // Training contribution count — fetched in parallel with benchmark chain
+    const contribPromise = supabase.rpc('get_my_training_contribution_count', { p_user_id: userId });
+
+    if (row) {
       const optedIn = row.benchmark_opt_in === true;
 
       setData({
@@ -355,39 +358,35 @@ export default function CrossWorkspacePatternCard({ userId }: CrossWorkspacePatt
             successRate: total > 0 ? Math.round((counts.succeeded / total) * 100) : 0,
           });
         }
-
-        // Benchmark stats — compute dominant category then fetch aggregate stats
-        if (snapshots.length > 0) {
-          const freqMap: Record<string, number> = {};
-          for (const snap of snapshots) {
-            const cat = snap.dominant_risk_category ?? 'execution';
-            freqMap[cat] = (freqMap[cat] ?? 0) + 1;
-          }
-          let domCat = 'execution';
-          let maxF = 0;
-          for (const [cat, f] of Object.entries(freqMap)) {
-            if (f > maxF) { maxF = f; domCat = cat; }
-          }
-          setBenchmarkCategory(domCat);
-
-          // Fetch aggregate stats (always available — anonymous data)
-          const { data: bStats } = await supabase.rpc('get_decision_benchmark_stats', { p_category: domCat });
-          if (bStats && (bStats as BenchmarkStats).count >= 5) {
-            setBenchmarkStats(bStats as BenchmarkStats);
-
-            // Fetch percentile for the user's own avg health score
-            const avgH = snapshots.length > 0
-              ? Math.round(snapshots.reduce((s, snap) => s + snap.decision_health_score, 0) / snapshots.length)
-              : 0;
-            const { data: pctile } = await supabase.rpc('get_benchmark_percentile', { p_category: domCat, p_score: avgH });
-            if (typeof pctile === 'number') setBenchmarkPercentile(pctile);
-          }
-        }
       }
     }
 
-    // Training contribution count (Direction 4 badge)
-    const { data: contribCount } = await supabase.rpc('get_my_training_contribution_count', { p_user_id: userId });
+    if (snapshots.length > 0) {
+      const freqMap: Record<string, number> = {};
+      for (const snap of snapshots) {
+        const cat = snap.dominant_risk_category ?? 'execution';
+        freqMap[cat] = (freqMap[cat] ?? 0) + 1;
+      }
+      let domCat = 'execution';
+      let maxF = 0;
+      for (const [cat, f] of Object.entries(freqMap)) {
+        if (f > maxF) { maxF = f; domCat = cat; }
+      }
+      setBenchmarkCategory(domCat);
+
+      const { data: bStats } = await supabase.rpc('get_decision_benchmark_stats', { p_category: domCat });
+      if (bStats && (bStats as BenchmarkStats).count >= 5) {
+        setBenchmarkStats(bStats as BenchmarkStats);
+
+        const avgH = snapshots.length > 0
+          ? Math.round(snapshots.reduce((s, snap) => s + snap.decision_health_score, 0) / snapshots.length)
+          : 0;
+        const { data: pctile } = await supabase.rpc('get_benchmark_percentile', { p_category: domCat, p_score: avgH });
+        if (typeof pctile === 'number') setBenchmarkPercentile(pctile);
+      }
+    }
+
+    const { data: contribCount } = await contribPromise;
     if (typeof contribCount === 'number') setTrainingContributions(contribCount);
 
     setLoading(false);

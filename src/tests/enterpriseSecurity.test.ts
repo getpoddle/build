@@ -168,13 +168,12 @@ describe('ai-agents IDOR prevention', () => {
     expect(source).toMatch(/handleRecommend.*checkThreadAccess/s);
   });
 
-  it('handleAnalyzePost checks post access before processing', () => {
-    expect(source).toContain('checkPostAccess');
-    expect(source).toMatch(/handleAnalyzePost.*checkPostAccess/s);
+  it.skip('handleAnalyzePost checks post access before processing', () => {
+    // handleAnalyzePost and checkPostAccess were removed in Phase 2 B2C cleanup
   });
 
-  it('handlePostChallengeReply checks post access before processing', () => {
-    expect(source).toMatch(/handlePostChallengeReply.*checkPostAccess/s);
+  it.skip('handlePostChallengeReply checks post access before processing', () => {
+    // handlePostChallengeReply was removed in Phase 2 B2C cleanup
   });
 
   it('handleSaveUserContext checks assumption access before processing', () => {
@@ -186,9 +185,8 @@ describe('ai-agents IDOR prevention', () => {
     expect(source).toMatch(/checkThreadAccess.*pod_members/s);
   });
 
-  it('checkPostAccess verifies pod membership for private pods', () => {
-    expect(source).toContain('async function checkPostAccess');
-    expect(source).toMatch(/checkPostAccess.*pod_members/s);
+  it.skip('checkPostAccess verifies pod membership for private pods', () => {
+    // checkPostAccess was removed in Phase 2 B2C cleanup
   });
 });
 

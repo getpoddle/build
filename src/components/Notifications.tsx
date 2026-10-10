@@ -1,16 +1,16 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Heart, MessageSquare, X, UserPlus, User, AtSign, Target, CheckCircle, ThumbsUp, Flame, Reply, Bot, UserCheck, Users, AlertTriangle, RotateCcw, ShieldAlert, ShieldCheck, Building2 } from 'lucide-react';
+import { Bell, MessageSquare, X, User, AtSign, CheckCircle, Bot, UserCheck, Users, AlertTriangle, RotateCcw, ShieldAlert, ShieldCheck, Building2 } from 'lucide-react';
 import { SkeletonNotification } from './Skeleton';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { throttle } from '../lib/throttle';
+import { acquireChannel, releaseChannel } from '../lib/realtimeRegistry';
 import { getAvatarUrl } from '../lib/avatarUtils';
 
 interface Notification {
   id: string;
-  type: 'reaction' | 'comment' | 'pod_invite' | 'follow' | 'mention' | 'referral' | 'forecast_resolved' | 'account_deletion_requested' | 'account_restored' | string;
+  type: 'workspace_agents_responded' | 'workspace_invite_accepted' | 'workspace_team_message' | 'workspace_team_mention' | 'workspace_ai_activity' | 'organization_invite_accepted' | 'account_deletion_requested' | 'account_restored' | string;
   title: string;
   content: string;
   related_id: string | null;
@@ -34,6 +34,8 @@ interface NotificationsProps {
   ) => void;
 }
 
+const CHANNEL_NAME = 'notifications';
+
 export default function Notifications({ onNavigate }: NotificationsProps) {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -41,92 +43,9 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const knownIds = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!user) return;
-
-    fetchNotifications();
-    fetchUnreadCount();
-
-    const handleInsert = throttle(async (payload: any) => {
-      const newNotification = payload.new as Notification;
-
-      const { data: notificationWithActor } = await supabase
-        .from('notifications')
-        .select(`
-          *,
-          actor:actor_id (
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq('id', newNotification.id)
-        .maybeSingle();
-
-      if (notificationWithActor) {
-        setNotifications((prev) => [notificationWithActor, ...prev]);
-        setUnreadCount((prev) => prev + 1);
-      }
-    }, 500);
-
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        handleInsert
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const updatedNotification = payload.new as Notification;
-          setNotifications((prev) =>
-            prev.map((n) => (n.id === updatedNotification.id ? { ...n, ...updatedNotification } : n))
-          );
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const deletedNotification = payload.old as Notification;
-          setNotifications((prev) => prev.filter((n) => n.id !== deletedNotification.id));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setIsOpen(false);
-    }
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
-  async function fetchNotifications() {
+  const fetchNotifications = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
@@ -145,15 +64,17 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
         .limit(20);
 
       if (error) throw error;
-      setNotifications(data || []);
+      const rows = (data || []) as Notification[];
+      knownIds.current = new Set(rows.map((n) => n.id));
+      setNotifications(rows);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
     }
-  }
+  }, [user]);
 
-  async function fetchUnreadCount() {
+  const fetchUnreadCount = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -168,7 +89,99 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
-  }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    fetchNotifications();
+    fetchUnreadCount();
+
+    const channel = acquireChannel(CHANNEL_NAME, (ch) =>
+      ch
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          async (payload) => {
+            const newNotification = payload.new as Notification;
+            if (knownIds.current.has(newNotification.id)) return;
+            knownIds.current.add(newNotification.id);
+
+            const { data: notificationWithActor } = await supabase
+              .from('notifications')
+              .select(`
+                *,
+                actor:actor_id (
+                  full_name,
+                  avatar_url
+                )
+              `)
+              .eq('id', newNotification.id)
+              .maybeSingle();
+
+            if (notificationWithActor) {
+              setNotifications((prev) => {
+                if (knownIds.current.has(notificationWithActor.id) && prev.some((n) => n.id === notificationWithActor.id)) {
+                  return prev;
+                }
+                return [notificationWithActor as Notification, ...prev].slice(0, 50);
+              });
+              if (!notificationWithActor.is_read) {
+                setUnreadCount((prev) => prev + 1);
+              }
+            }
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            const updatedNotification = payload.new as Notification;
+            knownIds.current.add(updatedNotification.id);
+            setNotifications((prev) =>
+              prev.map((n) => (n.id === updatedNotification.id ? { ...n, ...updatedNotification } : n)),
+            );
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            const deletedNotification = payload.old as Notification;
+            knownIds.current.delete(deletedNotification.id);
+            setNotifications((prev) => prev.filter((n) => n.id !== deletedNotification.id));
+          },
+        ),
+    );
+
+    return () => {
+      if (channel) releaseChannel(CHANNEL_NAME);
+    };
+  }, [user, fetchNotifications, fetchUnreadCount]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setIsOpen(false);
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   async function markAsRead(notificationId: string) {
     try {
@@ -180,7 +193,7 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       if (error) throw error;
 
       setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n)),
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
@@ -216,38 +229,24 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
 
       if (error) throw error;
 
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      knownIds.current.delete(notificationId);
+      setNotifications((prev) => {
+        const deleted = prev.find((n) => n.id === notificationId);
+        if (deleted && !deleted.is_read) {
+          setUnreadCount((c) => Math.max(0, c - 1));
+        }
+        return prev.filter((n) => n.id !== notificationId);
+      });
     } catch (error) {
       console.error('Error deleting notification:', error);
     }
-  }
-
-  async function dismissNotification(notificationId: string) {
-    await markAsRead(notificationId);
   }
 
   function handleNotificationClick(notification: Notification) {
     markAsRead(notification.id);
     setIsOpen(false);
 
-    if (notification.type === 'entity_challenged' || notification.type === 'challenge_upvoted' || notification.type === 'challenge_replied') {
-      if (notification.related_id && notification.related_type) {
-        window.location.hash = `entity/${notification.related_type}/${notification.related_id}`;
-      } else {
-        onNavigate('reasoning');
-      }
-    } else if (notification.type === 'comment' || notification.type === 'reaction') {
-      onNavigate('pods');
-    } else if (notification.type === 'mention') {
-      onNavigate('pods');
-    } else if (notification.type === 'follow') {
-      onNavigate('profile');
-    } else if (notification.type === 'referral') {
-      onNavigate('profile');
-    } else if (notification.type === 'forecast_resolved') {
-      onNavigate('pods');
-    } else if (notification.type === 'workspace_agents_responded') {
+    if (notification.type === 'workspace_agents_responded') {
       onNavigate('workspaces');
     } else if (notification.type === 'workspace_invite_accepted') {
       onNavigate('workspaces');
@@ -257,7 +256,7 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       } else {
         onNavigate('workspaces');
       }
-      } else if (notification.type === 'workspace_ai_activity') {
+    } else if (notification.type === 'workspace_ai_activity') {
       if (notification.related_id) {
         onNavigate('workspace-hub', notification.related_id);
       } else {
@@ -270,24 +269,6 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
 
   function getNotificationIcon(type: string) {
     switch (type) {
-      case 'reaction':
-        return <Heart className="w-4 h-4" />;
-      case 'comment':
-        return <MessageSquare className="w-4 h-4" />;
-      case 'follow':
-        return <UserPlus className="w-4 h-4" />;
-      case 'mention':
-        return <AtSign className="w-4 h-4" />;
-      case 'referral':
-        return <Target className="w-4 h-4" />;
-      case 'forecast_resolved':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'entity_challenged':
-        return <Flame className="w-4 h-4" />;
-      case 'challenge_upvoted':
-        return <ThumbsUp className="w-4 h-4" />;
-      case 'challenge_replied':
-        return <Reply className="w-4 h-4" />;
       case 'workspace_agents_responded':
         return <Bot className="w-4 h-4" />;
       case 'workspace_invite_accepted':
@@ -311,21 +292,14 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
 
   function getIconColors(type: string) {
     switch (type) {
-      case 'reaction': return 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400';
-      case 'follow': return 'bg-teal-100 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400';
-      case 'mention': return 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400';
-      case 'referral': return 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400';
-      case 'forecast_resolved': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
-      case 'entity_challenged': return 'bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400';
-      case 'challenge_upvoted': return 'bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400';
-      case 'challenge_replied': return 'bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-400';
       case 'workspace_agents_responded': return 'bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400';
       case 'workspace_invite_accepted': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
       case 'workspace_team_message': return 'bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400';
       case 'workspace_team_mention': return 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400';
-      case 'workspace_ai_activity': return 'bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400';
+      case 'workspace_ai_activity': return 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400';
       case 'account_deletion_requested': return 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400';
       case 'account_restored': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
+      case 'organization_invite_accepted': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
       default: return 'bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400';
     }
   }
@@ -370,7 +344,6 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
           style={{ background: 'rgba(0,0,0,0.4)' }}
         >
           <div
-            ref={panelRef}
             onClick={(e) => e.stopPropagation()}
             className="absolute top-0 right-0 h-full w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl flex flex-col animate-[slideIn_0.2s_ease-out]"
             style={{ borderLeft: '1px solid rgba(148,163,184,0.2)' }}
@@ -481,20 +454,6 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
                           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                             {formatTime(notification.created_at)}
                           </p>
-
-                          {notification.type === 'follow' && notification.actor_id && (
-                            <div className="flex gap-2 mt-3">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  dismissNotification(notification.id);
-                                }}
-                                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                              >
-                                Dismiss
-                              </button>
-                            </div>
-                          )}
                         </div>
 
                         {!notification.is_read && (

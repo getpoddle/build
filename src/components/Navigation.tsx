@@ -58,19 +58,20 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
         .select('full_name')
         .eq('id', user.id)
         .maybeSingle(),
-    ]).then(([sensitiveRes, profileRes]) => {
+      supabase
+        .from('organization_members')
+        .select('role')
+        .eq('user_id', user.id)
+        .in('role', ['owner', 'admin'])
+        .limit(1),
+    ]).then(([sensitiveRes, profileRes, orgRes]) => {
       setIsAdmin(sensitiveRes.data?.is_admin || false);
       setUserProfile({ full_name: profileRes.data?.full_name || null, email: user.email });
-    }).catch(() => setIsAdmin(false));
-
-    supabase
-      .from('organization_members')
-      .select('role')
-      .eq('user_id', user.id)
-      .in('role', ['owner', 'admin'])
-      .limit(1)
-      .then(({ data }) => setIsOrgAdmin(!!data && data.length > 0))
-      .catch(() => setIsOrgAdmin(false));
+      setIsOrgAdmin(!!orgRes.data && orgRes.data.length > 0);
+    }).catch(() => {
+      setIsAdmin(false);
+      setIsOrgAdmin(false);
+    });
   }, [user]);
 
   useEffect(() => {

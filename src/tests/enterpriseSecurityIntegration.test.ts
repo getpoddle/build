@@ -29,32 +29,13 @@ function readEdgeFunction(name: string): string {
 // ─── 1. Privilege escalation prevention ──────────────────────────────────────
 
 describe('Privilege escalation — verification functions use auth.uid()', () => {
-  it('approve_verification no longer accepts admin_user_id parameter', () => {
-    const adminSource = readFileSync(
-      join(process.cwd(), 'src', 'pages', 'Admin.tsx'),
-      'utf-8'
-    );
-    // The frontend should NOT pass admin_user_id anymore
-    expect(adminSource).not.toMatch(/admin_user_id/);
-  });
-
-  it('frontend calls approve_verification with only target_user_id', () => {
-    const adminSource = readFileSync(
-      join(process.cwd(), 'src', 'pages', 'Admin.tsx'),
-      'utf-8'
-    );
-    expect(adminSource).toMatch(/approve_verification.*target_user_id/s);
-    expect(adminSource).not.toMatch(/approve_verification.*admin_user_id/s);
-  });
-
-  it('frontend calls reject_verification with only target_user_id', () => {
-    const adminSource = readFileSync(
-      join(process.cwd(), 'src', 'pages', 'Admin.tsx'),
-      'utf-8'
-    );
-    expect(adminSource).toMatch(/reject_verification.*target_user_id/s);
-    expect(adminSource).not.toMatch(/reject_verification.*admin_user_id/s);
-  });
+  // Admin.tsx (B2C verification queue) was removed in the legacy B2C cleanup.
+  // The approve_verification / reject_verification RPCs still exist in the DB
+  // with the fixed 1-param signature (verified in live DB), but no frontend
+  // code calls them anymore.
+  it.skip('approve_verification no longer accepts admin_user_id parameter', () => {});
+  it.skip('frontend calls approve_verification with only target_user_id', () => {});
+  it.skip('frontend calls reject_verification with only target_user_id', () => {});
 });
 
 // ─── 2. Error detail leakage prevention ──────────────────────────────────────
