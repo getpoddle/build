@@ -5,11 +5,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans:    ['Fredoka', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        sans:    ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
         mono:    ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
-        display: ['Fredoka', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         // Legacy alias
-        heading: ['Fredoka', 'sans-serif'],
+        heading: ['Inter', 'sans-serif'],
       },
       fontSize: {
         xs:   ['0.75rem',  { lineHeight: '1.2rem' }],

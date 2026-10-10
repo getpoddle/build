@@ -137,10 +137,11 @@ html.theme-dark {
   @media (min-width: 1920px) { html { font-size: 17px; } }
 
   body {
-    font-family: 'Fredoka', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
     font-size: 0.9375rem;
     line-height: 1.6;
-    letter-spacing: 0;
+    letter-spacing: -0.005em;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "tnum" 0;
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
     touch-action: manipulation;
     min-height: 100vh;
@@ -240,7 +241,7 @@ html.theme-dark {
     gap: 0.5rem;
     padding: 0.625rem 1.25rem;
     border-radius: 6px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 0.8125rem;
     font-weight: 500;
     letter-spacing: 0;
@@ -265,7 +266,7 @@ html.theme-dark {
     gap: 0.5rem;
     padding: 0.625rem 1.25rem;
     border-radius: 6px;
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 0.8125rem;
     font-weight: 500;
     letter-spacing: 0;
@@ -310,7 +311,7 @@ html.theme-dark {
     border: 1px solid var(--app-input-border);
     background: var(--app-input-bg);
     color: var(--app-text-primary);
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 0.875rem;
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
@@ -379,12 +380,13 @@ html.theme-dark {
     border-radius: 8px;
   }
   .stat-card-value {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: -0.02em;
     line-height: 1.2;
     color: var(--app-text-primary);
+    font-variant-numeric: tabular-nums;
   }
   .stat-card-label {
     font-size: 0.6875rem;
@@ -405,9 +407,9 @@ html.theme-dark {
     color: var(--app-text-muted);
   }
   .display-heading {
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     line-height: 1.15;
     color: var(--app-text-primary);
   }
@@ -593,6 +595,8 @@ html.theme-dark {
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
     animation: shimmerBar 2s infinite;
   }
+
+  .tnum { font-variant-numeric: tabular-nums; }
 }
 
 /* ─────────────────────────────────────────────────────────
