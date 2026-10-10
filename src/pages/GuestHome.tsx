@@ -24,7 +24,6 @@ import {
   Target,
   UserCog,
 } from 'lucide-react';
-import PoddleMark from '../components/PoddleMark';
 import type { LucideIcon } from 'lucide-react';
 
 interface GuestHomeProps {
@@ -929,41 +928,6 @@ function Footer({ onNavigate }: { onNavigate: (p: string) => void }) {
 export default function GuestHome({ onNavigate }: GuestHomeProps) {
   return (
     <div className="min-h-screen" style={{ background: WHITE }}>
-      {/* Sticky header */}
-      <div
-        className="hidden md:flex items-center justify-between px-6 py-3 sticky top-0 z-30"
-        style={{
-          background: 'rgba(255,255,255,0.92)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: `1px solid ${BORDER}`,
-        }}
-      >
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2">
-            <PoddleMark size={24} />
-            <span className="text-base font-black tracking-tight" style={{ color: INK }}>Poddle<span style={{ color: GOLD, fontWeight: 400 }}>AI</span></span>
-          </div>
-          <div className="hidden md:flex items-center gap-1">
-            <a href="#capabilities" className="px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-slate-100" style={{ color: SLATE }}>Platform</a>
-            <a href="#use-cases" className="px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-slate-100" style={{ color: SLATE }}>Solutions</a>
-            <a href="#workflow" className="px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-slate-100" style={{ color: SLATE }}>How It Works</a>
-            <button onClick={() => onNavigate('pricing')} className="px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-slate-100" style={{ color: SLATE }}>Pricing</button>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('auth')} className="text-sm font-medium transition-colors hover:opacity-70" style={{ color: INK }}>Sign In</button>
-          <button
-            onClick={() => onNavigate('auth')}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-white text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5"
-            style={{ background: BLUE, boxShadow: '0 2px 8px rgba(37,99,235,0.2)' }}
-          >
-            Try Poddle AI
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
       <HeroSection onNavigate={onNavigate} />
       <WorkflowSection onNavigate={onNavigate} />
       <CapabilitiesSection />
