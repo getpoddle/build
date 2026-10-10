@@ -137,10 +137,10 @@ html.theme-dark {
   @media (min-width: 1920px) { html { font-size: 17px; } }
 
   body {
-    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: 'Fredoka', ui-sans-serif, system-ui, -apple-system, sans-serif;
     font-size: 0.9375rem;
     line-height: 1.6;
-    letter-spacing: -0.005em;
+    letter-spacing: 0;
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
     touch-action: manipulation;
     min-height: 100vh;
@@ -240,10 +240,10 @@ html.theme-dark {
     gap: 0.5rem;
     padding: 0.625rem 1.25rem;
     border-radius: 6px;
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'Fredoka', sans-serif;
     font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-weight: 500;
+    letter-spacing: 0;
     text-transform: none;
     color: #ffffff;
     background: var(--signal);
@@ -265,10 +265,10 @@ html.theme-dark {
     gap: 0.5rem;
     padding: 0.625rem 1.25rem;
     border-radius: 6px;
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'Fredoka', sans-serif;
     font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-weight: 500;
+    letter-spacing: 0;
     text-transform: none;
     color: var(--app-text-primary);
     background: transparent;
@@ -310,7 +310,7 @@ html.theme-dark {
     border: 1px solid var(--app-input-border);
     background: var(--app-input-bg);
     color: var(--app-text-primary);
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'Fredoka', sans-serif;
     font-size: 0.875rem;
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
@@ -405,8 +405,8 @@ html.theme-dark {
     color: var(--app-text-muted);
   }
   .display-heading {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 700;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
     letter-spacing: -0.01em;
     line-height: 1.15;
     color: var(--app-text-primary);

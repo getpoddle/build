@@ -376,7 +376,7 @@ function svgRiskMatrix(risks: WarRoomExport['riskSignals']): string {
 const BASE_STYLES = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-family: 'Fredoka', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     font-size: 11pt;
     color: #111827;
     background: #fff;

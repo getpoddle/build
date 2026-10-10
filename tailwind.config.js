@@ -5,11 +5,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans:    ['IBM Plex Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        sans:    ['Fredoka', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
         mono:    ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
-        display: ['DM Serif Display', 'Georgia', 'serif'],
+        display: ['Fredoka', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         // Legacy alias
-        heading: ['DM Serif Display', 'serif'],
+        heading: ['Fredoka', 'sans-serif'],
       },
       fontSize: {
         xs:   ['0.75rem',  { lineHeight: '1.2rem' }],
