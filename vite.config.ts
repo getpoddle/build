@@ -5,11 +5,11 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    include: ['lucide-react'],
   },
   build: {
-    target: 'es2015',
-    sourcemap: true,
+    target: 'es2020',
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -25,11 +25,17 @@ export default defineConfig({
           if (id.includes('node_modules/posthog-js')) {
             return 'posthog';
           }
+          if (id.includes('node_modules/@sentry')) {
+            return 'sentry';
+          }
           if (id.includes('/pages/Admin') || id.includes('/pages/AdminPanel') || id.includes('/pages/AdminDashboard') || id.includes('/pages/AdminAuth') || id.includes('/components/admin/')) {
             return 'Admin';
           }
-          if (id.includes('/pages/WorkspaceHub') || id.includes('/pages/WorkspaceSettings') || id.includes('/pages/Workspaces') || id.includes('/pages/JoinWorkspace') || id.includes('/components/WorkspaceChat') || id.includes('/components/WorkspaceWarRoom') || id.includes('/lib/pdfExport')) {
+          if (id.includes('/pages/WorkspaceHub') || id.includes('/pages/WorkspaceSettings') || id.includes('/pages/Workspaces') || id.includes('/pages/JoinWorkspace') || id.includes('/components/WorkspaceChat') || id.includes('/components/WorkspaceWarRoom')) {
             return 'WorkspaceHub';
+          }
+          if (id.includes('/lib/pdfExport')) {
+            return 'PdfExport';
           }
           if (id.includes('/pages/ReasoningHub') || id.includes('/pages/EntityDetail') || id.includes('/pages/AgentPredictions')) {
             return 'ReasoningHub';

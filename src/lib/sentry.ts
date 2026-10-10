@@ -2,7 +2,12 @@ import * as Sentry from '@sentry/react';
 
 const DSN = 'https://8d0e7524fe9d1703f08c3bfb2635b38e@o4511509010972672.ingest.de.sentry.io/4511509037842512';
 
+let initialized = false;
+
 export function initSentry() {
+  if (initialized) return;
+  initialized = true;
+
   Sentry.init({
     dsn: DSN,
     environment: import.meta.env.MODE,

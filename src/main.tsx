@@ -8,8 +8,12 @@ import { initPostHog } from './lib/posthog';
 import { initSentry } from './lib/sentry';
 import { logGlobalError } from './lib/tabDiagnostics';
 
-initSentry();
-initPostHog();
+// Defer third-party SDK initialization until after the React app mounts,
+// so initial render is not blocked by Sentry/PostHog network calls.
+window.addEventListener('load', () => {
+  initSentry();
+  initPostHog();
+});
 
 // After a new deploy, a browser tab that's already open may try to fetch an
 // old lazy-loaded chunk (e.g. Organization-<oldhash>.js) that no longer
