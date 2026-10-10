@@ -17,25 +17,51 @@ export default function ResetPassword({ onDone }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    let resolved = false;
+
+    const markReady = () => {
+      if (cancelled || resolved) return;
+      resolved = true;
+      setSessionReady(true);
+    };
+
+    const markError = (msg: string) => {
+      if (cancelled || resolved) return;
+      resolved = true;
+      setError(msg);
+    };
+
+    // Subscribe to auth state changes to catch PASSWORD_RECOVERY event.
+    // detectSessionInUrl processes the PKCE exchange asynchronously; the
+    // PASSWORD_RECOVERY event (with a valid session) fires when the exchange
+    // completes. This is more reliable than polling getSession().
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        markReady();
+      }
+    });
+
+    // Also poll getSession() as a fallback — the session may already be
+      // established by the time this effect runs (e.g. if the exchange
+    // completed during _initialize() before the listener was attached).
     (async () => {
-      // Wait for the session to be established from the recovery URL.
-      // detectSessionInUrl processes the hash tokens during _initialize(),
-      // but the PASSWORD_RECOVERY event fires before our listener registers.
-      // getSession() should return the session once _initialize() completes.
-      const maxAttempts = 10;
+      const maxAttempts = 30; // 30 x 200ms = 6 seconds
       for (let i = 0; i < maxAttempts; i++) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          if (!cancelled) setSessionReady(true);
+          markReady();
           return;
         }
+        if (cancelled) return;
         await new Promise(r => setTimeout(r, 200));
       }
-      if (!cancelled) {
-        setError('Session expired or invalid. Please request a new password reset link.');
-      }
+      markError('Session expired or invalid. Please request a new password reset link.');
     })();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

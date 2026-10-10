@@ -104,11 +104,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoggedInRef.current = !!session?.user;
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      // During a password-recovery flow, getSession() may return null because
+      // the PKCE code exchange is still in-flight. Don't clear loading yet —
+      // the PASSWORD_RECOVERY onAuthStateChange event will set loading=false
+      // once the session is established. The 8s loadingTimeout above is the
+      // fallback for genuinely invalid/expired links.
+      if (session || !isInitialPasswordRecovery) {
+        setLoading(false);
+      }
       if (session?.user) resetIdleTimer();
     }).catch(() => {
       clearTimeout(loadingTimeout);
-      setLoading(false);
+      if (!isInitialPasswordRecovery) {
+        setLoading(false);
+      }
     });
 
     const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
