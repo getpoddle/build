@@ -1305,12 +1305,12 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
       });
       if (error) {
         const msg = error.message || '';
-        if (msg.includes('not authorized') || msg.includes('do not have access')) {
-          setSnapshotError('You are not authorized to create snapshots in this workspace. Only workspace admins, decision owners, and evidence reviewers can capture snapshots.');
+        if (msg.includes('do not have access')) {
+          setSnapshotError('You do not have access to this workspace.');
         } else if (msg.includes('Not signed in')) {
           setSnapshotError('Your session has expired. Please sign in again to capture a snapshot.');
         } else {
-          setSnapshotError('Snapshot capture failed. Please try again.');
+          setSnapshotError(`Snapshot capture failed: ${msg}`);
         }
         return;
       }
