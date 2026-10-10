@@ -174,15 +174,15 @@ const TRAIL_META: Record<string, { icon: LucideIcon; color: string }> = {
 };
 
 const DEMO_TRAIL: DemoTrailEvent[] = [
-  { type: 'decision_created', label: 'Decision Created', actor: 'O. Akinbobola', time: 'Oct 1, 09:14' },
-  { type: 'evidence_added', label: 'Evidence Added', actor: 'O. Akinbobola', time: 'Oct 1, 10:32', claim: 'EVD-001' },
-  { type: 'evidence_verified', label: 'Evidence Verified', actor: 'O. Akinbobola', time: 'Oct 2, 08:45', claim: 'EVD-001' },
+  { type: 'decision_created', label: 'Decision Created', actor: 'M. Chen', time: 'Oct 1, 09:14' },
+  { type: 'evidence_added', label: 'Evidence Added', actor: 'M. Chen', time: 'Oct 1, 10:32', claim: 'EVD-001' },
+  { type: 'evidence_verified', label: 'Evidence Verified', actor: 'M. Chen', time: 'Oct 2, 08:45', claim: 'EVD-001' },
   { type: 'agent_analysis', label: 'Agent Analysis', actor: 'Risk Analyst', time: 'Oct 2, 14:20', claim: 'EVD-004' },
   { type: 'challenge_raised', label: 'Challenge Raised', actor: "Devil's Advocate", time: 'Oct 3, 11:15', claim: 'EVD-003' },
   { type: 'evidence_revised', label: 'Evidence Revised', actor: 'Market Analyst', time: 'Oct 3, 16:08', claim: 'EVD-005' },
   { type: 'agent_analysis', label: 'Agent Analysis', actor: 'Financial Strategist', time: 'Oct 4, 09:30', claim: 'EVD-001' },
   { type: 'snapshot_created', label: 'Snapshot Created', actor: 'System', time: 'Oct 4, 16:45' },
-  { type: 'evidence_verified', label: 'Evidence Verified', actor: 'O. Akinbobola', time: 'Oct 5, 10:00', claim: 'EVD-002' },
+  { type: 'evidence_verified', label: 'Evidence Verified', actor: 'M. Chen', time: 'Oct 5, 10:00', claim: 'EVD-002' },
 ];
 
 const CAPABILITIES: { icon: LucideIcon; title: string; body: string; points: string[] }[] = [
@@ -363,7 +363,7 @@ function OverviewTab() {
           <div className="space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span style={{ color: SLATE_MID }}>Decision Owner</span>
-              <span className="font-semibold" style={{ color: INK }}>O. Akinbobola</span>
+              <span className="font-semibold" style={{ color: INK }}>M. Chen</span>
             </div>
             <div className="h-px" style={{ background: BORDER_SOFT }} />
             <div className="flex items-center justify-between text-xs">
@@ -703,7 +703,7 @@ function StageDefinePreview() {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span style={{ color: SLATE_MID }}>Decision Owner</span>
-            <span className="font-medium" style={{ color: INK }}>O. Akinbobola</span>
+            <span className="font-medium" style={{ color: INK }}>M. Chen</span>
           </div>
           <div className="flex items-center justify-between text-xs">
             <span style={{ color: SLATE_MID }}>Contributors</span>
