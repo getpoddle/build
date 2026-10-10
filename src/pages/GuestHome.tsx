@@ -586,16 +586,6 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Headline + CTAs */}
         <div className="text-center max-w-3xl mx-auto mb-6">
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
-            style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)' }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: BLUE }} />
-            <span className="text-xs font-semibold tracking-[0.15em] uppercase" style={{ color: BLUE }}>
-              Decision Intelligence & Governance
-            </span>
-          </div>
-
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-3" style={{ color: INK }}>
             Better decisions.
             <br />
@@ -892,10 +882,6 @@ function Footer({ onNavigate }: { onNavigate: (p: string) => void }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           <div className="lg:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <PoddleMark size={28} />
-              <span className="text-lg font-black tracking-tight text-white">Poddle<span style={{ color: GOLD_LIGHT, fontWeight: 400 }}>AI</span></span>
-            </div>
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: '#94a3b8' }}>
               AI-powered decision governance for organizations that need evidence-based, defensible decisions.
             </p>
