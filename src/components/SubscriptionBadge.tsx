@@ -14,8 +14,8 @@ const PLAN_ICONS: Record<string, React.ElementType> = {
 
 const PLAN_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   Individual: { bg: 'rgba(37,99,235,0.1)', text: '#2563eb', border: 'rgba(37,99,235,0.2)' },
-  Team: { bg: 'rgba(184,134,11,0.12)', text: '#b8860b', border: 'rgba(184,134,11,0.22)' },
-  Business: { bg: 'rgba(124,58,237,0.1)', text: '#7c3aed', border: 'rgba(124,58,237,0.2)' },
+  Team: { bg: 'rgba(8,145,178,0.1)', text: '#0891b2', border: 'rgba(8,145,178,0.2)' },
+  Business: { bg: 'rgba(15,118,110,0.1)', text: '#0f7670', border: 'rgba(15,118,110,0.2)' },
 };
 
 export default function SubscriptionBadge({ userId, className = '' }: SubscriptionBadgeProps) {

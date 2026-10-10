@@ -23,38 +23,38 @@ export default function CheckoutSuccess({ onNavigate }: CheckoutSuccessProps) {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4"
-      style={{ background: 'linear-gradient(135deg,#000 0%,#0a0a0a 55%,#111 100%)' }}
+      style={{ background: 'var(--app-bg)' }}
     >
       <div className="max-w-md w-full text-center">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-12">
           <PoddleMark size={32} />
           <span className="font-black text-xl tracking-tight">
-            <span style={{ color: '#60a5fa', fontWeight: 700 }}>Poddle</span><span style={{ color: '#d4a535', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+            <span style={{ color: 'var(--signal)', fontWeight: 700 }}>Poddle</span><span style={{ color: 'var(--app-text-muted)', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
           </span>
         </div>
 
         {/* Success icon */}
         <div
           className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-8"
-          style={{ background: 'rgba(22,163,74,0.15)', border: '2px solid rgba(22,163,74,0.35)' }}
+          style={{ background: 'rgba(22,163,74,0.12)', border: '2px solid rgba(22,163,74,0.35)' }}
         >
-          <CheckCircle className="w-10 h-10" style={{ color: '#34d399' }} />
+          <CheckCircle className="w-10 h-10" style={{ color: '#16a34a' }} />
         </div>
 
-        <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight mb-3" style={{ color: 'var(--app-text-primary)' }}>
           You're all set!
         </h1>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 mb-8" style={{ color: 'rgba(148,163,184,0.6)' }}>
+          <div className="flex items-center justify-center gap-2 mb-8" style={{ color: 'var(--app-text-muted)' }}>
             <Loader2 className="w-4 h-4 animate-spin" />
             <span className="text-sm">Activating your plan…</span>
           </div>
         ) : (
-          <p className="text-base mb-8 leading-relaxed" style={{ color: 'rgba(203,213,225,0.7)' }}>
+          <p className="text-base mb-8 leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
             {subscription.planName
-              ? <>Welcome to <span className="text-white font-bold">{subscription.planName}</span>. Your workspace is ready.</>
+              ? <>Welcome to <span className="font-bold" style={{ color: 'var(--app-text-primary)' }}>{subscription.planName}</span>. Your workspace is ready.</>
               : 'Your subscription is active. Your workspace is ready.'}
           </p>
         )}
@@ -62,15 +62,14 @@ export default function CheckoutSuccess({ onNavigate }: CheckoutSuccessProps) {
         <div className="space-y-3">
           <button
             onClick={() => onNavigate('workspaces')}
-            className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl font-bold text-sm text-white transition-all duration-200 hover:-translate-y-0.5"
-            style={{ background: 'linear-gradient(135deg,#b8860b,#d4a535)', color: '#000', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }}
+            className="btn-primary w-full flex items-center justify-center gap-2.5 px-6 py-4 transition-all duration-200 hover:-translate-y-0.5"
           >
             <Sparkles className="w-4 h-4" />
             Open your workspace
             <ArrowRight className="w-4 h-4" />
           </button>
 
-          <p className="text-xs" style={{ color: 'rgba(100,116,139,0.5)' }}>
+          <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
             Redirecting automatically in {countdown}s…
           </p>
         </div>

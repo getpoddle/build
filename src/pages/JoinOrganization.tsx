@@ -84,8 +84,8 @@ export default function JoinOrganization({ token, onNavigate }: JoinOrganization
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--app-bg, #f8fafc)' }}>
       <div className="max-w-md w-full p-8 text-center" style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
-        <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center" style={{ background: 'rgba(184,134,11,0.1)' }}>
-          <Building2 className="w-7 h-7" style={{ color: '#b8860b' }} />
+        <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center rounded-lg" style={{ background: 'var(--signal-bg)' }}>
+          <Building2 className="w-7 h-7" style={{ color: 'var(--signal)' }} />
         </div>
 
         {status === 'loading' && (
@@ -101,8 +101,7 @@ export default function JoinOrganization({ token, onNavigate }: JoinOrganization
             <button
               onClick={handleAccept}
               disabled={joining}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-white font-bold text-sm disabled:opacity-60"
-              style={{ background: '#b8860b' }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-white font-bold text-sm disabled:opacity-60 btn-primary"
             >
               {joining ? 'Joining…' : 'Accept invitation'}
               {!joining && <ArrowRight className="w-4 h-4" />}
@@ -118,8 +117,7 @@ export default function JoinOrganization({ token, onNavigate }: JoinOrganization
             </p>
             <button
               onClick={() => onNavigate('auth')}
-              className="w-full py-3 rounded-lg text-white font-bold text-sm"
-              style={{ background: '#b8860b' }}
+              className="w-full py-3 rounded-lg text-white font-bold text-sm btn-primary"
             >
               Sign in / Sign up
             </button>
@@ -144,8 +142,7 @@ export default function JoinOrganization({ token, onNavigate }: JoinOrganization
             </h1>
             <button
               onClick={() => onNavigate('organization')}
-              className="w-full py-3 rounded-lg text-white font-bold text-sm mt-4"
-              style={{ background: '#b8860b' }}
+              className="w-full py-3 rounded-lg text-white font-bold text-sm mt-4 btn-primary"
             >
               Go to Organization
             </button>

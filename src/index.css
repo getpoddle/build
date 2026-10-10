@@ -4,8 +4,8 @@
 
 /* ─────────────────────────────────────────────────────────
    PODDLE DESIGN SYSTEM — Enterprise Decision Intelligence
-   Dark-field terminal aesthetic. Restraint, density, gravity.
-   Primary palette: ink + signal-gold. No decorative gradients.
+   Clean, modern enterprise SaaS. White surfaces, blue accents,
+   subtle borders, restrained shadows. Light-first.
 ───────────────────────────────────────────────────────── */
 
 :root {
@@ -15,53 +15,54 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
 
-  /* ── LIGHT THEME (briefing paper) ── */
-  --ink-950:  #E7E6E2;
-  --ink-900:  #F0EFEB;
-  --ink-800:  #F7F6F2;
-  --ink-700:  #C8CBC7;
-  --ink-500:  #8A9292;
-  --ink-300:  #596467;
-  --ink-100:  #3E4A4D;
-  --ink-50:   #1C2729;
+  /* ── LIGHT THEME (enterprise SaaS) ── */
+  --ink-950:  #FFFFFF;
+  --ink-900:  #F8FAFC;
+  --ink-800:  #F1F5F9;
+  --ink-700:  #E2E8F0;
+  --ink-500:  #94A3B8;
+  --ink-300:  #64748B;
+  --ink-100:  #334155;
+  --ink-50:   #0F172A;
 
-  --signal:      #2E7066;
-  --signal-dim:  #255F57;
-  --signal-bg:   rgba(46,112,102,0.10);
-  --positive:    #287457;
-  --positive-bg: rgba(40,116,87,0.10);
-  --negative:    #9B4937;
-  --negative-bg: rgba(155,73,55,0.10);
-  --caution:     #9A5D24;
+  --signal:      #2563EB;
+  --signal-dim:  #1D4ED8;
+  --signal-bg:   rgba(37,99,235,0.10);
+  --positive:    #16A34A;
+  --positive-bg: rgba(22,163,74,0.10);
+  --negative:    #DC2626;
+  --negative-bg: rgba(220,38,38,0.10);
+  --caution:     #D97706;
+  --caution-bg:  rgba(217,119,6,0.10);
 
   /* Agent identity colors — light mode */
-  --agent-risk:      #9B4937;
-  --agent-risk-bg:   rgba(155,73,55,0.10);
-  --agent-fin:       #286786;
-  --agent-fin-bg:    rgba(40,103,134,0.10);
-  --agent-strat:     #287457;
-  --agent-strat-bg:  rgba(40,116,87,0.10);
-  --agent-exec:      #4E4A45;
-  --agent-exec-bg:   rgba(78,74,69,0.08);
+  --agent-risk:      #DC2626;
+  --agent-risk-bg:   rgba(220,38,38,0.10);
+  --agent-fin:       #2563EB;
+  --agent-fin-bg:    rgba(37,99,235,0.10);
+  --agent-strat:     #16A34A;
+  --agent-strat-bg:  rgba(22,163,74,0.10);
+  --agent-exec:      #64748B;
+  --agent-exec-bg:   rgba(100,116,139,0.10);
 
-  --app-bg:             var(--ink-950);
-  --app-surface:        var(--ink-900);
-  --app-surface-raised: var(--ink-800);
-  --app-border:         var(--ink-700);
-  --app-border-subtle:  rgba(28,39,41,0.10);
-  --app-text-primary:   var(--ink-50);
-  --app-text-secondary: var(--ink-100);
-  --app-text-muted:     var(--ink-300);
-  --app-nav-bg:         var(--ink-900);
-  --app-input-bg:       var(--ink-800);
-  --app-input-border:   var(--ink-700);
-  --app-divider:        var(--ink-700);
+  --app-bg:             #FFFFFF;
+  --app-surface:        #FFFFFF;
+  --app-surface-raised: #F8FAFC;
+  --app-border:         #E2E8F0;
+  --app-border-subtle:  #F1F5F9;
+  --app-text-primary:   #0F172A;
+  --app-text-secondary: #334155;
+  --app-text-muted:     #64748B;
+  --app-nav-bg:         #FFFFFF;
+  --app-input-bg:       #FFFFFF;
+  --app-input-border:   #E2E8F0;
+  --app-divider:        #E2E8F0;
 
-  --shadow-sm:  none;
-  --shadow-md:  none;
-  --shadow-lg:  none;
-  --shadow-xl:  none;
-  --shadow-signal: none;
+  --shadow-sm:  0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md:  0 4px 12px rgba(15,23,42,0.08), 0 1px 3px rgba(15,23,42,0.04);
+  --shadow-lg:  0 12px 32px rgba(15,23,42,0.10), 0 4px 12px rgba(15,23,42,0.05);
+  --shadow-xl:  0 20px 56px rgba(15,23,42,0.12), 0 4px 16px rgba(15,23,42,0.04);
+  --shadow-signal: 0 4px 14px rgba(37,99,235,0.18);
 }
 
 html.theme-dark {
@@ -75,23 +76,23 @@ html.theme-dark {
   --ink-100:  #D0D5DB;
   --ink-50:   #F3F4F1;
 
-  --signal:      #4A9B8E;
-  --signal-dim:  #65B0A2;
-  --signal-bg:   rgba(74,155,142,0.12);
-  --positive:    #62B39B;
-  --positive-bg: rgba(98,179,155,0.12);
-  --negative:    #C4634A;
-  --negative-bg: rgba(196,99,74,0.14);
-  --caution:     #D39A58;
+  --signal:      #3B82F6;
+  --signal-dim:  #60A5FA;
+  --signal-bg:   rgba(59,130,246,0.15);
+  --positive:    #22C55E;
+  --positive-bg: rgba(34,197,94,0.15);
+  --negative:    #EF4444;
+  --negative-bg: rgba(239,68,68,0.15);
+  --caution:     #F59E0B;
 
-  --agent-risk:      #C4634A;
-  --agent-risk-bg:   rgba(196,99,74,0.14);
-  --agent-fin:       #6BA8C4;
-  --agent-fin-bg:    rgba(107,168,196,0.13);
-  --agent-strat:     #62B39B;
-  --agent-strat-bg:  rgba(98,179,155,0.13);
-  --agent-exec:      #AAB3C0;
-  --agent-exec-bg:   rgba(170,179,192,0.10);
+  --agent-risk:      #EF4444;
+  --agent-risk-bg:   rgba(239,68,68,0.15);
+  --agent-fin:       #3B82F6;
+  --agent-fin-bg:    rgba(59,130,246,0.15);
+  --agent-strat:     #22C55E;
+  --agent-strat-bg:  rgba(34,197,94,0.15);
+  --agent-exec:      #94A3B8;
+  --agent-exec-bg:   rgba(148,163,184,0.12);
 
   --app-bg:             var(--ink-950);
   --app-surface:        var(--ink-900);
@@ -110,7 +111,7 @@ html.theme-dark {
   --shadow-md:  0 4px 12px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.30);
   --shadow-lg:  0 12px 32px rgba(0,0,0,0.60), 0 4px 12px rgba(0,0,0,0.40);
   --shadow-xl:  0 24px 56px rgba(0,0,0,0.70), 0 8px 20px rgba(0,0,0,0.50);
-  --shadow-signal: 0 0 24px rgba(184,134,11,0.20);
+  --shadow-signal: 0 0 24px rgba(59,130,246,0.25);
 }
 
 /* ── PRINT ── */
@@ -197,24 +198,24 @@ html.theme-dark {
   .panel {
     background: var(--app-surface);
     border: 1px solid var(--app-border);
-    border-radius: 4px;
+    border-radius: 8px;
   }
   .panel-raised {
     background: var(--app-surface-raised);
     border: 1px solid var(--app-border);
-    border-radius: 4px;
+    border-radius: 8px;
   }
   /* Legacy aliases kept for existing code that references .card */
   .card {
     background: var(--app-surface);
     border: 1px solid var(--app-border);
-    border-radius: 4px;
+    border-radius: 8px;
     box-shadow: var(--shadow-sm);
   }
   .card-interactive {
     background: var(--app-surface);
     border: 1px solid var(--app-border);
-    border-radius: 4px;
+    border-radius: 8px;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
     transition: border-color 150ms ease, box-shadow 150ms ease;
@@ -238,13 +239,13 @@ html.theme-dark {
     justify-content: center;
     gap: 0.5rem;
     padding: 0.625rem 1.25rem;
-    border-radius: 3px;
+    border-radius: 6px;
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.8125rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #000000;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    color: #ffffff;
     background: var(--signal);
     border: 1px solid var(--signal);
     transition: background 150ms ease, box-shadow 150ms ease, transform 100ms ease;
@@ -263,12 +264,12 @@ html.theme-dark {
     justify-content: center;
     gap: 0.5rem;
     padding: 0.625rem 1.25rem;
-    border-radius: 3px;
+    border-radius: 6px;
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.8125rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    text-transform: none;
     color: var(--app-text-primary);
     background: transparent;
     border: 1px solid var(--app-border);
@@ -286,7 +287,7 @@ html.theme-dark {
     justify-content: center;
     gap: 0.375rem;
     padding: 0.4375rem 0.75rem;
-    border-radius: 3px;
+    border-radius: 6px;
     font-size: 0.8125rem;
     font-weight: 500;
     color: var(--app-text-muted);
@@ -305,7 +306,7 @@ html.theme-dark {
   .input-modern {
     width: 100%;
     padding: 0.5625rem 0.875rem;
-    border-radius: 3px;
+    border-radius: 6px;
     border: 1px solid var(--app-input-border);
     background: var(--app-input-bg);
     color: var(--app-text-primary);
@@ -366,16 +367,16 @@ html.theme-dark {
 
   /* ── NAV ── */
   .nav-pill { border-radius: 2px; font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.03em; padding: 0.375rem 0.875rem; transition: all 150ms ease; }
-  .nav-pill-active { background: var(--signal); color: #000000; }
+  .nav-pill-active { background: var(--signal); color: #ffffff; }
   .nav-pill-inactive { color: var(--app-text-muted); }
   .nav-pill-inactive:hover { color: var(--app-text-primary); background: var(--app-border-subtle); }
 
   /* ── STAT / METRIC ── */
   .stat-card {
-    padding: 0.875rem 1rem;
+    padding: 1rem 1.25rem;
     background: var(--app-surface);
     border: 1px solid var(--app-border);
-    border-radius: 4px;
+    border-radius: 8px;
   }
   .stat-card-value {
     font-family: 'IBM Plex Mono', monospace;
@@ -404,7 +405,8 @@ html.theme-dark {
     color: var(--app-text-muted);
   }
   .display-heading {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
     letter-spacing: -0.01em;
     line-height: 1.15;
     color: var(--app-text-primary);
@@ -453,7 +455,7 @@ html.theme-dark {
   .gradient-danger     { background: var(--negative); }
   .gradient-text       { color: var(--signal); }
   .gradient-text-amber { color: var(--signal); }
-  .rank-gold   { background: var(--signal);   color: #000000; }
+  .rank-gold   { background: var(--signal);   color: #ffffff; }
   .rank-silver { background: var(--ink-300); color: var(--ink-50); }
   .rank-bronze { background: var(--caution); color: #000000; }
   .glow-blue   { box-shadow: var(--shadow-signal); }
@@ -514,7 +516,7 @@ html.theme-dark {
   @keyframes scaleIn       { from { opacity:0; transform:scale(0.97); }      to { opacity:1; transform:scale(1); } }
   @keyframes slide-up      { from { transform:translateY(100%); opacity:0; } to { transform:translateY(0); opacity:1; } }
   @keyframes pulseSlow     { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
-  @keyframes pulseRing     { 0%,100% { box-shadow:0 0 0 0 rgba(184,134,11,0.4); } 60% { box-shadow:0 0 0 5px rgba(184,134,11,0); } }
+  @keyframes pulseRing     { 0%,100% { box-shadow:0 0 0 0 rgba(37,99,235,0.4); } 60% { box-shadow:0 0 0 5px rgba(37,99,235,0); } }
   @keyframes floating      { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
   @keyframes marqueeScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 

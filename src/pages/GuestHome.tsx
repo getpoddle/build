@@ -1203,7 +1203,7 @@ export function TeamSection() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <RevealSection>
           <div className="text-center mb-14">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: '#b8860b' }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-3" style={{ color: 'var(--signal)' }}>
               The team
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4" style={{ color: '#0f172a' }}>
@@ -1226,7 +1226,7 @@ export function TeamSection() {
                     <img src={m.photo} alt={m.name} className="w-full h-full object-cover" />
                   </div>
                   <h3 className="text-lg font-bold mb-1 text-center sm:text-left" style={{ color: '#0f172a' }}>{m.name}</h3>
-                  <p className="text-sm font-medium text-center sm:text-left" style={{ color: '#b8860b' }}>{m.role}</p>
+                  <p className="text-sm font-medium text-center sm:text-left" style={{ color: 'var(--app-text-muted)' }}>{m.role}</p>
                 </div>
                 <div className="flex-1 sm:border-l sm:pl-8 sm:border-slate-200">
                   <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: '#475569' }}>{m.bio}</p>

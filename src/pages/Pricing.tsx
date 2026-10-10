@@ -283,7 +283,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
                 key={tier.id}
                 className="relative overflow-hidden p-6 flex flex-col"
                 style={isFeatured
-                  ? { background: '#0e1117', border: '1px solid var(--signal)', boxShadow: 'var(--shadow-signal)' }
+                  ? { background: 'var(--app-surface)', border: '2px solid var(--signal)', boxShadow: 'var(--shadow-signal)' }
                   : isCurrent
                     ? { borderColor: 'var(--app-text-muted)' }
                     : undefined
@@ -295,7 +295,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
                     {isCurrent ? (
                       <div className="badge badge-slate">Current plan</div>
                     ) : (
-                      <div className={`badge ${tier.badgeClass ?? ''}`} style={isFeatured ? { background: 'var(--signal)', color: 'var(--ink-900)' } : undefined}>
+                      <div className={`badge ${tier.badgeClass ?? ''}`} style={isFeatured ? { background: 'var(--signal)', color: '#ffffff' } : undefined}>
                         {tier.badge}
                       </div>
                     )}
@@ -310,8 +310,8 @@ export default function Pricing({ onNavigate }: PricingProps) {
                     {tier.name}
                   </p>
                   <div className="flex items-end gap-1 mb-1 flex-wrap">
-                    <span className="stat-card-value" style={isFeatured ? { color: '#ffffff' } : undefined}>{tier.price}</span>
-                    <span className="text-sm mb-1.5" style={isFeatured ? { color: 'rgba(255,255,255,0.7)' } : { color: 'var(--app-text-muted)' }}>{tier.period}</span>
+                    <span className="stat-card-value" style={isFeatured ? { color: 'var(--app-text-primary)' } : undefined}>{tier.price}</span>
+                    <span className="text-sm mb-1.5" style={isFeatured ? { color: 'var(--app-text-secondary)' } : { color: 'var(--app-text-muted)' }}>{tier.period}</span>
                     {tier.savingsBadge && (
                       <span
                         className="text-[10px] font-bold px-1.5 py-0.5 rounded mb-1.5"
@@ -321,13 +321,13 @@ export default function Pricing({ onNavigate }: PricingProps) {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm" style={isFeatured ? { color: 'rgba(255,255,255,0.8)' } : { color: 'var(--app-text-secondary)' }}>{tier.audience}</p>
+                  <p className="text-sm" style={isFeatured ? { color: 'var(--app-text-secondary)' } : { color: 'var(--app-text-secondary)' }}>{tier.audience}</p>
                 </div>
 
                 <ul className="space-y-2.5 flex-1 mb-6">
                   {tier.benefits.map(item => (
-                    <li key={item} className="flex items-start gap-2.5 text-sm" style={isFeatured ? { color: 'rgba(255,255,255,0.85)' } : { color: 'var(--app-text-primary)' }}>
-                      <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={isFeatured ? { color: 'var(--signal)' } : undefined} />
+                    <li key={item} className="flex items-start gap-2.5 text-sm" style={isFeatured ? { color: 'var(--app-text-primary)' } : { color: 'var(--app-text-primary)' }}>
+                      <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--signal)' }} />
                       {item}
                     </li>
                   ))}
@@ -418,12 +418,12 @@ export default function Pricing({ onNavigate }: PricingProps) {
         </div>
 
         {/* CTA */}
-        <div className="panel p-8 sm:p-12 text-center" style={{ background: '#0e1117' }}>
-          <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
+        <div className="panel p-8 sm:p-12 text-center" style={{ background: 'var(--app-surface-raised)' }}>
+          <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center rounded-lg" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
             <Lock className="w-6 h-6" style={{ color: 'var(--signal)' }} />
           </div>
-          <h2 className="display-heading text-2xl mb-3" style={{ color: '#ffffff' }}>Ready to sharpen your decisions?</h2>
-          <p className="text-sm mb-7 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.7)' }}>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3" style={{ color: 'var(--app-text-primary)' }}>Ready to sharpen your decisions?</h2>
+          <p className="text-sm mb-7 max-w-md mx-auto" style={{ color: 'var(--app-text-secondary)' }}>
           Get private, invite-only workspaces, AI War Room intelligence, and a team that thinks faster, starting today.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -438,7 +438,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
                 Get Team — {teamPrice.price}{teamPrice.period}
               </button>
             )}
-            <button onClick={handleEnterprise} className="btn-secondary" style={{ background: 'transparent', color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)' }}>
+            <button onClick={handleEnterprise} className="btn-secondary">
               <Mail className="w-4 h-4" />
               Contact sales
             </button>

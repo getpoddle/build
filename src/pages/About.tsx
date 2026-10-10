@@ -92,7 +92,7 @@ export default function About({ onNavigate }: AboutProps) {
           className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors"
         >
           <PoddleMark size={22} />
-          <span className="font-semibold"><span style={{ color: '#0B4AA2', fontWeight: 700 }}>Poddle</span><span style={{ color: '#C7A95F', fontWeight: 400, marginLeft: '0.15em' }}>AI</span></span>
+          <span className="font-semibold"><span style={{ color: 'var(--signal)', fontWeight: 700 }}>Poddle</span><span style={{ color: 'var(--app-text-muted)', fontWeight: 400, marginLeft: '0.15em' }}>AI</span></span>
         </button>
       </div>
 
@@ -100,7 +100,7 @@ export default function About({ onNavigate }: AboutProps) {
 
         {/* Value prop */}
         <section className="mb-14">
-          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#b8860b' }}>About Poddle AI</p>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--signal)' }}>About Poddle AI</p>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-snug">
             Poddle AI is a decision governance platform that pressure-tests, approves, and permanently records high-stakes business decisions for growing companies.
           </h1>
@@ -138,7 +138,7 @@ export default function About({ onNavigate }: AboutProps) {
           <ul className="space-y-2.5">
             {ICP.map(item => (
               <li key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 mt-1" style={{ color: '#b8860b' }} />
+                <ArrowRight className="w-3.5 h-3.5 flex-shrink-0 mt-1" style={{ color: 'var(--signal)' }} />
                 {item}
               </li>
             ))}
@@ -209,22 +209,22 @@ export default function About({ onNavigate }: AboutProps) {
       </div>
 
       {/* Footer */}
-      <footer style={{ background: '#000000' }} className="py-12">
+      <footer style={{ background: 'var(--app-surface-raised)', borderTop: '1px solid var(--app-border)' }} className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <PoddleMark size={28} />
               <span className="font-black text-lg tracking-tight">
-                <span style={{ color: '#60a5fa', fontWeight: 700 }}>Poddle</span><span style={{ color: '#d4a535', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+                <span style={{ color: 'var(--signal)', fontWeight: 700 }}>Poddle</span><span style={{ color: 'var(--app-text-muted)', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
               </span>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>
-              <button onClick={() => onNavigate('home')} className="hover:text-white transition-colors">Home</button>
-              <button onClick={() => onNavigate('team')} className="hover:text-white transition-colors">Team</button>
-              <button onClick={() => onNavigate('advisory')} className="hover:text-white transition-colors">Advisory</button>
-              <a href="#privacy" className="hover:text-white transition-colors">Privacy</a>
-              <a href="#terms" className="hover:text-white transition-colors">Terms</a>
-              <a href="#contact-us" className="hover:text-white transition-colors">Contact</a>
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs" style={{ color: 'var(--app-text-secondary)' }}>
+              <button onClick={() => onNavigate('home')} className="hover:opacity-70 transition-opacity">Home</button>
+              <button onClick={() => onNavigate('team')} className="hover:opacity-70 transition-opacity">Team</button>
+              <button onClick={() => onNavigate('advisory')} className="hover:opacity-70 transition-opacity">Advisory</button>
+              <a href="#privacy" className="hover:opacity-70 transition-opacity">Privacy</a>
+              <a href="#terms" className="hover:opacity-70 transition-opacity">Terms</a>
+              <a href="#contact-us" className="hover:opacity-70 transition-opacity">Contact</a>
             </div>
           </div>
         </div>

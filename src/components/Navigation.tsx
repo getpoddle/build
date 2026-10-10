@@ -106,7 +106,6 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
   const navItems = user
     ? (hideDashboard ? navItemsAuth.filter(i => i.id !== 'home') : navItemsAuth)
     : NAV_ITEMS_GUEST;
-  // Determine active item
   const activeId = (currentPage === 'workspace-hub' || currentPage === 'workspace-settings')
     ? 'workspaces'
     : currentPage === 'auth' ? 'home' : currentPage;
@@ -116,6 +115,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
   const initials = displayName.slice(0, 2).toUpperCase();
 
   const sidebarWidth = collapsed ? '4rem' : '15rem';
+  const isDark = theme === 'dark';
 
   return (
     <>
@@ -135,22 +135,21 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           style={{
             width: collapsed ? '4rem' : '15rem',
             transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
-            background: '#0f172a',
-            borderRight: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--app-nav-bg)',
+            borderRight: '1px solid var(--app-border)',
           }}
         >
           {/* Logo row */}
           <div
             className="flex items-center h-16 flex-shrink-0 border-b"
-            style={{ borderColor: 'rgba(255,255,255,0.06)', padding: collapsed ? '0 1rem' : '0 1.25rem', justifyContent: collapsed ? 'center' : 'flex-start', gap: '0.625rem' }}
+            style={{ borderColor: 'var(--app-border)', padding: collapsed ? '0 1rem' : '0 1.25rem', justifyContent: collapsed ? 'center' : 'flex-start', gap: '0.625rem' }}
           >
             <PoddleMark size={28} className="flex-shrink-0" />
             {!collapsed && (
               <span className="text-base font-black tracking-tight whitespace-nowrap overflow-hidden">
-                <span style={{ color: '#60a5fa', fontWeight: 700 }}>Poddle</span><span style={{ color: '#d4a535', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+                <span style={{ color: 'var(--signal)', fontWeight: 700 }}>Poddle</span><span style={{ color: 'var(--app-text-muted)', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
               </span>
             )}
-            {/* Collapse toggle */}
             {onToggleCollapsed && (
               <button
                 onClick={onToggleCollapsed}
@@ -159,10 +158,10 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 className="flex items-center justify-center w-6 h-6 rounded-lg transition-all flex-shrink-0"
                 style={{
                   marginLeft: collapsed ? 0 : 'auto',
-                  color: 'rgba(148,163,184,0.4)',
+                  color: 'var(--app-text-muted)',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.4)'; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-primary)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-muted)'; }}
               >
                 <ChevronLeft
                   className="w-3.5 h-3.5 transition-transform duration-200"
@@ -175,7 +174,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           {/* Nav items */}
           <nav className="flex-1 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden" style={{ padding: collapsed ? '0.5rem 0.5rem' : '0.5rem 0.75rem' }} role="list">
             {!collapsed && (
-              <p className="text-[11px] font-bold uppercase tracking-widest px-3 py-2 whitespace-nowrap" style={{ color: 'rgba(100,116,139,0.9)' }}>Navigation</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest px-3 py-2 whitespace-nowrap" style={{ color: 'var(--app-text-muted)' }}>Navigation</p>
             )}
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -187,17 +186,17 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                   onClick={() => handleNavigate(item.id)}
                   aria-current={isActive ? 'page' : undefined}
                   title={collapsed ? item.label : undefined}
-                  className="relative w-full flex items-center rounded text-sm font-medium transition-all duration-150"
+                  className="relative w-full flex items-center rounded-lg text-sm font-medium transition-all duration-150"
                   style={{
                     gap: collapsed ? 0 : '0.75rem',
                     padding: collapsed ? '0.625rem' : '0.625rem 0.75rem',
                     justifyContent: collapsed ? 'center' : 'flex-start',
-                    ...(isActive ? { background: 'var(--signal-bg)', color: 'var(--signal)' } : { color: 'rgba(148,163,184,0.85)' }),
+                    ...(isActive ? { background: 'var(--signal-bg)', color: 'var(--signal)' } : { color: 'var(--app-text-secondary)' }),
                   }}
-                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-primary)'; }}
+                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-secondary)'; } }}
                 >
-                  {isActive && !collapsed && <span className="absolute left-0 w-0.5 h-5" style={{ background: 'var(--signal)' }} aria-hidden="true" />}
+                  {isActive && !collapsed && <span className="absolute left-0 w-0.5 h-5 rounded-full" style={{ background: 'var(--signal)' }} aria-hidden="true" />}
                   <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
                   {!collapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
                   {!collapsed && isActive && <ChevronRight className="ml-auto w-3.5 h-3.5 opacity-60 flex-shrink-0" />}
@@ -208,20 +207,20 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
             {isAdmin && (
               <>
                 {!collapsed && (
-                  <p className="text-[11px] font-bold uppercase tracking-widest px-3 pt-4 pb-2 whitespace-nowrap" style={{ color: 'rgba(100,116,139,0.9)' }}>Admin</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest px-3 pt-4 pb-2 whitespace-nowrap" style={{ color: 'var(--app-text-muted)' }}>Admin</p>
                 )}
                 <button
                   onClick={() => handleNavigate('admin')}
                   title={collapsed ? 'Admin Panel' : undefined}
-                  className="w-full flex items-center rounded-none text-sm font-medium transition-all duration-150"
+                  className="w-full flex items-center rounded-lg text-sm font-medium transition-all duration-150"
                   style={{
                     gap: collapsed ? 0 : '0.75rem',
                     padding: collapsed ? '0.625rem' : '0.625rem 0.75rem',
                     justifyContent: collapsed ? 'center' : 'flex-start',
-                    color: 'rgba(251,191,36,0.9)',
+                    color: 'var(--caution)',
                     marginTop: collapsed ? '0.5rem' : 0,
                   }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(251,191,36,0.08)'}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--caution-bg, rgba(217,119,6,0.10))'}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}
                 >
                   <Settings className="w-4 h-4 flex-shrink-0" />
@@ -234,7 +233,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           {/* User footer */}
           <div
             className="flex-shrink-0 pt-2 border-t"
-            style={{ borderColor: 'rgba(255,255,255,0.06)', padding: collapsed ? '0.5rem' : '0.5rem 0.75rem 1rem' }}
+            style={{ borderColor: 'var(--app-border)', padding: collapsed ? '0.5rem' : '0.5rem 0.75rem 1rem' }}
           >
             {!collapsed ? (
               <div className="space-y-0.5">
@@ -244,10 +243,10 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     onClick={() => handleNavigate('profile')}
                     aria-label="Account Settings"
                     title="Account Settings"
-                    className="flex-1 flex items-center gap-3 px-2 py-2 rounded-none text-sm font-medium transition-all duration-150"
-                    style={{ color: activeId === 'profile' ? 'var(--signal)' : 'rgba(148,163,184,0.85)', background: activeId === 'profile' ? 'var(--signal-bg)' : '' }}
-                    onMouseEnter={e => { if (activeId !== 'profile') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-                    onMouseLeave={e => { if (activeId !== 'profile') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
+                    className="flex-1 flex items-center gap-3 px-2 py-2 rounded-lg text-sm font-medium transition-all duration-150"
+                    style={{ color: activeId === 'profile' ? 'var(--signal)' : 'var(--app-text-secondary)', background: activeId === 'profile' ? 'var(--signal-bg)' : '' }}
+                    onMouseEnter={e => { if (activeId !== 'profile') (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-primary)'; }}
+                    onMouseLeave={e => { if (activeId !== 'profile') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-secondary)'; } }}
                   >
                     <User className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
                     <span>Account Settings</span>
@@ -255,78 +254,77 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 </div>
                 <button
                   onClick={() => handleNavigate('pricing')}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-none text-sm font-medium transition-all duration-150"
-                  style={{ color: activeId === 'pricing' ? '#93c5fd' : 'rgba(148,163,184,0.85)', background: activeId === 'pricing' ? 'rgba(37,99,235,0.18)' : '' }}
-                  onMouseEnter={e => { if (activeId !== 'pricing') (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-                  onMouseLeave={e => { if (activeId !== 'pricing') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; } }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150"
+                  style={{ color: activeId === 'pricing' ? 'var(--signal)' : 'var(--app-text-secondary)', background: activeId === 'pricing' ? 'var(--signal-bg)' : '' }}
+                  onMouseEnter={e => { if (activeId !== 'pricing') (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-primary)'; }}
+                  onMouseLeave={e => { if (activeId !== 'pricing') { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-secondary)'; } }}
                 >
                   <CreditCard className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
                   <span>Plans &amp; Billing</span>
                 </button>
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-none text-sm font-medium transition-all duration-150"
-                  style={{ color: 'rgba(148,163,184,0.85)' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.85)'; }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150"
+                  style={{ color: 'var(--app-text-secondary)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-primary)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-secondary)'; }}
                 >
                   {theme === 'dark' ? <Sun className="w-4 h-4 flex-shrink-0" strokeWidth={2} /> : <Moon className="w-4 h-4 flex-shrink-0" strokeWidth={2} />}
                   <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
                 </button>
-                <div className="flex items-center gap-3 p-3 rounded-none mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-xs font-black" style={{ background: 'var(--signal)', color: 'var(--ink-950)' }}>
+                <div className="flex items-center gap-3 p-3 rounded-lg mt-1" style={{ background: 'var(--app-surface-raised)' }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ background: 'var(--signal)' }}>
                     {initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white truncate">{displayName}</p>
-                    <p className="text-[11px] truncate" style={{ color: 'rgba(148,163,184,0.7)' }}>{displayEmail}</p>
+                    <p className="text-xs font-semibold truncate" style={{ color: 'var(--app-text-primary)' }}>{displayName}</p>
+                    <p className="text-[11px] truncate" style={{ color: 'var(--app-text-muted)' }}>{displayEmail}</p>
                   </div>
                   <button
                     onClick={() => setShowLogoutConfirm(true)}
                     disabled={isSigningOut}
                     aria-label="Sign out"
                     className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors disabled:opacity-50"
-                    style={{ color: 'rgba(148,163,184,0.5)' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.12)'; (e.currentTarget as HTMLElement).style.color = '#f87171'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.5)'; }}
+                    style={{ color: 'var(--app-text-muted)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--negative-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--negative)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-muted)'; }}
                   >
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             ) : (
-              /* Collapsed footer: icon-only buttons stacked */
               <div className="flex flex-col items-center gap-1">
                 <Notifications onNavigate={onNavigate} />
                 <button
                   onClick={() => handleNavigate('profile')}
                   title="Account Settings"
-                  className="w-9 h-9 flex items-center justify-center rounded-none transition-all"
-                  style={{ color: activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.6)', background: activeId === 'profile' ? 'rgba(37,99,235,0.18)' : '' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = activeId === 'profile' ? 'rgba(37,99,235,0.18)' : ''; (e.currentTarget as HTMLElement).style.color = activeId === 'profile' ? '#93c5fd' : 'rgba(148,163,184,0.6)'; }}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg transition-all"
+                  style={{ color: activeId === 'profile' ? 'var(--signal)' : 'var(--app-text-muted)', background: activeId === 'profile' ? 'var(--signal-bg)' : '' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-primary)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = activeId === 'profile' ? 'var(--signal-bg)' : ''; (e.currentTarget as HTMLElement).style.color = activeId === 'profile' ? 'var(--signal)' : 'var(--app-text-muted)'; }}
                 >
                   <User className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                  className="w-9 h-9 flex items-center justify-center rounded-none transition-all"
-                  style={{ color: 'rgba(148,163,184,0.6)' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLElement).style.color = '#e2e8f0'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.6)'; }}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg transition-all"
+                  style={{ color: 'var(--app-text-muted)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-primary)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-muted)'; }}
                 >
                   {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </button>
-                <div className="w-9 h-9 rounded-none flex items-center justify-center mt-1" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center mt-1" style={{ background: 'var(--app-surface-raised)' }}>
                   <button
                     onClick={() => setShowLogoutConfirm(true)}
                     disabled={isSigningOut}
                     title="Sign out"
                     className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:opacity-50"
-                    style={{ color: 'rgba(148,163,184,0.5)' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.12)'; (e.currentTarget as HTMLElement).style.color = '#f87171'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.5)'; }}
+                    style={{ color: 'var(--app-text-muted)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--negative-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--negative)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-muted)'; }}
                   >
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
@@ -338,8 +336,6 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
       )}
 
       {/* ── Top bar ── */}
-      {/* On desktop + authenticated: slim top bar spanning right of sidebar */}
-      {/* On mobile / guest: full-width top bar */}
       <nav
         role="navigation"
         aria-label="Main navigation"
@@ -347,13 +343,13 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
         style={{
           left: 0,
           paddingTop: 'env(safe-area-inset-top)',
-          background: theme === 'dark'
+          background: isDark
             ? (scrolled ? 'rgba(18,18,20,0.98)' : 'rgba(18,18,20,0.92)')
             : (scrolled ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.82)'),
           backdropFilter: 'blur(24px) saturate(1.6)',
           WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
-          borderBottom: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(15,23,42,0.07)',
-          boxShadow: scrolled ? '0 2px 16px rgba(15,23,42,0.06)' : 'none',
+          borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid var(--app-border)',
+          boxShadow: scrolled ? 'var(--shadow-sm)' : 'none',
         }}
       >
         <div className={`${user ? 'px-4' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'}`}>
@@ -361,7 +357,6 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
 
             {/* LEFT: logo (mobile) or page title (desktop authenticated) */}
             <div className="flex items-center gap-3 min-w-0">
-              {/* Logo — mobile + guest always; hidden on xl when authenticated (sidebar has it) */}
               <button
                 onClick={() => onNavigate(user ? 'workspaces' : 'home')}
                 aria-label="Go to home"
@@ -370,16 +365,15 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 <PoddleMark size={26} />
                 <span
                   className="text-[15px] font-black tracking-tight"
-                  style={{ color: theme === 'dark' ? '#f4f4f5' : '#0f172a' }}
+                  style={{ color: isDark ? '#f4f4f5' : '#0f172a' }}
                 >
-                  <span style={{ color: '#60a5fa', fontWeight: 700 }}>Poddle</span><span style={{ color: '#d4a535', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
+                  <span style={{ color: 'var(--signal)', fontWeight: 700 }}>Poddle</span><span style={{ color: isDark ? '#a1a1aa' : '#64748b', fontWeight: 400, marginLeft: '0.15em' }}>AI</span>
                 </span>
               </button>
 
-              {/* Desktop authenticated only: page breadcrumb */}
               {user && (
                 <div className="hidden xl:flex items-center gap-3">
-                  <h2 className="text-sm font-semibold capitalize" style={{ color: theme === 'dark' ? '#a1a1aa' : '#334155' }}>
+                  <h2 className="text-sm font-semibold capitalize" style={{ color: 'var(--app-text-secondary)' }}>
                     {currentPage === 'workspace-hub' || currentPage === 'workspace-settings'
                       ? 'Workspaces'
                       : currentPage === 'home' ? 'Dashboard'
@@ -400,13 +394,12 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                         role="listitem"
                         onClick={() => handleNavigate(item.id)}
                         aria-current={isActive ? 'page' : undefined}
-                        className="relative flex items-center gap-2 h-9 px-3 rounded-none transition-all duration-200"
+                        className="relative flex items-center gap-2 h-9 px-3 rounded-lg transition-all duration-200"
                         style={isActive ? {
                           background: 'var(--signal-bg)',
                           color: 'var(--signal)',
-                          borderLeft: '2px solid var(--signal)',
-                        } : { color: '#475569' }}
-                        onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'rgba(15,23,42,0.05)'; }}
+                        } : { color: 'var(--app-text-secondary)' }}
+                        onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; }}
                         onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = ''; }}
                       >
                         <Icon className="w-4 h-4" strokeWidth={isActive ? 2.5 : 2} />
@@ -420,27 +413,26 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
 
             {/* RIGHT: action icons */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* Authenticated mobile icon row */}
               {user ? (
                 <div className="flex items-center gap-0.5 xl:hidden">
                   <Notifications onNavigate={onNavigate} />
                   <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                    className="flex items-center justify-center w-9 h-9 rounded-none transition-all duration-200"
-                    style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)'; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#fbbf24' : '#d97706'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#71717a' : '#64748b'; }}
+                    className="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
+                    style={{ color: 'var(--app-text-muted)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-primary)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-muted)'; }}
                   >
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   </button>
                   <button
                     onClick={() => onNavigate('profile')}
                     aria-label="Account settings"
-                    className="flex items-center justify-center w-9 h-9 rounded-none transition-all duration-200"
-                    style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)'; (e.currentTarget as HTMLElement).style.color = '#2563eb'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#71717a' : '#64748b'; }}
+                    className="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200"
+                    style={{ color: 'var(--app-text-muted)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--app-border-subtle)'; (e.currentTarget as HTMLElement).style.color = 'var(--signal)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-muted)'; }}
                   >
                     <User className="w-4 h-4" />
                   </button>
@@ -448,10 +440,10 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     onClick={() => setShowLogoutConfirm(true)}
                     disabled={isSigningOut}
                     aria-label="Sign out"
-                    className="flex items-center justify-center w-9 h-9 rounded-none transition-all duration-200 disabled:opacity-50"
-                    style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)'; (e.currentTarget as HTMLElement).style.color = '#ef4444'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = theme === 'dark' ? '#71717a' : '#64748b'; }}
+                    className="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200 disabled:opacity-50"
+                    style={{ color: 'var(--app-text-muted)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--negative-bg)'; (e.currentTarget as HTMLElement).style.color = 'var(--negative)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = 'var(--app-text-muted)'; }}
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
@@ -460,14 +452,17 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onNavigate('auth')}
-                    className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-none text-[var(--app-text-secondary)] text-sm font-semibold border border-[var(--app-border)] hover:border-slate-300 hover:bg-[var(--app-bg)] transition-all"
+                    className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all"
+                    style={{ color: 'var(--app-text-secondary)', border: '1px solid var(--app-border)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-text-muted)'; (e.currentTarget as HTMLElement).style.background = 'var(--app-surface-raised)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-border)'; (e.currentTarget as HTMLElement).style.background = ''; }}
                   >
                     Sign in
                   </button>
                   <button
                     onClick={() => onNavigate('auth')}
-                    className="px-4 py-2 rounded-none text-white text-sm font-bold transition-all hover:-translate-y-px"
-                    style={{ background: 'var(--signal)', boxShadow: '0 4px 10px rgba(184,134,11,0.25)' }}
+                    className="px-4 py-2 rounded-lg text-white text-sm font-bold transition-all hover:-translate-y-px"
+                    style={{ background: 'var(--signal)', boxShadow: 'var(--shadow-signal)' }}
                   >
                     <span className="hidden sm:inline">Join free</span>
                     <span className="sm:hidden">Join</span>
@@ -487,8 +482,8 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
             background: 'rgba(255,255,255,0.97)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            borderTop: '1px solid rgba(15,23,42,0.08)',
-            boxShadow: '0 -4px 20px rgba(15,23,42,0.1)',
+            borderTop: '1px solid var(--app-border)',
+            boxShadow: 'var(--shadow-lg)',
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
@@ -516,11 +511,11 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           aria-label="Mobile navigation"
           className="xl:hidden fixed bottom-0 left-0 right-0 z-50"
           style={{
-            background: theme === 'dark' ? 'rgba(18,18,20,0.98)' : 'rgba(255,255,255,0.96)',
+            background: isDark ? 'rgba(18,18,20,0.98)' : 'rgba(255,255,255,0.96)',
             backdropFilter: 'blur(32px) saturate(1.8)',
             WebkitBackdropFilter: 'blur(32px) saturate(1.8)',
-            borderTop: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(15,23,42,0.08)',
-            boxShadow: '0 -2px 20px rgba(15,23,42,0.08)',
+            borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid var(--app-border)',
+            boxShadow: 'var(--shadow-md)',
           }}
         >
           <div className="flex items-stretch" role="list" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
@@ -541,7 +536,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     <span
                       aria-hidden="true"
                       className="absolute top-1.5 left-1/2 -translate-x-1/2 rounded-full"
-                      style={{ width: '2.5rem', height: '2.5rem', background: 'rgba(37,99,235,0.1)' }}
+                      style={{ width: '2.5rem', height: '2.5rem', background: 'var(--signal-bg)' }}
                     />
                   )}
                   <Icon
@@ -549,7 +544,7 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
                     style={{
                       width: '1.625rem',
                       height: '1.625rem',
-                      color: isActive ? 'var(--signal)' : (theme === 'dark' ? '#52525b' : '#94a3b8'),
+                      color: isActive ? 'var(--signal)' : 'var(--app-text-muted)',
                     }}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
@@ -576,33 +571,33 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
           style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(8px)' }}
         >
           <div
-            className="rounded-none max-w-sm w-full p-6"
+            className="rounded-xl max-w-sm w-full p-6"
             style={{
-              background: theme === 'dark' ? '#18181b' : '#fff',
-              boxShadow: '0 24px 64px rgba(15,23,42,0.2)',
-              border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : 'none',
+              background: 'var(--app-surface)',
+              boxShadow: 'var(--shadow-xl)',
+              border: '1px solid var(--app-border)',
             }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-11 h-11 rounded-none flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,0.1)' }}>
-                <LogOut className="w-5 h-5 text-red-600" />
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--negative-bg)' }}>
+                <LogOut className="w-5 h-5" style={{ color: 'var(--negative)' }} />
               </div>
               <div>
-                <h3 id="logout-title" className="text-lg font-bold" style={{ color: theme === 'dark' ? '#f4f4f5' : '#0f172a' }}>Sign Out</h3>
-                <p className="text-sm" style={{ color: theme === 'dark' ? '#71717a' : '#64748b' }}>You'll need to sign in again</p>
+                <h3 id="logout-title" className="text-lg font-bold" style={{ color: 'var(--app-text-primary)' }}>Sign Out</h3>
+                <p className="text-sm" style={{ color: 'var(--app-text-muted)' }}>You'll need to sign in again</p>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 disabled={isSigningOut}
-                className="flex-1 px-4 py-2.5 rounded-none font-semibold text-sm transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
                 style={{
-                  border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
-                  color: theme === 'dark' ? '#a1a1aa' : '#334155',
+                  border: '1px solid var(--app-border)',
+                  color: 'var(--app-text-secondary)',
                   background: 'transparent',
                 }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#f8fafc'}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--app-surface-raised)'}
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
               >
                 Cancel
@@ -610,8 +605,8 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
               <button
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="flex-1 px-4 py-2.5 text-white rounded-none font-semibold text-sm transition-all disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg,#dc2626,#ef4444)', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }}
+                className="flex-1 px-4 py-2.5 text-white rounded-lg font-semibold text-sm transition-all disabled:opacity-50"
+                style={{ background: 'var(--negative)', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }}
               >
                 {isSigningOut ? 'Signing out…' : 'Sign Out'}
               </button>

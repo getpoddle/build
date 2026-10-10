@@ -80,14 +80,14 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
     (subscription.status === 'active' || subscription.status === 'trialing');
 
   return (
-    <div className="min-h-screen" style={{ background: '#f8fafc' }}>
+    <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
       {/* Header */}
-      <div style={{ background: '#000', borderBottom: '1px solid rgba(255,255,255,0.07)' }} className="sticky top-0 z-10">
+      <div style={{ background: 'var(--app-surface)', borderBottom: '1px solid var(--app-border)' }} className="sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => onNavigate('home')}
             className="flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(148,163,184,0.8)' }}
+            style={{ color: 'var(--app-text-secondary)' }}
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -96,8 +96,8 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
           {!user && (
             <button
               onClick={() => onNavigate('auth')}
-              className="text-sm font-semibold transition-colors hover:text-white"
-              style={{ color: 'rgba(148,163,184,0.7)' }}
+              className="text-sm font-semibold transition-colors"
+              style={{ color: 'var(--signal)' }}
             >
               Sign in
             </button>
@@ -110,15 +110,15 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
         <div className="text-center mb-14">
           <div
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold mb-5"
-            style={{ background: 'rgba(184,134,11,0.12)', color: '#b8860b', border: '1px solid rgba(184,134,11,0.2)' }}
+            style={{ background: 'var(--signal-bg)', color: 'var(--signal)', border: '1px solid var(--signal)' }}
           >
             <Sparkles className="w-3.5 h-3.5" />
             Simple, transparent pricing
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4" style={{ color: 'var(--app-text-primary)' }}>
             Choose your plan
           </h1>
-          <p className="text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
+          <p className="text-base max-w-xl mx-auto leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>
             Unlock the full power of adversarial AI decision intelligence. Every plan includes the War Room, all 7 agents, and unlimited workspace creation.
           </p>
 
@@ -155,19 +155,17 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
             return (
               <div
                 key={product.id}
-                className="relative flex flex-col rounded-3xl overflow-hidden transition-all duration-200 hover:-translate-y-1"
+                className="relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1"
                 style={{
-                  background: highlighted ? '#000' : '#fff',
-                  border: highlighted ? '2px solid #b8860b' : '1px solid rgba(0,0,0,0.08)',
-                  boxShadow: highlighted
-                    ? '0 20px 60px rgba(184,134,11,0.25)'
-                    : '0 4px 20px rgba(0,0,0,0.06)',
+                  background: 'var(--app-surface)',
+                  border: highlighted ? '2px solid var(--signal)' : '1px solid var(--app-border)',
+                  boxShadow: highlighted ? 'var(--shadow-signal)' : 'var(--shadow-md)',
                 }}
               >
                 {highlighted && (
                   <div
                     className="absolute top-0 inset-x-0 py-1.5 text-center text-xs font-black uppercase tracking-widest"
-                    style={{ background: '#b8860b', color: '#000' }}
+                    style={{ background: 'var(--signal)', color: '#ffffff' }}
                   >
                     Most Popular
                   </div>
@@ -178,28 +176,15 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
                   <div className="flex items-center gap-3 mb-6">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background: highlighted
-                          ? 'rgba(184,134,11,0.2)'
-                          : 'rgba(15,23,42,0.06)',
-                      }}
+                      style={{ background: 'var(--signal-bg)' }}
                     >
-                      <Icon
-                        className="w-5 h-5"
-                        style={{ color: highlighted ? '#b8860b' : '#475569' }}
-                      />
+                      <Icon className="w-5 h-5" style={{ color: 'var(--signal)' }} />
                     </div>
                     <div>
-                      <h3
-                        className="text-lg font-bold"
-                        style={{ color: highlighted ? '#fff' : '#0f172a' }}
-                      >
+                      <h3 className="text-lg font-bold" style={{ color: 'var(--app-text-primary)' }}>
                         {product.name}
                       </h3>
-                      <p
-                        className="text-xs leading-tight"
-                        style={{ color: highlighted ? 'rgba(255,255,255,0.5)' : '#94a3b8' }}
-                      >
+                      <p className="text-xs leading-tight" style={{ color: 'var(--app-text-muted)' }}>
                         {product.description}
                       </p>
                     </div>
@@ -208,16 +193,10 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
                   {/* Price */}
                   <div className="mb-8">
                     <div className="flex items-baseline gap-1">
-                      <span
-                        className="text-4xl font-black"
-                        style={{ color: highlighted ? '#fff' : '#0f172a' }}
-                      >
+                      <span className="text-4xl font-black" style={{ color: 'var(--app-text-primary)' }}>
                         {product.currency}{product.price.toLocaleString()}
                       </span>
-                      <span
-                        className="text-sm font-medium"
-                        style={{ color: highlighted ? 'rgba(255,255,255,0.45)' : '#94a3b8' }}
-                      >
+                      <span className="text-sm font-medium" style={{ color: 'var(--app-text-muted)' }}>
                         /month
                       </span>
                     </div>
@@ -227,21 +206,10 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
                   <ul className="space-y-3 mb-8 flex-1">
                     {features.map(feat => (
                       <li key={feat} className="flex items-start gap-2.5">
-                        <div
-                          className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                          style={{
-                            background: highlighted ? 'rgba(184,134,11,0.25)' : 'rgba(22,163,74,0.1)',
-                          }}
-                        >
-                          <Check
-                            className="w-2.5 h-2.5"
-                            style={{ color: highlighted ? '#b8860b' : '#16a34a' }}
-                          />
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(22,163,74,0.1)' }}>
+                          <Check className="w-2.5 h-2.5" style={{ color: '#16a34a' }} />
                         </div>
-                        <span
-                          className="text-sm leading-snug"
-                          style={{ color: highlighted ? 'rgba(255,255,255,0.75)' : '#475569' }}
-                        >
+                        <span className="text-sm leading-snug" style={{ color: 'var(--app-text-secondary)' }}>
                           {feat}
                         </span>
                       </li>
@@ -252,13 +220,13 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
                   <button
                     onClick={() => handleCheckout(product)}
                     disabled={anyLoading || isCurrent}
-                    className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl font-bold text-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90"
+                    className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90"
                     style={
                       isCurrent
                         ? { background: 'rgba(22,163,74,0.12)', color: '#15803d' }
                         : highlighted
-                          ? { background: 'linear-gradient(135deg,#b8860b,#d4a535)', color: '#000', boxShadow: '0 4px 14px rgba(184,134,11,0.4)' }
-                          : { background: '#0f172a', color: '#fff' }
+                          ? { background: 'var(--signal)', color: '#ffffff' }
+                          : { background: 'var(--app-text-primary)', color: '#ffffff' }
                     }
                   >
                     {isLoading ? (
@@ -285,7 +253,7 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
         </div>
 
         {/* Footer note */}
-        <p className="text-center text-xs text-slate-400 mt-10">
+        <p className="text-center text-xs mt-10" style={{ color: 'var(--app-text-muted)' }}>
           All plans billed monthly. Cancel anytime. Payments secured by Stripe.
         </p>
       </div>

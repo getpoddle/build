@@ -31,8 +31,9 @@ export default function Home({ onNavigate }: HomeProps) {
 
         {/* Page header */}
         <div className="mb-6 lg:mb-10">
-          <p className="section-label mb-2">Dashboard</p>
-          <h1 className="display-heading text-2xl lg:text-3xl xl:text-4xl mb-1">The Governance Layer for Company Decisions</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-2" style={{ color: 'var(--signal)' }}>Dashboard</p>
+          <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold tracking-tight mb-1" style={{ color: 'var(--app-text-primary)' }}>The Governance Layer for Company Decisions</h1>
+          <p className="text-sm lg:text-base mt-2" style={{ color: 'var(--app-text-secondary)' }}>Evidence, intelligence, and accountability for every consequential decision your organization makes.</p>
         </div>
 
         {/* Stats row */}
@@ -40,7 +41,7 @@ export default function Home({ onNavigate }: HomeProps) {
           {STATS.map(({ label, value, sub, icon: Icon }) => (
             <div key={label} className="stat-card">
               <div className="flex items-center justify-between mb-3 lg:mb-4">
-                <div className="w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center" style={{ background: 'var(--signal-bg)' }}>
+                <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--signal-bg)' }}>
                   <Icon className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                 </div>
               </div>
@@ -57,29 +58,28 @@ export default function Home({ onNavigate }: HomeProps) {
 
             {/* Hero banner */}
             <div
-              className="relative overflow-hidden p-6 lg:p-10"
+              className="relative overflow-hidden p-6 lg:p-10 rounded-xl"
               style={{
-                background: '#0e1117',
+                background: 'var(--app-surface)',
                 border: '1px solid var(--app-border)',
-                boxShadow: 'var(--shadow-lg)',
+                boxShadow: 'var(--shadow-md)',
               }}
             >
-              <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(184,134,11,0.08) 0%,transparent 70%)' }} />
-              <div className="absolute -bottom-8 -left-8 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(184,134,11,0.05) 0%,transparent 70%)' }} />
+              <div className="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(37,99,235,0.06) 0%,transparent 70%)' }} />
 
               <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
                 <div className="flex-1">
                   <div
-                    className="inline-flex items-center gap-2 px-3 py-1.5 mb-4"
-                    style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 mb-4 rounded-lg"
+                    style={{ background: 'var(--signal-bg)' }}
                   >
                     <span className="mono-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--signal)' }}>Decision Intelligence</span>
                   </div>
-                  <h2 className="display-heading text-xl lg:text-2xl xl:text-3xl mb-3" style={{ color: '#e8ecf2' }}>
+                  <h2 className="text-xl lg:text-2xl xl:text-3xl font-bold tracking-tight mb-3" style={{ color: 'var(--app-text-primary)' }}>
                     AI agents that challenge your best thinking.
                   </h2>
-                  <p className="text-sm lg:text-base leading-relaxed max-w-lg" style={{ color: 'rgba(255,255,255,0.8)' }}>
-                    Debate ideas, stress-test assumptions, and surface blind spots — Debate ideas, stress-test assumptions, and surface blind spots in a private, invite-only workspace only your team can see.
+                  <p className="text-sm lg:text-base leading-relaxed max-w-lg" style={{ color: 'var(--app-text-secondary)' }}>
+                    Debate ideas, stress-test assumptions, and surface blind spots in a private, invite-only workspace only your team can see.
                   </p>
                 </div>
 
@@ -94,7 +94,6 @@ export default function Home({ onNavigate }: HomeProps) {
                   <button
                     onClick={() => onNavigate('pricing')}
                     className="btn-secondary flex-1 sm:flex-none"
-                    style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)', background: 'transparent' }}
                   >
                     View Pricing
                   </button>
@@ -111,7 +110,7 @@ export default function Home({ onNavigate }: HomeProps) {
                     onClick={() => onNavigate(action)}
                     className="card-interactive text-left p-4 lg:p-5 w-56 sm:w-auto"
                   >
-                    <div className="w-9 h-9 lg:w-10 lg:h-10 flex items-center justify-center mb-3 lg:mb-4" style={{ background: 'var(--signal-bg)' }}>
+                    <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-lg flex items-center justify-center mb-3 lg:mb-4" style={{ background: 'var(--signal-bg)' }}>
                       <Icon className="w-4 h-4 lg:w-5 lg:h-5" style={{ color: 'var(--signal)' }} />
                     </div>
                     <p className="text-sm lg:text-base font-semibold mb-1" style={{ color: 'var(--app-text-primary)' }}>{title}</p>
@@ -130,7 +129,7 @@ export default function Home({ onNavigate }: HomeProps) {
               <p className="section-label mb-4">Team Collaboration</p>
               <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-5">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
                     <MessageSquare className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                   </div>
                   <div>
@@ -141,7 +140,7 @@ export default function Home({ onNavigate }: HomeProps) {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
                     <UsersRound className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                   </div>
                   <div>
@@ -160,11 +159,11 @@ export default function Home({ onNavigate }: HomeProps) {
               <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-5">
                 {[
                   { icon: ShieldCheck, text: 'Decision Control', sub: 'Require formal approval before a decision can commit. Org owners and admins review every pending request.' },
-                  { icon: Fingerprint, text: 'Immutable audit trail', sub: 'Every step is logged permanently, from the first question to the final call. Nothing can be quietly edited.' },
+                  { icon: Fingerprint, text: 'Durable audit trail', sub: 'Every step is logged, from the first question to the final call. Evidence revisions and snapshots preserve the full history.' },
                   { icon: Hash, text: 'Evidence IDs', sub: 'AI conclusions become citable claims like FIN-01, tagged as fact, assumption, inference, or opinion.' },
                 ].map(({ icon: Icon, text, sub }) => (
                   <div key={text} className="flex items-start gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
                       <Icon className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                     </div>
                     <div>
@@ -186,7 +185,7 @@ export default function Home({ onNavigate }: HomeProps) {
                   { icon: Bot, text: '7 specialized AI agents', sub: 'Risk Analyst, Financial Strategist, Execution Lead, and more' },
                 ].map(({ icon: Icon, text, sub }) => (
                   <div key={text} className="flex items-start gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'var(--signal-bg)' }}>
                       <Icon className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                     </div>
                     <div>

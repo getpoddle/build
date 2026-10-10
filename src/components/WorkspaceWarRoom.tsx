@@ -1376,8 +1376,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── Background synthesis in-progress banner ── */}
       {synthQueued && !generating && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-none text-sm font-medium"
-          style={{ background: 'var(--signal-bg)', border: '1px solid', borderColor: 'rgba(184,134,11,0.3)' }}>
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium"
+          style={{ background: 'var(--signal-bg)', border: '1px solid', borderColor: 'var(--signal)' }}>
           <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" style={{ color: '#2563eb' }} />
           <span style={{ color: '#1e40af' }}>
             Synthesis is running in the background — you can leave this page and we'll update the intelligence report automatically when it's done.

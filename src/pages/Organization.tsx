@@ -682,7 +682,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
                         </div>
 
                         {m.role === 'owner' ? (
-                          <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 flex-shrink-0" style={{ color: '#b8860b', background: 'rgba(184,134,11,0.1)' }}>
+                          <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 flex-shrink-0" style={{ color: 'var(--signal)', background: 'var(--signal-bg)' }}>
                             <Crown className="w-3 h-3" />
                             Owner
                           </span>
