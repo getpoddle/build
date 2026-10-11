@@ -1330,6 +1330,10 @@ export interface TrailEventExportItem {
   label: string;
   created_at: string;
   detail: string;
+  event_id?: string;
+  actor_name?: string;
+  actor_id?: string | null;
+  payload?: Record<string, unknown>;
 }
 
 export interface HumanInterventionItem {
@@ -1452,7 +1456,7 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
           <span style="font-size:7pt;font-weight:700;padding:1px 6px;border-radius:999px;background:${vsColor}1a;color:${vsColor};">${escapeHtml(vs)}</span>
         </div>
         <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
-          ${escapeHtml(c.agent_name)} · ${escapeHtml(c.claim_type)} · ${Math.round(c.confidence * 100)}% confidence${aiConf} · ${escapeHtml(c.freshness)}{sourceInfo}${refInfo}${reviewInfo}
+          ${escapeHtml(c.agent_name)} · ${escapeHtml(c.claim_type)} · ${Math.round(c.confidence * 100)}% confidence${aiConf} · verified ${c.daysSinceVerified}d ago${sourceInfo}${refInfo}${reviewInfo}
         </div>
         ${c.verification_method ? `<div style="font-size:7pt;color:#94a3b8;margin-top:1px;">Method: ${escapeHtml(c.verification_method)}</div>` : ''}
       </div>
@@ -1496,15 +1500,41 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
       </div>
     </div>`).join('');
 
-  const fullEventsHtml = data.events.map((e, i) => `
-    <div class="bb-row">
+  // Preserve every stored event field. Values are HTML-escaped to prevent
+  // user-provided notes and evidence from being interpreted as markup.
+  const auditValue = (value: unknown): string => {
+    if (value === null || value === undefined) return 'Not recorded';
+    if (typeof value === 'string') return value || 'Not recorded';
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    try { return JSON.stringify(value, null, 2); }
+    catch { return 'Unable to display stored value'; }
+  };
+  const auditLabel = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const fullEventsHtml = data.events.map((e, i) => {
+    const fields = e.payload && typeof e.payload === 'object' ? Object.entries(e.payload) : [];
+    const fieldsHtml = fields.map(([key, value]) => `
+      <div style="margin:5px 0;break-inside:avoid;">
+        <div style="font-size:7pt;font-weight:700;color:#475569;">${escapeHtml(auditLabel(key))}</div>
+        <div style="font-size:8pt;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(auditValue(value))}</div>
+      </div>`).join('');
+    return `
+    <div class="bb-row" style="break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
       <span class="bb-num">${i + 1}.</span>
-      <div style="flex:1;">
+      <div style="flex:1;min-width:0;">
         <div class="bb-text" style="font-weight:700;">${escapeHtml(e.label)}</div>
-        ${e.detail ? `<div class="bb-text" style="margin-top:2px;">${escapeHtml(e.detail)}</div>` : ''}
-        <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">${new Date(e.created_at).toLocaleString()}</div>
+        <div style="font-size:7pt;color:#64748b;margin:3px 0;">
+          Recorded ${escapeHtml(new Date(e.created_at).toLocaleString())} ·
+          By ${escapeHtml(e.actor_name || 'Not recorded')}
+        </div>
+        ${e.detail ? `<div class="bb-text" style="margin-top:3px;white-space:pre-wrap;overflow-wrap:anywhere;">${escapeHtml(e.detail)}</div>` : ''}
+        ${fieldsHtml || '<div style="font-size:7pt;color:#94a3b8;">No additional event payload was recorded.</div>'}
+        <div style="font-size:6.5pt;color:#94a3b8;margin-top:5px;overflow-wrap:anywhere;">
+          Event ID: ${escapeHtml(e.event_id || 'Not recorded')}
+          ${e.actor_id ? ` · Actor ID: ${escapeHtml(e.actor_id)}` : ''}
+        </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   const versionsHtml = (data.evidenceVersions || []).map((v) => {
     const prevClass = classLabel(v.previous_classification);
