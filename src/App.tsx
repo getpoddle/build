@@ -100,6 +100,23 @@ function AppContent() {
     if (pathname === '/advisory') return 'advisory';
     if (pathname === '/team') return 'team';
     const hash = window.location.hash.substring(1);
+    const persistentPages = new Set([
+  'profile',
+  'decision-map',
+  'decision-trail',
+  'organization',
+  'system-health',
+  'admin-panel',
+  'app-icons',
+  'pricing',
+  'workspaces',
+]);
+
+if (persistentPages.has(hash)) {
+  setCurrentPage(hash);
+  sessionStorage.setItem('currentPage', hash);
+  return;
+}
     if (hash === 'admin-panel' || hash === 'app-icons') {
       return hash;
     }
