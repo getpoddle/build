@@ -1510,12 +1510,27 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     catch { return 'Unable to display stored value'; }
   };
   const auditLabel = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  // Use legible, time-based references in reports. UUIDs remain in the database.
+  const auditRef = (prefix: 'EVT' | 'SNP', timestamp: string): string => {
+    const d = new Date(timestamp);
+    if (Number.isNaN(d.getTime())) return `${prefix}-UNKNOWN`;
+    const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+    return `${prefix}-${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}-${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}-${pad(d.getUTCMilliseconds(),3)}`;
+  };
+
   const fullEventsHtml = data.events.map((e, i) => {
     const fields = e.payload && typeof e.payload === 'object' ? Object.entries(e.payload) : [];
+    const readablePayload = (key: string, value: unknown): string => {
+      if (['created_by', 'modified_by', 'verified_by', 'reviewer_id'].includes(key) && typeof value === 'string')
+        return e.actor_name && e.actor_name !== 'Not recorded' ? e.actor_name : 'Unknown user';
+      if (key === 'snapshot_id' && typeof value === 'string')
+        return auditRef('SNP', e.created_at);
+      return auditValue(value);
+    };
     const fieldsHtml = fields.map(([key, value]) => `
       <div style="margin:5px 0;break-inside:avoid;">
         <div style="font-size:7pt;font-weight:700;color:#475569;">${escapeHtml(auditLabel(key))}</div>
-        <div style="font-size:8pt;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(auditValue(value))}</div>
+        <div style="font-size:8pt;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(readablePayload(key, value))}</div>
       </div>`).join('');
     return `
     <div class="bb-row" style="break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
@@ -1529,8 +1544,7 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
         ${e.detail ? `<div class="bb-text" style="margin-top:3px;white-space:pre-wrap;overflow-wrap:anywhere;">${escapeHtml(e.detail)}</div>` : ''}
         ${fieldsHtml || '<div style="font-size:7pt;color:#94a3b8;">No additional event payload was recorded.</div>'}
         <div style="font-size:6.5pt;color:#94a3b8;margin-top:5px;overflow-wrap:anywhere;">
-          Event ID: ${escapeHtml(e.event_id || 'Not recorded')}
-          ${e.actor_id ? ` · Actor ID: ${escapeHtml(e.actor_id)}` : ''}
+          Event reference: ${escapeHtml(auditRef('EVT', e.created_at))}
         </div>
       </div>
     </div>`;
@@ -1559,7 +1573,7 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     <div class="bb-row">
       <span class="bb-num">${i + 1}.</span>
       <div style="flex:1;">
-        <div class="bb-text" style="font-weight:700;">${s.decision_question ? escapeHtml(s.decision_question) : 'Snapshot'}</div>
+        <div class="bb-text" style="font-weight:700;">${s.decision_question ? escapeHtml(s.decision_question) : 'Snapshot'} · ${escapeHtml(auditRef('SNP', s.snapshot_timestamp))}</div>
         <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
           Status: ${escapeHtml(s.decision_status || 'unknown')} ·
           Evidence: ${s.verified_facts_count} verified, ${s.reported_facts_count} reported, ${s.assumptions_count} assumptions, ${s.ai_inferences_count} AI inferences
