@@ -120,6 +120,7 @@ interface DomainOwnerRow {
 const EVENT_META: Record<string, { icon: React.ElementType | null; color: string; label: string }> = {
   decision_created:  { icon: FileText,      color: '#475569', label: 'Decision Created' },
   evidence_added:    { icon: MessageSquare, color: '#0891b2', label: 'Evidence Added' },
+  evidence_unlinked: { icon: History, color: '#d97706', label: 'Evidence Unlinked' },
   agent_analysis:    { icon: null,          color: '#2563eb', label: 'Agent Analysis' },
   challenge_raised:  { icon: GitBranch,     color: '#d97706', label: 'Challenge Raised' },
   human_override:    { icon: Edit3,         color: '#7c3aed', label: 'Human Override' },
@@ -267,6 +268,7 @@ function stageForEvent(ev: DecisionEvent): StageKey | null {
   switch (ev.event_type) {
     case 'decision_created': return 'created';
     case 'evidence_added': return 'framed';
+    case 'evidence_unlinked': return 'revised';
     case 'agent_analysis': return 'analyzed';
     case 'final_decision': return 'committed';
     case 'outcome_logged': return 'outcome';
@@ -1201,6 +1203,23 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
     return () => { cancelled = true; };
   }, [workspaceId]);
 
+  // Refresh server-authored events without requiring a page reload.
+  async function refreshDecisionEvents() {
+    const { data, error } = await supabase.from('decision_events')
+      .select('id, workspace_id, event_type, actor_type, actor_id, payload, created_at')
+      .eq('workspace_id', workspaceId).order('created_at', { ascending: true });
+    if (!error && data) setEvents(data as DecisionEvent[]);
+    else if (error) console.error('Could not refresh Decision Trail', error);
+  }
+
+  useEffect(() => {
+    const channel = supabase.channel(`decision-trail-events-${workspaceId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'decision_events', filter: `workspace_id=eq.${workspaceId}` },
+        () => { void refreshDecisionEvents(); })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [workspaceId]);
+
   useEffect(() => {
     const ids = new Set<string>();
     for (const c of claims) if (c.verified_by) ids.add(c.verified_by);
@@ -1307,6 +1326,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           verified_at: now,
           supporting_notes: reverifyNotes.trim() || null,
         } : c));
+        await refreshDecisionEvents();
         closeReverifyDialog();
       } else {
         const msg = error.message || '';
@@ -1924,7 +1944,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
                 {reverifyDialogClaim.statement}
               </p>
               <div className="space-y-3">
-                <DecisionEvidenceAttachments workspaceId={workspaceId} claimId={reverifyDialogClaim.id} />
+                <DecisionEvidenceAttachments workspaceId={workspaceId} claimId={reverifyDialogClaim.id} onEvidenceChanged={() => void refreshDecisionEvents()} />
                 <div>
                   <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Verification Method *</label>
                   <input
