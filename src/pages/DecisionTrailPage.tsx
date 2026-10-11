@@ -196,9 +196,12 @@ function verificationStatusColor(s: string | null): string {
 type Freshness = 'current' | 'aging' | 'stale';
 
 function freshnessFor(claim: DecisionClaim): { status: Freshness; label: string; color: string; daysSinceVerified: number } {
-  const verifiedAt = new Date(claim.last_verified_at).getTime();
-  const daysSinceVerified = Math.floor((Date.now() - verifiedAt) / (1000 * 60 * 60 * 24));
-  const pctElapsed = daysSinceVerified / claim.validity_period_days;
+  // A historical verification timestamp must never imply CURRENT verification.
+  const verifiedAt = claim.verification_status === 'verified' && claim.verified_at
+    ? new Date(claim.verified_at).getTime() : NaN;
+  if (!Number.isFinite(verifiedAt)) return { status: 'stale', label: 'Not currently verified', color: '#64748b', daysSinceVerified: 0 };
+  const daysSinceVerified = Math.max(0, Math.floor((Date.now() - verifiedAt) / 86400000));
+  const pctElapsed = daysSinceVerified / Math.max(1, claim.validity_period_days || 1);
 
   if (pctElapsed > 1) return { status: 'stale', label: 'Stale', color: '#dc2626', daysSinceVerified };
   if (pctElapsed >= 0.5) return { status: 'aging', label: 'Aging', color: '#d97706', daysSinceVerified };
@@ -1199,6 +1202,9 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
 
   useEffect(() => {
     const ids = new Set<string>();
+    for (const c of claims) if (c.verified_by) ids.add(c.verified_by);
+    for (const v of evidenceVersions) if (v.modified_by) ids.add(v.modified_by);
+    for (const snapshot of snapshots) if (snapshot.created_by) ids.add(snapshot.created_by);
     for (const e of events) if (e.actor_type === 'user' && e.actor_id) ids.add(e.actor_id);
     for (const d of domainOwners) {
       if (d.owner_user_id) ids.add(d.owner_user_id);
@@ -1219,7 +1225,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         setActorNames(map);
         setOwnerNames(map);
       });
-  }, [events, domainOwners]);
+  }, [events, domainOwners, claims, evidenceVersions, snapshots]);
 
   const displayedEvents = useMemo(() => {
     if (!replayActive || !replayTimestamp) return events;
@@ -1464,6 +1470,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
     const evidence = claims.map(c => {
       const f = freshnessFor(c);
       return {
+        verified_at: c.verified_at,
+        verified_by_name: c.verified_by ? (actorNames[c.verified_by] || 'Unknown user') : null,
         claim_code: c.claim_code,
         agent_name: c.agent_name,
         statement: c.statement,
@@ -1601,6 +1609,13 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         return {
           decision_question: s.decision_question,
           decision_status: s.decision_status,
+          evidence_snapshot: s.evidence_snapshot,
+          verified_facts: s.verified_facts,
+          reported_facts: s.reported_facts,
+          assumptions: s.assumptions,
+          ai_inferences: s.ai_inferences,
+          outstanding_uncertainties: s.outstanding_uncertainties,
+          human_approvals: s.human_approvals,
           snapshot_timestamp: s.snapshot_timestamp,
           created_by_name: s.created_by ? (actorNames[s.created_by] || null) : null,
           verified_facts_count: vf.length,
