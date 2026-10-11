@@ -17,6 +17,7 @@ export default function DecisionEvidenceAttachments({ workspaceId, claimId }: { 
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [stage, setStage] = useState<string>('Ready to attach evidence');
 
   const refresh = useCallback(async () => {
     const { data: links, error: linkError } = await supabase.from('decision_claim_evidence')
@@ -33,29 +34,44 @@ export default function DecisionEvidenceAttachments({ workspaceId, claimId }: { 
 
   async function upload(selected: FileList | null) {
     if (!selected?.length) return;
+    const chosenFiles = Array.from(selected);
     setUploading(true); setError(null); setNotice(null);
+    setStage(`Selected ${chosenFiles.length} file(s)`);
+    let currentStage = 'Starting upload';
     try {
+      currentStage = 'Checking sign-in'; setStage(currentStage);
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth.user) throw new Error('Sign in before uploading evidence.');
-      for (const file of Array.from(selected)) {
+      for (const file of chosenFiles) {
+        currentStage = `Validating ${file.name}`; setStage(currentStage);
         if (!ALLOWED.includes(file.type)) throw new Error(`Unsupported file type: ${file.name}`);
         if (file.size <= 0 || file.size > 10 * 1024 * 1024) throw new Error(`File must be between 1 byte and 10 MB: ${file.name}`);
+        currentStage = `Calculating fingerprint for ${file.name}`; setStage(currentStage);
         const digest = await sha256Hex(file);
         const path = `${workspaceId}/${auth.user.id}/${crypto.randomUUID()}.${EXT[file.type]}`;
+        currentStage = `Uploading ${file.name} to private Storage`; setStage(currentStage);
         const { error: uploadError } = await supabase.storage.from('decision-evidence').upload(path, file, { contentType: file.type, upsert: false });
         if (uploadError) throw uploadError;
+        currentStage = `Registering ${file.name}`; setStage(currentStage);
         const { data: evidenceId, error: registerError } = await supabase.rpc('register_decision_evidence_file', {
           p_workspace_id: workspaceId, p_storage_path: path, p_original_name: file.name,
           p_mime_type: file.type, p_size_bytes: file.size, p_sha256_hex: digest,
           p_source_reference: null,
         });
         if (registerError || !evidenceId) throw new Error(`File uploaded but could not be registered: ${registerError?.message ?? file.name}. Contact an administrator to remove the orphaned object.`);
+        currentStage = `Linking ${file.name} to claim`; setStage(currentStage);
         const { error: linkError } = await supabase.rpc('link_decision_evidence_file', { p_claim_id: claimId, p_evidence_file_id: evidenceId });
         if (linkError) throw new Error(`File registered but could not be linked: ${linkError.message}. Ask a decision reviewer to link it.`);
       }
+      setStage('Upload complete');
       setNotice('Evidence attached. A reviewer must still assess the source and verify the claim.');
       await refresh();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Upload failed.'); }
+    } catch (e) {
+      const message = `${currentStage}: ${e instanceof Error ? e.message : String(e)}`;
+      console.error('[DecisionEvidenceAttachments] Upload failed', { stage: currentStage, error: e });
+      setStage('Upload failed'); setError(message);
+      window.alert(`Evidence attachment failed\n\n${message}`);
+    }
     finally { setUploading(false); }
   }
 
@@ -71,9 +87,10 @@ export default function DecisionEvidenceAttachments({ workspaceId, claimId }: { 
   return <section className="space-y-2 rounded-lg border p-3" style={{ borderColor: 'var(--app-border)' }}>
     <div className="text-xs font-bold">Supporting evidence files</div>
     <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>Private files linked to this claim. Uploading does not verify the claim.</p>
+    <p className="text-xs" role="status" aria-live="polite">Status: {stage}</p>
     <label className="inline-flex cursor-pointer items-center gap-2 rounded border px-3 py-2 text-xs font-semibold" style={{ borderColor: 'var(--app-border)' }}>
       {uploading ? 'Uploading…' : 'Attach PDF, spreadsheet, CSV or image'}
-      <input className="sr-only" type="file" multiple disabled={uploading} accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg" onChange={e => { void upload(e.target.files); e.target.value = ''; }} />
+      <input className="sr-only" type="file" multiple disabled={uploading} accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg" onChange={e => { const selected = e.currentTarget.files; void upload(selected); e.currentTarget.value = ''; }} />
     </label>
     {files.map(file => <div key={file.id} className="flex items-center justify-between gap-2 text-xs">
       <span className="min-w-0 truncate" title={file.original_name}>{file.original_name} ({Math.ceil(file.size_bytes / 1024)} KB)</span>
