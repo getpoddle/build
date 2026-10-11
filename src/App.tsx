@@ -12,7 +12,8 @@ import Navigation from './components/Navigation';
 import InstallPrompt from './components/InstallPrompt';
 import CookieConsent from './components/CookieConsent';
 import { ToastContainer, useToast } from './components/Toast';
-import { useUserWorkspaces } from './hooks/useWorkspaceAccess';
+import { useUserWorkspaces, workspaceMetadataQuery } from './hooks/useWorkspaceAccess';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Home = lazy(() => import('./pages/Home'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -50,9 +51,10 @@ function RouteFallback() {
 }
 
 function AppContent() {
-  const { user, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation, oauthError, pendingDeletion, clearPendingDeletion, signOut } = useAuth();
-  const { workspaces: userWorkspaces, loading: workspacesLoading } = useUserWorkspaces();
-  const hasNoWorkspace = !workspacesLoading && !!user && userWorkspaces.length === 0;
+  const { user, session, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation, oauthError, pendingDeletion, clearPendingDeletion, signOut } = useAuth();
+  const queryClient = useQueryClient();
+  const { workspaces: userWorkspaces, loading: workspacesLoading, error: workspacesError } = useUserWorkspaces();
+  const hasNoWorkspace = !workspacesLoading && !workspacesError && !!user && userWorkspaces.length === 0;
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendSent, setResendSent] = useState(false);
   const [resending, setResending] = useState(false);
@@ -88,7 +90,7 @@ function AppContent() {
   useEffect(() => {
     return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
   }, []);
-  const { toasts, dismissToast, addToast } = useToast();
+  const { toasts, dismissToast } = useToast();
 
     const [currentPage, setCurrentPage] = useState(() => {
     const pathname = window.location.pathname;
@@ -127,6 +129,8 @@ if (persistentPages.has(hash)) {
     if (!saved || saved === 'auth' || saved === 'home') return 'workspaces';
     return saved;
   });
+  const navigationStartRef = useRef<number | null>(null);
+
   const [assumptionId, setAssumptionId] = useState<string | null>(null);
   const onboardingCheckedRef = useRef(false);
   const [firstSignInWorkspaceId, setFirstSignInWorkspaceId] = useState<string | null>(() => sessionStorage.getItem('firstSignInWorkspaceId'));
@@ -139,7 +143,6 @@ if (persistentPages.has(hash)) {
   const handleRestoreAccount = async () => {
     setRestoring(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) { setRestoring(false); return; }
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${supabaseUrl}/functions/v1/restore-account`, {
@@ -156,6 +159,13 @@ if (persistentPages.has(hash)) {
     await signOut();
   };
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  useEffect(() => {
+    if (navigationStartRef.current === null) return;
+    if (import.meta.env.DEV) {
+      console.debug(`[navigation] ${currentPage} ${Math.round(performance.now() - navigationStartRef.current)}ms`);
+    }
+    navigationStartRef.current = null;
+  }, [currentPage, workspaceId]);
   const [workspaceInitialTab, setWorkspaceInitialTab] = useState<string | undefined>(undefined);
   const [joinToken, setJoinToken] = useState<string | null>(null);
   const [blogSlug, setBlogSlug] = useState<string | null>(() => {
@@ -437,7 +447,6 @@ if (persistentPages.has(hash)) {
           if (currentPage === 'admin-panel') return;
           setFirstSignInInProgress(true);
           try {
-            const { data: { session } } = await supabase.auth.getSession();
             if (!session?.access_token) return;
             const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
             const res = await fetch(`${supabaseUrl}/functions/v1/first-sign-in`, {
@@ -471,7 +480,7 @@ if (persistentPages.has(hash)) {
       setFirstSignInWorkspaceId(null);
       setFirstSignInInProgress(false);
     }
-  }, [user, loading]);
+  }, [user, session, loading]);
 
   useEffect(() => {
     if (firstSignInInProgress) return;
@@ -482,7 +491,15 @@ if (persistentPages.has(hash)) {
     }
   }, [hasNoWorkspace, firstSignInWorkspaceId, currentPage, firstSignInInProgress]);
 
-  const handleNavigate = (page: string, idParam?: string, userId?: string, editMode?: boolean, initialTab?: string, _threadId?: string, _initialAssumptionId?: string) => {
+  const handleNavigate = (page: string, idParam?: string | boolean, _userId?: string, _editMode?: boolean | string, initialTab?: string) => {
+    navigationStartRef.current = performance.now();
+    const routeId = typeof idParam === 'string' ? idParam : undefined;
+    if (user && routeId && page === 'workspace-hub') {
+      const authorizedWorkspace = userWorkspaces.find(workspace => workspace.id === routeId);
+      if (authorizedWorkspace) {
+        queryClient.setQueryData(workspaceMetadataQuery(user.id, routeId).queryKey, authorizedWorkspace);
+      }
+    }
     if (page === 'home' && hasNoWorkspace) {
       if (firstSignInWorkspaceId) {
         setWorkspaceId(firstSignInWorkspaceId);
@@ -497,20 +514,20 @@ if (persistentPages.has(hash)) {
       }
       return;
     }
-    if (page === 'workspace-hub' && idParam) {
-      setWorkspaceId(idParam);
+    if (page === 'workspace-hub' && routeId) {
+      setWorkspaceId(routeId);
       setWorkspaceInitialTab(initialTab);
       setCurrentPage('workspace-hub');
       sessionStorage.setItem('currentPage', 'workspace-hub');
-      history.pushState(null, '', `#workspace/${idParam}`);
+      history.pushState(null, '', `#workspace/${routeId}`);
       return;
     }
 
-    if (page === 'workspace-settings' && idParam) {
-      setWorkspaceId(idParam);
+    if (page === 'workspace-settings' && routeId) {
+      setWorkspaceId(routeId);
       setCurrentPage('workspace-settings');
       sessionStorage.setItem('currentPage', 'workspace-settings');
-      history.pushState(null, '', `#workspace-settings/${idParam}`);
+      history.pushState(null, '', `#workspace-settings/${routeId}`);
       return;
     }
 
@@ -520,10 +537,10 @@ if (persistentPages.has(hash)) {
       return;
     }
 
-    if (page === 'blog-post' && idParam) {
-      setBlogSlug(idParam);
+    if (page === 'blog-post' && routeId) {
+      setBlogSlug(routeId);
       setCurrentPage('blog-post');
-      history.pushState(null, '', `#blog/${idParam}`);
+      history.pushState(null, '', `#blog/${routeId}`);
       return;
     }
 

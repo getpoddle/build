@@ -9,10 +9,10 @@ interface TeamPageProps {
 
 export default function Team({ onNavigate }: TeamPageProps) {
   useEffect(() => {
-    updatePageSEO({
+    updatePageSEO('team', {
       title: 'Team — Poddle AI',
       description: 'The minds behind Poddle AI, shaping decision intelligence for teams.',
-      path: '/team',
+      canonical: '/team',
     });
   }, []);
 

@@ -7,6 +7,8 @@ import { initCapacitor, isNative } from './lib/capacitor';
 import { initPostHog } from './lib/posthog';
 import { initSentry } from './lib/sentry';
 import { logGlobalError } from './lib/tabDiagnostics';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 
 // Defer third-party SDK initialization until after the React app mounts,
 // so initial render is not blocked by Sentry/PostHog network calls.
@@ -57,9 +59,11 @@ window.addEventListener('unhandledrejection', (event) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </QueryClientProvider>
   </StrictMode>
 );
 

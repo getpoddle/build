@@ -1,6 +1,5 @@
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
-import { Sentry } from '../lib/sentry';
 import { logBoundaryCatch } from '../lib/tabDiagnostics';
 
 // ─── Top-level boundary — wraps the entire app ────────────────────────────────
@@ -22,7 +21,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, Ap
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ErrorBoundary] Unhandled exception:', error.message, info.componentStack);
-    logBoundaryCatch('App', error, info.componentStack);
+    logBoundaryCatch('App', error, info.componentStack ?? undefined);
   }
 
   handleReload = () => {
@@ -83,7 +82,7 @@ export class PageErrorBoundary extends Component<{ children: ReactNode; resetKey
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[PageErrorBoundary] Component crash:', error.message, info.componentStack);
-    logBoundaryCatch('Page', error, info.componentStack);
+    logBoundaryCatch('Page', error, info.componentStack ?? undefined);
   }
 
   handleDismiss = () => {

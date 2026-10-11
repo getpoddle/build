@@ -1,10 +1,11 @@
-import { User, Users, LogOut, Lock, Home, Bot, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, Building2, Map, BookOpen } from 'lucide-react';
+import { User, Users, LogOut, Lock, Home, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, Building2, Map, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import PoddleMark from './PoddleMark';
 import Notifications from './Notifications';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { parseOwnProfileSensitive } from '../lib/profileSensitive';
 
 interface NavigationProps {
   currentPage: string;
@@ -38,7 +39,6 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
   const { theme, setTheme } = useTheme();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; email?: string } | null>(null);
@@ -58,19 +58,11 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
         .select('full_name')
         .eq('id', user.id)
         .maybeSingle(),
-      supabase
-        .from('organization_members')
-        .select('role')
-        .eq('user_id', user.id)
-        .in('role', ['owner', 'admin'])
-        .limit(1),
-    ]).then(([sensitiveRes, profileRes, orgRes]) => {
-      setIsAdmin(sensitiveRes.data?.is_admin || false);
+    ]).then(([sensitiveRes, profileRes]) => {
+      setIsAdmin(parseOwnProfileSensitive(sensitiveRes.data)?.is_admin ?? false);
       setUserProfile({ full_name: profileRes.data?.full_name || null, email: user.email });
-      setIsOrgAdmin(!!orgRes.data && orgRes.data.length > 0);
     }).catch(() => {
       setIsAdmin(false);
-      setIsOrgAdmin(false);
     });
   }, [user]);
 

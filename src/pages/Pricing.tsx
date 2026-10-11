@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, Zap, Users, BarChart2, Shield, Bot, Lock, X, Loader2, CreditCard, Mail, ExternalLink, Building2 } from 'lucide-react';
+import { CheckCircle, Zap, Users, BarChart2, Shield, Bot, Lock, X, Loader2, CreditCard, Mail, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { parseOwnProfileSensitive } from '../lib/profileSensitive';
 
 interface PricingProps {
   onNavigate: (page: string) => void;
@@ -24,7 +25,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
       .rpc('get_own_profile_sensitive')
       .maybeSingle()
       .then(({ data }) => {
-        const tier = (data?.subscription_tier as Tier) || 'free';
+        const tier = (parseOwnProfileSensitive(data)?.subscription_tier as Tier) || 'free';
         setCurrentTier(tier);
       });
   }, [user]);

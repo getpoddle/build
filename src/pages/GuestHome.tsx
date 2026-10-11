@@ -31,8 +31,6 @@ interface GuestHomeProps {
 }
 
 // ─── Brand tokens ────────────────────────────────────────────────────────────
-const GOLD = '#b8860b';
-const GOLD_LIGHT = '#d4a535';
 const BLUE = '#2563eb';
 const INK = '#0f172a';
 const SLATE = '#475569';

@@ -37,10 +37,10 @@ const SERVICES = [
 
 export default function Advisory({ onNavigate }: AdvisoryProps) {
   useEffect(() => {
-    updatePageSEO({
+    updatePageSEO('advisory', {
       title: 'Poddle Advisory — Decision Intelligence & Strategic Advisory',
       description: 'Poddle Advisory helps leaders, executives, and organizations make better decisions when the stakes are high, the information is incomplete, and the path forward is unclear.',
-      path: '/advisory',
+      canonical: '/advisory',
     });
   }, []);
 

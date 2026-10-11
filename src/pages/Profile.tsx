@@ -1,19 +1,46 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { parseOwnProfileSensitive } from '../lib/profileSensitive';
 import { Save, MapPin, LogOut, Linkedin, CreditCard, Loader2, CheckCircle, ExternalLink, Trash2, AlertTriangle } from 'lucide-react';
 import { countries, getLocationsForCountry } from '../lib/locations';
-import { Database } from '../lib/database.types';
 import ProfilePictureUpload from '../components/ProfilePictureUpload';
 import { useBetaAccess } from '../hooks/useBetaAccess';
 import InviteCodeEntry from '../components/InviteCodeEntry';
 import { useSubscription } from '../hooks/useSubscription';
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
+type Profile = {
+  id: string;
+  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  about_me: string | null;
+  job_title: string | null;
+  country: string | null;
+  location: string | null;
+  linkedin_url: string | null;
+  education: unknown;
+  certifications: unknown;
+  job_experience: unknown;
+  referral_points: number | null;
+  referral_tier: string | null;
+  onboarded: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+  verified: boolean | null;
+  verification_requested_at: string | null;
+  verified_at: string | null;
+  theme_preference: string | null;
+  email_notifications_enabled: boolean | null;
+  subscription_tier: string | null;
+};
 
 interface ProfileProps {
   userId?: string | null;
-  onNavigate: (page: string, podId?: string, userId?: string, gameId?: string, editMode?: boolean) => void;
+  onNavigate: (page: string) => void;
   initialEditMode?: boolean;
 }
 
@@ -59,7 +86,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
       ]);
       const data = profileRes.data;
       if (data) {
-        const merged = { ...data, subscription_tier: sensitiveRes.data?.subscription_tier ?? null };
+        const merged = { ...data, subscription_tier: parseOwnProfileSensitive(sensitiveRes.data)?.subscription_tier ?? null };
         setProfile(merged as Profile);
         setEditedName(data.full_name || '');
         setEditedBio(data.bio || '');

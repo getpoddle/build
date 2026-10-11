@@ -61,7 +61,6 @@ export default function AdminDashboard() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showModerationModal, setShowModerationModal] = useState(false);
   const [moderationAction, setModerationAction] = useState<ModerationAction | null>(null);
   const [moderationReason, setModerationReason] = useState('');
@@ -215,7 +214,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const openModerationModal = (userId: string, userName: string, action: 'suspend' | 'ban' | 'unsuspend' | 'delete') => {
+  const openModerationModal = (userId: string, _userName: string, action: 'suspend' | 'ban' | 'unsuspend' | 'delete') => {
     setModerationAction({ userId, action, reason: '' });
     setModerationReason('');
     setModerationDuration(7);
@@ -676,7 +675,7 @@ export default function AdminDashboard() {
                       <div key={req.id} className="rounded-xl p-4" style={{ border: '1px solid rgba(15,23,42,0.08)', background: isPending ? 'rgba(245,158,11,0.03)' : '#fafafa' }}>
                         <div className="flex items-start gap-4">
                           <img
-                            src={getAvatarUrl(profile?.avatar_url || null, profile?.full_name || 'U')}
+                            src={getAvatarUrl(profile?.avatar_url ?? null) ?? undefined}
                             alt=""
                             className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                           />

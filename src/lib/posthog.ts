@@ -1,5 +1,6 @@
 import posthog from 'posthog-js';
 import { supabase } from './supabase';
+import { parseOwnProfileSensitive } from './profileSensitive';
 import { hasAnalyticsConsent, onCookieConsentChange } from './cookieConsent';
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
@@ -93,7 +94,7 @@ export async function phSyncProfileProperties(userId: string) {
 
   const profile = profileRes.data;
   if (!profile) return;
-  const is_admin = !!sensitiveRes.data?.is_admin;
+  const is_admin = parseOwnProfileSensitive(sensitiveRes.data)?.is_admin ?? false;
 
   const workspaceCount = await supabase.from('workspace_members').select('workspace_id', { count: 'exact', head: true }).eq('user_id', userId).then(r => r.count ?? 0);
 

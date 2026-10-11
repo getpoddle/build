@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface BetaAccessState {
@@ -11,59 +10,35 @@ export interface BetaAccessState {
 }
 
 export function useBetaAccess(): BetaAccessState {
-  const { user } = useAuth();
-  const [hasBetaAccess, setHasBetaAccess] = useState(false);
-  const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const check = useCallback(async () => {
-    if (!user) {
-      setHasBetaAccess(false);
-      setExpiresAt(null);
-      setDaysRemaining(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        setHasBetaAccess(false);
-        setLoading(false);
-        return;
-      }
-
+  const { user, session } = useAuth();
+  const query = useQuery({
+    queryKey: ['user', user?.id, 'beta-access'],
+    enabled: !!user && !!session?.access_token,
+    queryFn: async () => {
+      if (!session?.access_token) throw new Error('Session expired. Please sign in again.');
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const res = await fetch(`${supabaseUrl}/functions/v1/check-beta-access`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
-
-      if (!res.ok) {
-        setHasBetaAccess(false);
-        setLoading(false);
-        return;
-      }
-
+      if (!res.ok) throw new Error('Could not check beta access.');
       const json = await res.json();
-      setHasBetaAccess(!!json.hasBetaAccess);
-      setExpiresAt(json.expiresAt ?? null);
-      setDaysRemaining(json.daysRemaining ?? null);
-    } catch {
-      setHasBetaAccess(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+      return {
+        hasBetaAccess: !!json.hasBetaAccess,
+        expiresAt: json.expiresAt ?? null,
+        daysRemaining: json.daysRemaining ?? null,
+      };
+    },
+  });
 
-  useEffect(() => {
-    check();
-  }, [check]);
-
-  return { hasBetaAccess, expiresAt, daysRemaining, loading, refetch: check };
+  return {
+    hasBetaAccess: query.data?.hasBetaAccess ?? false,
+    expiresAt: query.data?.expiresAt ?? null,
+    daysRemaining: query.data?.daysRemaining ?? null,
+    loading: !!user && query.isPending,
+    refetch: () => { void query.refetch(); },
+  };
 }

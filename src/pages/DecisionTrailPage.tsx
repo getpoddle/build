@@ -10,6 +10,8 @@ import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DecisionEvidenceAttachments from '../components/DecisionEvidenceAttachments';
+import { useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface DecisionTrailPageProps {
   onNavigate: (page: string, workspaceId?: string) => void;
@@ -52,17 +54,6 @@ interface DecisionClaim {
   supporting_notes: string | null;
 }
 
-interface VerificationHistoryEntry {
-  id: string;
-  claim_id: string;
-  previous_status: string | null;
-  new_status: string;
-  reviewer_id: string | null;
-  verification_method: string | null;
-  source_reference: string | null;
-  notes: string | null;
-  created_at: string;
-}
 
 interface EvidenceVersion {
   id: string;
@@ -832,7 +823,6 @@ function ClaimsPanel({
           const evidenceRefs = Array.isArray(claim.evidence_refs) ? claim.evidence_refs as string[] : [];
           const assumptions = Array.isArray(claim.assumptions) ? claim.assumptions as { key: string; value: string }[] : [];
           const claimChallenges = challengesByClaim.get(claim.id) || [];
-          const aiConfidence = claim.ai_confidence_score ?? claim.confidence;
           return (
             <button
               key={claim.id}
@@ -1118,8 +1108,11 @@ function ClaimsPanel({
   );
 }
 
+const HISTORY_PAGE_SIZE = 100;
+
 function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: string; workspaceName: string; onBack: () => void }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [events, setEvents] = useState<DecisionEvent[]>([]);
   const [claims, setClaims] = useState<DecisionClaim[]>([]);
   const [challenges, setChallenges] = useState<DecisionChallenge[]>([]);
@@ -1139,7 +1132,10 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
   const [snapshotSuccess, setSnapshotSuccess] = useState<string | null>(null);
   const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
+  const [historyOffset, setHistoryOffset] = useState(0);
+  const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [replayActive, setReplayActive] = useState(false);
   const [replayTimestamp, setReplayTimestamp] = useState<string>('');
@@ -1150,11 +1146,13 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
 
   const [workspaceMeta, setWorkspaceMeta] = useState<{ decision_category: string | null; decision_status: string | null }>({ decision_category: null, decision_status: null });
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    Promise.all([
-      supabase
+  const historyQuery = useQuery({
+    queryKey: ['user', user?.id, 'decision-trail', workspaceId, 'initial'],
+    enabled: !!user && !!workspaceId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const results = await Promise.all([
+        supabase
         .from('workspaces')
         .select('decision_category, decision_status')
         .eq('id', workspaceId)
@@ -1163,17 +1161,23 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         .from('decision_events')
         .select('id, workspace_id, event_type, actor_type, actor_id, payload, created_at')
         .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(0, HISTORY_PAGE_SIZE - 1),
       supabase
         .from('decision_claims')
         .select('id, workspace_id, claim_code, agent_role, agent_name, statement, claim_type, evidence_refs, assumptions, confidence, created_at, last_verified_at, validity_period_days, evidence_classification, source_name, source_reference, supporting_document_ref, last_reviewed_at, verification_status, verification_method, verified_by, verified_at, ai_confidence_score, supporting_notes')
         .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(0, HISTORY_PAGE_SIZE - 1),
       supabase
         .from('decision_challenges')
         .select('id, workspace_id, target_claim_id, challenger_agent_role, challenger_agent_name, challenge_text, rebuttal_text, status, created_at')
         .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(0, HISTORY_PAGE_SIZE - 1),
       supabase
         .from('domain_owners')
         .select('id, domain, owner_user_id, backup_owner_user_id')
@@ -1183,32 +1187,107 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         .from('evidence_versions')
         .select('id, claim_id, workspace_id, version_number, previous_statement, updated_statement, previous_classification, updated_classification, previous_verification_status, updated_verification_status, source_reference, reason_for_modification, modified_by, modified_at')
         .eq('workspace_id', workspaceId)
-        .order('modified_at', { ascending: false }),
+        .order('modified_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(0, HISTORY_PAGE_SIZE - 1),
       supabase
         .from('decision_snapshots')
         .select('id, workspace_id, decision_question, decision_status, evidence_snapshot, verified_facts, reported_facts, assumptions, ai_inferences, outstanding_uncertainties, ai_recommendation, human_approvals, snapshot_timestamp, created_by')
         .eq('workspace_id', workspaceId)
-        .order('snapshot_timestamp', { ascending: false }),
-  ]).then(([wsRes, evRes, claimsRes, challengesRes, ownersRes, versionsRes, snapshotsRes]) => {
-      if (cancelled) return;
-      if (!wsRes.error && wsRes.data) setWorkspaceMeta(wsRes.data as { decision_category: string | null; decision_status: string | null });
-      if (!evRes.error && evRes.data) setEvents(evRes.data as DecisionEvent[]);
-      if (!claimsRes.error && claimsRes.data) setClaims(claimsRes.data as DecisionClaim[]);
-      if (!challengesRes.error && challengesRes.data) setChallenges(challengesRes.data as DecisionChallenge[]);
-      if (!ownersRes.error && ownersRes.data) setDomainOwners(ownersRes.data as DomainOwnerRow[]);
-      if (!versionsRes.error && versionsRes.data) setEvidenceVersions(versionsRes.data as EvidenceVersion[]);
-      if (!snapshotsRes.error && snapshotsRes.data) setSnapshots(snapshotsRes.data as DecisionSnapshot[]);
-      setLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [workspaceId]);
+        .order('snapshot_timestamp', { ascending: false })
+        .order('id', { ascending: false })
+        .range(0, HISTORY_PAGE_SIZE - 1),
+      ]);
+      const [wsRes, evRes, claimsRes, challengesRes, ownersRes, versionsRes, snapshotsRes] = results;
+      const error = results.find(result => result.error)?.error;
+      if (error) throw error;
+      return {
+        workspace: wsRes.data,
+        events: (evRes.data as DecisionEvent[]).reverse(),
+        claims: (claimsRes.data as DecisionClaim[]).reverse(),
+        challenges: (challengesRes.data as DecisionChallenge[]).reverse(),
+        owners: ownersRes.data as DomainOwnerRow[],
+        versions: versionsRes.data as EvidenceVersion[],
+        snapshots: snapshotsRes.data as DecisionSnapshot[],
+        hasMore: [evRes.data, claimsRes.data, challengesRes.data, versionsRes.data, snapshotsRes.data]
+          .some(rows => (rows?.length ?? 0) === HISTORY_PAGE_SIZE),
+      };
+    },
+  });
+  const loading = historyQuery.isPending;
+
+  useEffect(() => {
+    const data = historyQuery.data;
+    if (!data) return;
+    setWorkspaceMeta(data.workspace as { decision_category: string | null; decision_status: string | null });
+    setEvents(data.events);
+    setClaims(data.claims);
+    setChallenges(data.challenges);
+    setDomainOwners(data.owners);
+    setEvidenceVersions(data.versions);
+    setSnapshots(data.snapshots);
+    setHasMoreHistory(data.hasMore);
+    setHistoryOffset(0);
+    setHistoryError(null);
+  }, [historyQuery.data]);
+
+  useEffect(() => {
+    if (historyQuery.error) {
+      console.error('Could not load Decision Trail', historyQuery.error);
+      setHistoryError('Decision history could not be loaded. Please retry.');
+    }
+  }, [historyQuery.error]);
+
+  async function loadOlderHistory() {
+    if (loadingMoreHistory || !hasMoreHistory) return;
+    setLoadingMoreHistory(true);
+    setHistoryError(null);
+    const from = historyOffset + HISTORY_PAGE_SIZE;
+    const to = from + HISTORY_PAGE_SIZE - 1;
+    try {
+      const [evRes, claimsRes, challengesRes, versionsRes, snapshotsRes] = await Promise.all([
+        supabase.from('decision_events').select('id, workspace_id, event_type, actor_type, actor_id, payload, created_at')
+          .eq('workspace_id', workspaceId).order('created_at', { ascending: false }).order('id', { ascending: false }).range(from, to),
+        supabase.from('decision_claims').select('id, workspace_id, claim_code, agent_role, agent_name, statement, claim_type, evidence_refs, assumptions, confidence, created_at, last_verified_at, validity_period_days, evidence_classification, source_name, source_reference, supporting_document_ref, last_reviewed_at, verification_status, verification_method, verified_by, verified_at, ai_confidence_score, supporting_notes')
+          .eq('workspace_id', workspaceId).order('created_at', { ascending: false }).order('id', { ascending: false }).range(from, to),
+        supabase.from('decision_challenges').select('id, workspace_id, target_claim_id, challenger_agent_role, challenger_agent_name, challenge_text, rebuttal_text, status, created_at')
+          .eq('workspace_id', workspaceId).order('created_at', { ascending: false }).order('id', { ascending: false }).range(from, to),
+        supabase.from('evidence_versions').select('id, claim_id, workspace_id, version_number, previous_statement, updated_statement, previous_classification, updated_classification, previous_verification_status, updated_verification_status, source_reference, reason_for_modification, modified_by, modified_at')
+          .eq('workspace_id', workspaceId).order('modified_at', { ascending: false }).order('id', { ascending: false }).range(from, to),
+        supabase.from('decision_snapshots').select('id, workspace_id, decision_question, decision_status, evidence_snapshot, verified_facts, reported_facts, assumptions, ai_inferences, outstanding_uncertainties, ai_recommendation, human_approvals, snapshot_timestamp, created_by')
+          .eq('workspace_id', workspaceId).order('snapshot_timestamp', { ascending: false }).order('id', { ascending: false }).range(from, to),
+      ]);
+      const results = [evRes, claimsRes, challengesRes, versionsRes, snapshotsRes];
+      const firstError = results.find(result => result.error)?.error;
+      if (firstError) throw firstError;
+      setEvents(prev => [...(evRes.data as DecisionEvent[]).reverse(), ...prev]);
+      setClaims(prev => [...(claimsRes.data as DecisionClaim[]).reverse(), ...prev]);
+      setChallenges(prev => [...(challengesRes.data as DecisionChallenge[]).reverse(), ...prev]);
+      setEvidenceVersions(prev => [...prev, ...(versionsRes.data as EvidenceVersion[])]);
+      setSnapshots(prev => [...prev, ...(snapshotsRes.data as DecisionSnapshot[])]);
+      setHistoryOffset(from);
+      setHasMoreHistory(results.some(result => (result.data?.length ?? 0) === HISTORY_PAGE_SIZE));
+    } catch (error) {
+      console.error('Could not load older Decision Trail history', error);
+      setHistoryError('Older decision history could not be loaded. Please retry.');
+    } finally {
+      setLoadingMoreHistory(false);
+    }
+  }
 
   // Refresh server-authored events without requiring a page reload.
   async function refreshDecisionEvents() {
     const { data, error } = await supabase.from('decision_events')
       .select('id, workspace_id, event_type, actor_type, actor_id, payload, created_at')
-      .eq('workspace_id', workspaceId).order('created_at', { ascending: true });
-    if (!error && data) setEvents(data as DecisionEvent[]);
+      .eq('workspace_id', workspaceId).order('created_at', { ascending: false }).order('id', { ascending: false })
+      .range(0, HISTORY_PAGE_SIZE - 1);
+    if (!error && data) {
+      const newest = [...(data as DecisionEvent[])].reverse();
+      setEvents(prev => {
+        const merged = new Map([...prev, ...newest].map(event => [event.id, event]));
+        return [...merged.values()].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+      });
+    }
     else if (error) console.error('Could not refresh Decision Trail', error);
   }
 
@@ -1256,6 +1335,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
   const dayGroups = useMemo(() => groupEventsByDay(displayedEvents), [displayedEvents]);
 
   function startReplay() {
+    if (loading || historyError) return;
     const now = events.length > 0 ? new Date(events[events.length - 1].created_at) : new Date();
     setReplayTimestamp(toLocalDatetimeInputValue(now));
     setReplayActive(true);
@@ -1327,6 +1407,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           supporting_notes: reverifyNotes.trim() || null,
         } : c));
         await refreshDecisionEvents();
+        void queryClient.invalidateQueries({ queryKey: ['user', user?.id, 'decision-trail', workspaceId] });
         closeReverifyDialog();
       } else {
         const msg = error.message || '';
@@ -1351,6 +1432,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
       const { error } = await supabase.rpc('request_reverification', { p_claim_id: claimId });
       if (!error) {
         setClaims(prev => prev.map(c => c.id === claimId ? { ...c, verification_status: 'pending', last_reviewed_at: new Date().toISOString() } : c));
+        void queryClient.invalidateQueries({ queryKey: ['user', user?.id, 'decision-trail', workspaceId] });
       }
     } finally {
       setReverifyingId(null);
@@ -1401,6 +1483,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           .eq('workspace_id', workspaceId)
           .order('modified_at', { ascending: false });
         if (newVersions) setEvidenceVersions(newVersions as EvidenceVersion[]);
+        void queryClient.invalidateQueries({ queryKey: ['user', user?.id, 'decision-trail', workspaceId] });
         closeReviseDialog();
       } else {
         const msg = error.message || '';
@@ -1449,6 +1532,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         return;
       }
       if (newSnapshots) setSnapshots(newSnapshots as DecisionSnapshot[]);
+      void queryClient.invalidateQueries({ queryKey: ['user', user?.id, 'decision-trail', workspaceId] });
       setSnapshotSuccess('Snapshot captured successfully.');
       window.setTimeout(() => setSnapshotSuccess(null), 4000);
     } catch {
@@ -1488,6 +1572,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
   }
 
   function handleExportPDF() {
+    if (loading || historyError) return;
     const evidence = claims.map(c => {
       const f = freshnessFor(c);
       return {
@@ -1717,7 +1802,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
           {viewMode === 'list' && !replayActive && (
               <button
                 onClick={startReplay}
-                className="btn-secondary flex-shrink-0"
+                disabled={loading || !!historyError}
+                className="btn-secondary flex-shrink-0 disabled:opacity-40"
                 style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
               >
                 <Clock className="w-3.5 h-3.5" />
@@ -1737,7 +1823,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
             )}
             <button
               onClick={handleExportPDF}
-              className="btn-secondary flex-shrink-0"
+              disabled={loading || !!historyError}
+              className="btn-secondary flex-shrink-0 disabled:opacity-40"
               style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
             >
               <Download className="w-3.5 h-3.5" />
@@ -1784,7 +1871,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         </div>
       )}
 
-      {!loading && events.length === 0 && (
+      {!loading && !historyError && events.length === 0 && (
         <div className="panel p-8 text-center">
           <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>
             No recorded events for this decision yet.
@@ -1944,7 +2031,14 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
                 {reverifyDialogClaim.statement}
               </p>
               <div className="space-y-3">
-                <DecisionEvidenceAttachments workspaceId={workspaceId} claimId={reverifyDialogClaim.id} onEvidenceChanged={() => void refreshDecisionEvents()} />
+                <DecisionEvidenceAttachments
+                  workspaceId={workspaceId}
+                  claimId={reverifyDialogClaim.id}
+                  onEvidenceChanged={() => {
+                    void refreshDecisionEvents();
+                    void queryClient.invalidateQueries({ queryKey: ['user', user?.id, 'decision-trail', workspaceId] });
+                  }}
+                />
                 <div>
                   <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Verification Method *</label>
                   <input
@@ -2157,12 +2251,28 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         )}
         </>
       )}
+      {historyError && (
+        <div className="panel mt-4 p-3 text-sm" role="alert" style={{ color: '#dc2626' }}>
+          {historyError}
+        </div>
+      )}
+      {!loading && hasMoreHistory && (
+        <div className="mt-5 flex flex-col items-center gap-2">
+          <p className="text-xs text-center" style={{ color: 'var(--app-text-muted)' }}>
+            Replay and export are available now, but include only loaded history. Load older history for a more complete record.
+          </p>
+          <button className="btn-secondary" onClick={loadOlderHistory} disabled={loadingMoreHistory}>
+            {loadingMoreHistory ? 'Loading older history…' : 'Load older history'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function DecisionTrailPage({ onNavigate }: DecisionTrailPageProps) {
-  const { workspaces, loading } = useUserWorkspaces();
+  void onNavigate;
+  const { workspaces, loading, error: workspacesError } = useUserWorkspaces();
   const appWorkspaces = workspaces.filter(w => w.source !== 'slack');
   const readDecisionId = (): string | null => {
     const hash = window.location.hash.slice(1);
@@ -2229,6 +2339,10 @@ export default function DecisionTrailPage({ onNavigate }: DecisionTrailPageProps
       >
         {selectedId && loading ? (
           <div className="skeleton h-20" />
+        ) : workspacesError ? (
+          <div className="panel p-8 text-center" role="alert">
+            <p className="text-sm">Decision workspaces could not be loaded. Please refresh to try again.</p>
+          </div>
         ) : selectedId && !selected ? (
           <div className="panel p-8 text-center">
             <p className="text-sm">This decision is unavailable or you do not have access.</p>

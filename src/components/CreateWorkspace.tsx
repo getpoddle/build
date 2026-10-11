@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { X, Lock, ChevronDown, Clock } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscriptionTier, useTrialInfo } from '../hooks/useWorkspaceAccess';
+import { useQueryClient } from '@tanstack/react-query';
 import UpgradePrompt from './UpgradePrompt';
 
 async function callCreateWorkspace(accessToken: string, payload: Record<string, unknown>) {
@@ -40,9 +40,10 @@ interface CreateWorkspaceProps {
 }
 
 export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing, initialName = '', initialDescription = '' }: CreateWorkspaceProps) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const queryClient = useQueryClient();
   const { isPro, loading: tierLoading } = useSubscriptionTier();
-  const { trialLimitReached, trialCount, trialSlotsRemaining, trialLimit, loading: trialLoading } = useTrialInfo();
+  const { trialLimitReached, trialSlotsRemaining, trialLimit, loading: trialLoading } = useTrialInfo();
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const [name, setName] = useState(initialName);
@@ -63,7 +64,6 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
     setError('');
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         setError('Session expired. Please sign in again.');
         return;
@@ -86,6 +86,10 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
         return;
       }
 
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['user', user.id, 'workspaces'] }),
+        queryClient.invalidateQueries({ queryKey: ['user', user.id, 'own-profile-sensitive'] }),
+      ]);
       onCreated(json.workspace.id);
     } catch {
       setError('Something went wrong. Please try again.');
@@ -102,7 +106,10 @@ export default function CreateWorkspace({ onClose, onCreated, onNavigatePricing,
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError('Session expired. Please sign in again.');
+        return;
+      }
 
       const res = await fetch(`${supabaseUrl}/functions/v1/create-checkout-session`, {
         method: 'POST',

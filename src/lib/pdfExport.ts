@@ -201,7 +201,7 @@ function svgRiskDonut(data: ChartData['risk_distribution']): string {
   let cumulative = 0;
   let paths = '';
   let legend = '';
-  data.filter(d => d.count > 0).forEach((d, i) => {
+  data.filter(d => d.count > 0).forEach(d => {
     const fraction = d.count / total;
     const startAngle = (cumulative / total) * 2 * Math.PI - Math.PI / 2;
     cumulative += d.count;
@@ -703,15 +703,6 @@ const BASE_STYLES = `
   .bb-sev-high     { background: rgba(179,92,16,0.12) !important; color: #b35c10; }
   .bb-sev-medium   { background: rgba(184,134,11,0.10) !important; color: #8a6508; }
   .bb-sev-low      { background: rgba(15,23,42,0.07)  !important; color: #5D6B82; }
-`;
-
-// ─── Logo HTML ────────────────────────────────────────────────────────────────
-
-const LOGO_HTML = `
-  <div class="logo-wrap">
-    <div class="logo-box"><div class="logo-dot"></div></div>
-    <span class="logo-text">Poddle</span>
-  </div>
 `;
 
 // ─── Full document wrapper ────────────────────────────────────────────────────

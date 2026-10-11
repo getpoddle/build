@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Lock, Settings, ArrowLeft,
-  MessageSquare, Activity, RefreshCw, Loader2, AlertTriangle, Cpu, Clock, Users
+  MessageSquare, Activity, RefreshCw, Loader2, AlertTriangle, Clock, Users
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { useWorkspaceAccess } from '../hooks/useWorkspaceAccess';
+import { useWorkspaceAccess, workspaceMetadataQuery } from '../hooks/useWorkspaceAccess';
+import { useQuery } from '@tanstack/react-query';
 import { useBetaAccess } from '../hooks/useBetaAccess';
 import WorkspaceChat from '../components/WorkspaceChat';
 import WorkspaceWarRoom, { WarRoomLockedState } from '../components/WorkspaceWarRoom';
@@ -37,8 +38,8 @@ interface WorkspaceHubProps {
 }
 
 export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettings, onNavigate }: WorkspaceHubProps) {
-  const { user } = useAuth();
-  const { canAccess, isAdmin, isReadOnly, plan, subscriptionStatus, trialExpiresAt, loading: accessLoading } = useWorkspaceAccess(workspaceId);
+  const { user, session } = useAuth();
+  const { canAccess, isAdmin, isReadOnly, plan, subscriptionStatus, trialExpiresAt, loading: accessLoading, error: accessError } = useWorkspaceAccess(workspaceId);
   const { hasBetaAccess } = useBetaAccess();
   const workspaceIsPro = hasBetaAccess || (
     (plan === 'pro' || plan === 'team' || plan === 'business' || plan === 'enterprise') &&
@@ -51,7 +52,11 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
   const isTrial = subscriptionStatus === 'trialing';
   const expiryWarning = daysLeft !== null && daysLeft <= 7 && !isReadOnly;
 
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const workspaceQuery = useQuery({
+    ...workspaceMetadataQuery(user?.id ?? '', workspaceId),
+    enabled: !!user && !!workspaceId,
+  });
+  const workspace = (workspaceQuery.data as Workspace | null | undefined) ?? null;
   const [mainTab, setMainTab] = useState<MainTab>(
     initialTab === 'team' ? 'team' : initialTab === 'warroom' ? 'warroom' : 'chat'
   );
@@ -104,7 +109,6 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
   async function handleResynthesis() {
     setResyncing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) return;
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -139,21 +143,6 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
       setResyncing(false);
     }
   }
-
-  const fetchWorkspace = useCallback(async () => {
-    const { data } = await supabase
-      .from('workspaces')
-      .select('*')
-      .eq('id', workspaceId)
-      .maybeSingle();
-    setWorkspace(data);
-  }, [workspaceId]);
-
-  useEffect(() => {
-    if (!accessLoading && canAccess) {
-      fetchWorkspace();
-    }
-  }, [accessLoading, canAccess, fetchWorkspace]);
 
   /* ── Loading state ── */
   if (accessLoading) {
@@ -192,7 +181,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
           <p className="section-label mb-2">Access Restricted</p>
           <h2 className="text-base font-semibold mb-2" style={{ color: 'var(--app-text-primary)' }}>Private Workspace</h2>
           <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--app-text-secondary)' }}>
-            This workspace is invite-only. Contact the workspace owner for access.
+            {accessError ? 'Workspace access could not be verified. Please try again.' : 'This workspace is invite-only. Contact the workspace owner for access.'}
           </p>
           <button onClick={onBack} className="btn-ghost text-xs">
             Return to overview
@@ -210,7 +199,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         style={{ background: 'rgba(240,243,247,0.92)', backdropFilter: 'blur(3px)' }}
       >
         <div className="text-center px-6">
-          <div className="w-10 h-10 flex items-center justify-center mx-auto mb-3" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)', borderOpacity: '0.3' }}>
+          <div className="w-10 h-10 flex items-center justify-center mx-auto mb-3" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)' }}>
             <Lock className="w-4 h-4" style={{ color: 'var(--negative)' }} />
           </div>
           <p className="text-sm font-semibold mb-1" style={{ color: 'var(--app-text-primary)' }}>Read-only mode</p>
@@ -313,7 +302,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         {expiryWarning && (
           <div
             className="px-4 lg:px-5 py-2 flex items-center gap-3"
-            style={{ background: 'var(--signal-bg)', borderTop: '1px solid var(--signal)', borderTopOpacity: '0.3' }}
+            style={{ background: 'var(--signal-bg)', borderTop: '1px solid var(--signal)' }}
           >
             <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--signal)' }} />
             <p className="text-xs flex-1" style={{ color: 'var(--app-text-secondary)' }}>
@@ -332,7 +321,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         {isReadOnly && (
           <div
             className="px-4 lg:px-5 py-2 flex items-center gap-3"
-            style={{ background: 'var(--negative-bg)', borderTop: '1px solid var(--negative)', borderTopOpacity: '0.25' }}
+            style={{ background: 'var(--negative-bg)', borderTop: '1px solid var(--negative)' }}
           >
             <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--negative)' }} />
             <p className="text-xs flex-1" style={{ color: 'var(--app-text-secondary)' }}>
@@ -577,8 +566,6 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         />
       )}
 
-      {/* suppress unused import lint */}
-      <span className="hidden">{user?.id}{Cpu && ''}</span>
     </div>
   );
 }
