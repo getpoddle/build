@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ShieldCheck, Users, Swords, Building2, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { updatePageSEO } from '../lib/seo';
 import PoddleMark from '../components/PoddleMark';
 
@@ -77,10 +77,10 @@ const FAQS = [
 
 export default function About({ onNavigate }: AboutProps) {
   useEffect(() => {
-    updatePageSEO({
+    updatePageSEO('about', {
       title: 'About Poddle AI — The Governance Layer for Company Decisions',
       description: 'Poddle AI is a decision governance platform that helps teams pressure-test, approve, and permanently record high-stakes business decisions.',
-      path: '/about',
+      canonical: '/about',
     });
   }, []);
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lightbulb, TrendingUp, X, Download, Share2, Bot } from 'lucide-react';
+import { Lightbulb, TrendingUp, X, Bot } from 'lucide-react';
 import ShareButton from './ShareButton';
 
 interface ShareableInsightCardProps {

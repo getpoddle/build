@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Lock, CheckCircle, AlertTriangle, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface JoinWorkspaceProps {
   token: string;
@@ -32,7 +33,8 @@ async function callAcceptInvite(accessToken: string, token: string) {
 }
 
 export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<Status>('loading');
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [joining, setJoining] = useState(false);
@@ -104,7 +106,6 @@ export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps)
     setJoining(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) { setStatus('error'); return; }
 
       const json = await callAcceptInvite(session.access_token, token);
@@ -129,6 +130,7 @@ export default function JoinWorkspace({ token, onNavigate }: JoinWorkspaceProps)
       }
 
       setWorkspaceId(json.workspace_id);
+      await queryClient.invalidateQueries({ queryKey: ['user', user.id, 'workspaces'] });
       sessionStorage.removeItem('pendingInviteToken');
       setStatus('accepted');
     } catch {

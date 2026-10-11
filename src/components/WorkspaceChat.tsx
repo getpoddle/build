@@ -187,7 +187,7 @@ const SUGGESTIONS = [
   },
 ];
 
-export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTopic, initialPrompt, onPromptConsumed, onAgentsReplied, isPro, onUpgrade, onUsageUpdate }: WorkspaceChatProps) {
+export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTopic, initialPrompt, onPromptConsumed, onAgentsReplied, isPro, onUsageUpdate }: WorkspaceChatProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberProfile>>({});
@@ -1192,7 +1192,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                       style={
                         isMe
                           ? { background: 'var(--ink-900)', color: 'var(--ink-50)', borderRadius: '4px 4px 1px 4px' }
-                          : { background: colors.bg, color: 'var(--app-text-primary)', border: `1px solid ${colors.border}`, borderRadius: '4px 4px 4px 1px' }
+                          : { background: colors.bg, color: 'var(--app-text-primary)', border: `1px solid ${'border' in colors ? colors.border : 'var(--app-border)'}`, borderRadius: '4px 4px 4px 1px' }
                       }
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>

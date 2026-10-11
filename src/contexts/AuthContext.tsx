@@ -4,6 +4,8 @@ import { supabase, isInitialPasswordRecovery, oauthRedirectCode } from '../lib/s
 import { getDisplayName } from '../lib/displayName';
 import { setUserProperties, trackUserLogin, trackUserSignup } from '../lib/analytics';
 import { phIdentify, phSetPersonProperties, phReset, phCapture, phSyncProfileProperties } from '../lib/posthog';
+import { queryClient } from '../lib/queryClient';
+import { parseOwnProfileSensitive } from '../lib/profileSensitive';
 
 const IDLE_TIMEOUT_ADMIN = 8 * 60 * 60 * 1000;  // 8 hours for admins
 const IDLE_TIMEOUT_USER  = 8 * 60 * 60 * 1000;  // 8 hours for regular users
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdminRef = useRef(false);
   const isLoggedInRef = useRef(false);
   const signInProcessedRef = useRef(false);
+  const authenticatedUserIdRef = useRef<string | null>(null);
 
   const clearIdleTimer = () => {
     if (idleTimerRef.current) {
@@ -70,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const authInitializationStart = performance.now();
     const loadingTimeout = setTimeout(() => {
       setLoading(false);
     }, 8000);
@@ -100,8 +104,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // before getSession() ran. URL cleanup happens in onAuthStateChange.
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (import.meta.env.DEV) {
+        console.debug(`[auth] initial session ${Math.round(performance.now() - authInitializationStart)}ms`);
+      }
       clearTimeout(loadingTimeout);
+      authenticatedUserIdRef.current = session?.user?.id ?? null;
       isLoggedInRef.current = !!session?.user;
+      const nextUserId = session?.user?.id ?? null;
+      if (authenticatedUserIdRef.current && authenticatedUserIdRef.current !== nextUserId) {
+        queryClient.clear();
+        signInProcessedRef.current = false;
+      }
+      authenticatedUserIdRef.current = nextUserId;
       setSession(session);
       setUser(session?.user ?? null);
       // During a password-recovery flow, getSession() may return null because
@@ -120,8 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
-      Promise.race([promise, new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
+    const withTimeout = <T,>(promise: PromiseLike<T>, ms: number): Promise<Awaited<T>> =>
+      Promise.race([Promise.resolve(promise), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       (async () => {
@@ -210,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               isAdminRef.current = !!adminRes.data;
               resetIdleTimer();
               profile = profileRes.data;
-              deletionRequested = !!sensitiveRes.data?.deletion_requested_at;
+              deletionRequested = !!parseOwnProfileSensitive(sensitiveRes.data)?.deletion_requested_at;
             } catch {
               console.error('Sign-in profile fetch failed');
               profileQueryErrored = true;
@@ -278,15 +292,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     .rpc('lookup_referral_code', { p_code: referralCode })
                     .maybeSingle();
 
-                  if (referrer && referrer.user_id !== session.user.id) {
+                  const referrerUserId =
+                    typeof referrer === 'object' && referrer !== null &&
+                    'user_id' in referrer && typeof referrer.user_id === 'string'
+                      ? referrer.user_id
+                      : null;
+                  if (referrerUserId && referrerUserId !== session.user.id) {
                     await supabase.from('referral_signups').insert({
-                      referrer_id: referrer.user_id,
+                      referrer_id: referrerUserId,
                       referred_id: session.user.id,
                       referral_code: referralCode,
                     });
 
                     await supabase.from('notifications').insert({
-                      user_id: referrer.user_id,
+                      user_id: referrerUserId,
                       type: 'referral',
                       content: `Someone joined Poddle using your invite link!`,
                       created_at: new Date().toISOString(),
@@ -405,6 +424,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionStorage.removeItem('postLoginRedirect');
       localStorage.removeItem('poddle_referral');
       await supabase.auth.signOut({ scope: 'local' });
+      queryClient.clear();
+      authenticatedUserIdRef.current = null;
       setUser(null);
       setSession(null);
     } catch (error) {

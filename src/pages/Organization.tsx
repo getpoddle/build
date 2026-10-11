@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Building2, AlertTriangle, RefreshCw, ChevronRight, Plus, ShieldCheck, Check, X as XIcon, Pencil, Trash2, Mail, Copy, UserPlus, Users, Crown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface OrganizationProps {
   onNavigate: (page: string, workspaceId?: string) => void;
@@ -58,6 +60,9 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function Organization({ onNavigate }: OrganizationProps) {
+  const { user, session } = useAuth();
+  const queryClient = useQueryClient();
+  const authenticatedUserId = user?.id;
   const [orgs, setOrgs] = useState<OrgOption[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
   const [health, setHealth] = useState<PortfolioHealthRow[]>([]);
@@ -99,9 +104,9 @@ export default function Organization({ onNavigate }: OrganizationProps) {
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id || null));
-    loadOrgs();
-  }, []);
+    setCurrentUserId(authenticatedUserId || null);
+    if (authenticatedUserId) loadOrgs(authenticatedUserId);
+  }, [authenticatedUserId]);
 
   useEffect(() => {
     if (selectedOrgId) {
@@ -112,23 +117,23 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     }
   }, [selectedOrgId]);
 
-  async function loadOrgs() {
+  async function loadOrgs(userId: string) {
     setLoading(true);
     setError(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setError('Not signed in.'); return; }
-
-      const { data, error: membersError } = await supabase
-        .from('organization_members')
-        .select('role, organizations(id, name, require_approval_for_commit)')
-        .eq('user_id', user.id);
-
-      if (membersError) throw membersError;
-
-      const orgOptions: OrgOption[] = (data || [])
-        .map((row: any) => row.organizations ? { ...row.organizations, role: row.role } : null)
-        .filter(Boolean);
+      const orgOptions = await queryClient.fetchQuery({
+        queryKey: ['user', userId, 'organizations'],
+        queryFn: async () => {
+          const { data, error: membersError } = await supabase
+            .from('organization_members')
+            .select('role, organizations(id, name, require_approval_for_commit)')
+            .eq('user_id', userId);
+          if (membersError) throw membersError;
+          return (data || [])
+            .map((row: any) => row.organizations ? { ...row.organizations, role: row.role } : null)
+            .filter(Boolean) as OrgOption[];
+        },
+      });
 
       setOrgs(orgOptions);
       if (orgOptions.length > 0) setSelectedOrgId(orgOptions[0].id);
@@ -143,16 +148,20 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     setLoading(true);
     setError(null);
     try {
-      const [healthRes, overviewRes] = await Promise.all([
-        supabase.rpc('get_organization_portfolio_health', { org_id: orgId }),
-        supabase.rpc('get_organization_decision_overview', { org_id: orgId }),
-      ]);
-
-      if (healthRes.error) throw healthRes.error;
-      if (overviewRes.error) throw overviewRes.error;
-
-      setHealth(healthRes.data || []);
-      setOverview(overviewRes.data || []);
+      const data = await queryClient.fetchQuery({
+        queryKey: ['user', authenticatedUserId, 'organization', orgId, 'portfolio'],
+        queryFn: async () => {
+          const [healthRes, overviewRes] = await Promise.all([
+            supabase.rpc('get_organization_portfolio_health', { org_id: orgId }),
+            supabase.rpc('get_organization_decision_overview', { org_id: orgId }),
+          ]);
+          if (healthRes.error) throw healthRes.error;
+          if (overviewRes.error) throw overviewRes.error;
+          return { health: healthRes.data || [], overview: overviewRes.data || [] };
+        },
+      });
+      setHealth(data.health);
+      setOverview(data.overview);
     } catch (err) {
       setError('Could not load decision data for this organization.');
     } finally {
@@ -161,74 +170,92 @@ export default function Organization({ onNavigate }: OrganizationProps) {
   }
 
   async function loadApprovalRequests(orgId: string) {
-    const { data } = await supabase
-      .from('decision_approvals')
-      .select('id, workspace_id, requested_by, status, created_at, workspaces(name, description), profiles!decision_approvals_requested_by_fkey(full_name)')
-      .eq('organization_id', orgId)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-
-    const requests: ApprovalRequest[] = (data || []).map((row: any) => ({
-      id: row.id,
-      workspace_id: row.workspace_id,
-      workspace_name: row.workspaces?.name || 'Unknown workspace',
-      workspace_description: row.workspaces?.description || '',
-      requested_by: row.requested_by,
-      requester_name: row.profiles?.full_name || 'A team member',
-      status: row.status,
-      created_at: row.created_at,
-    }));
-
-    setApprovalRequests(requests);
+    try {
+      const requests = await queryClient.fetchQuery({
+        queryKey: ['user', authenticatedUserId, 'organization', orgId, 'approvals'],
+        queryFn: async () => {
+          const { data, error: approvalsError } = await supabase
+            .from('decision_approvals')
+            .select('id, workspace_id, requested_by, status, created_at, workspaces(name, description), profiles!decision_approvals_requested_by_fkey(full_name)')
+            .eq('organization_id', orgId)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+          if (approvalsError) throw approvalsError;
+          return (data || []).map((row: any) => ({
+            id: row.id,
+            workspace_id: row.workspace_id,
+            workspace_name: row.workspaces?.name || 'Unknown workspace',
+            workspace_description: row.workspaces?.description || '',
+            requested_by: row.requested_by,
+            requester_name: row.profiles?.full_name || 'A team member',
+            status: row.status,
+            created_at: row.created_at,
+          })) as ApprovalRequest[];
+        },
+      });
+      setApprovalRequests(requests);
+    } catch (error) {
+      console.error('Could not load organization approval requests:', error);
+    }
   }
 
   async function loadPendingInvites(orgId: string) {
-    const { data } = await supabase
-      .from('organization_invites')
-      .select('id, invited_email, token, created_at')
-      .eq('organization_id', orgId)
-      .is('accepted_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false });
-    setPendingInvites(data || []);
+    try {
+      const invites = await queryClient.fetchQuery({
+        queryKey: ['user', authenticatedUserId, 'organization', orgId, 'invites'],
+        queryFn: async () => {
+          const { data, error: invitesError } = await supabase
+            .from('organization_invites')
+            .select('id, invited_email, token, created_at')
+            .eq('organization_id', orgId)
+            .is('accepted_at', null)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false });
+          if (invitesError) throw invitesError;
+          return data || [];
+        },
+      });
+      setPendingInvites(invites);
+    } catch (error) {
+      console.error('Could not load organization invites:', error);
+    }
   }
 
   async function loadMembers(orgId: string) {
     setLoadingMembers(true);
     setMemberActionError(null);
     try {
-      const { data: memberRows, error: membersErr } = await supabase
-        .from('organization_members')
-        .select('user_id, role')
-        .eq('organization_id', orgId);
-
-      if (membersErr) throw membersErr;
-
-      const userIds = (memberRows || []).map(r => r.user_id);
-      let profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
-
-      if (userIds.length > 0) {
-        const { data: profileRows, error: profilesErr } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', userIds);
-
-        if (profilesErr) throw profilesErr;
-
-        for (const p of profileRows || []) {
-          profileMap[p.id] = { full_name: p.full_name, email: p.email };
+      const mapped = await queryClient.fetchQuery({
+        queryKey: ['user', authenticatedUserId, 'organization', orgId, 'members'],
+        queryFn: async () => {
+          const { data: memberRows, error: membersErr } = await supabase
+            .from('organization_members')
+            .select('user_id, role')
+            .eq('organization_id', orgId);
+          if (membersErr) throw membersErr;
+          const userIds = (memberRows || []).map(r => r.user_id);
+          const profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
+          if (userIds.length > 0) {
+            const { data: profileRows, error: profilesErr } = await supabase
+              .from('profiles')
+              .select('id, full_name, email')
+              .in('id', userIds);
+            if (profilesErr) throw profilesErr;
+            for (const p of profileRows || []) {
+              profileMap[p.id] = { full_name: p.full_name, email: p.email };
+            }
+          }
+          const results: OrgMember[] = (memberRows || []).map(row => ({
+            user_id: row.user_id,
+            role: row.role,
+            full_name: profileMap[row.user_id]?.full_name || null,
+            email: profileMap[row.user_id]?.email || null,
+          }));
+          const roleOrder: Record<string, number> = { owner: 0, admin: 1, member: 2 };
+          results.sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3));
+          return results;
         }
-      }
-
-      const mapped: OrgMember[] = (memberRows || []).map(row => ({
-        user_id: row.user_id,
-        role: row.role,
-        full_name: profileMap[row.user_id]?.full_name || null,
-        email: profileMap[row.user_id]?.email || null,
-      }));
-
-      const roleOrder: Record<string, number> = { owner: 0, admin: 1, member: 2 };
-      mapped.sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3));
+      });
 
       setMembers(mapped);
     } catch (err) {
@@ -250,6 +277,10 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       });
       if (updateErr) throw updateErr;
       setMembers(prev => prev.map(m => m.user_id === userId ? { ...m, role: newRole } : m));
+      if (user) {
+        void queryClient.invalidateQueries({ queryKey: ['user', user.id] });
+        void queryClient.invalidateQueries({ queryKey: ['user', user.id, 'organizations'] });
+      }
     } catch (err: any) {
       setMemberActionError(err?.message || 'Could not update this member\'s role.');
     } finally {
@@ -268,6 +299,10 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       });
       if (removeErr) throw removeErr;
       setMembers(prev => prev.filter(m => m.user_id !== userId));
+      if (user) {
+        void queryClient.invalidateQueries({ queryKey: ['user', user.id] });
+        void queryClient.invalidateQueries({ queryKey: ['user', user.id, 'organizations'] });
+      }
     } catch (err: any) {
       setMemberActionError(err?.message || 'Could not remove this member.');
     } finally {
@@ -293,7 +328,6 @@ export default function Organization({ onNavigate }: OrganizationProps) {
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const res = await fetch(`${supabaseUrl}/functions/v1/send-workspace-invite`, {
@@ -405,6 +439,7 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       await supabase.from('organization_members').delete().eq('organization_id', deletedId);
       const { error: deleteErr } = await supabase.from('organizations').delete().eq('id', deletedId);
       if (deleteErr) throw deleteErr;
+      if (user) void queryClient.invalidateQueries({ queryKey: ['user', user.id] });
 
       setShowDeleteOrgConfirm(false);
       setDeleteOrgConfirmText('');
@@ -432,10 +467,11 @@ export default function Organization({ onNavigate }: OrganizationProps) {
       if (createErr) throw createErr;
 
       const created = Array.isArray(data) ? data[0] : data;
+      if (user) void queryClient.invalidateQueries({ queryKey: ['user', user.id] });
       setNewOrgName('');
       setShowCreateForm(false);
 
-      await loadOrgs();
+      if (user) await loadOrgs(user.id);
       if (created?.id) setSelectedOrgId(created.id);
     } catch (err: any) {
       setCreateError(err?.message || 'Could not create organization.');

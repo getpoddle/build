@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Lock, Users, Mail, Trash2, Crown, Shield, User, X, ExternalLink, Copy, Check, AlertTriangle, Plus, CreditCard, Link2, Unlink, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,7 +56,8 @@ const ROLE_ICONS = { owner: Crown, admin: Shield, member: User };
 const ROLE_COLORS = { owner: 'var(--signal)', admin: 'var(--agent-fin)', member: 'var(--app-text-muted)' };
 
 export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: WorkspaceSettingsProps) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const queryClient = useQueryClient();
   const { isAdmin, isOwner, seatsUsed, seatsTotal, loading: accessLoading } = useWorkspaceAccess(workspaceId);
   const subscription = useSubscription(user?.id);
   const { tier } = useSubscriptionTier();
@@ -153,6 +155,10 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
       .from('workspaces')
       .update({ name: editName.trim(), description: editDesc.trim() })
       .eq('id', workspaceId);
+    if (user) {
+      void queryClient.invalidateQueries({ queryKey: ['user', user.id, 'workspaces'] });
+      void queryClient.invalidateQueries({ queryKey: ['user', user.id, 'workspace', workspaceId] });
+    }
     setWorkspace(prev => prev ? { ...prev, name: editName.trim(), description: editDesc.trim() } : prev);
 
     // ── Decision Audit Trail: log edits to the decision's core framing ──
@@ -247,7 +253,11 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setInviteError('Session expired. Please sign in again.');
+        setInviting(false);
+        return;
+      }
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const res = await fetch(`${supabaseUrl}/functions/v1/send-workspace-invite`, {
@@ -286,6 +296,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
     const removedMember = members.find(m => m.id === memberId);
     await supabase.from('workspace_members').delete().eq('id', memberId);
     setMembers(prev => prev.filter(m => m.id !== memberId));
+    if (user) void queryClient.invalidateQueries({ queryKey: ['user', user.id] });
     if (user) {
       supabase.from('decision_events').insert({
         workspace_id: workspaceId,
@@ -301,6 +312,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
     const prevMember = members.find(m => m.id === memberId);
     await supabase.from('workspace_members').update({ role: newRole }).eq('id', memberId);
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m));
+    if (user) void queryClient.invalidateQueries({ queryKey: ['user', user.id] });
     if (user && prevMember) {
       supabase.from('decision_events').insert({
         workspace_id: workspaceId,
@@ -327,6 +339,7 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
       ]);
       const { error } = await supabase.from('workspaces').delete().eq('id', workspaceId);
       if (error) throw error;
+      if (user) void queryClient.invalidateQueries({ queryKey: ['user', user.id] });
       onBack();
     } catch {
       setDeleting(false);
@@ -338,7 +351,10 @@ export default function WorkspaceSettings({ workspaceId, onBack, onNavigate }: W
     if (!workspace?.stripe_customer_id) return;
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setLoading(false);
+        return;
+      }
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
       const res = await fetch(`${supabaseUrl}/functions/v1/create-billing-portal`, {

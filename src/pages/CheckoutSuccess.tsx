@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
+import { useAuth } from '../contexts/AuthContext';
 import PoddleMark from '../components/PoddleMark';
 
 interface CheckoutSuccessProps {
@@ -8,7 +9,9 @@ interface CheckoutSuccessProps {
 }
 
 export default function CheckoutSuccess({ onNavigate }: CheckoutSuccessProps) {
-  const { subscription, loading } = useSubscription();
+  const { user } = useAuth();
+  const subscription = useSubscription(user?.id);
+  const { loading } = subscription;
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {

@@ -3,7 +3,6 @@ import { Brain, Lock, TrendingUp, Eye, Zap, GitBranch, BarChart2, ChevronDown, C
 import { supabase } from '../lib/supabase';
 
 const UNLOCK_THRESHOLD = 1;
-const AGENT_ALIGNMENT_THRESHOLD = 5;
 
 const AGENT_DISPLAY_NAMES: Record<string, string> = {
   risk_analyst:        'Risk Analyst',

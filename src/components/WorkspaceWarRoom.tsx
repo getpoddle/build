@@ -348,7 +348,7 @@ function SubScorePill({ label, score, icon: Icon }: { label: string; score: numb
   const color = safe >= 70 ? 'var(--positive)' : safe >= 45 ? 'var(--caution)' : 'var(--negative)';
   const bg    = safe >= 70 ? 'var(--positive-bg)' : safe >= 45 ? 'var(--signal-bg)' : 'var(--negative-bg)';
   return (
-    <div className="stat-card flex flex-col items-center gap-1 min-w-[72px]" style={{ background: bg, borderColor: color, borderOpacity: 0.3, padding: '0.5rem 0.75rem' }}>
+    <div className="stat-card flex flex-col items-center gap-1 min-w-[72px]" style={{ background: bg, borderColor: color, padding: '0.5rem 0.75rem' }}>
       <Icon className="w-3.5 h-3.5" style={{ color }} />
       <span className="stat-card-value" style={{ color, fontSize: '1.125rem' }}>{safe}</span>
       <span className="stat-card-label text-center leading-tight" style={{ color, opacity: 0.75 }}>{label}</span>
@@ -541,7 +541,7 @@ function ConsensusBarChart({ points }: { points: SynthesisData['consensus_points
         return (
           <div key={i} className="flex items-start gap-3">
             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5"
-              style={{ background: 'var(--positive-bg)', border: '1px solid', borderColor: 'var(--positive)', borderOpacity: 0.3 }}>
+              style={{ background: 'var(--positive-bg)', border: '1px solid', borderColor: 'var(--positive)' }}>
               <span className="text-xs font-black" style={{ color: 'var(--positive)' }}>{i + 1}</span>
             </div>
             <div className="flex-1 min-w-0">
@@ -955,7 +955,10 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
       setActionItems((actRes?.data as ActionItem[]) || []);
       setCommits((commitRes?.data as ConflictCommit[]) || []);
       if (membRes?.data) {
-        const profiles = membRes.data.map(m => m.profiles as MemberProfile | null).filter(Boolean) as MemberProfile[];
+        const profiles = membRes.data.flatMap(m => {
+          const profile = m.profiles;
+          return Array.isArray(profile) ? profile.filter(Boolean) : profile ? [profile] : [];
+        }) as MemberProfile[];
         setMembers(profiles);
       }
     } catch { /* keep state */ }
@@ -1336,7 +1339,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
             nonFinancialMetrics: synthesis.non_financial_metrics, opportunitySignals: synthesis.opportunity_signals,
             cognitiveBiasFlags: synthesis.cognitive_bias_flags,
             recommendation: synthesis.recommendation,
-            actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source: a.source, source_area: a.source_area })),
+            actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source: a.source, source_area: a.source_area ?? undefined })),
           })}
             className="btn-ghost"
             style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}>
@@ -1436,7 +1439,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
           <button key={s.key}
             onClick={() => setActiveSection(activeSection === s.key ? null : s.key)}
             className={`nav-pill flex items-center gap-1.5 ${activeSection === s.key ? '' : 'nav-pill-inactive'}`}
-            style={activeSection === s.key ? { background: s.bg, color: s.color, border: `1px solid ${s.color}`, borderOpacity: 0.4 } : {}}>
+            style={activeSection === s.key ? { background: s.bg, color: s.color, border: `1px solid ${s.color}` } : {}}>
             <s.icon className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{s.label}</span>
             <span className="mono-xs w-5 h-5 flex items-center justify-center flex-shrink-0"
@@ -1472,8 +1475,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── CLAIMS (Evidence IDs) ── */}
       {(activeSection === null || activeSection === 'claims') && claims.length > 0 && (
-        <div style={{ border: '1px solid var(--signal)', borderOpacity: 0.25 }}>
-          <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: 'var(--signal-bg)', borderBottom: '1px solid var(--signal)', borderBottomOpacity: 0.3 }}>
+        <div style={{ border: '1px solid var(--signal)' }}>
+          <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: 'var(--signal-bg)', borderBottom: '1px solid var(--signal)' }}>
             <FileText className="w-3.5 h-3.5" style={{ color: 'var(--signal)' }} />
             <span className="section-label" style={{ color: 'var(--signal)' }}>Claims</span>
             <span className="text-xs ml-auto hidden sm:inline" style={{ color: 'var(--app-text-muted)' }}>Evidence-linked, citable by code</span>
@@ -1519,8 +1522,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── CONSENSUS ── */}
       {(activeSection === null || activeSection === 'consensus') && synthesis.consensus_points.length > 0 && (
-        <div style={{ border: '1px solid var(--positive)', borderOpacity: 0.25 }}>
-          <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: 'var(--positive-bg)', borderBottom: '1px solid var(--positive)', borderBottomOpacity: 0.25 }}>
+        <div style={{ border: '1px solid var(--positive)' }}>
+          <div className="px-5 py-2.5 flex items-center gap-2" style={{ background: 'var(--positive-bg)', borderBottom: '1px solid var(--positive)' }}>
             <CheckCircle2 className="w-3.5 h-3.5" style={{ color: 'var(--positive)' }} />
             <span className="section-label" style={{ color: 'var(--positive)' }}>Consensus points</span>
             <span className="text-xs ml-auto hidden lg:inline" style={{ color: 'var(--positive)' }}>Bar width = confidence</span>
@@ -1531,8 +1534,8 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── CONFLICT ZONES ── */}
       {(activeSection === null || activeSection === 'conflicts') && synthesis.conflict_zones.length > 0 && (
-        <div style={{ border: '1px solid var(--caution)', borderOpacity: 0.25 }}>
-          <div className="px-5 py-2.5 flex flex-wrap items-center gap-2" style={{ background: 'var(--signal-bg)', borderBottom: '1px solid var(--signal)', borderBottomOpacity: 0.3 }}>
+        <div style={{ border: '1px solid var(--caution)' }}>
+          <div className="px-5 py-2.5 flex flex-wrap items-center gap-2" style={{ background: 'var(--signal-bg)', borderBottom: '1px solid var(--signal)' }}>
             <GitBranch className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--signal)' }} />
             <span className="section-label" style={{ color: 'var(--signal)' }}>Conflict zones</span>
             <span className="text-xs hidden lg:inline ml-auto" style={{ color: 'var(--signal)' }}>Breakthroughs hide in disagreement</span>
@@ -1688,7 +1691,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── OPEN QUESTIONS ── */}
       {(activeSection === null || activeSection === 'questions') && synthesis.open_questions.length > 0 && (
-        <div style={{ border: '1px solid var(--agent-fin)', borderOpacity: 0.2 }}>          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(37,99,235,0.06)' }}>
+        <div style={{ border: '1px solid var(--agent-fin)' }}>          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(37,99,235,0.06)' }}>
             <HelpCircle className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-bold text-blue-800">Unresolved questions</span>
             {onDiscuss && <span className="text-xs text-blue-400 ml-auto">Click to discuss with AI agents</span>}
@@ -1723,7 +1726,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── RISK SIGNALS ── */}
       {(activeSection === null || activeSection === 'risks') && synthesis.risk_signals.length > 0 && (
-        <div style={{ border: '1px solid var(--negative)', borderOpacity: 0.2 }}>
+        <div style={{ border: '1px solid var(--negative)' }}>
           <div className="px-5 py-3 flex items-center gap-2 flex-wrap" style={{ background: 'rgba(220,38,38,0.06)' }}>
             <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
             <span className="text-sm font-bold text-red-800">Risk signals detected</span>
@@ -1741,7 +1744,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── BLIND SPOTS ── */}
       {(activeSection === null || activeSection === 'blindspots') && synthesis.blind_spots.length > 0 && (
-        <div style={{ border: '1px solid var(--agent-fin)', borderOpacity: 0.2 }}>
+        <div style={{ border: '1px solid var(--agent-fin)' }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(8,145,178,0.06)' }}>
             <Eye className="w-4 h-4" style={{ color: '#0891b2' }} />
             <span className="text-sm font-bold" style={{ color: '#0e7490' }}>Blind spots</span>
@@ -1782,7 +1785,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── FINANCIAL METRICS ── */}
       {(activeSection === null || activeSection === 'financial') && hasFinancial && (
-        <div style={{ border: '1px solid var(--positive)', borderOpacity: 0.25 }}>
+        <div style={{ border: '1px solid var(--positive)' }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(22,163,74,0.07)' }}>
             <DollarSign className="w-4 h-4 text-green-600" />
             <span className="text-sm font-bold text-green-800">Financial signals</span>
@@ -1802,7 +1805,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── OPERATIONAL METRICS ── */}
       {(activeSection === null || activeSection === 'operational') && hasOperational && (
-        <div style={{ border: '1px solid var(--caution)', borderOpacity: 0.25 }}>
+        <div style={{ border: '1px solid var(--caution)' }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(245,158,11,0.07)' }}>
             <Settings className="w-4 h-4 text-amber-600" />
             <span className="text-sm font-bold text-amber-800">Operational readiness</span>
@@ -1822,7 +1825,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── NON-FINANCIAL / STRATEGIC METRICS ── */}
       {(activeSection === null || activeSection === 'strategic') && hasNonFinancial && (
-        <div style={{ border: '1px solid var(--agent-fin)', borderOpacity: 0.2 }}>          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(37,99,235,0.06)' }}>
+        <div style={{ border: '1px solid var(--agent-fin)' }}>          <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(37,99,235,0.06)' }}>
             <BarChart3 className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-bold text-blue-800">Strategic &amp; non-financial signals</span>
             {synthesis.alignment_score !== null && (
@@ -1841,7 +1844,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── OPPORTUNITY SIGNALS ── */}
       {(activeSection === null || activeSection === 'opportunities') && hasOpportunities && (
-        <div style={{ border: '1px solid var(--positive)', borderOpacity: 0.25 }}>
+        <div style={{ border: '1px solid var(--positive)' }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'rgba(22,163,74,0.06)' }}>
             <Lightbulb className="w-4 h-4 text-green-600" />
             <span className="text-sm font-bold text-green-800">Opportunity signals</span>
@@ -1853,7 +1856,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── COGNITIVE BIAS FLAGS ── */}
       {(activeSection === null || activeSection === 'biases') && hasBiases && (
-        <div style={{ border: '1px solid var(--caution)', borderOpacity: 0.25 }}>
+        <div style={{ border: '1px solid var(--caution)' }}>
           <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'var(--warning-bg)' }}>
             <AlertCircle className="w-4 h-4 text-amber-600" />
             <span className="text-sm font-bold text-amber-800">Cognitive bias flags</span>
@@ -1865,7 +1868,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
 
       {/* ── ACTION ITEMS (Kanban) ── */}
       {(activeSection === null || activeSection === 'actions') && (
-        <div style={{ border: '1px solid var(--agent-fin)', borderOpacity: 0.25 }}>
+        <div style={{ border: '1px solid var(--agent-fin)' }}>
           <div className="px-5 py-3 flex items-center gap-2 flex-wrap" style={{ background: 'rgba(37,99,235,0.06)' }}>
             <Target className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-bold text-blue-800">Action Items</span>
@@ -2073,7 +2076,7 @@ export default function WorkspaceWarRoom({ workspaceId, workspaceName, workspace
                     consensusPoints: synthesis!.consensus_points,
                     riskSignals: synthesis!.risk_signals,
                     opportunitySignals: synthesis!.opportunity_signals,
-                    actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source_area: a.source_area })),
+                    actionItems: actionItems.map(a => ({ text: a.text, priority: a.priority, status: a.status, source_area: a.source_area ?? undefined })),
                     synthesisRunNumber: history.length || undefined,
                   })}
                   className="btn-ghost">
@@ -2126,7 +2129,7 @@ export function WarRoomLockedState({ onUpgrade }: { onUpgrade: () => void }) {
               { icon: TrendingUp,   text: 'Risk Matrix — visual 2D plot by category and severity' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-start gap-2">
-                <div className="flex-shrink-0 mt-0.5 w-4 h-4 flex items-center justify-center" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)', borderOpacity: 0.4 }}>
+                <div className="flex-shrink-0 mt-0.5 w-4 h-4 flex items-center justify-center" style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}>
                   <Icon className="w-2.5 h-2.5" style={{ color: 'var(--signal)' }} />
                 </div>
                 <span className="text-xs leading-relaxed" style={{ color: 'var(--app-text-secondary)' }}>{text}</span>

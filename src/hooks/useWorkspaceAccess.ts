@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { parseOwnProfileSensitive } from '../lib/profileSensitive';
 import {
   deriveAccessState,
   resolveSubscriptionTier,
@@ -8,91 +10,80 @@ import {
   TRIAL_WORKSPACE_LIMIT,
 } from '../../supabase/functions/_shared/workspaceAccessLogic';
 
+function useOwnProfileSensitive(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['user', userId, 'own-profile-sensitive'],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_own_profile_sensitive').maybeSingle();
+      if (error) throw error;
+      return parseOwnProfileSensitive(data);
+    },
+  });
+}
+
 export interface WorkspaceAccess {
   canAccess: boolean;
   isOwner: boolean;
   isAdmin: boolean;
   isReadOnly: boolean;
   role: 'owner' | 'admin' | 'member' | null;
-  plan: 'pro' | 'enterprise' | null;
+  plan: 'pro' | 'team' | 'business' | 'enterprise' | null;
   subscriptionStatus: string | null;
   trialExpiresAt: string | null;
   seatsUsed: number;
   seatsTotal: number;
   loading: boolean;
+  error?: Error | null;
+}
+
+export function workspaceMetadataQuery(userId: string, workspaceId: string) {
+  return {
+    queryKey: ['user', userId, 'workspace', workspaceId] as const,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('workspaces')
+        .select('id, name, description, domain, plan, subscription_status, owner_id, seats, trial_workspace_expires_at')
+        .eq('id', workspaceId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  };
 }
 
 export function useWorkspaceAccess(workspaceId: string | null): WorkspaceAccess {
   const { user } = useAuth();
-  const [state, setState] = useState<WorkspaceAccess>({
-    canAccess: false,
-    isOwner: false,
-    isAdmin: false,
-    isReadOnly: false,
-    role: null,
-    plan: null,
-    subscriptionStatus: null,
-    trialExpiresAt: null,
-    seatsUsed: 0,
-    seatsTotal: 0,
-    loading: true,
+  const queryClient = useQueryClient();
+  const accessQuery = useQuery({
+    queryKey: ['user', user?.id, 'workspace-access', workspaceId],
+    enabled: !!user && !!workspaceId,
+    queryFn: async () => {
+      const [memberRes, workspaceRes, seatsRes] = await Promise.all([
+        supabase.from('workspace_members').select('role').eq('workspace_id', workspaceId!).eq('user_id', user!.id).maybeSingle(),
+        queryClient.fetchQuery(workspaceMetadataQuery(user!.id, workspaceId!)),
+        supabase.from('workspace_members').select('id', { count: 'exact', head: true }).eq('workspace_id', workspaceId!),
+      ]);
+      if (memberRes.error) throw memberRes.error;
+      if (seatsRes.error) throw seatsRes.error;
+      const role = memberRes.data?.role as 'owner' | 'admin' | 'member' | null ?? null;
+      const workspace = workspaceRes;
+      return {
+        ...deriveAccessState(role, workspace),
+        role,
+        plan: workspace?.plan as 'pro' | 'team' | 'business' | 'enterprise' | null ?? null,
+        subscriptionStatus: workspace?.subscription_status ?? null,
+        trialExpiresAt: workspace?.trial_workspace_expires_at ?? null,
+        seatsUsed: seatsRes.count ?? 0,
+        seatsTotal: workspace?.seats ?? 0,
+        loading: false,
+      } satisfies WorkspaceAccess;
+    },
   });
 
   useEffect(() => {
-    if (!workspaceId || !user) {
-      setState(s => ({ ...s, loading: false, canAccess: false }));
-      return;
-    }
+    if (!workspaceId || !user) return;
 
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const [memberRes, workspaceRes, seatsRes] = await Promise.all([
-          supabase
-            .from('workspace_members')
-            .select('role')
-            .eq('workspace_id', workspaceId)
-            .eq('user_id', user!.id)
-            .maybeSingle(),
-          supabase
-            .from('workspaces')
-            .select('plan, subscription_status, seats, trial_workspace_expires_at')
-            .eq('id', workspaceId)
-            .maybeSingle(),
-          supabase
-            .from('workspace_members')
-            .select('id', { count: 'exact', head: true })
-            .eq('workspace_id', workspaceId),
-        ]);
-
-        if (cancelled) return;
-
-        const role = memberRes.data?.role as 'owner' | 'admin' | 'member' | null ?? null;
-        const workspace = workspaceRes.data;
-        const access = deriveAccessState(role, workspace);
-
-        setState({
-          ...access,
-          role,
-          plan: workspace?.plan as 'pro' | 'enterprise' | null ?? null,
-          subscriptionStatus: workspace?.subscription_status ?? null,
-          trialExpiresAt: workspace?.trial_workspace_expires_at ?? null,
-          seatsUsed: seatsRes.count ?? 0,
-          seatsTotal: workspace?.seats ?? 0,
-          loading: false,
-        });
-      } catch {
-        if (!cancelled) {
-          setState(s => ({ ...s, loading: false, canAccess: false }));
-        }
-      }
-    }
-
-    load();
-
-    // Re-fetch whenever the workspace's subscription fields change server-side
-    // (e.g. Stripe webhook sets subscription_status = 'active' after payment).
     const channel = supabase
       .channel(`workspace-access-${workspaceId}`)
       .on(
@@ -103,22 +94,59 @@ export function useWorkspaceAccess(workspaceId: string | null): WorkspaceAccess 
           table: 'workspaces',
           filter: `id=eq.${workspaceId}`,
         },
-        () => { load(); }
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['user', user.id, 'workspace', workspaceId] })
+            .then(() => queryClient.invalidateQueries({ queryKey: ['user', user.id, 'workspace-access', workspaceId] }));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'workspace_members', filter: `workspace_id=eq.${workspaceId}` },
+        () => { void queryClient.invalidateQueries({ queryKey: ['user', user.id, 'workspace-access', workspaceId] }); }
       )
       .subscribe();
 
     return () => {
-      cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [workspaceId, user]);
+  }, [workspaceId, user, queryClient]);
 
-  return state;
+  return accessQuery.data ?? {
+    canAccess: false, isOwner: false, isAdmin: false, isReadOnly: false, role: null,
+    plan: null, subscriptionStatus: null, trialExpiresAt: null, seatsUsed: 0,
+    seatsTotal: 0, loading: !!user && !!workspaceId && accessQuery.isPending,
+    error: (accessQuery.error as Error | null) ?? null,
+  };
 }
 
 export function useUserWorkspaces() {
   const { user } = useAuth();
-  const [workspaces, setWorkspaces] = useState<Array<{
+  const workspacesQuery = useQuery({
+    queryKey: ['user', user?.id, 'workspaces'],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('workspace_members')
+        .select(`
+          role,
+          workspaces (
+            id, name, description, domain, plan, subscription_status,
+            trial_workspace_expires_at, seats, is_encrypted, owner_id, stripe_customer_id,
+            source, created_at, decision_category, decision_status
+          )
+        `)
+        .eq('user_id', user!.id);
+      if (error) throw error;
+      return (data || [])
+        .filter(row => row.workspaces)
+        .map(row => {
+          const workspace = Array.isArray(row.workspaces) ? row.workspaces[0] : row.workspaces;
+          return { ...workspace, role: row.role } as WorkspaceSummary;
+        });
+    },
+  });
+
+  type WorkspaceSummary = {
     id: string;
     name: string;
     description: string;
@@ -135,68 +163,20 @@ export function useUserWorkspaces() {
     created_at: string;
     decision_category: string;
     decision_status: string;
-  }>>([]);
-  const [loading, setLoading] = useState(true);
-
-  async function load() {
-    if (!user) { setLoading(false); return; }
-    const { data } = await supabase
-      .from('workspace_members')
-      .select(`
-        role,
-        workspaces (
-          id, name, description, domain, plan, subscription_status,
-          trial_workspace_expires_at, seats, is_encrypted, owner_id, stripe_customer_id,
-          source, created_at, decision_category, decision_status
-        )
-      `)
-      .eq('user_id', user.id);
-
-    const result = (data || [])
-      .filter(row => row.workspaces)
-      .map(row => ({
-        ...(row.workspaces as Record<string, unknown>) as typeof workspaces[0],
-        role: row.role,
-      }));
-
-    setWorkspaces(result);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    setLoading(true);
-    load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  return { workspaces, loading, refetch: () => { setLoading(true); load(); } };
+  };
+  return {
+    workspaces: workspacesQuery.data ?? [],
+    loading: !!user && workspacesQuery.isPending,
+    error: workspacesQuery.error,
+    refetch: () => workspacesQuery.refetch(),
+  };
 }
 
 export function useSubscriptionTier() {
   const { user } = useAuth();
-  const [tier, setTier] = useState<'free' | 'pro' | 'team' | 'business' | 'enterprise'>('free');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) { setTier('free'); setLoading(false); return; }
-
-    async function load() {
-      // Profile tier is the authoritative source.
-      // subscription_tier='pro'/'enterprise' is only ever set by the Stripe webhook
-      // or an admin — never by client-side code — so it's safe to trust directly.
-      const sensitiveRes = await supabase
-        .rpc('get_own_profile_sensitive')
-        .maybeSingle();
-
-      const resolvedTier = resolveSubscriptionTier(sensitiveRes.data?.subscription_tier);
-      setTier(resolvedTier);
-      setLoading(false);
-    }
-
-    load().catch(() => setLoading(false));
-  }, [user]);
-
-  return { tier, loading, isPro: tier === 'pro' || tier === 'team' || tier === 'business' || tier === 'enterprise' };
+  const query = useOwnProfileSensitive(user?.id);
+  const tier = resolveSubscriptionTier(query.data?.subscription_tier);
+  return { tier, loading: !!user && query.isPending, isPro: tier === 'pro' || tier === 'team' || tier === 'business' || tier === 'enterprise' };
 }
 
 export interface WarRoomUsage {
@@ -215,7 +195,7 @@ export interface WarRoomUsage {
 }
 
 export function useWarRoomUsage(workspaceId: string | null): WarRoomUsage & { refetch: () => Promise<void> } {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [state, setState] = useState<WarRoomUsage>({
     sessions_used: 0, sessions_limit: null, included: 0, in_overage: false,
     overage_count: 0, overage_unit_price: 0, hard_block: false, plan: 'free',
@@ -225,7 +205,6 @@ export function useWarRoomUsage(workspaceId: string | null): WarRoomUsage & { re
   async function load() {
     if (!workspaceId || !user) { setState(s => ({ ...s, loading: false })); return; }
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-usage?workspace_id=${workspaceId}`,
         { headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } }
@@ -239,32 +218,18 @@ export function useWarRoomUsage(workspaceId: string | null): WarRoomUsage & { re
   }
 
   useEffect(() => { load(); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspaceId, user]);
+  }, [workspaceId, user, session?.access_token]);
 
   return { ...state, refetch: load };
 }
 
 export function useTrialInfo() {
   const { user } = useAuth();
-  const [trialWorkspaceCount, setTrialWorkspaceCount] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) { setLoading(false); return; }
-
-    supabase
-      .rpc('get_own_profile_sensitive')
-      .maybeSingle()
-      .then(({ data }) => {
-        setTrialWorkspaceCount(data?.trial_workspace_count ?? 0);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [user]);
+  const query = useOwnProfileSensitive(user?.id);
 
   const now = new Date();
-  const trialLimitReached = isTrialLimitReached(trialWorkspaceCount, now);
-  const used = trialWorkspaceCount ?? 0;
+  const trialLimitReached = isTrialLimitReached(query.data?.trial_workspace_count ?? null, now);
+  const used = query.data?.trial_workspace_count ?? 0;
   const slotsRemaining = Math.max(0, TRIAL_WORKSPACE_LIMIT - used);
 
   return {
@@ -272,7 +237,7 @@ export function useTrialInfo() {
     trialCount: used,
     trialSlotsRemaining: slotsRemaining,
     trialLimit: TRIAL_WORKSPACE_LIMIT,
-    loading,
+    loading: !!user && query.isPending,
     // legacy aliases kept for backward compatibility
     trialExhausted: trialLimitReached,
     monthlyLimitReached: trialLimitReached,

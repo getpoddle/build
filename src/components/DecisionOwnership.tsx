@@ -128,12 +128,6 @@ export default function DecisionOwnership({ workspaceId, members }: DecisionOwne
     setAddingDomain(false);
   }
 
-  function memberLabel(userId: string | null): string {
-    if (!userId) return 'Unassigned';
-    const m = members.find(m => m.user_id === userId);
-    return m?.profile?.full_name || m?.profile?.username || 'Unknown member';
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">

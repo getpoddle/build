@@ -65,9 +65,9 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
       return;
     }
     setError(null);
-    setLoadingPriceId(product.priceId);
+    setLoadingPriceId(product.monthlyPriceId);
     try {
-      const url = await createCheckoutSession(product.priceId);
+      const url = await createCheckoutSession(product.monthlyPriceId);
       window.location.href = url;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Checkout failed. Please try again.');
@@ -76,7 +76,7 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
   }
 
   const isCurrentPlan = (product: StripeProduct) =>
-    subscription.priceId === product.priceId &&
+    subscription.priceId === product.monthlyPriceId &&
     (subscription.status === 'active' || subscription.status === 'trialing');
 
   return (
@@ -148,7 +148,7 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
             const features = PLAN_FEATURES[product.name] ?? [];
             const highlighted = PLAN_HIGHLIGHT[product.name];
             const isCurrent = isCurrentPlan(product);
-            const isLoading = loadingPriceId === product.priceId;
+            const isLoading = loadingPriceId === product.monthlyPriceId;
             const anyLoading = loadingPriceId !== null;
 
             return (
@@ -193,7 +193,7 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
                   <div className="mb-8">
                     <div className="flex items-baseline gap-1">
                       <span className="text-4xl font-black" style={{ color: 'var(--app-text-primary)' }}>
-                        {product.currency}{product.price.toLocaleString()}
+                        {product.currency}{product.monthlyPrice.toLocaleString()}
                       </span>
                       <span className="text-sm font-medium" style={{ color: 'var(--app-text-muted)' }}>
                         /month

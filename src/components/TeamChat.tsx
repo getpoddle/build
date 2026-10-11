@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Users, Loader2, AtSign } from 'lucide-react';
+import { Send, Users, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { acquireChannel, releaseChannel } from '../lib/realtimeRegistry';
 import { useAuth } from '../contexts/AuthContext';
@@ -445,6 +445,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
     : [];
 
   function insertMention(member: MemberProfile) {
+    if (mentionQuery === null) return;
     const name = getDisplayName(member) || '';
     const before = input.slice(0, mentionStart);
     const after = input.slice(mentionStart + 1 + mentionQuery.length);
@@ -575,7 +576,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
             const own = isOwnMessage(msg);
             const profile = memberProfiles[msg.user_id];
             const color = memberColor(msg.user_id);
-            const avatarUrl = profile ? getAvatarUrl(profile.avatar_url) : null;
+            const avatarUrl = profile ? getAvatarUrl(profile.avatar_url ?? null) : null;
             const initials = profile ? getInitials(getDisplayName(profile)) : '?';
 
             return (
@@ -656,7 +657,7 @@ export default function TeamChat({ workspaceId, workspaceName }: TeamChatProps) 
           >
             {filteredMembers.map((m, i) => {
               const name = getDisplayName(m) || '';
-              const avatarUrl = getAvatarUrl(m.avatar_url);
+              const avatarUrl = getAvatarUrl(m.avatar_url ?? null);
               const initials = getInitials(getDisplayName(m));
               const color = memberColor(m.user_id);
               return (

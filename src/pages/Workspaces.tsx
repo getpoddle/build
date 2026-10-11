@@ -22,9 +22,9 @@ function daysUntil(dateStr: string | null): number | null {
 
 export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const { user } = useAuth();
-  const { workspaces, loading, refetch } = useUserWorkspaces();
+  const { workspaces, loading, error: workspacesError, refetch } = useUserWorkspaces();
   const { isPro } = useSubscriptionTier();
-  const { trialExhausted, trialLimitReached, monthlyLimitReached, trialCount, trialSlotsRemaining, trialLimit, loading: trialLoading } = useTrialInfo();
+  const { trialExhausted, trialLimitReached, monthlyLimitReached, trialSlotsRemaining, trialLimit, loading: trialLoading } = useTrialInfo();
   const { hasBetaAccess } = useBetaAccess();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -44,7 +44,7 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
     onNavigate('workspace-hub', workspaceId);
   }
 
-  const isLoading = loading || trialLoading;
+  const isLoading = loading || trialLoading || !!workspacesError;
 
   const appWorkspaces = workspaces.filter(w => w.source !== 'slack');
 
@@ -53,14 +53,10 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
   const ownerCount = appWorkspaces.filter(w => w.role === 'owner').length;
 
   const STATS = [
-    { label: 'Workspaces', value: String(appWorkspaces.length || 0), sub: `${activeCount} active`, icon: Lock },
-    { label: 'Total seats', value: String(totalSeats), sub: 'Across all plans', icon: Users },
-    { label: 'You own', value: String(ownerCount), sub: 'Owner role', icon: Crown },
+    { label: 'Workspaces', value: isLoading ? null : String(appWorkspaces.length), sub: isLoading ? null : `${activeCount} active`, icon: Lock },
+    { label: 'Total seats', value: isLoading ? null : String(totalSeats), sub: isLoading ? null : 'Across all plans', icon: Users },
+    { label: 'You own', value: isLoading ? null : String(ownerCount), sub: isLoading ? null : 'Owner role', icon: Crown },
   ];
-
-  function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
@@ -85,9 +81,9 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
                   <Icon className="w-4 h-4" style={{ color: 'var(--signal)' }} />
                 </div>
               </div>
-              <p className="stat-card-value">{value}</p>
+              <p className="stat-card-value">{value ?? <span className="skeleton inline-block h-7 w-12 align-middle" />}</p>
               <p className="stat-card-label">{label}</p>
-              <p className="text-[11px] lg:text-xs mt-0.5 hidden sm:block" style={{ color: 'var(--app-text-muted)' }}>{sub}</p>
+              <p className="text-[11px] lg:text-xs mt-0.5 hidden sm:block" style={{ color: 'var(--app-text-muted)' }}>{sub ?? <span className="skeleton inline-block h-3 w-16 align-middle" />}</p>
             </div>
           ))}
         </div>
@@ -180,7 +176,12 @@ export default function Workspaces({ onNavigate }: WorkspacesProps) {
             )}
 
             {/* Empty state */}
-            {!isLoading && appWorkspaces.length === 0 && (
+            {workspacesError && (
+              <div className="panel p-4 text-sm" role="alert" style={{ color: 'var(--negative)' }}>
+                Workspaces could not be loaded. Please refresh to try again.
+              </div>
+            )}
+            {!isLoading && !workspacesError && appWorkspaces.length === 0 && (
               <div className="panel p-8 lg:p-16 text-center">
                 <div className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-5" style={{ background: 'var(--signal-bg)' }}>
                   <Lock className="w-8 h-8" style={{ color: 'var(--signal)' }} />

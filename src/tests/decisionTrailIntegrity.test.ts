@@ -19,7 +19,6 @@
 
 import { describe, it, expect } from 'vitest';
 import type {
-  EvidenceExportItem,
   EvidenceVersionExportItem,
   SnapshotExportItem,
   DecisionTrailExport,
