@@ -113,10 +113,8 @@ function AppContent() {
 ]);
 
 if (persistentPages.has(hash)) {
-  setCurrentPage(hash);
-  sessionStorage.setItem('currentPage', hash);
-  return;
-}
+      return hash;
+    }
     if (hash === 'admin-panel' || hash === 'app-icons') {
       return hash;
     }
@@ -296,6 +294,12 @@ if (persistentPages.has(hash)) {
 
       if (hash.startsWith('workspace/') || hash.startsWith('workspace-settings/') || hash.startsWith('war-room/')) {
         injectNoIndex();
+      }
+
+      if (hash === 'profile') {
+        setCurrentPage('profile');
+        sessionStorage.setItem('currentPage', 'profile');
+        return;
       }
 
       if (hash === 'workspaces') {
@@ -525,28 +529,25 @@ if (persistentPages.has(hash)) {
 
     setCurrentPage(page);
     sessionStorage.setItem('currentPage', page);
-  const hashMap: Record<string, string> = {
-  home: '',
-  profile: 'profile',
-  pricing: 'pricing',
-  workspaces: 'workspaces',
-  'payment-success': 'payment-success',
-  'decision-map': 'decision-map',
-  'decision-trail': 'decision-trail',
-  organization: 'organization',
-};
-   const newHash = hashMap[page] ?? page;
 
-if (page === 'home') {
-  history.pushState(null, '', '/');
-} else {
-  history.pushState(
-    null,
-    '',
-    `#${encodeURIComponent(newHash)}`
-  );
-}
+    const hashMap: Record<string, string> = {
+      home: '',
+      profile: 'profile',
+      pricing: 'pricing',
+      workspaces: 'workspaces',
+      'payment-success': 'payment-success',
+      'decision-map': 'decision-map',
+      'decision-trail': 'decision-trail',
+      organization: 'organization',
+    };
 
+    const newHash = hashMap[page] ?? page;
+    if (page === 'home') {
+      history.pushState(null, '', '/');
+    } else {
+      history.pushState(null, '', `#${encodeURIComponent(newHash)}`);
+    }
+  }; // End handleNavigate
 
   if (loading) {
     return (
