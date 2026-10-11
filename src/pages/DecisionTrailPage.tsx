@@ -346,7 +346,7 @@ function ClaimBadges({ claims, onJumpToClaim }: { claims: DecisionClaim[]; onJum
 }
 
 /** Render the stored event payload without guessing facts that were not recorded. */
-function AuditEventDetails({ event }: { event: DecisionEvent }) {
+function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorNames: Record<string, string> }) {
   const payload = event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)
     ? event.payload : {};
   const alreadyShown = new Set([
@@ -368,7 +368,7 @@ function AuditEventDetails({ event }: { event: DecisionEvent }) {
   return (
     <div className="mt-2 space-y-2">
       {event.actor_type === 'user' && event.actor_id && (
-        <Field label="Recorded Actor ID"><span className="break-all">{event.actor_id}</span></Field>
+        <Field label="Recorded By">{actorNames[event.actor_id] || 'Unknown user'}</Field>
       )}
       {entries.map(([key, value]) => (
         <Field key={key} label={titleCase(key)}>
@@ -532,7 +532,7 @@ function TimelineNode({
         )}
 
         {ev.event_type === 'agent_analysis' && <ClaimBadges claims={claims} onJumpToClaim={onJumpToClaim} />}
-        <AuditEventDetails event={ev} />
+        <AuditEventDetails event={ev} actorNames={actorNames} />
       </div>
     </div>
   );
@@ -1468,20 +1468,25 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
 
     const events = displayedEvents.map(ev => {
       const meta = EVENT_META[ev.event_type];
-      const p = ev.payload as Record<string, unknown>;
-      const detail =
-        (typeof p?.question === 'string' && p.question) ||
-        (typeof p?.recommendation === 'string' && p.recommendation) ||
-        (typeof p?.text === 'string' && p.text) ||
-        (typeof p?.statement === 'string' && p.statement) ||
+      const payload = ev.payload && typeof ev.payload === 'object' ? ev.payload : {};
+      const summary =
+        (typeof payload.question === 'string' && payload.question) ||
+        (typeof payload.text === 'string' && payload.text) ||
+        (typeof payload.statement === 'string' && payload.statement) ||
+        (typeof payload.recommendation === 'string' && payload.recommendation) ||
         (ev.event_type === 'human_override' && describeOverride(ev)) ||
-        (typeof p?.status === 'string' && `Status: ${p.status}`) ||
-        '';
+        (typeof payload.status === 'string' && `Status: ${payload.status}`) || '';
       return {
         event_type: ev.event_type,
         label: meta?.label || ev.event_type,
         created_at: ev.created_at,
-        detail: String(detail).slice(0, 300),
+        detail: String(summary),
+        event_id: ev.id,
+        actor_name: ev.actor_type === 'user'
+          ? (ev.actor_id ? actorNames[ev.actor_id] || 'Unknown user' : 'Unknown user')
+          : ev.actor_type || 'Not recorded',
+        actor_id: ev.actor_id,
+        payload,
       };
     });
 
