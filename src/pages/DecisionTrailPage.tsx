@@ -345,6 +345,14 @@ function ClaimBadges({ claims, onJumpToClaim }: { claims: DecisionClaim[]; onJum
   );
 }
 
+/** Human-readable references; database UUIDs remain unchanged for joins and security. */
+function auditReference(prefix: 'EVT' | 'SNP', timestamp: string): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return `${prefix}-UNKNOWN`;
+  const pad = (n: number, width = 2) => String(n).padStart(width, '0');
+  return `${prefix}-${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}-${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}-${pad(date.getUTCMilliseconds(), 3)}`;
+}
+
 /** Render the stored event payload without guessing facts that were not recorded. */
 function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorNames: Record<string, string> }) {
   const payload = event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)
@@ -362,6 +370,13 @@ function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorN
     try { return JSON.stringify(value, null, 2); } catch { return '[Unrenderable value]'; }
   };
   const entries = Object.entries(payload).filter(([key]) => !alreadyShown.has(key));
+  const humanValue = (key: string, value: unknown): string => {
+    if ((key === 'created_by' || key === 'modified_by' || key === 'verified_by' || key === 'reviewer_id') && typeof value === 'string')
+      return actorNames[value] || 'Unknown user';
+    if (key === 'snapshot_id' && typeof value === 'string')
+      return auditReference('SNP', event.created_at);
+    return formatValue(value);
+  };
   const hasExistingDetail = Object.keys(payload).some(key => alreadyShown.has(key));
   const needsExplicitDetails = ['evidence_revised', 'evidence_verified', 'snapshot_created'].includes(event.event_type);
 
@@ -372,7 +387,7 @@ function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorN
       )}
       {entries.map(([key, value]) => (
         <Field key={key} label={titleCase(key)}>
-          <span className="whitespace-pre-wrap break-words">{formatValue(value)}</span>
+          <span className="whitespace-pre-wrap break-words">{humanValue(key, value)}</span>
         </Field>
       ))}
       {needsExplicitDetails && entries.length === 0 && !hasExistingDetail && (
@@ -381,7 +396,7 @@ function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorN
         </p>
       )}
       <div className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-        Recorded {new Date(event.created_at).toLocaleString()} · Event ID: {event.id}
+        Recorded {new Date(event.created_at).toLocaleString()} · Event reference: {auditReference('EVT', event.created_at)}
       </div>
     </div>
   );
