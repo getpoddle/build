@@ -1452,7 +1452,7 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
           <span style="font-size:7pt;font-weight:700;padding:1px 6px;border-radius:999px;background:${vsColor}1a;color:${vsColor};">${escapeHtml(vs)}</span>
         </div>
         <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
-          ${escapeHtml(c.agent_name)} · ${escapeHtml(c.claim_type)} · ${Math.round(c.confidence * 100)}% confidence${aiConf} · verified ${c.daysSinceVerified}d ago${sourceInfo}${refInfo}${reviewInfo}
+          ${escapeHtml(c.agent_name)} · ${escapeHtml(c.claim_type)} · ${Math.round(c.confidence * 100)}% confidence${aiConf} · ${escapeHtml(c.freshness)}{sourceInfo}${refInfo}${reviewInfo}
         </div>
         ${c.verification_method ? `<div style="font-size:7pt;color:#94a3b8;margin-top:1px;">Method: ${escapeHtml(c.verification_method)}</div>` : ''}
       </div>
