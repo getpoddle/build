@@ -1288,6 +1288,8 @@ export interface EvidenceExportItem {
   claim_type: string;
   evidence_classification?: string | null;
   verification_status?: string | null;
+  verified_at?: string | null;
+  verified_by_name?: string | null;
   source_name?: string | null;
   source_reference?: string | null;
   confidence: number;
@@ -1316,6 +1318,13 @@ export interface EvidenceVersionExportItem {
 export interface SnapshotExportItem {
   decision_question: string | null;
   decision_status: string | null;
+  evidence_snapshot?: unknown;
+  verified_facts?: unknown;
+  reported_facts?: unknown;
+  assumptions?: unknown;
+  ai_inferences?: unknown;
+  outstanding_uncertainties?: unknown;
+  human_approvals?: unknown;
   snapshot_timestamp: string;
   created_by_name: string | null;
   verified_facts_count: number;
@@ -1445,6 +1454,9 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     const aiConf = c.ai_confidence_score != null ? ` · AI Confidence: ${Math.round(c.ai_confidence_score * 100)}%` : '';
     const sourceInfo = c.source_name ? ` · Source: ${escapeHtml(c.source_name)}` : '';
     const refInfo = c.source_reference ? ` · Ref: ${escapeHtml(c.source_reference)}` : '';
+    const verifiedInfo = c.verification_status === 'verified' && c.verified_at
+      ? ` · Verified ${escapeHtml(new Date(c.verified_at).toLocaleString())}${c.verified_by_name ? ` by ${escapeHtml(c.verified_by_name)}` : ''}`
+      : ' · Not currently human-verified';
     const reviewInfo = c.last_reviewed_at ? ` · Reviewed ${new Date(c.last_reviewed_at).toLocaleDateString()}` : '';
     return `
     <div class="bb-row">
@@ -1456,11 +1468,11 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
           <span style="font-size:7pt;font-weight:700;padding:1px 6px;border-radius:999px;background:${vsColor}1a;color:${vsColor};">${escapeHtml(vs)}</span>
         </div>
         <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
-          ${escapeHtml(c.agent_name)} · ${escapeHtml(c.claim_type)} · ${Math.round(c.confidence * 100)}% confidence${aiConf} · verified ${c.daysSinceVerified}d ago${sourceInfo}${refInfo}${reviewInfo}
+          ${escapeHtml(c.agent_name)} · ${escapeHtml(c.claim_type)} · ${Math.round(c.confidence * 100)}% confidence${aiConf}${verifiedInfo}${sourceInfo}${refInfo}${reviewInfo}
         </div>
         ${c.verification_method ? `<div style="font-size:7pt;color:#94a3b8;margin-top:1px;">Method: ${escapeHtml(c.verification_method)}</div>` : ''}
       </div>
-      ${freshnessBadge(c.freshness)}
+      ${c.verification_status === 'verified' ? freshnessBadge(c.freshness) : '<span class="bb-badge bb-sev-medium">Verification outstanding</span>'}
     </div>`;
   }).join('');
 
@@ -1569,6 +1581,11 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     </div>`;
   }).join('');
 
+  const snapshotDetail = (label: string, value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    const str = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    return `<div style="margin-top:6px;break-inside:auto;"><strong style="font-size:7pt;">${escapeHtml(label)}</strong><div style="font-size:7pt;white-space:pre-wrap;overflow-wrap:anywhere;">${escapeHtml(str)}</div></div>`;
+  };
   const snapshotsHtml = (data.snapshots || []).map((s, i) => `
     <div class="bb-row">
       <span class="bb-num">${i + 1}.</span>
@@ -1577,9 +1594,17 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
         <div style="font-size:7pt;color:#94a3b8;margin-top:2px;">
           Status: ${escapeHtml(s.decision_status || 'unknown')} ·
           Evidence: ${s.verified_facts_count} verified, ${s.reported_facts_count} reported, ${s.assumptions_count} assumptions, ${s.ai_inferences_count} AI inferences
-          ${s.ai_recommendation ? ` · AI Rec: ${escapeHtml(s.ai_recommendation).slice(0, 120)}${s.ai_recommendation.length > 120 ? '…' : ''}` : ''}
+          ${s.ai_recommendation ? ' · AI recommendation recorded' : ''}
         </div>
         <div style="font-size:7pt;color:#94a3b8;">${s.created_by_name ? escapeHtml(s.created_by_name) + ' · ' : ''}${new Date(s.snapshot_timestamp).toLocaleString()}</div>
+        ${snapshotDetail('Evidence at capture', s.evidence_snapshot)}
+        ${snapshotDetail('Verified facts', s.verified_facts)}
+        ${snapshotDetail('Reported facts', s.reported_facts)}
+        ${snapshotDetail('Assumptions', s.assumptions)}
+        ${snapshotDetail('AI inferences', s.ai_inferences)}
+        ${snapshotDetail('Outstanding uncertainties', s.outstanding_uncertainties)}
+        ${snapshotDetail('Human approvals', s.human_approvals)}
+        ${snapshotDetail('AI recommendation at capture', s.ai_recommendation)}
       </div>
     </div>`).join('');
 
@@ -1608,8 +1633,8 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
       </div>
 
       <div class="bb-section">
-        <h2>3. Why This Decision Was Made</h2>
-        <p class="bb-text">${data.rationale ? escapeHtml(data.rationale) : 'No synthesized rationale was recorded leading into this decision.'}</p>
+        <h2>3. ${data.finalDecision ? 'Decision Rationale (AI synthesis)' : 'Current Decision Rationale (AI synthesis)'}</h2>
+        <p class="bb-text">${data.rationale && data.rationale !== data.initialRecommendation ? escapeHtml(data.rationale) : 'No separate rationale was recorded beyond the initial AI recommendation shown in Section 4.'}</p>
         <p class="bb-text" style="font-size:7pt;color:#94a3b8;margin-top:4px;">${data.finalDecision ? 'The rationale above is the AI synthesis that preceded the final human decision. The human decision-maker may have agreed with, modified, or rejected this recommendation.' : 'Reconstructed from the AI synthesis immediately preceding the current state.'}</p>
       </div>
 
