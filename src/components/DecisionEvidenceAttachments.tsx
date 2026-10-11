@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 type EvidenceFile = { id: string; original_name: string; mime_type: string; size_bytes: number; storage_path: string; uploaded_at: string };
@@ -12,8 +12,11 @@ async function sha256Hex(file: File): Promise<string> {
   return Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export default function DecisionEvidenceAttachments({ workspaceId, claimId }: { workspaceId: string; claimId: string }) {
+export default function DecisionEvidenceAttachments({ workspaceId, claimId, onEvidenceChanged }: { workspaceId: string; claimId: string; onEvidenceChanged?: () => void }) {
   const [files, setFiles] = useState<EvidenceFile[]>([]);
+  const [pending, setPending] = useState<File[]>([]);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const pickerRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -32,9 +35,8 @@ export default function DecisionEvidenceAttachments({ workspaceId, claimId }: { 
   }, [claimId]);
   useEffect(() => { void refresh(); }, [refresh]);
 
-  async function upload(selected: FileList | null) {
-    if (!selected?.length) return;
-    const chosenFiles = Array.from(selected);
+  async function upload(chosenFiles: File[]) {
+    if (!chosenFiles.length) return;
     setUploading(true); setError(null); setNotice(null);
     setStage(`Selected ${chosenFiles.length} file(s)`);
     let currentStage = 'Starting upload';
@@ -65,7 +67,9 @@ export default function DecisionEvidenceAttachments({ workspaceId, claimId }: { 
       }
       setStage('Upload complete');
       setNotice('Evidence attached. A reviewer must still assess the source and verify the claim.');
+      setPending([]);
       await refresh();
+      onEvidenceChanged?.();
     } catch (e) {
       const message = `${currentStage}: ${e instanceof Error ? e.message : String(e)}`;
       console.error('[DecisionEvidenceAttachments] Upload failed', { stage: currentStage, error: e });
@@ -73,6 +77,23 @@ export default function DecisionEvidenceAttachments({ workspaceId, claimId }: { 
       window.alert(`Evidence attachment failed\n\n${message}`);
     }
     finally { setUploading(false); }
+  }
+
+  async function unlinkFile(file: EvidenceFile) {
+    if (!window.confirm(`Remove "${file.original_name}" from this claim? The historical record and stored file will be retained.`)) return;
+    setRemovingId(file.id); setError(null);
+    try {
+      const { error: unlinkError } = await supabase.rpc('unlink_decision_evidence_file', {
+        p_claim_id: claimId, p_evidence_file_id: file.id,
+      });
+      if (unlinkError) throw unlinkError;
+      await refresh();
+      onEvidenceChanged?.();
+      setNotice('Attachment removed from this claim. Its audit history is preserved.');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unable to remove attachment';
+      setError(message); window.alert(message);
+    } finally { setRemovingId(null); }
   }
 
   async function openFile(file: EvidenceFile) {
@@ -86,15 +107,27 @@ export default function DecisionEvidenceAttachments({ workspaceId, claimId }: { 
 
   return <section className="space-y-2 rounded-lg border p-3" style={{ borderColor: 'var(--app-border)' }}>
     <div className="text-xs font-bold">Supporting evidence files</div>
-    <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>Private files linked to this claim. Uploading does not verify the claim.</p>
+    <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>Private files linked to this claim. Removing a linked file preserves the stored file and audit history. Uploading does not verify the claim.</p>
     <p className="text-xs" role="status" aria-live="polite">Status: {stage}</p>
-    <label className="inline-flex cursor-pointer items-center gap-2 rounded border px-3 py-2 text-xs font-semibold" style={{ borderColor: 'var(--app-border)' }}>
-      {uploading ? 'Uploading…' : 'Attach PDF, spreadsheet, CSV or image'}
-      <input className="sr-only" type="file" multiple disabled={uploading} accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg" onChange={e => { const selected = e.currentTarget.files; void upload(selected); e.currentTarget.value = ''; }} />
-    </label>
+    <div className="flex flex-wrap items-center gap-2">
+      <button type="button" disabled={uploading} className="rounded border px-3 py-2 text-xs font-semibold" onClick={() => pickerRef.current?.click()}>Select files</button>
+      <input ref={pickerRef} className="sr-only" type="file" multiple disabled={uploading} accept=".pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg" onChange={e => {
+        const chosen = Array.from(e.currentTarget.files ?? []);
+        setPending(prev => [...prev, ...chosen]);
+        e.currentTarget.value = '';
+      }} />
+      <button type="button" disabled={uploading || !pending.length} className="rounded border px-3 py-2 text-xs font-semibold disabled:opacity-50" onClick={() => void upload(pending)}>{uploading ? 'Uploading…' : `Upload ${pending.length} file(s)`}</button>
+    </div>
+    {pending.map((file, i) => <div key={`${file.name}-${i}`} className="flex items-center justify-between gap-2 text-xs">
+      <span className="truncate">{file.name} (not uploaded)</span>
+      <button type="button" disabled={uploading} className="underline disabled:opacity-50" onClick={() => setPending(prev => prev.filter((_, index) => index !== i))}>Remove</button>
+    </div>)}
     {files.map(file => <div key={file.id} className="flex items-center justify-between gap-2 text-xs">
       <span className="min-w-0 truncate" title={file.original_name}>{file.original_name} ({Math.ceil(file.size_bytes / 1024)} KB)</span>
-      <button type="button" className="shrink-0 underline" onClick={() => void openFile(file)}>Download</button>
+      <div className="flex shrink-0 gap-3">
+        <button type="button" className="underline" onClick={() => void openFile(file)}>Download</button>
+        <button type="button" disabled={removingId === file.id || uploading} className="underline text-red-600 disabled:opacity-50" onClick={() => void unlinkFile(file)}>{removingId === file.id ? 'Removing…' : 'Remove from claim'}</button>
+      </div>
     </div>)}
     {files.length === 0 && <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>No files attached yet.</p>}
     {notice && <p className="text-xs" role="status">{notice}</p>}
