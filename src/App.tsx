@@ -508,18 +508,27 @@ function AppContent() {
 
     setCurrentPage(page);
     sessionStorage.setItem('currentPage', page);
-    const hashMap: Record<string, string> = {
-      home: '',
-      profile: 'profile',
-      pricing: 'pricing',
-      workspaces: 'workspaces',
-      'payment-success': 'payment-success',
-    };
-    if (page in hashMap) {
-      const newHash = hashMap[page] || '';
-      history.pushState(null, '', newHash ? `#${newHash}` : window.location.pathname + window.location.search);
-    }
-  };
+  const hashMap: Record<string, string> = {
+  home: '',
+  profile: 'profile',
+  pricing: 'pricing',
+  workspaces: 'workspaces',
+  'payment-success': 'payment-success',
+  'decision-map': 'decision-map',
+  'decision-trail': 'decision-trail',
+  organization: 'organization',
+};
+   const newHash = hashMap[page] ?? page;
+
+if (page === 'home') {
+  history.pushState(null, '', '/');
+} else {
+  history.pushState(
+    null,
+    '',
+    `#${encodeURIComponent(newHash)}`
+  );
+}
 
 
   if (loading) {
