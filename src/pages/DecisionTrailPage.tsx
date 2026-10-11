@@ -162,11 +162,11 @@ const VERIFICATION_STATUS_LABELS: Record<string, string> = {
 };
 
 const VERIFICATION_STATUS_COLORS: Record<string, string> = {
-  not_verified: '#64748b',
-  pending: '#d97706',
-  verified: '#16a34a',
-  failed: '#dc2626',
-  expired: '#b45309',
+  not_verified: '#64748B',
+  pending: '#D97706',
+  verified: '#16A34A',
+  failed: '#DC2626',
+  expired: '#7C3AED',
 };
 
 const VALID_CLASSIFICATIONS = [
@@ -844,14 +844,53 @@ function ClaimsPanel({
                         </span>
                       )}
                       {(() => {
-                        const f = freshnessFor(claim);
-                        const dot = f.status === 'current' ? '🟢' : f.status === 'aging' ? '🟡' : '🔴';
-                        return (
-                          <span className="text-[10px] font-bold" style={{ color: f.color }}>
-                            {dot} {f.label} · verified {f.daysSinceVerified}d ago
-                          </span>
-                        );
-                      })()}
+  const f = freshnessFor(claim);
+
+  const isVerified =
+    claim.verification_status === 'verified';
+
+  const statusColor = isVerified
+    ? '#16A34A'
+    : verificationStatusColor(claim.verification_status);
+
+  const statusLabel = verificationStatusLabel(
+    claim.verification_status
+  );
+
+  return (
+    <span
+      className="text-[10px] font-semibold"
+      style={{
+        color: statusColor,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '5px',
+      }}
+    >
+      <span
+        style={{
+          width: '7px',
+          height: '7px',
+          borderRadius: '50%',
+          backgroundColor: statusColor,
+          display: 'inline-block',
+        }}
+      />
+
+      {statusLabel}
+
+      <span
+        style={{
+          color: 'var(--app-text-muted)',
+          fontWeight: 400,
+          marginLeft: '4px',
+        }}
+      >
+        · {f.label}
+      </span>
+    </span>
+  );
+})()}
                     </div>
                     {isOpen && (
                       <div className="mt-2.5 pt-2.5 space-y-2 text-xs" style={{ borderTop: '1px solid var(--app-border)' }}>
