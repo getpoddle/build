@@ -2064,7 +2064,33 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
 export default function DecisionTrailPage({ onNavigate }: DecisionTrailPageProps) {
   const { workspaces, loading } = useUserWorkspaces();
   const appWorkspaces = workspaces.filter(w => w.source !== 'slack');
-  const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
+  const readDecisionId = (): string | null => {
+    const hash = window.location.hash.slice(1);
+    if (!hash.startsWith('decision-trail/')) return null;
+    const id = hash.slice('decision-trail/'.length).split('/')[0];
+    return id || null;
+  };
+  const [selectedId, setSelectedId] = useState<string | null>(readDecisionId);
+
+  useEffect(() => {
+    const syncSelection = () => setSelectedId(readDecisionId());
+    window.addEventListener('popstate', syncSelection);
+    window.addEventListener('hashchange', syncSelection);
+    return () => {
+      window.removeEventListener('popstate', syncSelection);
+      window.removeEventListener('hashchange', syncSelection);
+    };
+  }, []);
+
+  const openDecision = (id: string) => {
+    history.pushState(null, '', `#decision-trail/${encodeURIComponent(id)}`);
+    setSelectedId(id);
+  };
+
+  const closeDecision = () => {
+    history.pushState(null, '', '#decision-trail');
+    setSelectedId(null);
+  };
   const [lastActivity, setLastActivity] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -2091,17 +2117,28 @@ export default function DecisionTrailPage({ onNavigate }: DecisionTrailPageProps
     return bTime.localeCompare(aTime);
   });
 
+  const selected = selectedId
+    ? appWorkspaces.find(w => w.id === selectedId) ?? null
+    : null;
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--app-bg)' }}>
       <div
         className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 mx-auto"
         style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
-        {selected ? (
+        {selectedId && loading ? (
+          <div className="skeleton h-20" />
+        ) : selectedId && !selected ? (
+          <div className="panel p-8 text-center">
+            <p className="text-sm">This decision is unavailable or you do not have access.</p>
+            <button className="btn-secondary mt-4" onClick={closeDecision}>Back to Decision Trail</button>
+          </div>
+        ) : selected ? (
           <TimelineView
             workspaceId={selected.id}
             workspaceName={selected.name}
-            onBack={() => setSelected(null)}
+            onBack={closeDecision}
           />
         ) : (
           <>
@@ -2134,7 +2171,7 @@ export default function DecisionTrailPage({ onNavigate }: DecisionTrailPageProps
                 {sorted.map(ws => (
                   <button
                     key={ws.id}
-                    onClick={() => setSelected({ id: ws.id, name: ws.name })}
+                    onClick={() => openDecision(ws.id)}
                     className="panel w-full text-left p-4 flex items-center justify-between transition-colors"
                   >
                     <div>
@@ -2155,5 +2192,4 @@ export default function DecisionTrailPage({ onNavigate }: DecisionTrailPageProps
     </div>
   );
 }
-
 
