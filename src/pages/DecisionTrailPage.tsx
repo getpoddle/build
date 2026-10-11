@@ -345,6 +345,48 @@ function ClaimBadges({ claims, onJumpToClaim }: { claims: DecisionClaim[]; onJum
   );
 }
 
+/** Render the stored event payload without guessing facts that were not recorded. */
+function AuditEventDetails({ event }: { event: DecisionEvent }) {
+  const payload = event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)
+    ? event.payload : {};
+  const alreadyShown = new Set([
+    'question', 'recommendation', 'status', 'kind', 'content', 'field',
+    'before', 'after', 'role', 'action', 'action_item', 'conflict_topic',
+    'statement', 'challenger_role', 'target_claim_code', 'outcome', 'text',
+  ]);
+  const titleCase = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const formatValue = (value: unknown): string => {
+    if (value === null || value === undefined) return 'Not recorded';
+    if (typeof value === 'string') return value || 'Not recorded';
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    try { return JSON.stringify(value, null, 2); } catch { return '[Unrenderable value]'; }
+  };
+  const entries = Object.entries(payload).filter(([key]) => !alreadyShown.has(key));
+  const hasExistingDetail = Object.keys(payload).some(key => alreadyShown.has(key));
+  const needsExplicitDetails = ['evidence_revised', 'evidence_verified', 'snapshot_created'].includes(event.event_type);
+
+  return (
+    <div className="mt-2 space-y-2">
+      {event.actor_type === 'user' && event.actor_id && (
+        <Field label="Recorded Actor ID"><span className="break-all">{event.actor_id}</span></Field>
+      )}
+      {entries.map(([key, value]) => (
+        <Field key={key} label={titleCase(key)}>
+          <span className="whitespace-pre-wrap break-words">{formatValue(value)}</span>
+        </Field>
+      ))}
+      {needsExplicitDetails && entries.length === 0 && !hasExistingDetail && (
+        <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
+          This event was recorded without additional details in its audit payload.
+        </p>
+      )}
+      <div className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
+        Recorded {new Date(event.created_at).toLocaleString()} · Event ID: {event.id}
+      </div>
+    </div>
+  );
+}
+
 function TimelineNode({
   ev, actorNames, claims, onJumpToClaim, isLast,
 }: {
@@ -490,6 +532,7 @@ function TimelineNode({
         )}
 
         {ev.event_type === 'agent_analysis' && <ClaimBadges claims={claims} onJumpToClaim={onJumpToClaim} />}
+        <AuditEventDetails event={ev} />
       </div>
     </div>
   );
@@ -2192,4 +2235,3 @@ export default function DecisionTrailPage({ onNavigate }: DecisionTrailPageProps
     </div>
   );
 }
-
