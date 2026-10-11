@@ -1572,10 +1572,48 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     </div>`;
   }).join('');
 
+  // Render captured snapshot data as readable, printable records rather than raw JSON.
+  // Values come exclusively from the historical snapshot, never from current evidence.
+  const snapshotLabel = (key: string): string => key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
+
+  const snapshotValue = (value: unknown): string => {
+    if (value === null || value === undefined || value === '') return 'Not recorded';
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (typeof value === 'number') return String(value);
+    if (typeof value === 'string') return value;
+    return '';
+  };
+
+  const snapshotContent = (value: unknown, depth = 0): string => {
+    if (value === null || value === undefined) return '<span style="color:#94a3b8;">Not recorded</span>';
+    if (Array.isArray(value)) {
+      if (!value.length) return '<span style="color:#94a3b8;">None recorded</span>';
+      return `<div style="display:block;">${value.map((item, i) => `
+        <div style="padding:7px 9px;margin:5px 0;border:1px solid #e2e8f0;border-radius:5px;break-inside:avoid-page;page-break-inside:avoid;">
+          <div style="font-weight:700;font-size:7.5pt;margin-bottom:4px;">Record ${i + 1}</div>
+          ${snapshotContent(item, depth + 1)}
+        </div>`).join('')}</div>`;
+    }
+    if (typeof value === 'object') {
+      const fields = Object.entries(value as Record<string, unknown>);
+      if (!fields.length) return '<span style="color:#94a3b8;">None recorded</span>';
+      return `<div style="width:100%;">${fields.map(([key, fieldValue]) => `
+        <div style="padding:4px 0;border-bottom:1px solid #f1f5f9;break-inside:auto;">
+          <span style="display:block;font-size:7pt;font-weight:700;color:#475569;">${escapeHtml(snapshotLabel(key))}</span>
+          <div style="font-size:8pt;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;">${snapshotContent(fieldValue, depth + 1)}</div>
+        </div>`).join('')}</div>`;
+    }
+    return escapeHtml(snapshotValue(value));
+  };
+
   const snapshotDetail = (label: string, value: unknown): string => {
     if (value === null || value === undefined) return '';
-    const str = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
-    return `<div style="margin-top:6px;break-inside:auto;"><strong style="font-size:7pt;">${escapeHtml(label)}</strong><div style="font-size:7pt;white-space:pre-wrap;overflow-wrap:anywhere;">${escapeHtml(str)}</div></div>`;
+    return `<div style="margin-top:12px;break-inside:auto;">
+      <h3 style="font-size:9pt;font-weight:700;color:#0f172a;margin:0 0 6px;">${escapeHtml(label)}</h3>
+      ${snapshotContent(value)}
+    </div>`;
   };
   const snapshotsHtml = (data.snapshots || []).map((s, i) => `
     <div class="bb-row">
