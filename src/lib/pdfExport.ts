@@ -1373,6 +1373,7 @@ export interface DecisionTrailExport {
   events: TrailEventExportItem[];
   evidenceVersions?: EvidenceVersionExportItem[];
   snapshots?: SnapshotExportItem[];
+  actorNames?: Record<string, string>;
 }
 
 export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
@@ -1521,14 +1522,29 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     return `${prefix}-${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}-${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}-${pad(d.getUTCMilliseconds(),3)}`;
   };
 
+  // Only identity fields are resolved. Evidence, event and snapshot references
+  // retain their audit meaning; unknown people are never guessed.
+  const identityKeys = new Set([
+    'created_by', 'modified_by', 'verified_by', 'reviewer_id',
+    'changed_by', 'approved_by', 'actor_id', 'user_id', 'owner_user_id',
+    'backup_owner_user_id', 'assigned_by', 'resolved_by', 'requested_by',
+  ]);
+  const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  const personName = (value: string): string =>
+    data.actorNames?.[value] || (isUuid(value) ? 'Unknown user' : value);
+  const readableIdentity = (key: string, value: unknown): unknown => {
+    if (typeof value === 'string' && identityKeys.has(key.toLowerCase())) return personName(value);
+    return value;
+  };
+
   const fullEventsHtml = data.events.map((e, i) => {
     const fields = e.payload && typeof e.payload === 'object' ? Object.entries(e.payload) : [];
     const readablePayload = (key: string, value: unknown): string => {
-      if (['created_by', 'modified_by', 'verified_by', 'reviewer_id'].includes(key) && typeof value === 'string')
-        return e.actor_name && e.actor_name !== 'Not recorded' ? e.actor_name : 'Unknown user';
+      if (typeof value === 'string' && identityKeys.has(key.toLowerCase()))
+        return personName(value);
       if (key === 'snapshot_id' && typeof value === 'string')
         return auditRef('SNP', e.created_at);
-      return auditValue(value);
+      return auditValue(readableIdentity(key, value));
     };
     const fieldsHtml = fields.map(([key, value]) => `
       <div style="margin:5px 0;break-inside:avoid;">
@@ -1599,11 +1615,18 @@ export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
     if (typeof value === 'object') {
       const fields = Object.entries(value as Record<string, unknown>);
       if (!fields.length) return '<span style="color:#94a3b8;">None recorded</span>';
-      return `<div style="width:100%;">${fields.map(([key, fieldValue]) => `
-        <div style="padding:4px 0;border-bottom:1px solid #f1f5f9;break-inside:auto;">
+      const claimCode = typeof (value as Record<string, unknown>).claim_code === 'string'
+        ? String((value as Record<string, unknown>).claim_code) : null;
+      return `<div style="width:100%;">${fields.map(([key, fieldValue]) => {
+        // The claim code is the public evidence reference. Avoid printing
+        // its internal database UUID as if it were a user-facing evidence ID.
+        if (key === 'id' && claimCode && typeof fieldValue === 'string' && isUuid(fieldValue)) return '';
+        const shownValue = readableIdentity(key, fieldValue);
+        return `<div style="padding:4px 0;border-bottom:1px solid #f1f5f9;break-inside:auto;">
           <span style="display:block;font-size:7pt;font-weight:700;color:#475569;">${escapeHtml(snapshotLabel(key))}</span>
-          <div style="font-size:8pt;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;">${snapshotContent(fieldValue, depth + 1)}</div>
-        </div>`).join('')}</div>`;
+          <div style="font-size:8pt;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;">${snapshotContent(shownValue, depth + 1)}</div>
+        </div>`;
+      }).join('')}</div>`;
     }
     return escapeHtml(snapshotValue(value));
   };
