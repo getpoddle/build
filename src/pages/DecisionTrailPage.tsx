@@ -9,6 +9,7 @@ import { exportDecisionTrailToPDF } from '../lib/pdfExport';
 import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import DecisionEvidenceAttachments from '../components/DecisionEvidenceAttachments';
 
 interface DecisionTrailPageProps {
   onNavigate: (page: string, workspaceId?: string) => void;
@@ -1923,6 +1924,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
                 {reverifyDialogClaim.statement}
               </p>
               <div className="space-y-3">
+                <DecisionEvidenceAttachments workspaceId={workspaceId} claimId={reverifyDialogClaim.id} />
                 <div>
                   <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Verification Method *</label>
                   <input
