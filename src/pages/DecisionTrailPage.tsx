@@ -368,7 +368,7 @@ function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorN
   };
   const entries = Object.entries(payload).filter(([key]) => !alreadyShown.has(key));
   const humanValue = (key: string, value: unknown): string => {
-    if ((key === 'created_by' || key === 'modified_by' || key === 'verified_by' || key === 'reviewer_id') && typeof value === 'string')
+    if (['created_by', 'modified_by', 'verified_by', 'reviewer_id', 'changed_by', 'approved_by', 'actor_id', 'user_id', 'owner_user_id', 'backup_owner_user_id'].includes(key) && typeof value === 'string')
       return actorNames[value] || 'Unknown user';
     if (key === 'snapshot_id' && typeof value === 'string')
       return auditReference('SNP', event.created_at);
@@ -1304,7 +1304,13 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
     for (const c of claims) if (c.verified_by) ids.add(c.verified_by);
     for (const v of evidenceVersions) if (v.modified_by) ids.add(v.modified_by);
     for (const snapshot of snapshots) if (snapshot.created_by) ids.add(snapshot.created_by);
-    for (const e of events) if (e.actor_type === 'user' && e.actor_id) ids.add(e.actor_id);
+    for (const e of events) {
+      if (e.actor_type === 'user' && e.actor_id) ids.add(e.actor_id);
+      for (const key of ['created_by', 'modified_by', 'verified_by', 'reviewer_id', 'changed_by', 'approved_by', 'actor_id', 'user_id']) {
+        const value = e.payload?.[key];
+        if (typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(value)) ids.add(value);
+      }
+    }
     for (const d of domainOwners) {
       if (d.owner_user_id) ids.add(d.owner_user_id);
       if (d.backup_owner_user_id) ids.add(d.backup_owner_user_id);
@@ -1321,10 +1327,13 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         for (const row of data as { id: string; full_name: string | null }[]) {
           if (row.full_name) map[row.id] = row.full_name;
         }
+        if (user?.id && ids.has(user.id)) {
+          map[user.id] = map[user.id] || user.user_metadata?.full_name || user.email || 'Unknown user';
+        }
         setActorNames(map);
         setOwnerNames(map);
       });
-  }, [events, domainOwners, claims, evidenceVersions, snapshots]);
+  }, [events, domainOwners, claims, evidenceVersions, snapshots, user]);
 
   const displayedEvents = useMemo(() => {
     if (!replayActive || !replayTimestamp) return events;
@@ -1677,6 +1686,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
     exportDecisionTrailToPDF({
       workspaceName,
       workspaceId,
+      actorNames: { ...actorNames, ...(user?.id ? { [user.id]: actorNames[user.id] || user.user_metadata?.full_name || user.email || 'Unknown user' } : {}) },
       category: workspaceMeta.decision_category,
       currentStatus: workspaceMeta.decision_status,
       generatedAt: new Date().toISOString(),
