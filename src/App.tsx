@@ -100,6 +100,7 @@ function AppContent() {
     if (pathname === '/advisory') return 'advisory';
     if (pathname === '/team') return 'team';
     const hash = window.location.hash.substring(1);
+    if (hash.startsWith('decision-trail/')) return 'decision-trail';
     const persistentPages = new Set([
   'profile',
   'decision-map',
@@ -317,6 +318,12 @@ if (persistentPages.has(hash)) {
       if (hash === 'decision-map') {
         setCurrentPage('decision-map');
         sessionStorage.setItem('currentPage', 'decision-map');
+        return;
+      }
+
+      if (hash.startsWith('decision-trail/')) {
+        setCurrentPage('decision-trail');
+        sessionStorage.setItem('currentPage', 'decision-trail');
         return;
       }
 
