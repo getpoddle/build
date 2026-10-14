@@ -250,6 +250,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   }, []);
 
   useEffect(() => {
+    // React StrictMode and workspace navigation run effect cleanup.
+    // Re-enable database backfill whenever this effect starts.
+    mountedRef.current = true;
     loadMessages();
     loadMemberProfiles();
 
@@ -468,12 +471,18 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   }
 
   async function loadMessages() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('workspace_messages')
       .select('id, role, content, agent_name, agent_role, user_id, created_at, metadata')
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: true })
       .limit(120);
+    if (error) {
+      console.error("[WorkspaceChat] Failed to load saved messages:", error);
+      setSendError("Unable to load agent messages. Check your connection and workspace access.");
+      setInitialLoad(false);
+      return;
+    }
     if (!mountedRef.current) return;
     const mapped = (data || []).map((m: { metadata?: { figures?: AgentFigures | null; chart_data?: ChartData | null } }) => {
       const meta = m.metadata;
@@ -632,6 +641,10 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         }
       }
     } catch (err) {
+      console.error("[WorkspaceChat] Agent request failed:", err);
+      // The backend may have persisted responses even when the HTTP request times out.
+      // Reconcile saved messages immediately rather than waiting for Realtime.
+      void loadMessages();
       if (err instanceof DOMException && err.name === 'AbortError') {
         setSendError("The agents are taking longer than expected. Please try again — your question was saved.");
       } else {
