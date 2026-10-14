@@ -3,6 +3,64 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logAiOpenAICall } from "../_shared/posthogLogging.ts";
 import { resolveWarRoomLimit, recordProOverageUsage, type ConsumeResult } from "../_shared/warRoomQuota.ts";
 
+// Claude-primary compatibility adapter for existing OpenAI Chat Completions calls.
+// Keeps the original War Room prompts, agent selection, retries, and parsing intact.
+const CLAUDE_MODEL = Deno.env.get("CLAUDE_WAR_ROOM_MODEL") || "claude-sonnet-4-5";
+const OPENAI_MODEL = "gpt-5.6-luna";
+
+async function warRoomAiFetch(_url: string, init: RequestInit): Promise<Response> {
+  const body = JSON.parse(String(init.body || "{}"));
+  const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const openaiKey = Deno.env.get("OPENAI_API_KEY");
+  if (claudeKey) {
+    const system = (body.messages || []).filter((m: {role: string}) => m.role === "system")
+      .map((m: {content: string}) => m.content).join("\n\n");
+    const messages = (body.messages || []).filter((m: {role: string}) => m.role !== "system")
+      .map((m: {role: string; content: string}) => ({ role: m.role, content: m.content }));
+    // Anthropic requires alternating roles; combine consecutive same-role turns.
+    const normalized: Array<{role: string; content: string}> = [];
+    for (const m of messages) {
+      const previous = normalized[normalized.length - 1];
+      if (previous?.role === m.role) previous.content += "\n\n" + m.content;
+      else normalized.push({ ...m });
+    }
+    const maxTokens = body.max_completion_tokens || 1024;
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+        body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: maxTokens,
+          ...(system ? { system } : {}), messages: normalized }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const content = (data.content || []).filter((x: {type: string}) => x.type === "text")
+          .map((x: {text: string}) => x.text).join("\n");
+        return new Response(JSON.stringify({
+          choices: [{ message: { content } }],
+          usage: { prompt_tokens: data.usage?.input_tokens || 0, completion_tokens: data.usage?.output_tokens || 0,
+            total_tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0) },
+          provider: "anthropic", model: CLAUDE_MODEL,
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      // Only transient service failures trigger fallback, not invalid requests or exhausted credits.
+      if (![429, 500, 502, 503, 504, 529].includes(res.status) || !openaiKey) {
+        return new Response(JSON.stringify(data), { status: res.status });
+      }
+      console.warn(`Claude transient HTTP ${res.status}; trying OpenAI fallback`);
+    } catch (err) {
+      if (!openaiKey) throw err;
+      console.warn("Claude network failure; trying OpenAI fallback", String(err).slice(0, 120));
+    }
+  }
+  if (!openaiKey) return new Response(JSON.stringify({ error: "Neither ANTHROPIC_API_KEY nor OPENAI_API_KEY configured" }), { status: 503 });
+  return fetch("https://api.openai.com/v1/chat/completions", {
+    ...init,
+    headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ ...body, model: OPENAI_MODEL }),
+  });
+}
+
 type AgentFigures = {
   figures: Array<{ label: string; value: number; unit: string }>;
   categories: Array<{ label: string; value: number; unit: string }>;
@@ -328,7 +386,7 @@ Rules:
 
   const startedAt = Date.now();
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await warRoomAiFetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -466,7 +524,7 @@ Example output: ["financial_strategist", "devils_advocate", "risk_analyst", "mar
 
   const selectStartedAt = Date.now();
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await warRoomAiFetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${openAiKey}`,
@@ -731,7 +789,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const openAiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openAiKey) {
+    if (!openAiKey && !Deno.env.get("ANTHROPIC_API_KEY")) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
         status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -976,7 +1034,7 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
 
       async function attempt(): Promise<{ content: string; figures: AgentFigures | null; rawContent: string }> {
         const r1StartedAt = Date.now();
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        const res = await warRoomAiFetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1087,7 +1145,7 @@ Respond in 300-400 words. Be direct and specific. No hedging, and no reflexive d
 
       async function attempt(): Promise<string> {
         const r2StartedAt = Date.now();
-        const r2Res = await fetch("https://api.openai.com/v1/chat/completions", {
+        const r2Res = await warRoomAiFetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Authorization": `Bearer ${openAiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
