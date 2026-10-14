@@ -30,7 +30,8 @@ async function warRoomAiFetch(_url: string, init: RequestInit): Promise<Response
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         signal: AbortSignal.timeout(AI_TIMEOUT_MS),
         method: "POST",
-        headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+        headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json",
+          ...(Deno.env.get("ANTHROPIC_WORKSPACE_ID") ? { "anthropic-workspace-id": Deno.env.get("ANTHROPIC_WORKSPACE_ID")! } : {}) },
         body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: maxTokens,
           ...(system ? { system } : {}), messages: normalized }),
       });
@@ -603,7 +604,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    let parsedBody: { workspace_id: string; message: string; history?: Array<{ role: string; content: string }>; documents?: Array<{ filename: string; extractedText: string }>; idempotency_key?: string };
+    let parsedBody: { workspace_id: string; message: string; history?: Array<{ role: string; content: string }>; documents?: Array<{ filename: string; extractedText: string }>; idempotency_key?: string; mode?: "quick" | "live_start" | "live_step" | "live_resume"; run_id?: string };
     try {
       parsedBody = rawBody ? JSON.parse(rawBody) : {};
     } catch (e) {
@@ -612,14 +613,14 @@ Deno.serve(async (req: Request) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { workspace_id, message, history, documents, idempotency_key } = parsedBody;
+    const { workspace_id, message, history, documents, idempotency_key, mode, run_id } = parsedBody;
     console.log("workspace-ai-chat: parsed request workspace_id:", workspace_id, "message length:", message?.length ?? 0, "history items:", history?.length ?? 0, "documents:", documents?.length ?? 0);
 
     const validDocs = Array.isArray(documents)
       ? documents.filter(d => d?.filename && typeof d.extractedText === "string" && d.extractedText.length > 0).slice(0, 3)
       : [];
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!workspace_id || !UUID_RE.test(workspace_id) || !message) {
+    if (!workspace_id || !UUID_RE.test(workspace_id) || (!message && mode !== "live_step" && mode !== "live_resume")) {
       return new Response(JSON.stringify({ error: "Missing workspace_id or message" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -655,6 +656,81 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "Insufficient permissions to send messages" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // LIVE DELIBERATION: individual authenticated, resumable agent turns.
+    // Each step reads all previously persisted arguments from the database,
+    // not a client-supplied transcript. Quota is charged ONLY at live_start.
+    if (mode === "live_step" || mode === "live_resume") {
+      const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
+        status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      if (!run_id || !UUID_RE.test(run_id)) return json({ error: "Invalid deliberation run" }, 400);
+      const { data: run, error: runError } = await service.from("war_room_deliberation_runs")
+        .select("*").eq("id", run_id).eq("workspace_id", workspace_id).eq("user_id", user.id).maybeSingle();
+      if (runError || !run) return json({ error: "Deliberation run not found" }, 404);
+      const steps = [...run.agent_roles.map((role: string) => ({ role, round: 1 })),
+        ...run.agent_roles.map((role: string) => ({ role, round: 2 }))];
+      if (mode === "live_resume") return json({ run_id, step_index: run.step_index, total_steps: steps.length, status: run.status });
+      if (run.step_index >= steps.length) return json({ done: true, step_index: run.step_index, total_steps: steps.length });
+      const step = steps[run.step_index];
+      const agent = AGENT_ROSTER[step.role];
+      if (!agent) return json({ error: "Invalid agent in run" }, 500);
+      // Atomic claim prevents two tabs from generating the same step.
+      // Stale claims can be retried after 90 seconds.
+      const staleBefore = new Date(Date.now() - 90_000).toISOString();
+      const claim = service.from("war_room_deliberation_runs")
+        .update({ status: "processing", updated_at: new Date().toISOString() })
+        .eq("id", run_id).eq("step_index", run.step_index);
+      const { data: claimed, error: claimError } = await (run.status === "processing" && run.updated_at >= staleBefore
+        ? Promise.resolve({ data: null, error: null })
+        : claim.in("status", run.status === "processing" ? ["processing"] : ["idle", "failed"]).select("id").maybeSingle());
+      if (claimError || !claimed) return json({ error: "An agent is already responding. Please retry shortly.", code: "STEP_BUSY" }, 409);
+      try {
+        const { data: turns, error: turnsError } = await service.from("workspace_messages")
+          .select("id, role, content, agent_name, agent_role, created_at")
+          .eq("workspace_id", workspace_id).gte("created_at", run.created_at)
+          .order("created_at", { ascending: true }).limit(40);
+        if (turnsError) throw new Error(`Unable to load debate history: ${turnsError.message}`);
+        const previous = (turns || []).filter((m: any) => m.role === "assistant")
+          .map((m: any) => `### ${m.agent_name || m.agent_role} (${m.agent_role})\n${String(m.content).slice(0, 3800)}`)
+          .join("\n\n").slice(-23000);
+        const { data: workspace } = await service.from("workspaces")
+          .select("name, description, domain").eq("id", workspace_id).maybeSingle();
+        const initialDecision = String(run.decision_prompt || "").slice(0, MAX_MESSAGE_CHARS);
+        const prompt = `${agent.persona}\n\nYou are ${agent.name}, participating in a REAL sequential multi-agent deliberation for workspace ${workspace?.name || "Private Workspace"}.\nDecision: ${initialDecision}\nWorkspace context: ${workspace?.description || "None"}.\n\nPREVIOUS AGENT ARGUMENTS (real, visible to you):\n${previous || "No previous agents have spoken."}\n\n${step.round === 1 ? "FIRST PASS: Give your own rigorous perspective, explicitly respond to prior agents where relevant, and identify what you agree or disagree with. Do not claim to have read future messages." : "CHALLENGE ROUND: Having read the full first pass and earlier challenges, directly rebut at least one specific agent by name, address the strongest counterargument to your own earlier position, and say whether your recommendation changes."}\nSeparate evidence from assumptions; never invent verified evidence. Keep your contribution 200-350 words. End with one specific question or falsifiable test. Do not fabricate numerical estimates.`;
+        const aiResponse = await warRoomAiFetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: OPENAI_MODEL, messages: [
+            { role: "system", content: prompt },
+            { role: "user", content: `Respond as ${agent.name} in round ${step.round}.` },
+          ], max_completion_tokens: Math.min(agent.maxTokens, 1400) }),
+        });
+        const payload = await aiResponse.json();
+        if (!aiResponse.ok) throw new Error(`AI provider HTTP ${aiResponse.status}: ${JSON.stringify(payload?.error || payload).slice(0, 350)}`);
+        const content = String(payload.choices?.[0]?.message?.content || "").trim();
+        if (!content) throw new Error("AI provider returned an empty response");
+        const agentRole = step.round === 2 ? `${agent.role}_challenge` : agent.role;
+        const { data: inserted, error: insertError } = await service.from("workspace_messages").insert({
+          workspace_id, user_id: null, role: "assistant", content,
+          agent_name: agent.name, agent_role: agentRole,
+          metadata: { deliberation_run_id: run_id, round: step.round, step_index: run.step_index },
+        }).select("id, created_at").single();
+        if (insertError) throw new Error(`Failed to save agent message: ${insertError.message}`);
+        const nextIndex = run.step_index + 1;
+        const { error: progressError } = await service.from("war_room_deliberation_runs")
+          .update({ step_index: nextIndex, status: nextIndex === steps.length ? "completed" : "idle", updated_at: new Date().toISOString() })
+          .eq("id", run_id).eq("step_index", run.step_index);
+        if (progressError) throw new Error(`Agent saved but progress update failed: ${progressError.message}`);
+        return json({ response: { id: inserted.id, created_at: inserted.created_at, agent_name: agent.name,
+          agent_role: agentRole, content }, step_index: nextIndex, total_steps: steps.length,
+          done: nextIndex === steps.length, round: step.round });
+      } catch (error) {
+        console.error("Live deliberation step failed", { run_id, step: run.step_index, error: String(error) });
+        await service.from("war_room_deliberation_runs").update({ status: "failed", updated_at: new Date().toISOString() })
+          .eq("id", run_id).eq("step_index", run.step_index);
+        return json({ error: "Agent response failed. You can retry this step.", detail: String(error) }, 502);
+      }
     }
 
     // ── Beta access: beta users get unrestricted Multiplayer AI — no
@@ -1012,6 +1088,24 @@ Every section of your response must answer: how does this analysis change what t
         actor_id: user.id,
         payload: { kind: "framing_message", content: safeMessage },
       }).then(({ error }) => { if (error) console.error("Decision event insert error:", error); });
+    }
+
+    if (mode === "live_start") {
+      const liveRoles = ["market_analyst", "financial_strategist", "risk_analyst", "devils_advocate", "innovation_scout", "people_advisor", "execution_lead"];
+      const { data: liveRun, error: liveError } = await service.from("war_room_deliberation_runs").insert({
+        workspace_id, user_id: user.id, decision_prompt: safeMessage, agent_roles: liveRoles,
+        status: "idle", step_index: 0,
+      }).select("id").single();
+      if (liveError) {
+        console.error("Failed to create live deliberation", liveError);
+        return new Response(JSON.stringify({ error: "Could not start live deliberation", detail: liveError.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ run_id: liveRun.id, step_index: 0,
+        total_steps: liveRoles.length * 2, war_room_usage: warRoomUsage }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ── ROUND 1: Independent initial responses (parallel, fault-isolated) ─
