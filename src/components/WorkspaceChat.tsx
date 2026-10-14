@@ -193,6 +193,9 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberProfile>>({});
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [warRoomMode, setWarRoomMode] = useState<"quick" | "live">("quick");
+  const [liveProgress, setLiveProgress] = useState<string | null>(null);
+  const [pausedLiveRun, setPausedLiveRun] = useState<{ id: string; next: number; total: number } | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -526,6 +529,62 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     setShowScrollBtn(distFromBottom > 200);
   };
 
+  async function continueLiveRun(runId: string, startIndex: number, totalSteps: number, accessToken: string) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const agentsPerRound = totalSteps / 2;
+    for (let i = startIndex; i < totalSteps; i++) {
+      setLiveProgress(`Round ${i < agentsPerRound ? 1 : 2} · Agent ${i % agentsPerRound + 1} of ${agentsPerRound} is responding`);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 80_000);
+      let response: Response;
+      try {
+        response = await fetch(`${supabaseUrl}/functions/v1/workspace-ai-chat`, {
+          method: 'POST', signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+          body: JSON.stringify({ workspace_id: workspaceId, mode: 'live_step', run_id: runId }),
+        });
+      } catch (err) {
+        setPausedLiveRun({ id: runId, next: i, total: totalSteps });
+        throw err;
+      } finally { clearTimeout(timer); }
+      const result = await response.json();
+      if (!response.ok || !result.response) {
+        setPausedLiveRun({ id: runId, next: i, total: totalSteps });
+        throw new Error(result.error || 'Live deliberation step failed');
+      }
+      const r = result.response;
+      const newMessage: Message = { id: r.id, role: 'assistant', content: r.content,
+        agent_name: r.agent_name, agent_role: r.agent_role, created_at: r.created_at };
+      setMessages(prev => prev.some(m => m.id === newMessage.id) ? prev : [...prev, newMessage]);
+      setTimeout(() => scrollToBottom(), 50);
+      broadcastChannelRef.current?.send({ type: 'broadcast', event: 'new_message', payload: { user_id: user?.id } });
+    }
+    setPausedLiveRun(null);
+    setLiveProgress(null);
+    await loadMessages();
+    onAgentsReplied?.();
+  }
+
+  async function resumeLiveRun() {
+    if (!pausedLiveRun || loading) return;
+    setLoading(true); setSendError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Session expired');
+      const { id, next, total } = pausedLiveRun;
+      // The server is authoritative; the prior request may have completed before the network failed.
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/workspace-ai-chat`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ workspace_id: workspaceId, mode: 'live_resume', run_id: id }),
+      });
+      const state = await res.json();
+      if (!res.ok) throw new Error(state.error || 'Unable to resume deliberation');
+      if (state.status === 'completed') { setPausedLiveRun(null); await loadMessages(); return; }
+      await continueLiveRun(id, state.step_index ?? next, state.total_steps ?? total, session.access_token);
+    } catch (error) { setSendError(`Live deliberation paused: ${String(error)}`); }
+    finally { setLoading(false); setLiveProgress(null); }
+  }
+
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
     if (!content || loading || !user) return;
@@ -573,6 +632,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
             history: historyForApi,
             documents: chatDocuments.map(d => ({ filename: d.filename, extractedText: d.extractedText })),
             idempotency_key: idempotencyKey,
+            mode: warRoomMode === "live" ? "live_start" : "quick",
           }),
         });
       } finally {
@@ -601,6 +661,12 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
 
       if (json.war_room_usage) {
         onUsageUpdate?.(json.war_room_usage);
+      }
+
+      if (warRoomMode === "live" && json.run_id) {
+        setPausedLiveRun({ id: json.run_id, next: 0, total: json.total_steps });
+        await continueLiveRun(json.run_id, 0, json.total_steps, session?.access_token || '');
+        return;
       }
 
       if (Array.isArray(json.responses) && json.responses.length === 0) {
@@ -651,6 +717,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
     } finally {
       sendingRef.current = false;
       setLoading(false);
+      setLiveProgress(null);
       textareaRef.current?.focus();
     }
   }
@@ -1293,7 +1360,7 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                   <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-xs font-semibold text-[var(--app-text-muted)]">War Room in session</span>
+                <span className="text-xs font-semibold text-[var(--app-text-muted)]">{liveProgress || 'War Room in session'}</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {(['R1: Independent analysis', 'R2: Cross-challenge']).map((phase, i) => (
@@ -1417,6 +1484,16 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       )}
 
       {/* Input area */}
+      <div className="flex items-center gap-2 px-3 py-2 text-xs" style={{ background: 'var(--app-surface-raised)', borderTop: '1px solid var(--app-border)' }}>
+        <span className="font-semibold" style={{ color: 'var(--app-text-secondary)' }}>War Room mode</span>
+        {pausedLiveRun && !loading && <button type="button" onClick={resumeLiveRun} className="px-3 py-1.5 rounded-md border border-blue-500 text-blue-600 font-semibold">Resume debate</button>}
+        <button type="button" disabled={loading} onClick={() => setWarRoomMode('quick')}
+          className="px-3 py-1.5 rounded-md" aria-pressed={warRoomMode === 'quick'}
+          style={{ background: warRoomMode === 'quick' ? '#1d4ed8' : 'transparent', color: warRoomMode === 'quick' ? '#fff' : 'var(--app-text-secondary)' }}>Quick Analysis</button>
+        <button type="button" disabled={loading} onClick={() => setWarRoomMode('live')}
+          className="px-3 py-1.5 rounded-md" aria-pressed={warRoomMode === 'live'}
+          style={{ background: warRoomMode === 'live' ? '#1d4ed8' : 'transparent', color: warRoomMode === 'live' ? '#fff' : 'var(--app-text-secondary)' }}>Live Deliberation</button>
+      </div>
       <div
         className="flex-shrink-0 px-3 py-1.5 sm:px-3 sm:py-3 flex items-end gap-2 sm:gap-3"
         style={{ background: 'var(--app-surface-raised)', borderTop: `1px solid ${isRecording ? 'var(--negative)' : 'var(--app-border)'}`, transition: 'border-color 0.2s' }}
