@@ -6,6 +6,7 @@ import { resolveWarRoomLimit, recordProOverageUsage, type ConsumeResult } from "
 // Claude-primary compatibility adapter for existing OpenAI Chat Completions calls.
 // Keeps the original War Room prompts, agent selection, retries, and parsing intact.
 const CLAUDE_MODEL = Deno.env.get("CLAUDE_WAR_ROOM_MODEL") || "claude-sonnet-4-5";
+const AI_TIMEOUT_MS = 35000;
 const OPENAI_MODEL = "gpt-5.6-luna";
 
 async function warRoomAiFetch(_url: string, init: RequestInit): Promise<Response> {
@@ -27,12 +28,14 @@ async function warRoomAiFetch(_url: string, init: RequestInit): Promise<Response
     const maxTokens = body.max_completion_tokens || 1024;
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
+        signal: AbortSignal.timeout(AI_TIMEOUT_MS),
         method: "POST",
         headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
         body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: maxTokens,
           ...(system ? { system } : {}), messages: normalized }),
       });
       const data = await res.json();
+      if (!res.ok) console.error("Anthropic API error", res.status, JSON.stringify(data?.error || data).slice(0, 700));
       if (res.ok) {
         const content = (data.content || []).filter((x: {type: string}) => x.type === "text")
           .map((x: {text: string}) => x.text).join("\n");
@@ -55,6 +58,7 @@ async function warRoomAiFetch(_url: string, init: RequestInit): Promise<Response
   }
   if (!openaiKey) return new Response(JSON.stringify({ error: "Neither ANTHROPIC_API_KEY nor OPENAI_API_KEY configured" }), { status: 503 });
   return fetch("https://api.openai.com/v1/chat/completions", {
+    signal: AbortSignal.timeout(AI_TIMEOUT_MS),
     ...init,
     headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({ ...body, model: OPENAI_MODEL }),
@@ -988,6 +992,13 @@ Every section of your response must answer: how does this analysis change what t
       });
     }
 
+    if (userInsertError) {
+      console.error("workspace_messages user insert failed", userInsertError);
+      return new Response(JSON.stringify({ error: "Could not save your message", detail: userInsertError.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── Decision Audit Trail: log the first message as the framing moment ───
     // messageCount is the count BEFORE this insert, so 0 means this is
     // genuinely the first message ever sent in this workspace — the actual
@@ -1112,6 +1123,14 @@ Include 2-5 figures (quantitative values from your analysis) and 2-6 categories 
       .filter((r): r is PromiseFulfilledResult<{ agent: typeof selectedAgents[0]; content: string; figures: AgentFigures | null; rawContent: string }> => r.status === "fulfilled")
       .map(r => r.value);
 
+    if (agentResponses.length === 0) {
+      console.error("All Round 1 agents failed; no agent messages generated", selectedRoles);
+      return new Response(JSON.stringify({
+        error: "All AI agents failed to respond. Check the Edge Function logs for Anthropic API errors, model access, credits, or rate limits.",
+        code: "ALL_AGENTS_FAILED",
+      }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // ── ROUND 2: Cross-challenge (each agent challenges the others) ──────────
     async function callAgentRound2(agent: typeof selectedAgents[0]): Promise<{ agent: typeof agent; content: string }> {
       const otherResponses = agentResponses
@@ -1186,11 +1205,12 @@ Respond in 300-400 words. Be direct and specific. No hedging, and no reflexive d
     }
 
     const round2Responses = await Promise.all(
-      selectedAgents.map((agent) => callAgentRound2(agent))
+      agentResponses.map(({ agent }) => callAgentRound2(agent))
     );
 
     // ── Generate debate analytics charts ─────────────────────────────────────
-    const chartData = await generateDebateCharts(agentResponses, openAiKey, user, workspace_id);
+    // Charts are optional: never block delivery of the core agent conversation.
+    const chartData: ChartData | null = null;
 
     // ── Persist agent responses (Round 1 + Round 2) ─────────────────────────
     currentStage = "insert_agent_msgs";
@@ -1217,9 +1237,20 @@ Respond in 300-400 words. Be direct and specific. No hedging, and no reflexive d
         })),
     ];
 
-    const { data: insertedAgentRows } = await service.from("workspace_messages")
+    if (allMessagesToInsert.length === 0) {
+      return new Response(JSON.stringify({ error: "No agent responses were generated", code: "EMPTY_AGENT_RESULTS" }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: insertedAgentRows, error: agentInsertError } = await service.from("workspace_messages")
       .insert(allMessagesToInsert)
       .select("id, agent_role");
+    if (agentInsertError) {
+      console.error("workspace_messages agent insert failed", agentInsertError);
+      return new Response(JSON.stringify({ error: "Agent analysis completed but could not be saved", detail: agentInsertError.message }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // ── Notify all workspace members that agents have responded ──────────────
     (async () => {
