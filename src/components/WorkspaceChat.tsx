@@ -250,8 +250,6 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
   }, []);
 
   useEffect(() => {
-    // React StrictMode and workspace navigation run effect cleanup.
-    // Re-enable database backfill whenever this effect starts.
     mountedRef.current = true;
     loadMessages();
     loadMemberProfiles();
@@ -478,9 +476,8 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
       .order('created_at', { ascending: true })
       .limit(120);
     if (error) {
-      console.error("[WorkspaceChat] Failed to load saved messages:", error);
-      setSendError("Unable to load agent messages. Check your connection and workspace access.");
-      setInitialLoad(false);
+      console.error('Failed to load workspace messages:', error);
+      setSendError(`Unable to load messages: ${error.message}`);
       return;
     }
     if (!mountedRef.current) return;
@@ -606,6 +603,11 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         onUsageUpdate?.(json.war_room_usage);
       }
 
+      if (Array.isArray(json.responses) && json.responses.length === 0) {
+        setSendError('The AI service returned no agent responses. Check workspace-ai-chat logs.');
+        await loadMessages();
+        return;
+      }
       if (json.responses) {
         const chartData: ChartData | null = json.chart_data ?? null;
         const agentMsgs: Message[] = json.responses.map((r: { id?: string | null; agent_name: string; agent_role: string; content: string; figures?: AgentFigures | null }) => ({
@@ -641,10 +643,6 @@ export default function WorkspaceChat({ workspaceId, workspaceName, workspaceTop
         }
       }
     } catch (err) {
-      console.error("[WorkspaceChat] Agent request failed:", err);
-      // The backend may have persisted responses even when the HTTP request times out.
-      // Reconcile saved messages immediately rather than waiting for Realtime.
-      void loadMessages();
       if (err instanceof DOMException && err.name === 'AbortError') {
         setSendError("The agents are taking longer than expected. Please try again — your question was saved.");
       } else {
