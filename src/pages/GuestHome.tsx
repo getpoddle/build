@@ -595,66 +595,55 @@ function TrailTab() {
 
 function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
-    <section style={{ background: WHITE, position: 'relative', overflow: 'hidden' }} className="pt-8 pb-12 sm:pt-12 sm:pb-16">
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(37,99,235,0.05), transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        {/* Headline + CTAs */}
-        <div className="text-center max-w-3xl mx-auto mb-6">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.1] mb-3" style={{ color: INK }}>
-            Better decisions.
-            <br />
-            <span style={{ color: BLUE }}>Built on evidence.</span>
-          </h1>
-
-          <p className="text-sm sm:text-base leading-relaxed mb-5 max-w-2xl mx-auto" style={{ color: SLATE }}>
-            Poddle AI brings evidence, intelligence, and accountability together — helping organizations
-            evaluate consequential decisions and maintain a clear record of how and why they were made.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-2.5 justify-center mb-4">
-            <button
-              onClick={() => onNavigate('auth')}
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5"
-              style={{ background: BLUE, boxShadow: '0 4px 14px rgba(37,99,235,0.25)' }}
-            >
-              Try Poddle AI
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <a
-              href="#workflow"
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 hover:bg-slate-50"
-              style={{ color: INK, border: `1px solid ${BORDER}` }}
-            >
-              Explore the Platform
-              <ChevronDown className="w-4 h-4" />
-            </a>
+    <section style={{ background: WHITE }} className="py-16 sm:py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-[0.9fr_1.1fr] items-center gap-12 lg:gap-14">
+          <div>
+            <span className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.12em] uppercase px-3 py-2 rounded-full mb-7" style={{ color: BLUE, background: C.blueBg }}><ShieldCheck className="w-4 h-4" /> Decision governance platform</span>
+            <h1 className="text-4xl sm:text-5xl lg:text-[3.55rem] font-bold tracking-[-0.045em] leading-[1.12] mb-6" style={{ color: INK }}>
+              Every important decision.<span className="block mt-3 text-3xl sm:text-4xl lg:text-[2.5rem] leading-tight" style={{ color: BLUE }}>Evidence-backed. Accountable. Traceable.</span>
+            </h1>
+            <p className="text-base sm:text-lg leading-8 mb-8" style={{ color: SLATE }}>Poddle helps organizations examine high-stakes decisions, challenge assumptions, document approvals, and preserve a clear record of what was decided, why, and by whom.</p>
+            <div className="flex flex-wrap gap-3 mb-8">
+              <a href="#product-in-action" className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg text-white font-semibold text-sm hover:opacity-90" style={{ background: BLUE }}>See Poddle in action <ArrowRight className="w-4 h-4" /></a>
+              <button onClick={() => onNavigate('auth')} className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg font-semibold text-sm hover:bg-slate-50" style={{ border: `1px solid ${BORDER}`, color: INK }}>Start a decision review <ChevronRight className="w-4 h-4" /></button>
+            </div>
+            <div className="flex flex-wrap gap-4 text-xs" style={{ color: SLATE_MID }}>{['Evidence traceability', 'Human accountability', 'Decision history'].map(item => <span key={item} className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4" style={{ color: BLUE }} />{item}</span>)}</div>
           </div>
-
-          <div className="flex items-center justify-center gap-4 sm:gap-5 flex-wrap text-xs" style={{ color: SLATE_MID }}>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
-              No credit card required
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
-              Free to start
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" style={{ color: '#16a34a' }} />
-              Invite your team
-            </div>
-          </div>
+          <div className="min-w-0"><ProductPreview /></div>
         </div>
-
-        {/* Product preview — the centerpiece */}
-        <ProductPreview />
+        <p className="text-xs text-center mt-5" style={{ color: SLATE_LIGHT }}>Interactive illustrative example — not a real customer decision.</p>
       </div>
     </section>
   );
+}
+
+function ProblemSection() {
+  return <section className="py-20 sm:py-24" style={{ background: BG_ALT, borderTop: `1px solid ${BORDER_SOFT}` }}>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-10 items-center">
+      <div><p className="text-xs font-bold tracking-[0.16em] uppercase mb-4" style={{ color: BLUE }}>The problem</p><h2 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight" style={{ color: INK }}>Organizations remember what they decided.<span className="block">They often lose why.</span></h2></div>
+      <div><p className="text-base leading-8" style={{ color: SLATE }}>Evidence gets scattered across documents. Assumptions go unchallenged. Approvals live in conversations. Months or years later, reconstructing the reasoning behind important decisions becomes difficult.</p><p className="font-semibold mt-4" style={{ color: BLUE }}>Poddle makes decision reasoning part of the record.</p></div>
+    </div>
+  </section>;
+}
+
+function DecisionReplaySection() {
+  const [view, setView] = useState<'then' | 'now'>('then');
+  return <section id="decision-replay" className="py-20 sm:py-28" style={{ background: WHITE }}>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center">
+      <div><p className="text-xs font-bold tracking-[0.16em] uppercase mb-4" style={{ color: BLUE }}>Decision replay</p><h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-5" style={{ color: INK }}>Know what you knew. See what changed.</h2><p className="text-base leading-8 mb-5" style={{ color: SLATE }}>Preserve the evidence, assumptions, rationale and approvals associated with a decision at a point in time. Revisit the record when new information becomes available without rewriting history.</p><p className="text-sm" style={{ color: SLATE_MID }}>Illustrative comparison; real records and snapshots remain in your workspace.</p></div>
+      <div className="rounded-2xl p-6 sm:p-8" style={{ border: `1px solid ${BORDER}`, boxShadow: '0 18px 55px rgba(15,23,42,0.07)' }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6"><span className="text-sm font-bold" style={{ color: INK }}>Market expansion · DEC-024</span><span className="text-xs px-3 py-1 rounded-full" style={{ color: C.blue, background: C.blueBg }}>Illustrative record</span></div>
+        <div className="grid grid-cols-2 gap-2 mb-6" role="group" aria-label="Compare decision snapshots"><button aria-pressed={view === 'then'} onClick={() => setView('then')} className="rounded-lg px-3 py-3 text-sm font-semibold" style={{ background: view === 'then' ? BLUE : BG_ALT, color: view === 'then' ? WHITE : SLATE }}>At approval</button><button aria-pressed={view === 'now'} onClick={() => setView('now')} className="rounded-lg px-3 py-3 text-sm font-semibold" style={{ background: view === 'now' ? BLUE : BG_ALT, color: view === 'now' ? WHITE : SLATE }}>After new evidence</button></div>
+        <div className="rounded-xl p-5" style={{ background: BG_ALT, border: `1px solid ${BORDER_SOFT}` }}>
+          <p className="text-xs uppercase font-bold tracking-wider mb-3" style={{ color: SLATE_MID }}>{view === 'then' ? 'Original decision context' : 'Subsequent review context'}</p>
+          <h3 className="font-bold text-lg mb-3" style={{ color: INK }}>{view === 'then' ? 'Proceed with a limited pilot' : 'Reassess the expansion assumptions'}</h3>
+          <div className="space-y-3 text-sm" style={{ color: SLATE }}><p><strong>Evidence:</strong> {view === 'then' ? 'Market demand study and preliminary cost model' : 'Updated operating cost estimates and pilot feedback'}</p><p><strong>Uncertainty:</strong> {view === 'then' ? 'Revenue growth remains an assumption' : 'New evidence changes the projected payback period'}</p><p><strong>Record:</strong> {view === 'then' ? 'Original rationale and approvals preserved' : 'New review linked to the original snapshot'}</p></div>
+        </div>
+        <p className="text-xs mt-4" style={{ color: SLATE_MID }}>Historical context is preserved; new findings do not silently replace earlier reasoning.</p>
+      </div>
+    </div>
+  </section>;
 }
 
 // ─── Workflow stage previews ───────────────────────────────────────────────
@@ -923,7 +912,7 @@ function WorkflowSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 
 function CapabilitiesSection() {
   return (
-    <section id="capabilities" style={{ background: WHITE }} className="py-20 sm:py-28">
+    <section id="product-in-action" style={{ background: WHITE }} className="py-20 sm:py-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <RevealSection>
           <div className="text-center mb-14">
@@ -931,7 +920,7 @@ function CapabilitiesSection() {
               Platform
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4" style={{ color: INK }}>
-              One platform. Four connected pillars.
+              Evidence, analysis, accountability and history. One connected system.
             </h2>
             <p className="text-base max-w-xl mx-auto" style={{ color: SLATE }}>
               Poddle AI connects evidence, intelligence, governance, and history into a single decision governance system.
@@ -1074,10 +1063,10 @@ function FinalCTA({ onNavigate }: { onNavigate: (p: string) => void }) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <RevealSection>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-5" style={{ color: INK }}>
-            Bring clarity and accountability to your next important decision.
+            Make your next consequential decision defensible.
           </h2>
           <p className="text-base leading-relaxed mb-10 max-w-lg mx-auto" style={{ color: SLATE }}>
-            Start with a free workspace. Invite your team. See how evidence-based decision governance works in practice.
+            Bring evidence, reasoning, approvals, and decision history into one accountable workflow.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
@@ -1166,8 +1155,10 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
   return (
     <div className="min-h-screen" style={{ background: WHITE }}>
       <HeroSection onNavigate={onNavigate} />
+      <ProblemSection />
       <WorkflowSection onNavigate={onNavigate} />
       <CapabilitiesSection />
+      <DecisionReplaySection />
       <UseCasesSection />
       <SecuritySection onNavigate={onNavigate} />
       <FinalCTA onNavigate={onNavigate} />
