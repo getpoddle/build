@@ -2,6 +2,7 @@
 name: Poddle Build Check
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feature/teams-app
