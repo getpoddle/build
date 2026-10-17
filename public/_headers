@@ -50,3 +50,9 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://app.posthog.com https://*.sentry.io blob:; frame-ancestors https://teams.microsoft.com https://*.teams.microsoft.com https://*.cloud.microsoft;
+
+# Full Poddle personal tab for Microsoft Teams (exact route only)
+/teams/app
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://res.cdn.office.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://app.posthog.com https://*.sentry.io blob:; frame-ancestors https://teams.microsoft.com https://*.teams.microsoft.com https://*.cloud.microsoft;
