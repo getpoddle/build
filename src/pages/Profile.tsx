@@ -45,7 +45,9 @@ interface ProfileProps {
 }
 
 export default function Profile({ onNavigate }: ProfileProps) {
-  const { user, signOut } = useAuth();
+  const { user, signOut, linkMicrosoft } = useAuth();
+  const [microsoftError, setMicrosoftError] = useState('');
+  const [microsoftBusy, setMicrosoftBusy] = useState(false);
   const { hasBetaAccess, daysRemaining, expiresAt, refetch: refetchBeta } = useBetaAccess();
   const subscription = useSubscription(user?.id);
 
@@ -301,6 +303,26 @@ export default function Profile({ onNavigate }: ProfileProps) {
               {saving ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
+        </div>
+
+        {/* Explicit Microsoft identity linking; does not change workspace permissions. */}
+        <div className="panel p-4 sm:p-6">
+          <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--app-text-primary)' }}>Microsoft Teams connection</h2>
+          <p className="text-xs mb-3" style={{ color: 'var(--app-text-secondary)' }}>
+            {user?.identities?.some(identity => identity.provider === 'azure')
+              ? 'Your Microsoft identity is linked to this Poddle account.'
+              : 'Connect your Microsoft identity to this existing Poddle account. Your email, workspace access, and decisions will remain unchanged.'}
+          </p>
+          {microsoftError && <p role="alert" className="text-xs mb-3" style={{ color: 'var(--negative)' }}>{microsoftError}</p>}
+          {!user?.identities?.some(identity => identity.provider === 'azure') && (
+            <button className="btn-secondary" disabled={microsoftBusy} onClick={async () => {
+              setMicrosoftError(''); setMicrosoftBusy(true);
+              const { error } = await linkMicrosoft();
+              if (error) { setMicrosoftError(error.message); setMicrosoftBusy(false); }
+            }}>
+              {microsoftBusy ? 'Connecting…' : 'Connect Microsoft Teams'}
+            </button>
+          )}
         </div>
 
         {/* Plans & Billing shortcut */}
