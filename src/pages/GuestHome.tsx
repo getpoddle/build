@@ -18,6 +18,7 @@ import {
   Network,
   Eye,
   MessageSquare,
+  ChevronDown,
   GitBranch,
   Camera,
   Target,
