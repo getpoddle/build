@@ -23,11 +23,11 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-
+# Trigger Poddle Teams integration build
       - name: Install dependencies
         run: npm ci
 
-      - name: TypeScript check
+      - name: Check TypeScript
         run: npm run typecheck
 
       - name: Build Poddle
