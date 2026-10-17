@@ -53,6 +53,25 @@ function RouteFallback() {
 
 function AppContent() {
   const { user, session, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation, oauthError, pendingDeletion, clearPendingDeletion, signOut } = useAuth();
+  // Teams personal tab: reuse the existing Poddle app, not a second dashboard.
+  const isTeamsTab = window.location.pathname === '/teams/app';
+  useEffect(() => {
+    if (!isTeamsTab) return;
+    // Teams SDK is loaded only inside the Teams tab. If unavailable, Poddle
+    // continues to work as a normal browser app.
+    const script = document.createElement('script');
+    script.src = 'https://res.cdn.office.net/teams-js/2.0.0/js/MicrosoftTeams.min.js';
+    script.async = true;
+    script.onload = () => {
+      const sdk = (window as Window & { microsoftTeams?: { app?: { initialize?: () => Promise<void> } } }).microsoftTeams;
+      sdk?.app?.initialize?.().catch(() => {
+        console.warn('Teams SDK initialization unavailable; continuing in browser mode');
+      });
+    };
+    document.head.appendChild(script);
+    return () => { script.remove(); };
+  }, [isTeamsTab]);
+
   const queryClient = useQueryClient();
   const { workspaces: userWorkspaces, loading: workspacesLoading, error: workspacesError } = useUserWorkspaces();
   const hasNoWorkspace = !workspacesLoading && !workspacesError && !!user && userWorkspaces.length === 0;
@@ -833,6 +852,20 @@ if (persistentPages.has(hash)) {
 
   if (currentPage === 'about') {
     return wrap(<About onNavigate={handleNavigate} />);
+  }
+
+  if (!user && isTeamsTab) {
+    // Do not attempt password/OAuth login inside a Teams iframe: many identity
+    // providers block framed sign-in and browser storage may be partitioned.
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+        <div className="max-w-lg w-full rounded-xl bg-white shadow p-8 text-center">
+          <h1 className="text-2xl font-bold mb-3">Poddle for Microsoft Teams</h1>
+          <p className="text-slate-600 mb-6">Sign in to Poddle in your browser, then return to Teams and reopen this tab. Some Teams clients may require a separate sign-in flow.</p>
+          <a href="https://poddleme.com/" target="_blank" rel="noopener noreferrer" className="inline-block rounded-lg bg-blue-700 text-white px-5 py-3 font-semibold">Open Poddle to sign in</a>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
