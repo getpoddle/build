@@ -17,7 +17,6 @@ import {
   Handshake,
   Network,
   Eye,
-  ChevronDown,
   MessageSquare,
   GitBranch,
   Camera,
