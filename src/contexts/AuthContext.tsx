@@ -26,6 +26,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, firstName: string, lastName: string, username: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signInWithGoogle: () => Promise<{ error: AuthError | null }>;
+  signInWithMicrosoft: () => Promise<{ error: AuthError | null }>;
+  linkMicrosoft: () => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resendConfirmation: (email: string) => Promise<{ error: AuthError | null }>;
 }
@@ -391,6 +393,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  // New users: create/sign in via Supabase-managed Microsoft OAuth.
+  const signInWithMicrosoft = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'azure',
+      options: { redirectTo: window.location.origin, scopes: 'email' },
+    });
+    return { error };
+  };
+
+  // Existing users: retain the current Supabase user ID and explicitly link Azure.
+  const linkMicrosoft = async () => {
+    const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+    if (userError || !currentUser) {
+      return { error: new AuthError('Please sign in to your existing Poddle account first.') };
+    }
+    if (currentUser.identities?.some(identity => identity.provider === 'azure')) {
+      return { error: new AuthError('Microsoft is already linked to this account.') };
+    }
+    const { error } = await supabase.auth.linkIdentity({
+      provider: 'azure',
+      options: { redirectTo: `${window.location.origin}/`, scopes: 'email' },
+    });
+    return { error };
+  };
+
   const resendConfirmation = async (email: string) => {
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -448,6 +475,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signIn,
     signInWithGoogle,
+    signInWithMicrosoft,
+    linkMicrosoft,
     signOut,
     resendConfirmation,
   };
