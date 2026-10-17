@@ -41,6 +41,7 @@ const Blog = lazy(() => import('./pages/Blog'));
 const BlogPost = lazy(() => import('./pages/BlogPost'));
 const Subprocessors = lazy(() => import('./pages/Subprocessors'));
 const Team = lazy(() => import('./pages/Team'));
+const TeamsConnect = lazy(() => import('./pages/TeamsConnect'));
 
 function RouteFallback() {
   return (
@@ -747,6 +748,11 @@ if (persistentPages.has(hash)) {
   const wrap = (node: ReactNode) => (
     <Suspense fallback={<RouteFallback />}>{node}</Suspense>
   );
+
+  if (window.location.pathname === '/teams/connect') {
+    return wrap(<TeamsConnect />);
+  }
+
 
   if (currentPage === 'app-icons') return wrap(<AppIcons />);
   if (currentPage === 'privacy') return (
