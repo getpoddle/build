@@ -32,6 +32,12 @@ from = "/slack"
 to = "/index.html"
 status = 200
 
+# Route the Teams tab to the existing React application
+[[redirects]]
+from = "/teams/app"
+to = "/index.html"
+status = 200
+
 [[redirects]]
 from = "/*"
 to = "/index.html"
