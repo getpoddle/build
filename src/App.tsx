@@ -42,6 +42,8 @@ const BlogPost = lazy(() => import('./pages/BlogPost'));
 const Subprocessors = lazy(() => import('./pages/Subprocessors'));
 const Team = lazy(() => import('./pages/Team'));
 const TeamsConnect = lazy(() => import('./pages/TeamsConnect'));
+const TeamsAuthPopup = lazy(() => import('./pages/TeamsAuthPopup'));
+const TeamsTabSignIn = lazy(() => import('./pages/TeamsTabSignIn'));
 
 function RouteFallback() {
   return (
@@ -55,22 +57,6 @@ function AppContent() {
   const { user, session, loading, isPasswordRecovery, clearPasswordRecovery, signupEmailPending, clearSignupEmailPending, resendConfirmation, oauthError, pendingDeletion, clearPendingDeletion, signOut } = useAuth();
   // Teams personal tab: reuse the existing Poddle app, not a second dashboard.
   const isTeamsTab = window.location.pathname === '/teams/app';
-  useEffect(() => {
-    if (!isTeamsTab) return;
-    // Teams SDK is loaded only inside the Teams tab. If unavailable, Poddle
-    // continues to work as a normal browser app.
-    const script = document.createElement('script');
-    script.src = 'https://res.cdn.office.net/teams-js/2.0.0/js/MicrosoftTeams.min.js';
-    script.async = true;
-    script.onload = () => {
-      const sdk = (window as Window & { microsoftTeams?: { app?: { initialize?: () => Promise<void> } } }).microsoftTeams;
-      sdk?.app?.initialize?.().catch(() => {
-        console.warn('Teams SDK initialization unavailable; continuing in browser mode');
-      });
-    };
-    document.head.appendChild(script);
-    return () => { script.remove(); };
-  }, [isTeamsTab]);
 
   const queryClient = useQueryClient();
   const { workspaces: userWorkspaces, loading: workspacesLoading, error: workspacesError } = useUserWorkspaces();
@@ -854,23 +840,13 @@ if (persistentPages.has(hash)) {
     return wrap(<About onNavigate={handleNavigate} />);
   }
 
+  if (window.location.pathname === '/teams/auth-popup') {
+    return <Suspense fallback={<RouteFallback />}><TeamsAuthPopup /></Suspense>;
+  }
+
   if (!user && isTeamsTab) {
-    // In a normal browser, use Poddle's existing Auth component in the SAME
-    // browsing context, so its Supabase session is immediately available here.
-    // A Teams iframe needs a dedicated authentication flow; an external browser
-    // sign-in does not automatically authenticate the embedded tab.
-    if (window.self === window.top) {
-      return <Auth />;
-    }
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-        <div className="max-w-lg w-full rounded-xl bg-white shadow p-8 text-center">
-          <h1 className="text-2xl font-bold mb-3">Poddle for Microsoft Teams</h1>
-          <p className="text-slate-600 mb-6">Sign in to Poddle in your browser. Sign-in inside Microsoft Teams will require a dedicated Teams authentication flow.</p>
-          <a href="https://poddleme.com/" target="_blank" rel="noopener noreferrer" className="inline-block rounded-lg bg-blue-700 text-white px-5 py-3 font-semibold">Open Poddle</a>
-        </div>
-      </div>
-    );
+    if (window.self === window.top) return <Auth />;
+    return <Suspense fallback={<RouteFallback />}><TeamsTabSignIn /></Suspense>;
   }
 
   if (!user) {
