@@ -1,7 +1,7 @@
 /** Open hosted Stripe pages outside the Teams embedded tab. */
 import { getTeamsSDK } from './teamsAuth';
 
-export async function openExternalCheckout(url: string): Promise<void> {
+export async function openExternalCheckout(url: string): Promise<boolean> {
   const destination = new URL(url);
   if (destination.protocol !== 'https:' || !(
     destination.hostname === 'checkout.stripe.com' ||
@@ -12,13 +12,19 @@ export async function openExternalCheckout(url: string): Promise<void> {
   }
 
   if (window.location.pathname === '/teams/app') {
-    const teams = await getTeamsSDK();
+    let teams;
+    try { teams = await getTeamsSDK(); } catch { return false; }
     if (!teams.pages?.openLink) {
-      throw new Error('This version of Microsoft Teams cannot open payment links. Please use Poddle in your browser to complete payment.');
+      return false;
     }
-    await teams.pages.openLink(destination.toString());
-    return;
+    try {
+      await teams.pages.openLink(destination.toString());
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   window.location.assign(destination.toString());
+  return true;
 }
