@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, Zap, Users, BarChart2, Shield, Bot, Lock, X, Loader2, CreditCard, Mail, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { openExternalCheckout } from '../lib/externalCheckout';
 import { useAuth } from '../contexts/AuthContext';
 import { parseOwnProfileSensitive } from '../lib/profileSensitive';
 
@@ -49,7 +50,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
       });
       const json = await res.json();
       if (json.url) {
-        window.location.href = json.url;
+        await openExternalCheckout(json.url);
       } else {
         setError('Could not find your billing account. Try managing your subscription from Workspace Settings instead.');
       }
@@ -90,7 +91,7 @@ export default function Pricing({ onNavigate }: PricingProps) {
       if (json.error) {
         setError(json.error);
       } else if (json.url) {
-        window.location.href = json.url;
+        await openExternalCheckout(json.url);
       }
     } catch {
       setError('Something went wrong. Please try again.');
