@@ -564,7 +564,14 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         )}
       </div>
 
-      {showTeamsCaptures && <TeamsCapturesPanel workspaceId={workspaceId} onClose={() => setShowTeamsCaptures(false)} />}
+      {showTeamsCaptures && <TeamsCapturesPanel
+        workspaceId={workspaceId}
+        onClose={() => setShowTeamsCaptures(false)}
+        onAnalyze={(title, context, sourceUrl) => {
+          setShowTeamsCaptures(false);
+          handleDiscuss(`Review this unverified Microsoft Teams decision capture. Do not assume approval or factual accuracy. Identify missing evidence, alternatives, risks, decision owner and next steps.\n\nTitle: ${title}\nDiscussion: ${context}${sourceUrl ? `\nOriginal Teams source: ${sourceUrl}` : ''}`);
+        }}
+      />}
 
       {showUpgrade && (
         <UpgradePrompt
