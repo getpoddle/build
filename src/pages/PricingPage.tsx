@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Zap, Building2, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { Check, Zap, Building2, User, ArrowLeft, Loader2, ExternalLink } from 'lucide-react';
 import { STRIPE_PRODUCTS, type StripeProduct } from '../stripe-config';
 import { createCheckoutSession } from '../lib/checkout';
 import { openExternalCheckout } from '../lib/externalCheckout';
@@ -59,6 +59,8 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
   const subscription = useSubscription(user?.id);
   const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [externalPaymentUrl, setExternalPaymentUrl] = useState('');
+  const [copiedPaymentLink, setCopiedPaymentLink] = useState(false);
 
   async function handleCheckout(product: StripeProduct) {
     if (!user) {
@@ -66,12 +68,16 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
       return;
     }
     setError(null);
+    setExternalPaymentUrl('');
+    setCopiedPaymentLink(false);
     setLoadingPriceId(product.monthlyPriceId);
     try {
       const url = await createCheckoutSession(product.monthlyPriceId);
-      await openExternalCheckout(url);
+      const opened = await openExternalCheckout(url);
+      if (!opened) setExternalPaymentUrl(url);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Checkout failed. Please try again.');
+    } finally {
       setLoadingPriceId(null);
     }
   }
@@ -139,6 +145,23 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
             style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#b91c1c' }}
           >
             {error}
+          </div>
+        )}
+
+        {externalPaymentUrl && (
+          <div className="max-w-2xl mx-auto mb-8 rounded-xl border p-4" role="status" style={{ borderColor: 'var(--app-border)' }}>
+            <p className="font-semibold mb-2">Your secure Stripe checkout is ready</p>
+            <p className="text-sm mb-3">Microsoft Teams could not open checkout automatically. Open the payment page in your browser or copy the link into Chrome.</p>
+            <div className="flex flex-wrap gap-3">
+              <a href={externalPaymentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-white">
+                <ExternalLink className="w-4 h-4" /> Open secure checkout in browser
+              </a>
+              <button type="button" className="rounded-lg border px-4 py-2" onClick={async () => {
+                try { await navigator.clipboard.writeText(externalPaymentUrl); setCopiedPaymentLink(true); }
+                catch { setError('Unable to copy automatically. Try opening the checkout link instead.'); }
+              }}>{copiedPaymentLink ? 'Link copied' : 'Copy checkout link'}</button>
+            </div>
+            <p className="text-xs mt-3">If the checkout link expires, select your plan again to create a new one.</p>
           </div>
         )}
 
