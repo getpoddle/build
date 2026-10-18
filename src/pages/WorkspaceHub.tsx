@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Lock, Settings, ArrowLeft,
-  MessageSquare, Activity, RefreshCw, Loader2, AlertTriangle, Clock, Users
+  MessageSquare, Activity, RefreshCw, Loader2, AlertTriangle, Clock, Users, FileText
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -11,6 +11,7 @@ import { useBetaAccess } from '../hooks/useBetaAccess';
 import WorkspaceChat from '../components/WorkspaceChat';
 import WorkspaceWarRoom, { WarRoomLockedState } from '../components/WorkspaceWarRoom';
 import TeamChat from '../components/TeamChat';
+import TeamsCapturesPanel from '../components/TeamsCapturesPanel';
 import UpgradePrompt from '../components/UpgradePrompt';
 import { PageErrorBoundary } from '../components/ErrorBoundary';
 import { logTabChange, type TabValue } from '../lib/tabDiagnostics';
@@ -92,6 +93,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
   const [resyncing, setResyncing] = useState(false);
   const [warRoomKey, setWarRoomKey] = useState(0);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showTeamsCaptures, setShowTeamsCaptures] = useState(false);
   const [discussedKeys, setDiscussedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -274,6 +276,10 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button type="button" onClick={() => setShowTeamsCaptures(true)} className="btn-ghost gap-1.5" style={{ padding: '0.375rem 0.625rem', fontSize: '0.75rem' }} title="View captured Teams discussions">
+              <FileText className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Teams Captures</span>
+            </button>
             {workspaceIsPro && !isReadOnly && (
               <button
                 onClick={handleResynthesis}
@@ -557,6 +563,8 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         </div>
         )}
       </div>
+
+      {showTeamsCaptures && <TeamsCapturesPanel workspaceId={workspaceId} onClose={() => setShowTeamsCaptures(false)} />}
 
       {showUpgrade && (
         <UpgradePrompt
