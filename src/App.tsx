@@ -855,14 +855,19 @@ if (persistentPages.has(hash)) {
   }
 
   if (!user && isTeamsTab) {
-    // Do not attempt password/OAuth login inside a Teams iframe: many identity
-    // providers block framed sign-in and browser storage may be partitioned.
+    // In a normal browser, use Poddle's existing Auth component in the SAME
+    // browsing context, so its Supabase session is immediately available here.
+    // A Teams iframe needs a dedicated authentication flow; an external browser
+    // sign-in does not automatically authenticate the embedded tab.
+    if (window.self === window.top) {
+      return <Auth />;
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
         <div className="max-w-lg w-full rounded-xl bg-white shadow p-8 text-center">
           <h1 className="text-2xl font-bold mb-3">Poddle for Microsoft Teams</h1>
-          <p className="text-slate-600 mb-6">Sign in to Poddle in your browser, then return to Teams and reopen this tab. Some Teams clients may require a separate sign-in flow.</p>
-          <a href="https://poddleme.com/" target="_blank" rel="noopener noreferrer" className="inline-block rounded-lg bg-blue-700 text-white px-5 py-3 font-semibold">Open Poddle to sign in</a>
+          <p className="text-slate-600 mb-6">Sign in to Poddle in your browser. Sign-in inside Microsoft Teams will require a dedicated Teams authentication flow.</p>
+          <a href="https://poddleme.com/" target="_blank" rel="noopener noreferrer" className="inline-block rounded-lg bg-blue-700 text-white px-5 py-3 font-semibold">Open Poddle</a>
         </div>
       </div>
     );
