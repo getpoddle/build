@@ -16,6 +16,8 @@ export default function Pricing({ onNavigate }: PricingProps) {
   const { user } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<Tier | null>(null);
   const [error, setError] = useState('');
+  const [externalPaymentUrl, setExternalPaymentUrl] = useState('');
+  const [copiedPaymentLink, setCopiedPaymentLink] = useState(false);
   const [currentTier, setCurrentTier] = useState<Tier>('free');
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
@@ -35,6 +37,8 @@ export default function Pricing({ onNavigate }: PricingProps) {
     if (!user) return;
     setLoadingPortal(true);
     setError('');
+    setExternalPaymentUrl('');
+    setCopiedPaymentLink(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -50,7 +54,8 @@ export default function Pricing({ onNavigate }: PricingProps) {
       });
       const json = await res.json();
       if (json.url) {
-        await openExternalCheckout(json.url);
+        const opened = await openExternalCheckout(json.url);
+        if (!opened) setExternalPaymentUrl(json.url);
       } else {
         setError('Could not find your billing account. Try managing your subscription from Workspace Settings instead.');
       }
@@ -69,6 +74,8 @@ export default function Pricing({ onNavigate }: PricingProps) {
     }
     setLoadingPlan(plan);
     setError('');
+    setExternalPaymentUrl('');
+    setCopiedPaymentLink(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -92,7 +99,8 @@ export default function Pricing({ onNavigate }: PricingProps) {
       if (json.error) {
         setError(json.error);
       } else if (json.url) {
-        await openExternalCheckout(json.url);
+        const opened = await openExternalCheckout(json.url);
+        if (!opened) setExternalPaymentUrl(json.url);
       }
     } catch (e: unknown) {
       console.error('Poddle checkout navigation failed:', e);
@@ -272,6 +280,23 @@ export default function Pricing({ onNavigate }: PricingProps) {
           <div className="mb-6 p-4 flex items-center gap-3" style={{ background: 'var(--negative-bg)', border: '1px solid var(--negative)' }}>
             <X className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--negative)' }} />
             <p className="text-sm font-medium" style={{ color: 'var(--negative)' }}>{error}</p>
+          </div>
+        )}
+
+        {externalPaymentUrl && (
+          <div className="mb-6 rounded-lg border p-4" role="status" style={{ borderColor: 'var(--border, #cbd5e1)' }}>
+            <p className="font-semibold mb-2">Your secure Stripe checkout is ready</p>
+            <p className="text-sm mb-3">Microsoft Teams could not open the payment page automatically. Open it in your browser, or copy the link and paste it into Chrome.</p>
+            <div className="flex flex-wrap gap-3">
+              <a href={externalPaymentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-white bg-blue-700">
+                <ExternalLink className="w-4 h-4" /> Open secure checkout in browser
+              </a>
+              <button type="button" className="rounded-md border px-4 py-2" onClick={async () => {
+                try { await navigator.clipboard.writeText(externalPaymentUrl); setCopiedPaymentLink(true); }
+                catch { setError('Unable to copy automatically. Try opening the checkout link instead.'); }
+              }}>{copiedPaymentLink ? 'Link copied' : 'Copy checkout link'}</button>
+            </div>
+            <p className="text-xs mt-3">Checkout links can expire. If yours expires, select the plan again to generate a fresh link.</p>
           </div>
         )}
 
