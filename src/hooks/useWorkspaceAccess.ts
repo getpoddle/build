@@ -22,6 +22,26 @@ function useOwnProfileSensitive(userId: string | undefined) {
   });
 }
 
+// Complimentary access is read from a security-definer RPC that only returns
+// the current authenticated user's active grant. No email-based bypass.
+export function useComplimentaryAccess() {
+  const { user } = useAuth();
+  const query = useQuery({
+    queryKey: ['user', user?.id, 'complimentary-access'],
+    enabled: !!user,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_my_complimentary_access');
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : null;
+      return (row?.plan === 'pro' || row?.plan === 'team' ||
+              row?.plan === 'business' || row?.plan === 'enterprise')
+        ? row.plan as 'pro' | 'team' | 'business' | 'enterprise' : null;
+    },
+  });
+  return { plan: query.data ?? null, loading: !!user && query.isPending, error: query.error };
+}
+
 export interface WorkspaceAccess {
   canAccess: boolean;
   isOwner: boolean;
@@ -55,6 +75,7 @@ export function workspaceMetadataQuery(userId: string, workspaceId: string) {
 export function useWorkspaceAccess(workspaceId: string | null): WorkspaceAccess {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const complimentary = useComplimentaryAccess();
   const accessQuery = useQuery({
     queryKey: ['user', user?.id, 'workspace-access', workspaceId],
     enabled: !!user && !!workspaceId,
@@ -111,7 +132,15 @@ export function useWorkspaceAccess(workspaceId: string | null): WorkspaceAccess 
     };
   }, [workspaceId, user, queryClient]);
 
-  return accessQuery.data ?? {
+  if (accessQuery.data) {
+    const access = accessQuery.data;
+    // Complimentary grants affect only a workspace owned by the grantee.
+    // Membership and role checks remain unchanged.
+    return complimentary.plan && access.isOwner
+      ? { ...access, isReadOnly: false, plan: complimentary.plan }
+      : access;
+  }
+  return {
     canAccess: false, isOwner: false, isAdmin: false, isReadOnly: false, role: null,
     plan: null, subscriptionStatus: null, trialExpiresAt: null, seatsUsed: 0,
     seatsTotal: 0, loading: !!user && !!workspaceId && accessQuery.isPending,
@@ -175,8 +204,9 @@ export function useUserWorkspaces() {
 export function useSubscriptionTier() {
   const { user } = useAuth();
   const query = useOwnProfileSensitive(user?.id);
-  const tier = resolveSubscriptionTier(query.data?.subscription_tier);
-  return { tier, loading: !!user && query.isPending, isPro: tier === 'pro' || tier === 'team' || tier === 'business' || tier === 'enterprise' };
+  const complimentary = useComplimentaryAccess();
+  const tier = complimentary.plan ?? resolveSubscriptionTier(query.data?.subscription_tier);
+  return { tier, loading: (!!user && query.isPending) || complimentary.loading, isPro: tier !== 'free', isComplimentary: !!complimentary.plan };
 }
 
 export interface WarRoomUsage {
@@ -226,9 +256,10 @@ export function useWarRoomUsage(workspaceId: string | null): WarRoomUsage & { re
 export function useTrialInfo() {
   const { user } = useAuth();
   const query = useOwnProfileSensitive(user?.id);
+  const complimentary = useComplimentaryAccess();
 
   const now = new Date();
-  const trialLimitReached = isTrialLimitReached(query.data?.trial_workspace_count ?? null, now);
+  const trialLimitReached = !complimentary.plan && isTrialLimitReached(query.data?.trial_workspace_count ?? null, now);
   const used = query.data?.trial_workspace_count ?? 0;
   const slotsRemaining = Math.max(0, TRIAL_WORKSPACE_LIMIT - used);
 
@@ -237,7 +268,7 @@ export function useTrialInfo() {
     trialCount: used,
     trialSlotsRemaining: slotsRemaining,
     trialLimit: TRIAL_WORKSPACE_LIMIT,
-    loading: !!user && query.isPending,
+    loading: (!!user && query.isPending) || complimentary.loading,
     // legacy aliases kept for backward compatibility
     trialExhausted: trialLimitReached,
     monthlyLimitReached: trialLimitReached,
