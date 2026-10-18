@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
     );
 
     // Fetch profile, any Stripe-backed paid workspace, and beta access in parallel.
-    const [profileRes, paidWsRes, betaRes] = await Promise.all([
+    const [profileRes, paidWsRes, betaRes, complimentaryRes] = await Promise.all([
       service
         .from("profiles")
         .select("subscription_tier, trial_workspace_count")
@@ -77,7 +77,19 @@ Deno.serve(async (req: Request) => {
         .eq("user_id", user.id)
         .eq("status", "active")
         .maybeSingle(),
+      service.from("complimentary_access_grants")
+        .select("plan")
+        .eq("user_id", user.id)
+        .is("revoked_at", null)
+        .maybeSingle(),
     ]);
+
+    if (complimentaryRes.error) {
+      console.error("complimentary access lookup failed", complimentaryRes.error.message);
+      return new Response(JSON.stringify({ error: "Unable to verify account access." }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const profileTier = profileRes.data?.subscription_tier;
     const trialCount = profileRes.data?.trial_workspace_count ?? 0;
@@ -89,7 +101,7 @@ Deno.serve(async (req: Request) => {
     const betaGrant = betaRes.data;
     const hasBetaAccess = !!betaGrant && new Date(betaGrant.expires_at) > new Date();
 
-    const isPaid = hasPaidProfile || hasPaidWorkspace || hasBetaAccess;
+    const isPaid = hasPaidProfile || hasPaidWorkspace || hasBetaAccess || !!complimentaryRes.data?.plan;
 
     // Trial workspace gate: up to 3 trial workspaces per user.
     if (!isPaid && trialCount >= TRIAL_WORKSPACE_LIMIT) {
