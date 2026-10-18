@@ -54,8 +54,9 @@ export default function Pricing({ onNavigate }: PricingProps) {
       } else {
         setError('Could not find your billing account. Try managing your subscription from Workspace Settings instead.');
       }
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (e: unknown) {
+      console.error('Poddle checkout navigation failed:', e);
+      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
     } finally {
       setLoadingPortal(false);
     }
@@ -93,8 +94,9 @@ export default function Pricing({ onNavigate }: PricingProps) {
       } else if (json.url) {
         await openExternalCheckout(json.url);
       }
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (e: unknown) {
+      console.error('Poddle checkout navigation failed:', e);
+      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
     } finally {
       setLoadingPlan(null);
     }
