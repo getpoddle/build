@@ -397,7 +397,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithMicrosoft = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'azure',
-      options: { redirectTo: window.location.origin, scopes: 'email' },
+      options: { redirectTo: window.location.pathname === '/teams/auth-popup' ? `${window.location.origin}/teams/auth-popup` : window.location.origin, scopes: 'email' },
     });
     return { error };
   };
