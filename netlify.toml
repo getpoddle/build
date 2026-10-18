@@ -34,6 +34,11 @@ status = 200
 
 # Route the Teams tab to the existing React application
 [[redirects]]
+from = "/teams/auth-popup"
+to = "/index.html"
+status = 200
+
+[[redirects]]
 from = "/teams/app"
 to = "/index.html"
 status = 200
