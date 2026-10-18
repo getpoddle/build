@@ -44,6 +44,7 @@ const Team = lazy(() => import('./pages/Team'));
 const TeamsConnect = lazy(() => import('./pages/TeamsConnect'));
 const TeamsAuthPopup = lazy(() => import('./pages/TeamsAuthPopup'));
 const TeamsTabSignIn = lazy(() => import('./pages/TeamsTabSignIn'));
+const TeamsCaptureDecision = lazy(() => import('./pages/TeamsCaptureDecision'));
 
 function RouteFallback() {
   return (
@@ -838,6 +839,10 @@ if (persistentPages.has(hash)) {
 
   if (currentPage === 'about') {
     return wrap(<About onNavigate={handleNavigate} />);
+  }
+
+  if (window.location.pathname === '/teams/capture') {
+    return <Suspense fallback={<RouteFallback />}><TeamsCaptureDecision /></Suspense>;
   }
 
   if (window.location.pathname === '/teams/auth-popup') {
