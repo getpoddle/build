@@ -1,3 +1,4 @@
+
 [[redirects]]
 from = "/sitemap.xml"
 to = "https://bggdthmhcanzzuqkztdo.supabase.co/functions/v1/generate-sitemap"
@@ -32,7 +33,7 @@ from = "/slack"
 to = "/index.html"
 status = 200
 
-# Route the Teams tab to the existing React application
+# Microsoft Teams routes
 [[redirects]]
 from = "/teams/auth-popup"
 to = "/index.html"
@@ -43,6 +44,12 @@ from = "/teams/app"
 to = "/index.html"
 status = 200
 
+[[redirects]]
+from = "/teams/capture"
+to = "/index.html"
+status = 200
+
+# React application fallback
 [[redirects]]
 from = "/*"
 to = "/index.html"
@@ -55,8 +62,3 @@ publish = "dist"
 [[edge_functions]]
 function = "seo-inject"
 path = "/reasoning/*"
-
-[[redirects]]
-from = "/teams/capture"
-to = "/index.html"
-status = 200
