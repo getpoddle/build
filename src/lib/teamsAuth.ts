@@ -1,6 +1,7 @@
 /** Microsoft Teams popup authentication bridge. Only used on /teams/app and /teams/auth-popup. */
 type TeamsSDK = {
   app: { initialize: () => Promise<void> };
+  pages?: { openLink?: (url: string) => Promise<void> };
   authentication: {
     authenticate: (options: { url: string; width?: number; height?: number }) => Promise<string>;
     notifySuccess: (result?: string) => void;
