@@ -55,3 +55,8 @@ publish = "dist"
 [[edge_functions]]
 function = "seo-inject"
 path = "/reasoning/*"
+
+[[redirects]]
+from = "/teams/capture"
+to = "/index.html"
+status = 200
