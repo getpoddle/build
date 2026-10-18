@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, Zap, Building2, User, ArrowLeft, Loader2 } from 'lucide-react';
 import { STRIPE_PRODUCTS, type StripeProduct } from '../stripe-config';
 import { createCheckoutSession } from '../lib/checkout';
+import { openExternalCheckout } from '../lib/externalCheckout';
 import { useSubscription } from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -68,7 +69,7 @@ export default function PricingPage({ onNavigate }: PricingPageProps) {
     setLoadingPriceId(product.monthlyPriceId);
     try {
       const url = await createCheckoutSession(product.monthlyPriceId);
-      window.location.href = url;
+      await openExternalCheckout(url);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Checkout failed. Please try again.');
       setLoadingPriceId(null);
