@@ -94,6 +94,9 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
   const [warRoomKey, setWarRoomKey] = useState(0);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showTeamsCaptures, setShowTeamsCaptures] = useState(false);
+  // Review-only: a Teams capture is source material, not an approved decision or synthesis.
+  const [teamsWarRoomReview, setTeamsWarRoomReview] = useState<{ id: string; title: string; context: string; source_url: string | null } | null>(null);
+
   const [discussedKeys, setDiscussedKeys] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -421,6 +424,20 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
           <div className="flex-1 overflow-y-auto" style={{ marginBottom: '3rem', paddingBottom: '1.5rem' }}>
             <PageErrorBoundary resetKey={`m-war-${workspaceId}`}>
             {workspaceIsPro ? (
+              <>
+
+              {teamsWarRoomReview && (
+                <section role="region" aria-label="Teams capture for War Room review" className="m-3 rounded-lg border p-3 text-sm" style={{ borderColor: 'var(--app-border)', background: 'var(--app-surface-raised)' }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <strong className="break-words">Teams capture: {teamsWarRoomReview.title}</strong>
+                    <button type="button" className="btn-ghost" onClick={() => setTeamsWarRoomReview(null)} aria-label="Dismiss Teams review">Dismiss</button>
+                  </div>
+                  <p className="mt-1 text-xs" style={{ color: 'var(--app-text-secondary)' }}>Unverified source material — not part of War Room synthesis or an approved Decision Record.</p>
+                  <p className="mt-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">{teamsWarRoomReview.context}</p>
+                  {teamsWarRoomReview.source_url && /^https:\/\//i.test(teamsWarRoomReview.source_url) && <a className="mt-2 inline-block underline" href={teamsWarRoomReview.source_url} target="_blank" rel="noopener noreferrer">Open Teams source</a>}
+                  <div className="mt-3"><button type="button" className="btn-ghost" onClick={() => handleDiscuss(`Review this unverified Teams capture. Identify risks, alternatives, missing evidence and ownership.\n\nTitle: ${teamsWarRoomReview.title}\nContext: ${teamsWarRoomReview.context}`)}>Discuss with Poddle AI</button></div>
+                </section>
+              )}
               <WorkspaceWarRoom
                 key={warRoomKey}
                 workspaceId={workspaceId}
@@ -430,6 +447,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                 discussedKeys={discussedKeys}
                 onDiscussed={key => setDiscussedKeys(prev => new Set([...prev, key]))}
               />
+              </>
             ) : (
               <div className="p-4">
                 <WarRoomLockedState onUpgrade={() => setShowUpgrade(true)} />
@@ -544,6 +562,20 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
             {/* War Room content */}
             <div className="flex-1 min-h-0 overflow-y-auto" style={{ background: 'var(--app-bg)' }}>
               {workspaceIsPro ? (
+                <>
+
+              {teamsWarRoomReview && (
+                <section role="region" aria-label="Teams capture for War Room review" className="m-3 rounded-lg border p-3 text-sm" style={{ borderColor: 'var(--app-border)', background: 'var(--app-surface-raised)' }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <strong className="break-words">Teams capture: {teamsWarRoomReview.title}</strong>
+                    <button type="button" className="btn-ghost" onClick={() => setTeamsWarRoomReview(null)} aria-label="Dismiss Teams review">Dismiss</button>
+                  </div>
+                  <p className="mt-1 text-xs" style={{ color: 'var(--app-text-secondary)' }}>Unverified source material — not part of War Room synthesis or an approved Decision Record.</p>
+                  <p className="mt-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">{teamsWarRoomReview.context}</p>
+                  {teamsWarRoomReview.source_url && /^https:\/\//i.test(teamsWarRoomReview.source_url) && <a className="mt-2 inline-block underline" href={teamsWarRoomReview.source_url} target="_blank" rel="noopener noreferrer">Open Teams source</a>}
+                  <div className="mt-3"><button type="button" className="btn-ghost" onClick={() => handleDiscuss(`Review this unverified Teams capture. Identify risks, alternatives, missing evidence and ownership.\n\nTitle: ${teamsWarRoomReview.title}\nContext: ${teamsWarRoomReview.context}`)}>Discuss with Poddle AI</button></div>
+                </section>
+              )}
                 <WorkspaceWarRoom
                   key={warRoomKey}
                   workspaceId={workspaceId}
@@ -553,6 +585,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                   discussedKeys={discussedKeys}
                   onDiscussed={key => setDiscussedKeys(prev => new Set([...prev, key]))}
                 />
+                </>
               ) : (
                 <div className="p-5">
                   <WarRoomLockedState onUpgrade={() => setShowUpgrade(true)} />
@@ -567,6 +600,11 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
       {showTeamsCaptures && <TeamsCapturesPanel
         workspaceId={workspaceId}
         onClose={() => setShowTeamsCaptures(false)}
+        onReviewWarRoom={capture => {
+          setTeamsWarRoomReview(capture);
+          setShowTeamsCaptures(false);
+          if (isMobileViewport) setMainTabLogged('warroom', 'teams-capture-review');
+        }}
         onAnalyze={(title, context, sourceUrl) => {
           setShowTeamsCaptures(false);
           handleDiscuss(`Review this unverified Microsoft Teams decision capture. Do not assume approval or factual accuracy. Identify missing evidence, alternatives, risks, decision owner and next steps.\n\nTitle: ${title}\nDiscussion: ${context}${sourceUrl ? `\nOriginal Teams source: ${sourceUrl}` : ''}`);
