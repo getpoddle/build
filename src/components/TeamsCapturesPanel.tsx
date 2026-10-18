@@ -15,7 +15,7 @@ type Capture = {
   created_at: string;
 };
 
-export default function TeamsCapturesPanel({ workspaceId, onClose }: { workspaceId: string; onClose: () => void }) {
+export default function TeamsCapturesPanel({ workspaceId, onClose, onAnalyze }: { workspaceId: string; onClose: () => void; onAnalyze: (title: string, context: string, sourceUrl: string | null) => void }) {
   const [captures, setCaptures] = useState<Capture[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -68,6 +68,7 @@ export default function TeamsCapturesPanel({ workspaceId, onClose }: { workspace
               {selected === c.id && <div className="mt-3 space-y-3 border-t pt-3" style={{ borderColor: 'var(--app-border)' }}>
                 <p className="text-sm whitespace-pre-wrap break-words">{c.context}</p>
                 <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>Captured discussion is not verified evidence or a finalized decision.</p>
+                <button type="button" className="rounded-lg px-3 py-2 text-sm font-semibold" style={{ background: 'var(--app-accent, #2563eb)', color: '#fff' }} onClick={() => onAnalyze(c.title, c.context, c.source_url)}>Discuss with Poddle AI →</button>
                 {c.source_message_id && <p className="text-xs break-all">Message ID: {c.source_message_id}</p>}
                 {c.source_conversation_id && <p className="text-xs break-all">Conversation ID: {c.source_conversation_id}</p>}
                 {c.source_team_id && <p className="text-xs break-all">Team ID: {c.source_team_id}</p>}
