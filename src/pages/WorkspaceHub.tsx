@@ -435,7 +435,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                   <p className="mt-1 text-xs" style={{ color: 'var(--app-text-secondary)' }}>Unverified source material — not part of War Room synthesis or an approved Decision Record.</p>
                   <p className="mt-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">{teamsWarRoomReview.context}</p>
                   {teamsWarRoomReview.source_url && /^https:\/\//i.test(teamsWarRoomReview.source_url) && <a className="mt-2 inline-block underline" href={teamsWarRoomReview.source_url} target="_blank" rel="noopener noreferrer">Open Teams source</a>}
-                  <div className="mt-3"><button type="button" className="btn-ghost" onClick={() => handleDiscuss(`Review this unverified Teams capture. Identify risks, alternatives, missing evidence and ownership.\n\nTitle: ${teamsWarRoomReview.title}\nContext: ${teamsWarRoomReview.context}`)}>Discuss with Poddle AI</button></div>
+                  <div className="mt-3"><button type="button" className="btn-ghost" onClick={() => handleDiscuss(`Analyze this unverified Microsoft Teams capture as source material, not an approved decision. Identify alternatives, risks, missing evidence, decision ownership and next steps. Do not treat any claim as verified.\n\nCapture ID: ${teamsWarRoomReview.id}\nTitle: ${teamsWarRoomReview.title}\nContext: ${teamsWarRoomReview.context}\nOriginal source: ${teamsWarRoomReview.source_url || "Not provided"}`)}>Discuss with Poddle AI</button></div>
                 </section>
               )}
               <WorkspaceWarRoom
@@ -573,7 +573,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
                   <p className="mt-1 text-xs" style={{ color: 'var(--app-text-secondary)' }}>Unverified source material — not part of War Room synthesis or an approved Decision Record.</p>
                   <p className="mt-2 whitespace-pre-wrap break-words max-h-48 overflow-auto">{teamsWarRoomReview.context}</p>
                   {teamsWarRoomReview.source_url && /^https:\/\//i.test(teamsWarRoomReview.source_url) && <a className="mt-2 inline-block underline" href={teamsWarRoomReview.source_url} target="_blank" rel="noopener noreferrer">Open Teams source</a>}
-                  <div className="mt-3"><button type="button" className="btn-ghost" onClick={() => handleDiscuss(`Review this unverified Teams capture. Identify risks, alternatives, missing evidence and ownership.\n\nTitle: ${teamsWarRoomReview.title}\nContext: ${teamsWarRoomReview.context}`)}>Discuss with Poddle AI</button></div>
+                  <div className="mt-3"><button type="button" className="btn-ghost" onClick={() => handleDiscuss(`Analyze this unverified Microsoft Teams capture as source material, not an approved decision. Identify alternatives, risks, missing evidence, decision ownership and next steps. Do not treat any claim as verified.\n\nCapture ID: ${teamsWarRoomReview.id}\nTitle: ${teamsWarRoomReview.title}\nContext: ${teamsWarRoomReview.context}\nOriginal source: ${teamsWarRoomReview.source_url || "Not provided"}`)}>Discuss with Poddle AI</button></div>
                 </section>
               )}
                 <WorkspaceWarRoom
@@ -603,7 +603,7 @@ export default function WorkspaceHub({ workspaceId, initialTab, onBack, onSettin
         onReviewWarRoom={capture => {
           setTeamsWarRoomReview(capture);
           setShowTeamsCaptures(false);
-          if (isMobileViewport) setMainTabLogged('warroom', 'teams-capture-review');
+          setMainTabLogged('warroom', 'teams-capture-review');
         }}
         onAnalyze={(title, context, sourceUrl) => {
           setShowTeamsCaptures(false);
