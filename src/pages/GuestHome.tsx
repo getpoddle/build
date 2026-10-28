@@ -606,6 +606,7 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
             <div className="flex flex-wrap gap-3 mb-8">
               <a href="#product-in-action" className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg text-white font-semibold text-sm hover:opacity-90" style={{ background: BLUE }}>See Poddle in action <ArrowRight className="w-4 h-4" /></a>
               <button onClick={() => onNavigate('auth')} className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg font-semibold text-sm hover:bg-slate-50" style={{ border: `1px solid ${BORDER}`, color: INK }}>Start a decision review <ChevronRight className="w-4 h-4" /></button>
+              <a href="/contact-us" className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg font-semibold text-sm hover:bg-slate-50" style={{ border: `1px solid ${BORDER}`, color: INK }}>Contact Us <ArrowRight className="w-4 h-4" /></a>
             </div>
             <div className="flex flex-wrap gap-4 text-xs" style={{ color: SLATE_MID }}>{['Evidence traceability', 'Human accountability', 'Decision history'].map(item => <span key={item} className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4" style={{ color: BLUE }} />{item}</span>)}</div>
           </div>
@@ -1125,6 +1126,7 @@ function Footer({ onNavigate }: { onNavigate: (p: string) => void }) {
               <button onClick={() => onNavigate('about')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>About</button>
               <button onClick={() => onNavigate('advisory')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Advisory</button>
               <button onClick={() => onNavigate('blog')} className="text-sm transition-colors hover:text-white text-left" style={{ color: '#94a3b8' }}>Blog</button>
+              <a href="/contact-us" className="text-sm transition-colors hover:text-white" style={{ color: '#94a3b8' }}>Contact Us</a>
             </div>
           </div>
           <div>
