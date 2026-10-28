@@ -105,6 +105,7 @@ function AppContent() {
     if (pathname === '/privacy') return 'privacy';
     if (pathname === '/subprocessors') return 'subprocessors';
     if (pathname === '/pricing') return 'pricing';
+    if (pathname === '/contact-us') return 'contact-us';
     if (pathname === '/about') return 'about';
     if (pathname === '/advisory') return 'advisory';
     if (pathname === '/team') return 'team';
@@ -188,6 +189,7 @@ if (persistentPages.has(hash)) {
     if (pathname === '/privacy') { setCurrentPage('privacy'); return; }
     if (pathname === '/subprocessors') { setCurrentPage('subprocessors'); return; }
     if (pathname === '/pricing') { setCurrentPage('pricing'); return; }
+    if (pathname === '/contact-us') { setCurrentPage('contact-us'); return; }
 
     if (urlParams.get('payment_success') === '1') {
       setCurrentPage('payment-success');
@@ -263,6 +265,7 @@ if (persistentPages.has(hash)) {
       if (pathname === '/about') { setCurrentPage('about'); return; }
       if (pathname === '/advisory') { setCurrentPage('advisory'); return; }
       if (pathname === '/team') { setCurrentPage('team'); return; }
+      if (pathname === '/contact-us') { setCurrentPage('contact-us'); return; }
 
       const hash = window.location.hash.substring(1);
 
@@ -551,7 +554,7 @@ if (persistentPages.has(hash)) {
       return;
     }
 
-    if (page === 'about' || page === 'advisory' || page === 'team') {
+    if (page === 'about' || page === 'advisory' || page === 'team' || page === 'contact-us') {
       setCurrentPage(page);
       sessionStorage.setItem('currentPage', page);
       history.pushState(null, '', `/${page}`);
@@ -926,7 +929,7 @@ if (persistentPages.has(hash)) {
                 <a href="#privacy" className="hover:text-slate-600 transition-colors">Privacy</a>
                 <a href="#terms" className="hover:text-slate-600 transition-colors">Terms</a>
                 <a href="#subprocessors" className="hover:text-slate-600 transition-colors">Sub-processors</a>
-                <a href="#contact-us" className="hover:text-slate-600 transition-colors">Contact</a>
+                <a href="/contact-us" className="hover:text-slate-600 transition-colors">Contact Us</a>
               </div>
             </div>
           </div>
