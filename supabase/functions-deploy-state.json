@@ -1,0 +1,169 @@
+{
+  "projectId": "63132885",
+  "functions": {
+    "accept-workspace-invite": {
+      "hasChanged": false,
+      "hash": "474b815fd8dd56e5bd197436d2e4fd735e69777ed6f75768171f700f3ee59d3396b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "admin-delete-user": {
+      "hasChanged": false,
+      "hash": "b0d0c91ab339e88cf79465c45413ebe0cf526ee295415f8326333107c4b99f9f"
+    },
+    "admin-upgrade-requests": {
+      "hasChanged": false,
+      "hash": "eb6b648e6905f9eee4844430ea9476e3f68b8c2bfd0117863ef4df9144a93032"
+    },
+    "ai-agents": {
+      "hasChanged": false,
+      "hash": "6939a870da52447307da685d3bf0f07ee7f7dea9ab2979ba434bde3b6d21fd1296b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "check-beta-access": {
+      "hasChanged": false,
+      "hash": "bb0256592a98d7c98f6480e3d47518d05f9730280f2483737f807bddb4ca7b10"
+    },
+    "cleanup-deleted-accounts": {
+      "hasChanged": false,
+      "hash": "058f4517dea60791fd6b7de37482be7ea5b9ec4057a6067130b2522f5ad112f8"
+    },
+    "confirm-email": {
+      "hasChanged": false,
+      "hash": "5735932a6ab8e6362e63bffbbda1f684038c957402ebf39f1a7306dc0037547c"
+    },
+    "create-billing-portal": {
+      "hasChanged": false,
+      "hash": "5e40933ec161e60610b5a34c4d5c474fbc2b4d04fe46e72c168570e838e005a3"
+    },
+    "create-checkout-session": {
+      "hasChanged": false,
+      "hash": "4af7961047ecf676acb257f3532619322a51b5ced46c1ce4a79e90d83f12f622"
+    },
+    "create-workspace": {
+      "hasChanged": false,
+      "hash": "87f43f065d51d600c9ec58dced36b240ab9a29ac3812a8ccce8302ebbd31a21e"
+    },
+    "extract-document": {
+      "hasChanged": false,
+      "hash": "04b9fc6d7350a91b8d9d9d161aa1c50649aac98eace25f9cbe3ad024b193a86a"
+    },
+    "first-sign-in": {
+      "hasChanged": false,
+      "hash": "2dba4e9764c5a92b3c2d09096a584cf9851bbc47053ff2395e8ff12f79fc8ec8"
+    },
+    "generate-reengagement-candidates": {
+      "hasChanged": false,
+      "hash": "00d408a52faf99044b2513da1bacc1d682a6c25d207c45db16f00d2437f36faf"
+    },
+    "generate-sitemap": {
+      "hasChanged": false,
+      "hash": "c6312e6221b9fc4cd0e14852439da2d86ccf4c7b8c782b90d92dac5a0c8c561e"
+    },
+    "get-stripe-prices": {
+      "hasChanged": false,
+      "hash": "c4e986b137a598c6307333ca9cf245fca1b76e80808bd764b09e943648125f76"
+    },
+    "redeem-invite-code": {
+      "hasChanged": false,
+      "hash": "c5d0ee2a44360710962599dc9172ff7ce77a492cb56c717d43350adf4ae10059"
+    },
+    "request-account-deletion": {
+      "hasChanged": false,
+      "hash": "635ff5061fe92c2ce6d76defeea733eee4921f617a11f1023bed50062531b4a196b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "restore-account": {
+      "hasChanged": false,
+      "hash": "223a19d8e769ece132f820efc16483fcf0b73cf194a9015b93495179fab02fd4"
+    },
+    "send-contact-email": {
+      "hasChanged": false,
+      "hash": "a90efc5fdbedff43d4dfd85c58d74a1d481b54b71068bdbb1044e902cb89a5bd"
+    },
+    "send-invoice-email": {
+      "hasChanged": false,
+      "hash": "845f65f0affd1155eb0e30db1fbe5a20ac8e85f7e6a9c903aa9563a40e78110296b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "send-mention-email": {
+      "hasChanged": false,
+      "hash": "d724abdf659428f61ae05af2f1e13c38b0a278b83b5010641feaa03cc5e34bf9"
+    },
+    "send-notifications": {
+      "hasChanged": false,
+      "hash": "cfbe344226984f4ad334d6fdd2fd59b9b9cc04c3c5cac6a39b8effdfe86ac6e3"
+    },
+    "send-password-reset": {
+      "hasChanged": false,
+      "hash": "8e5099b9f146b073448ef3e69fac48f746d75b07a18e3e0414b4e8eabb1dd9c096b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "send-payment-failed": {
+      "hasChanged": false,
+      "hash": "8fe9fd70149dba8f4e9fdd4a5e7626e555ae70f7cefbd999500e2a9b0216289696b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "send-renewal-reminder": {
+      "hasChanged": false,
+      "hash": "0929cb7370b7c7c01d4423d7e1feee422eecc05956fae17e06781e59aa1f363496b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "send-signup-confirmation": {
+      "hasChanged": false,
+      "hash": "379aacfe4575d454eb70cbb6057e4069b3501359fd458e4fc8b24bd36dbfb95d96b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "send-subscription-cancelled": {
+      "hasChanged": false,
+      "hash": "52e0e687514a997197912782353ebe2b37b03dd89e8b3881b79517a97ba9c82096b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "send-subscription-confirmation": {
+      "hasChanged": false,
+      "hash": "86d01667ac005b5e4cb505a00a2593c6f84254fb36ebc96754f42a4ea7ee0692"
+    },
+    "send-weekly-digest": {
+      "hasChanged": false,
+      "hash": "2d6adc13166645ea2985c7aa76e52bf8368a06204235b50db4d49542471df74e"
+    },
+    "send-workspace-invite": {
+      "hasChanged": false,
+      "hash": "ff75ba869f27b8513f06d34bf23ff7cc621b658d24b1f23fead6cfcf7b02ac04"
+    },
+    "signup-user": {
+      "hasChanged": false,
+      "hash": "110a35af84944e453c0dd3f76a09d62ec76ffae3b81ffbf7f0b89cb3fe177c4996b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "slack-oauth-install": {
+      "hasChanged": false,
+      "hash": "aaf2b85f04770db4320048e96be014adc155633430a85e8c188bea38f4fabea9"
+    },
+    "slack-session-callback": {
+      "hasChanged": false,
+      "hash": "d415f1911bfa5fb1904ac3013508b07aa0c525599f984130315576a2e22e0194"
+    },
+    "slack-slash-command": {
+      "hasChanged": false,
+      "hash": "7b8a400669987358f1b65cd6a86e146a79fac24b42703e9be102e5143a773cb9"
+    },
+    "slack-start-oauth": {
+      "hasChanged": false,
+      "hash": "9e74b2ae2a7265883afd04a0169960f68ad451110ff67d06d5ae7e668325afb7"
+    },
+    "stripe-checkout": {
+      "hasChanged": false,
+      "hash": "2a9357546ac1630b4ae0dff30103fb0c17f44245e94c088b9fa41a27046f28d2"
+    },
+    "stripe-webhook": {
+      "hasChanged": false,
+      "hash": "e5b807f6a0b501215de76afa2c6e85b0fb442b39689ce4a234b5843464c1f97796b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "transcribe-audio": {
+      "hasChanged": false,
+      "hash": "f3187075f02942f1df316d2e2f4959cc0630cab673d7a41a9d338acae44e5e51"
+    },
+    "workspace-ai-chat": {
+      "hasChanged": false,
+      "hash": "38fd87b18b2e65c8ec3fcf1f2f5f046864d5943d85e171006f9a2a7e9165154596b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "workspace-synthesize": {
+      "hasChanged": false,
+      "hash": "c7cc88876377fd8e312c84a84942706eb1b463e41710d131143e17bfc57a5a2296b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    },
+    "workspace-usage": {
+      "hasChanged": false,
+      "hash": "8e2514ffff8f13c3e1f574c5d413389806ccf6a2bdc289ca306f1baf9dc307b496b46cfa4a4a81c0f3cf996acdb3cd82afc018e4c62d8a82f0dfefd57c9ece49"
+    }
+  }
+}

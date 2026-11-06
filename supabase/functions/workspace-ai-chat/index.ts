@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { logAiOpenAICall } from "../_shared/posthogLogging.ts";
 import { resolveWarRoomLimit, recordProOverageUsage, type ConsumeResult } from "../_shared/warRoomQuota.ts";
 
-// Claude-primary compatibility adapter for existing OpenAI Chat Completions calls.
+// Claude-primary adapter for OpenAI Chat Completions call sites.
 // Keeps the original War Room prompts, agent selection, retries, and parsing intact.
 const CLAUDE_MODEL = Deno.env.get("CLAUDE_WAR_ROOM_MODEL") || "claude-sonnet-4-5";
 const AI_TIMEOUT_MS = 35000;
