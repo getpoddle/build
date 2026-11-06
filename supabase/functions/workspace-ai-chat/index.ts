@@ -25,7 +25,7 @@ async function warRoomAiFetch(_url: string, init: RequestInit): Promise<Response
       if (previous?.role === m.role) previous.content += "\n\n" + m.content;
       else normalized.push({ ...m });
     }
-    const maxTokens = body.max_completion_tokens || 1024;
+    const maxTokens = Math.max(body.max_completion_tokens || 0, 4096);
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         signal: AbortSignal.timeout(AI_TIMEOUT_MS),
