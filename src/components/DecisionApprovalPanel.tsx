@@ -19,7 +19,6 @@ type LifecycleAction = 'submit' | 'approve' | 'reject' | 'request_changes' | 're
 
 interface DirectoryEntry {
   name: string;
-  email: string | null;
   role: string;
 }
 
@@ -66,7 +65,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     setError('');
     const [lcRes, memberRes, wsRes, ownersRes, versionRes] = await Promise.all([
       supabase.from('decision_lifecycles').select('status, approver_user_id, submitted_at, decision_note, approval_cycle, current_version_id').eq('workspace_id', workspaceId).maybeSingle(),
-      supabase.from('workspace_members').select('user_id, role, profiles(full_name, email)').eq('workspace_id', workspaceId),
+      supabase.from('workspace_members').select('user_id, role, profiles(full_name)').eq('workspace_id', workspaceId),
       supabase.from('workspaces').select('owner_id, decision_category, decision_owner_override_user_id').eq('id', workspaceId).maybeSingle(),
       supabase.from('domain_owners').select('category_key, owner_user_id, backup_owner_user_id').eq('workspace_id', workspaceId),
       supabase.from('decision_versions').select('id, version_number').eq('workspace_id', workspaceId),
@@ -78,7 +77,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
       return;
     }
 
-    const members = (memberRes.data ?? []) as Array<{ user_id: string; role: string; profiles: Array<{ full_name: string | null; email: string | null }> }>;
+    const members = (memberRes.data ?? []) as Array<{ user_id: string; role: string; profiles: Array<{ full_name: string | null }> }>;
     const myRole = members.find(m => m.user_id === currentUserId)?.role ?? null;
     const ws = wsRes.data;
     const domainMatch = (ownersRes.data ?? []).find(d => d.category_key === ws?.decision_category);
@@ -95,8 +94,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     for (const m of members) {
       const profile = m.profiles[0];
       nextDirectory[m.user_id] = {
-        name: profile?.full_name || profile?.email || 'Unnamed member',
-        email: profile?.email ?? null,
+        name: profile?.full_name || 'Unnamed member',
         role: m.role,
       };
     }
@@ -163,7 +161,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   const isResubmission = status === 'draft' && (lifecycle?.approval_cycle ?? 0) > 0;
   const query = approverQuery.trim().toLowerCase();
   const visibleApprovers = query
-    ? approvers.filter(a => a.name.toLowerCase().includes(query) || (a.email ?? '').toLowerCase().includes(query))
+    ? approvers.filter(a => a.name.toLowerCase().includes(query))
     : approvers;
   const selected = approvers.find(a => a.user_id === selectedApprover) ?? null;
   const noteConfig = mode === 'reject'
@@ -194,7 +192,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
           </p>
           {approverEntry && !isAssignedApprover && (
             <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
-              {ROLE_LABEL[approverEntry.role] ?? approverEntry.role}{approverEntry.email ? ` · ${approverEntry.email}` : ''}
+              {ROLE_LABEL[approverEntry.role] ?? approverEntry.role}
             </p>
           )}
           <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
@@ -246,7 +244,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
                     type="search"
                     value={approverQuery}
                     onChange={e => setApproverQuery(e.target.value)}
-                    placeholder="Search owners and admins by name or email"
+                    placeholder="Search owners and admins by name"
                     aria-label="Search approvers"
                     className="input-modern text-xs w-full"
                     style={{ paddingLeft: '2rem', padding: '0.5rem 0.625rem 0.5rem 2rem' }}
@@ -267,7 +265,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
                         >
                           <span className="text-sm font-medium">{a.name}</span>
                           <span className="text-[11px]" style={{ color: 'var(--app-text-secondary)' }}>
-                            {ROLE_LABEL[a.role] ?? a.role}{a.email && a.email !== a.name ? ` · ${a.email}` : ''}
+                            {ROLE_LABEL[a.role] ?? a.role}
                           </span>
                         </button>
                       </li>
@@ -277,7 +275,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
                 {selected && (
                   <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
                     Selected approver: <span className="font-semibold" style={{ color: 'var(--app-text)' }}>{selected.name}</span>
-                    {` · ${ROLE_LABEL[selected.role] ?? selected.role}`}{selected.email && selected.email !== selected.name ? ` · ${selected.email}` : ''}
+                    {` · ${ROLE_LABEL[selected.role] ?? selected.role}`}
                   </p>
                 )}
               </>
