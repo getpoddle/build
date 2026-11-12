@@ -155,7 +155,7 @@ export default function DecisionVersionHistory({ workspaceId, memberNames, refre
                   </span>
                 </div>
                 <p className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                  Sent to {memberNames[req.approver_user_id] ?? 'an approver'} on {formatDate(req.submitted_at)}
+                  Sent to {memberNames[req.approver_user_id] ?? 'a former workspace member'} on {formatDate(req.submitted_at)}
                   {req.decided_at ? ` · Decided ${formatDate(req.decided_at)}` : ''}
                 </p>
                 {req.submission_note && (
