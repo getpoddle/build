@@ -3,6 +3,7 @@ import { CheckCircle2, XCircle, Send, RotateCcw, Loader2, AlertCircle, Clock, Se
 import { supabase } from '../lib/supabase';
 import DecisionVersionHistory from './DecisionVersionHistory';
 import DecisionFinancialCommitments from './DecisionFinancialCommitments';
+import { roleLabel, uniqueDisplayNames } from '../lib/approverDisplay';
 
 type LifecycleStatus = 'draft' | 'under_review' | 'approved' | 'rejected';
 
@@ -33,12 +34,6 @@ const STATUS_STYLE: Record<LifecycleStatus, { label: string; color: string; back
   under_review: { label: 'Under Review', color: '#92400e', background: '#fef3c7' },
   approved: { label: 'Approved', color: '#166534', background: '#dcfce7' },
   rejected: { label: 'Rejected', color: '#991b1b', background: '#fee2e2' },
-};
-
-const ROLE_LABEL: Record<string, string> = {
-  owner: 'Workspace Owner',
-  admin: 'Workspace Admin',
-  member: 'Workspace Member',
 };
 
 const FORMER_MEMBER_LABEL = 'a former workspace member';
@@ -109,18 +104,14 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
 
   useEffect(() => { void load(); }, [load]);
 
-  const approvers = useMemo(
-    () => Object.entries(directory)
+  const approvers = useMemo(() => {
+    const eligible = Object.entries(directory)
       .filter(([userId, entry]) => (entry.role === 'owner' || entry.role === 'admin') && userId !== currentUserId)
       .map(([userId, entry]) => ({ user_id: userId, ...entry }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
-    [directory, currentUserId],
-  );
-
-  const memberNames = useMemo(
-    () => Object.fromEntries(Object.entries(directory).map(([userId, entry]) => [userId, entry.name])),
-    [directory],
-  );
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const labels = uniqueDisplayNames(eligible.map(a => ({ userId: a.user_id, name: a.name })));
+    return eligible.map(a => ({ ...a, label: labels.get(a.user_id) ?? a.name }));
+  }, [directory, currentUserId]);
 
   async function runAction(action: LifecycleAction, payload: { note?: string | null; approver?: string | null }) {
     setBusy(true);
@@ -161,7 +152,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   const isResubmission = status === 'draft' && (lifecycle?.approval_cycle ?? 0) > 0;
   const query = approverQuery.trim().toLowerCase();
   const visibleApprovers = query
-    ? approvers.filter(a => a.name.toLowerCase().includes(query))
+    ? approvers.filter(a => a.label.toLowerCase().includes(query))
     : approvers;
   const selected = approvers.find(a => a.user_id === selectedApprover) ?? null;
   const noteConfig = mode === 'reject'
@@ -192,7 +183,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
           </p>
           {approverEntry && !isAssignedApprover && (
             <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
-              {ROLE_LABEL[approverEntry.role] ?? approverEntry.role}
+              {roleLabel(approverEntry.role)}
             </p>
           )}
           <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
@@ -263,9 +254,9 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
                           className="w-full text-left px-3 py-2 flex flex-col gap-0.5 transition-colors"
                           style={{ background: isSelected ? 'var(--app-surface-hover, rgba(148, 163, 184, 0.15))' : 'transparent', color: 'var(--app-text)' }}
                         >
-                          <span className="text-sm font-medium">{a.name}</span>
+                          <span className="text-sm font-medium">{a.label}</span>
                           <span className="text-[11px]" style={{ color: 'var(--app-text-secondary)' }}>
-                            {ROLE_LABEL[a.role] ?? a.role}
+                            {roleLabel(a.role)}
                           </span>
                         </button>
                       </li>
@@ -274,8 +265,8 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
                 </ul>
                 {selected && (
                   <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
-                    Selected approver: <span className="font-semibold" style={{ color: 'var(--app-text)' }}>{selected.name}</span>
-                    {` · ${ROLE_LABEL[selected.role] ?? selected.role}`}
+                    Selected approver: <span className="font-semibold" style={{ color: 'var(--app-text)' }}>{selected.label}</span>
+                    {` · ${roleLabel(selected.role)}`}
                   </p>
                 )}
               </>
@@ -377,7 +368,6 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
 
       <DecisionVersionHistory
         workspaceId={workspaceId}
-        memberNames={memberNames}
         refreshKey={`${status}-${lifecycle?.approval_cycle ?? 0}`}
       />
     </section>

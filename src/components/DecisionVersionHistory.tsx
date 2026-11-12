@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { History, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { describeVersionChanges, type DecisionVersionContent } from '../lib/decisionVersionDiff';
+import { roleLabel } from '../lib/approverDisplay';
 
 type Outcome = 'pending' | 'approved' | 'rejected' | 'changes_requested' | 'withdrawn' | 'superseded';
 
@@ -18,16 +19,19 @@ interface ApprovalRequestRow {
   version_id: string;
   approval_cycle: number;
   approver_user_id: string;
+  approver_name: string | null;
+  approver_role: string | null;
   submitted_at: string;
   submission_note: string | null;
   outcome: Outcome;
   decided_at: string | null;
+  decided_by_name: string | null;
+  decided_by_role: string | null;
   justification: string | null;
 }
 
 interface DecisionVersionHistoryProps {
   workspaceId: string;
-  memberNames: Record<string, string>;
   refreshKey: string;
 }
 
@@ -45,11 +49,16 @@ function formatDate(value: string | null): string {
   return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+function personLabel(name: string | null, role: string | null): string {
+  if (!name) return 'name not recorded';
+  return role ? `${name} (${roleLabel(role)})` : name;
+}
+
 function isVersionContent(value: unknown): value is DecisionVersionContent {
   return typeof value === 'object' && value !== null && Array.isArray((value as DecisionVersionContent).claims);
 }
 
-export default function DecisionVersionHistory({ workspaceId, memberNames, refreshKey }: DecisionVersionHistoryProps) {
+export default function DecisionVersionHistory({ workspaceId, refreshKey }: DecisionVersionHistoryProps) {
   const [versions, setVersions] = useState<VersionRow[]>([]);
   const [requests, setRequests] = useState<ApprovalRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +78,7 @@ export default function DecisionVersionHistory({ workspaceId, memberNames, refre
           .order('version_number', { ascending: false }),
         supabase
           .from('decision_approval_requests')
-          .select('id, version_id, approval_cycle, approver_user_id, submitted_at, submission_note, outcome, decided_at, justification')
+          .select('id, version_id, approval_cycle, approver_user_id, approver_name, approver_role, submitted_at, submission_note, outcome, decided_at, decided_by_name, decided_by_role, justification')
           .eq('workspace_id', workspaceId)
           .order('approval_cycle', { ascending: false }),
       ]);
@@ -155,8 +164,9 @@ export default function DecisionVersionHistory({ workspaceId, memberNames, refre
                   </span>
                 </div>
                 <p className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>
-                  Sent to {memberNames[req.approver_user_id] ?? 'a former workspace member'} on {formatDate(req.submitted_at)}
+                  Sent to {personLabel(req.approver_name, req.approver_role)} on {formatDate(req.submitted_at)}
                   {req.decided_at ? ` · Decided ${formatDate(req.decided_at)}` : ''}
+                  {req.decided_at && req.decided_by_name ? ` by ${personLabel(req.decided_by_name, req.decided_by_role)}` : ''}
                 </p>
                 {req.submission_note && (
                   <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>

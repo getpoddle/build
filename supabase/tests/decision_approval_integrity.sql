@@ -157,3 +157,49 @@ BEGIN
   RAISE EXCEPTION 'TEST_RESULTS %', v_res::text;
 END;
 $test$;
+
+DO $test$
+DECLARE
+  v_ws uuid; v_sub uuid; v_appr uuid; v_outsider uuid := gen_random_uuid();
+  v_sub_name_before text; v_appr_role_before text; v_n integer; v_res jsonb := '{}'::jsonb;
+BEGIN
+  SELECT m1.workspace_id, m1.user_id, m2.user_id INTO v_ws, v_sub, v_appr
+  FROM workspace_members m1
+  JOIN workspace_members m2 ON m2.workspace_id = m1.workspace_id AND m2.user_id <> m1.user_id
+  WHERE m1.role IN ('owner','admin') AND m2.role IN ('owner','admin') LIMIT 1;
+  IF v_ws IS NULL THEN RAISE EXCEPTION 'NO_FIXTURE'; END IF;
+
+  PERFORM set_config('request.jwt.claim.sub', v_sub::text, true);
+  PERFORM decision_lifecycle_action(v_ws,'submit',NULL,v_appr);
+
+  v_res := v_res || jsonb_build_object('h1_submit_snapshot_roles_present',
+    (SELECT submitted_by_role IS NOT NULL AND approver_role IS NOT NULL
+       FROM decision_approval_requests WHERE workspace_id = v_ws AND outcome = 'pending'));
+
+  v_sub_name_before := (SELECT submitted_by_name FROM decision_approval_requests WHERE workspace_id = v_ws AND outcome = 'pending');
+  UPDATE profiles SET full_name = 'Renamed During Integrity Test' WHERE id = v_sub;
+  v_res := v_res || jsonb_build_object('h2_name_snapshot_unchanged_after_profile_rename',
+    (SELECT submitted_by_name IS NOT DISTINCT FROM v_sub_name_before FROM decision_approval_requests WHERE workspace_id = v_ws AND outcome = 'pending'));
+
+  BEGIN UPDATE decision_approval_requests SET submitted_by_name = 'Forged' WHERE workspace_id = v_ws AND outcome = 'pending';
+    v_res := v_res || '{"h3_snapshot_forgery":"allowed (unexpected)"}';
+  EXCEPTION WHEN OTHERS THEN v_res := v_res || jsonb_build_object('h3_snapshot_forgery_blocked', true); END;
+
+  PERFORM set_config('request.jwt.claim.sub', v_appr::text, true);
+  PERFORM decision_lifecycle_action(v_ws,'approve',NULL,NULL);
+  v_appr_role_before := (SELECT approver_role FROM decision_approval_requests WHERE workspace_id = v_ws AND approval_cycle = 1);
+
+  UPDATE workspace_members SET role = 'member' WHERE workspace_id = v_ws AND user_id = v_appr;
+  v_res := v_res || jsonb_build_object('h4_approver_role_snapshot_preserved_after_role_change',
+    (SELECT approver_role IS NOT DISTINCT FROM v_appr_role_before FROM decision_approval_requests WHERE workspace_id = v_ws AND approval_cycle = 1));
+  UPDATE workspace_members SET role = 'admin' WHERE workspace_id = v_ws AND user_id = v_appr;
+
+  PERFORM set_config('request.jwt.claim.sub', v_outsider::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO v_n FROM decision_approval_requests WHERE workspace_id = v_ws;
+  v_res := v_res || jsonb_build_object('h5_outsider_reads_approval_identities', v_n);
+  RESET ROLE;
+
+  RAISE EXCEPTION 'TEST_RESULTS %', v_res::text;
+END;
+$test$;
