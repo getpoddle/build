@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, XCircle, Send, RotateCcw, Loader2, AlertCircle, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import DecisionVersionHistory from './DecisionVersionHistory';
 
 type LifecycleStatus = 'draft' | 'under_review' | 'approved' | 'rejected';
 
@@ -9,6 +10,7 @@ interface Lifecycle {
   approver_user_id: string | null;
   submitted_at: string | null;
   decision_note: string | null;
+  approval_cycle: number;
 }
 
 type LifecycleAction = 'submit' | 'approve' | 'reject' | 'request_changes' | 'reopen' | 'withdraw' | 'amend';
@@ -34,6 +36,7 @@ const STATUS_STYLE: Record<LifecycleStatus, { label: string; color: string; back
 export default function DecisionApprovalPanel({ workspaceId, currentUserId, onChanged }: DecisionApprovalPanelProps) {
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [approvers, setApprovers] = useState<Approver[]>([]);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const [canSubmit, setCanSubmit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -45,7 +48,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   const load = useCallback(async () => {
     setError('');
     const [lcRes, memberRes, wsRes, ownersRes] = await Promise.all([
-      supabase.from('decision_lifecycles').select('status, approver_user_id, submitted_at, decision_note').eq('workspace_id', workspaceId).maybeSingle(),
+      supabase.from('decision_lifecycles').select('status, approver_user_id, submitted_at, decision_note, approval_cycle').eq('workspace_id', workspaceId).maybeSingle(),
       supabase.from('workspace_members').select('user_id, role, profiles(full_name, email)').eq('workspace_id', workspaceId),
       supabase.from('workspaces').select('owner_id, decision_category, decision_owner_override_user_id').eq('id', workspaceId).maybeSingle(),
       supabase.from('domain_owners').select('category_key, owner_user_id, backup_owner_user_id').eq('workspace_id', workspaceId),
@@ -69,12 +72,14 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     );
 
     setCanSubmit(myRole === 'owner' || myRole === 'admin' || isDecisionOwner);
+    const nameOf = (m: typeof members[number]) => m.profiles[0]?.full_name || m.profiles[0]?.email || 'Member';
+    setMemberNames(Object.fromEntries(members.map(m => [m.user_id, nameOf(m)])));
     setApprovers(
       members
         .filter(m => (m.role === 'owner' || m.role === 'admin') && m.user_id !== currentUserId)
-        .map(m => ({ user_id: m.user_id, name: m.profiles[0]?.full_name || m.profiles[0]?.email || 'Member' }))
+        .map(m => ({ user_id: m.user_id, name: nameOf(m) }))
     );
-    setLifecycle((lcRes.data as Lifecycle | null) ?? { status: 'draft', approver_user_id: null, submitted_at: null, decision_note: null });
+    setLifecycle((lcRes.data as Lifecycle | null) ?? { status: 'draft', approver_user_id: null, submitted_at: null, decision_note: null, approval_cycle: 0 });
     setLoading(false);
   }, [workspaceId, currentUserId]);
 
@@ -112,6 +117,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   const style = STATUS_STYLE[status];
   const isAssignedApprover = status === 'under_review' && lifecycle?.approver_user_id === currentUserId;
   const approverName = approvers.find(a => a.user_id === lifecycle?.approver_user_id)?.name ?? 'the assigned approver';
+  const isResubmission = status === 'draft' && (lifecycle?.approval_cycle ?? 0) > 0;
   const noteConfig = mode === 'reject'
     ? { label: 'Reason for rejection (required)', action: 'reject' as const, button: 'Confirm rejection' }
     : mode === 'amend'
@@ -152,24 +158,40 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
       )}
 
       {status === 'draft' && canSubmit && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <select
-            value={selectedApprover}
-            onChange={e => setSelectedApprover(e.target.value)}
-            className="input-modern text-xs flex-1 min-w-[12rem]"
-            style={{ padding: '0.5rem 0.625rem' }}
-          >
-            <option value="">Choose an approver</option>
-            {approvers.map(a => <option key={a.user_id} value={a.user_id}>{a.name}</option>)}
-          </select>
-          <button
-            onClick={() => runAction('submit', { approver: selectedApprover })}
-            disabled={busy || !selectedApprover}
-            className="btn-primary flex items-center gap-1.5"
-          >
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            Submit for Approval
-          </button>
+        <div className="space-y-2">
+          {isResubmission && (
+            <>
+              <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
+                This decision was sent back or changed after an earlier submission. Explain what changed before resubmitting.
+              </p>
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                rows={3}
+                placeholder="What changed since the last submission"
+                className="input-modern text-sm w-full"
+              />
+            </>
+          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={selectedApprover}
+              onChange={e => setSelectedApprover(e.target.value)}
+              className="input-modern text-xs flex-1 min-w-[12rem]"
+              style={{ padding: '0.5rem 0.625rem' }}
+            >
+              <option value="">Choose an approver</option>
+              {approvers.map(a => <option key={a.user_id} value={a.user_id}>{a.name}</option>)}
+            </select>
+            <button
+              onClick={() => runAction('submit', { approver: selectedApprover, note })}
+              disabled={busy || !selectedApprover || (isResubmission && !note.trim())}
+              className="btn-primary flex items-center gap-1.5"
+            >
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {isResubmission ? 'Resubmit for Approval' : 'Submit for Approval'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -245,6 +267,12 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
           This decision was rejected.
         </p>
       )}
+
+      <DecisionVersionHistory
+        workspaceId={workspaceId}
+        memberNames={memberNames}
+        refreshKey={`${status}-${lifecycle?.approval_cycle ?? 0}`}
+      />
     </section>
   );
 }
