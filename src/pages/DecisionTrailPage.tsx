@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DecisionEvidenceAttachments from '../components/DecisionEvidenceAttachments';
 import DecisionApprovalPanel from '../components/DecisionApprovalPanel';
+import { roleLabel } from '../lib/approverDisplay';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -360,6 +361,15 @@ function auditReference(prefix: 'EVT' | 'SNP', timestamp: string): string {
 }
 
 /** Render the stored event payload without guessing facts that were not recorded. */
+const isApprovalEvent = (eventType: string) => eventType.startsWith('approval_');
+
+function approvalActorLabel(payload: Record<string, unknown>): string {
+  const name = typeof payload.actor_name === 'string' ? payload.actor_name.trim() : '';
+  if (!name) return 'Name not recorded';
+  const role = typeof payload.actor_role === 'string' ? payload.actor_role : '';
+  return role ? `${name} (${roleLabel(role)})` : name;
+}
+
 function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorNames: Record<string, string> }) {
   const payload = event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)
     ? event.payload : {};
@@ -367,6 +377,7 @@ function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorN
     'question', 'recommendation', 'status', 'kind', 'content', 'field',
     'before', 'after', 'role', 'action', 'action_item', 'conflict_topic',
     'statement', 'challenger_role', 'target_claim_code', 'outcome', 'text',
+    'actor_name', 'actor_role',
   ]);
   const titleCase = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   const formatValue = (value: unknown): string => {
@@ -388,8 +399,12 @@ function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorN
 
   return (
     <div className="mt-2 space-y-2">
-      {event.actor_type === 'user' && event.actor_id && (
-        <Field label="Recorded By">{actorNames[event.actor_id] || 'Unknown user'}</Field>
+      {(isApprovalEvent(event.event_type) || (event.actor_type === 'user' && event.actor_id)) && (
+        <Field label="Recorded By">
+          {isApprovalEvent(event.event_type)
+            ? approvalActorLabel(payload)
+            : (actorNames[event.actor_id as string] || 'Unknown user')}
+        </Field>
       )}
       {entries.map(([key, value]) => (
         <Field key={key} label={titleCase(key)}>
@@ -419,7 +434,9 @@ function TimelineNode({
 }) {
   const meta = EVENT_META[ev.event_type] || { icon: FileText, color: '#64748b', label: ev.event_type };
   const Icon = meta.icon;
-  const actorName = ev.actor_type === 'user' && ev.actor_id ? (actorNames[ev.actor_id] || 'A team member') : null;
+  const actorName = isApprovalEvent(ev.event_type)
+    ? approvalActorLabel(ev.payload)
+    : ev.actor_type === 'user' && ev.actor_id ? (actorNames[ev.actor_id] || 'A team member') : null;
   const showAvatar = ACTOR_AVATAR_EVENTS.has(ev.event_type) && !!actorName;
   const timeLabel = new Date(ev.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
@@ -1629,9 +1646,11 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         created_at: ev.created_at,
         detail: String(summary),
         event_id: ev.id,
-        actor_name: ev.actor_type === 'user'
-          ? (ev.actor_id ? actorNames[ev.actor_id] || 'Unknown user' : 'Unknown user')
-          : ev.actor_type || 'Not recorded',
+        actor_name: isApprovalEvent(ev.event_type)
+          ? approvalActorLabel(payload)
+          : ev.actor_type === 'user'
+            ? (ev.actor_id ? actorNames[ev.actor_id] || 'Unknown user' : 'Unknown user')
+            : ev.actor_type || 'Not recorded',
         actor_id: ev.actor_id,
         payload,
       };
