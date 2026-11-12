@@ -10,6 +10,7 @@ import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DecisionEvidenceAttachments from '../components/DecisionEvidenceAttachments';
+import DecisionApprovalPanel from '../components/DecisionApprovalPanel';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -268,6 +269,11 @@ function stageForEvent(ev: DecisionEvent): StageKey | null {
     case 'evidence_revised': return 'revised';
     case 'evidence_verified': return 'revised';
     case 'snapshot_created': return null;
+    case 'approval_submitted': return 'committed';
+    case 'approval_approved': return 'committed';
+    case 'approval_rejected': return 'challenged';
+    case 'approval_changes_requested': return 'revised';
+    case 'approval_reopened': return 'revised';
     case 'human_override': {
       const field = typeof ev.payload?.field === 'string' ? ev.payload.field : '';
       if (field === 'conflict_commit' || field === 'conflict_uncommit') return 'challenged';
@@ -368,7 +374,7 @@ function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorN
   };
   const entries = Object.entries(payload).filter(([key]) => !alreadyShown.has(key));
   const humanValue = (key: string, value: unknown): string => {
-    if (['created_by', 'modified_by', 'verified_by', 'reviewer_id', 'changed_by', 'approved_by', 'actor_id', 'user_id', 'owner_user_id', 'backup_owner_user_id'].includes(key) && typeof value === 'string')
+    if (['created_by', 'modified_by', 'verified_by', 'reviewer_id', 'changed_by', 'approved_by', 'actor_id', 'user_id', 'owner_user_id', 'backup_owner_user_id', 'approver_user_id'].includes(key) && typeof value === 'string')
       return actorNames[value] || 'Unknown user';
     if (key === 'snapshot_id' && typeof value === 'string')
       return auditReference('SNP', event.created_at);
@@ -1780,6 +1786,8 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         <ArrowLeft className="w-4 h-4" />
         Back to Decision Trail
       </button>
+
+      {user && <DecisionApprovalPanel workspaceId={workspaceId} currentUserId={user.id} onChanged={() => { void refreshDecisionEvents(); }} />}
 
       <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         <h2 className="display-heading text-xl">{workspaceName}</h2>
