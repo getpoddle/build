@@ -11,6 +11,8 @@ interface Lifecycle {
   decision_note: string | null;
 }
 
+type LifecycleAction = 'submit' | 'approve' | 'reject' | 'request_changes' | 'reopen' | 'withdraw' | 'amend';
+
 interface Approver {
   user_id: string;
   name: string;
@@ -38,7 +40,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   const [error, setError] = useState('');
   const [selectedApprover, setSelectedApprover] = useState('');
   const [note, setNote] = useState('');
-  const [mode, setMode] = useState<'idle' | 'reject' | 'changes'>('idle');
+  const [mode, setMode] = useState<'idle' | 'reject' | 'changes' | 'amend'>('idle');
 
   const load = useCallback(async () => {
     setError('');
@@ -78,7 +80,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
 
   useEffect(() => { void load(); }, [load]);
 
-  async function runAction(action: 'submit' | 'approve' | 'reject' | 'request_changes' | 'reopen', payload: { note?: string | null; approver?: string | null }) {
+  async function runAction(action: LifecycleAction, payload: { note?: string | null; approver?: string | null }) {
     setBusy(true);
     setError('');
     const { data, error: rpcError } = await supabase.rpc('decision_lifecycle_action', {
@@ -110,6 +112,11 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   const style = STATUS_STYLE[status];
   const isAssignedApprover = status === 'under_review' && lifecycle?.approver_user_id === currentUserId;
   const approverName = approvers.find(a => a.user_id === lifecycle?.approver_user_id)?.name ?? 'the assigned approver';
+  const noteConfig = mode === 'reject'
+    ? { label: 'Reason for rejection (required)', action: 'reject' as const, button: 'Confirm rejection' }
+    : mode === 'amend'
+      ? { label: 'What is changing (required)', action: 'amend' as const, button: 'Reopen for amendment' }
+      : { label: 'What needs to change (required)', action: 'request_changes' as const, button: 'Return to Draft' };
 
   return (
     <section className="panel p-4 mb-4 space-y-3">
@@ -183,10 +190,17 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
         </div>
       )}
 
-      {isAssignedApprover && mode !== 'idle' && (
+      {status === 'under_review' && canSubmit && !isAssignedApprover && mode === 'idle' && (
+        <button onClick={() => runAction('withdraw', {})} disabled={busy} className="btn-secondary flex items-center gap-1.5">
+          <RotateCcw className="w-4 h-4" />
+          Withdraw submission
+        </button>
+      )}
+
+      {((isAssignedApprover && mode !== 'idle' && mode !== 'amend') || mode === 'amend') && (
         <div className="space-y-2">
           <label className="block text-xs font-semibold" style={{ color: 'var(--app-text-secondary)' }}>
-            {mode === 'reject' ? 'Reason for rejection (required)' : 'What needs to change (required)'}
+            {noteConfig.label}
           </label>
           <textarea
             value={note}
@@ -196,11 +210,11 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
           />
           <div className="flex items-center gap-2">
             <button
-              onClick={() => runAction(mode === 'reject' ? 'reject' : 'request_changes', { note })}
+              onClick={() => runAction(noteConfig.action, { note })}
               disabled={busy || !note.trim()}
               className="btn-primary"
             >
-              {mode === 'reject' ? 'Confirm rejection' : 'Return to Draft'}
+              {noteConfig.button}
             </button>
             <button onClick={() => { setMode('idle'); setNote(''); }} disabled={busy} className="btn-ghost">Cancel</button>
           </div>
@@ -215,10 +229,15 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
       )}
 
       {status === 'approved' && (
-        <p className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#166534' }}>
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          This decision has been approved.
-        </p>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#166534' }}>
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            This decision has been approved.
+          </p>
+          {canSubmit && mode === 'idle' && (
+            <button onClick={() => setMode('amend')} disabled={busy} className="btn-secondary">Amend decision</button>
+          )}
+        </div>
       )}
       {status === 'rejected' && !canSubmit && (
         <p className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#991b1b' }}>

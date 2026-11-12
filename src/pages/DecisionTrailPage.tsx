@@ -274,6 +274,8 @@ function stageForEvent(ev: DecisionEvent): StageKey | null {
     case 'approval_rejected': return 'challenged';
     case 'approval_changes_requested': return 'revised';
     case 'approval_reopened': return 'revised';
+    case 'approval_withdrawn': return 'revised';
+    case 'approval_amended': return 'revised';
     case 'human_override': {
       const field = typeof ev.payload?.field === 'string' ? ev.payload.field : '';
       if (field === 'conflict_commit' || field === 'conflict_uncommit') return 'challenged';

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, X, User, AtSign, Bot, UserCheck, Users, AlertTriangle, RotateCcw, Building2 } from 'lucide-react';
+import { Bell, X, User, AtSign, Bot, UserCheck, Users, AlertTriangle, RotateCcw, Building2, ClipboardCheck, CheckCircle2, XCircle, Pencil } from 'lucide-react';
 import { SkeletonNotification } from './Skeleton';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -262,6 +262,10 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       } else {
         onNavigate('workspaces');
       }
+    } else if (notification.type === 'approval_requested' || notification.type === 'approval_resubmitted') {
+      onNavigate('my-approvals');
+    } else if (notification.type.startsWith('approval_') && notification.related_id) {
+      window.location.hash = `decision-trail/${encodeURIComponent(notification.related_id)}`;
     } else if (notification.type === 'organization_invite_accepted') {
       onNavigate('organization');
     }
@@ -285,6 +289,15 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
         return <RotateCcw className="w-4 h-4" />;
       case 'organization_invite_accepted':
         return <Building2 className="w-4 h-4" />;
+      case 'approval_requested':
+      case 'approval_resubmitted':
+        return <ClipboardCheck className="w-4 h-4" />;
+      case 'approval_approved':
+        return <CheckCircle2 className="w-4 h-4" />;
+      case 'approval_rejected':
+        return <XCircle className="w-4 h-4" />;
+      case 'approval_changes_requested':
+        return <Pencil className="w-4 h-4" />;
       default:
         return <Bell className="w-4 h-4" />;
     }
@@ -300,6 +313,11 @@ export default function Notifications({ onNavigate }: NotificationsProps) {
       case 'account_deletion_requested': return 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400';
       case 'account_restored': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
       case 'organization_invite_accepted': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
+      case 'approval_requested':
+      case 'approval_resubmitted': return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400';
+      case 'approval_approved': return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
+      case 'approval_rejected': return 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400';
+      case 'approval_changes_requested': return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400';
       default: return 'bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400';
     }
   }
