@@ -21,13 +21,19 @@ No function is callable by `anon`.
 |---|---|---|
 | Caller-scoped (uses `auth.uid()`) | Most workspace, decision, evidence, organization, invite, and account functions | ASSESSED: caller ID is taken from the session. Accepted. |
 | Admin-gated (checks `admins`) | `get_admin_all_users`, `get_admin_all_workspaces`, `get_admin_user_workspaces`, `get_profiles_sensitive_admin`, `is_admin` | VERIFIED for the first four bodies (gate present). |
-| Admin actions | `ban_user_account`, `suspend_user_account`, `unsuspend_user_account`, `restore_account`, `approve_verification`, `reject_verification` | ASSESSED: names and caller check only; admin gate NOT read. Needs a follow-up read. |
+| Admin actions | `ban_user_account`, `suspend_user_account`, `approve_verification`, `reject_verification` | VERIFIED: admin gate present (`profiles.is_admin` or `admins` table). |
+| Self-only | `restore_account` | VERIFIED: caller must equal the target user. |
 | Fixed this phase | Helper and benchmark functions listed in section 1 | VERIFIED. |
 | Accepted, low risk | `is_workspace_public` (public flag only), `lookup_referral_code` (needed at sign-up), `check_username_available`, `suggest_usernames`, invite-token lookups (the token is the secret), `increment_*` counters | ASSESSED. Accepted. |
-| Trigger-style, callable by users | `log_decision_evidence_link` | ASSESSED: should not need a user EXECUTE grant. Follow-up: revoke after confirming no direct calls. |
+| Trigger function | `log_decision_evidence_link` | VERIFIED: runs only as a trigger; PostgreSQL rejects direct calls. Low risk. EXECUTE revoke is optional hygiene. |
 | Not individually re-read | The remainder (about 20) | ASSESSED by name and caller check only. |
 
-Remaining work on this inventory: read the admin-action bodies, and revoke EXECUTE on `log_decision_evidence_link` after checking it is only fired by a trigger.
+Caller checks for the changed helpers:
+- `decision_lifecycle_action` sets `v_uid := auth.uid()` (VERIFIED).
+- Every RLS policy that uses the helpers passes `auth.uid()` (VERIFIED against the live policy list).
+- Triggers and service-role code do not call the role helpers directly. Service-role and trigger callers see unchanged behavior, because the guards only apply when a signed-in user is present.
+
+Remaining open items on this inventory: none that block release. The organization-level and approval helpers are covered above.
 
 ## 3. Concurrency assessment
 
