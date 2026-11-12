@@ -1315,7 +1315,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
     for (const snapshot of snapshots) if (snapshot.created_by) ids.add(snapshot.created_by);
     for (const e of events) {
       if (e.actor_type === 'user' && e.actor_id) ids.add(e.actor_id);
-      for (const key of ['created_by', 'modified_by', 'verified_by', 'reviewer_id', 'changed_by', 'approved_by', 'actor_id', 'user_id']) {
+      for (const key of ['created_by', 'modified_by', 'verified_by', 'reviewer_id', 'changed_by', 'approved_by', 'actor_id', 'user_id', 'approver_user_id']) {
         const value = e.payload?.[key];
         if (typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(value)) ids.add(value);
       }
