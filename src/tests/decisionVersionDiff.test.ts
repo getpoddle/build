@@ -88,4 +88,37 @@ describe('describeVersionChanges', () => {
     );
     expect(changes).toEqual(['Claim #1 changed (statement)']);
   });
+
+  it('reports a changed AI recommendation and preserves unchanged ones', () => {
+    const before = { ...version([]), recommendation: { recommendation: 'Approve', executive_summary: 'Summary' } };
+    const after = { ...version([]), recommendation: { recommendation: 'Reject', executive_summary: 'Summary' } };
+    expect(describeVersionChanges(before, after)).toEqual(['AI recommendation changed']);
+  });
+
+  it('treats versions stored before recommendations existed as empty', () => {
+    const after = { ...version([]), recommendation: { recommendation: 'Approve', executive_summary: null } };
+    expect(describeVersionChanges(version([]), after)).toEqual(['AI recommendation changed']);
+  });
+
+  it('reports changed financial commitments', () => {
+    const before = { ...version([]), financial_commitments: [{ description: 'Licence', amount: '12000.00', currency: 'USD', assumptions: '' }] };
+    const after = { ...version([]), financial_commitments: [{ description: 'Licence', amount: '15000.00', currency: 'USD', assumptions: '' }] };
+    expect(describeVersionChanges(before, after)).toEqual(['Financial commitments changed']);
+  });
+
+  it('reports no change when commitments are identical', () => {
+    const commitments = [{ description: 'Licence', amount: '12000.00', currency: 'USD', assumptions: 'One year' }];
+    const before = { ...version([]), financial_commitments: commitments };
+    const after = { ...version([]), financial_commitments: [...commitments] };
+    expect(describeVersionChanges(before, after)).toEqual([]);
+  });
+
+  it('reports evidence basis and verification method changes on a claim', () => {
+    const changes = describeVersionChanges(
+      version([claim({ claim_code: 'C1', evidence_basis: 'reference_only' })]),
+      version([claim({ claim_code: 'C1', evidence_basis: 'hashed_files', verification_method: 'contract review' })]),
+    );
+    expect(changes).toEqual(['Claim C1 changed (verification method, evidence basis)']);
+  });
 });
+

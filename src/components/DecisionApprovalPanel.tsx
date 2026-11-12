@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, XCircle, Send, RotateCcw, Loader2, AlertCircle, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import DecisionVersionHistory from './DecisionVersionHistory';
+import DecisionFinancialCommitments from './DecisionFinancialCommitments';
 
 type LifecycleStatus = 'draft' | 'under_review' | 'approved' | 'rejected';
 
@@ -267,6 +268,8 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
           This decision was rejected.
         </p>
       )}
+
+      <DecisionFinancialCommitments workspaceId={workspaceId} currentUserId={currentUserId} />
 
       <DecisionVersionHistory
         workspaceId={workspaceId}
