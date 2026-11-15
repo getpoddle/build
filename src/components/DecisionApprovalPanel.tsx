@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { CheckCircle2, XCircle, Send, RotateCcw, Loader2, AlertCircle, Clock, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import DecisionVersionHistory from './DecisionVersionHistory';
-import DecisionApprovalProgress from './DecisionApprovalProgress';
 import DecisionFinancialCommitments from './DecisionFinancialCommitments';
 import { roleLabel, uniqueDisplayNames } from '../lib/approverDisplay';
 
@@ -55,6 +54,9 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [selectedApprover, setSelectedApprover] = useState('');
+  const [selectedMulti, setSelectedMulti] = useState<string[]>([]);
+  const [multiRows, setMultiRows] = useState<Array<{id:string;approval_cycle:number;approver_user_id:string;outcome:string;approver_name:string|null;decided_at:string|null}>>([]);
+  const [multiEnabled, setMultiEnabled] = useState(false);
   const [approverQuery, setApproverQuery] = useState('');
   const [note, setNote] = useState('');
   const [mode, setMode] = useState<'idle' | 'reject' | 'changes' | 'amend'>('idle');
@@ -101,6 +103,14 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
 
     const lc = (lcRes.data as Lifecycle | null) ?? { status: 'draft', approver_user_id: null, submitted_at: null, decision_note: null, approval_cycle: 0, current_version_id: null };
     setLifecycle(lc);
+    const {data: multiData, error: multiError} = await supabase.from('decision_multi_approvals')
+      .select('id,approval_cycle,approver_user_id,outcome,approver_name,decided_at')
+      .eq('workspace_id',workspaceId).order('approval_cycle',{ascending:false});
+    if (!multiError) {
+      const all = multiData ?? [];
+      const latest = all.length ? all[0].approval_cycle : -1;
+      setMultiRows(all.filter(r => r.approval_cycle === latest));
+    } else { setMultiRows([]); }
     const versions = (versionRes.data ?? []) as Array<{ id: string; version_number: number }>;
     setCurrentVersionNumber(versions.find(v => v.id === lc.current_version_id)?.version_number ?? null);
     if (lc.current_version_id && lc.status === 'approved') {
@@ -147,6 +157,26 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     void load();
   }
 
+  async function multiSubmit() {
+    setBusy(true); setError('');
+    const {error: e} = await supabase.rpc('decision_multi_submit', {
+      p_workspace_id: workspaceId, p_approvers: selectedMulti, p_note: note.trim() || null,
+    });
+    setBusy(false);
+    if (e) {setError(e.message); return;}
+    setNote(''); setSelectedMulti([]); onChanged?.(); void load();
+  }
+
+  async function multiAction(action: 'approve'|'reject'|'request_changes'|'withdraw') {
+    setBusy(true); setError('');
+    const {error: e} = await supabase.rpc('decision_multi_action', {
+      p_workspace_id: workspaceId, p_action: action, p_note: note.trim() || null,
+    });
+    setBusy(false);
+    if (e) {setError(e.message); return;}
+    setMode('idle'); setNote(''); onChanged?.(); void load();
+  }
+
   async function signOffAsOwner() {
     setBusy(true);
     setError('');
@@ -173,6 +203,8 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
 
   const status = lifecycle?.status ?? 'draft';
   const style = STATUS_STYLE[status];
+  const activeMulti = status === 'under_review' && lifecycle?.approver_user_id === null && multiRows.some(r => r.approval_cycle === lifecycle?.approval_cycle);
+  const myMultiPending = activeMulti && multiRows.some(r => r.approver_user_id === currentUserId && r.outcome === 'pending');
   const isAssignedApprover = status === 'under_review' && lifecycle?.approver_user_id === currentUserId;
   const approverEntry = lifecycle?.approver_user_id ? directory[lifecycle.approver_user_id] : undefined;
   const approverName = approverEntry?.name ?? FORMER_MEMBER_LABEL;
@@ -202,7 +234,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
         </div>
       </div>
 
-      {status === 'under_review' && (
+      {status === 'under_review' && !activeMulti && (
         <div className="p-3 rounded-lg space-y-1" style={{ border: '1px solid var(--app-border)' }}>
           <p className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--app-text)' }}>
             <Clock className="w-3.5 h-3.5 flex-shrink-0" />
@@ -219,14 +251,19 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
         </div>
       )}
 
-      <DecisionApprovalProgress
-        status={status}
-        approverName={approverName}
-        versionNumber={currentVersionNumber}
-        approvalCycle={lifecycle?.approval_cycle}
-        submittedAt={lifecycle?.submitted_at}
-        isOwnerSignoff={status === 'approved' && !!ownerSignoff}
-      />
+      {(activeMulti || (multiRows.length > 0 && multiRows[0].approval_cycle === lifecycle?.approval_cycle)) && (
+        <div className="rounded-lg p-3 space-y-2" style={{border:'1px solid var(--app-border)'}}>
+          <p className="text-sm font-semibold">Multi-approver workflow · {multiRows.filter(r=>r.outcome==='approved').length}/{multiRows.length} approved</p>
+          <div className="h-2 rounded-full overflow-hidden" style={{background:'var(--app-border)'}}>
+            <div className="h-full bg-green-600" style={{width:`${multiRows.length ? 100*multiRows.filter(r=>r.outcome==='approved').length/multiRows.length : 0}%`}} />
+          </div>
+          {multiRows.map(r=><div key={r.id} className="flex justify-between gap-3 text-xs py-1">
+            <span>{r.approver_name || directory[r.approver_user_id]?.name || 'Workspace approver'}</span>
+            <span className="font-semibold">{r.outcome === 'pending' ? 'Pending' : r.outcome.replace('_',' ')}</span>
+          </div>)}
+          <p className="text-xs" style={{color:'var(--app-text-muted)'}}>All approvers must approve the same decision version.</p>
+        </div>
+      )}
 
       {lifecycle?.decision_note && status !== 'under_review' && (
         <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
@@ -322,7 +359,25 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
               </button>
             </div>
           )}
-          {approvers.length > 0 && (
+          {approvers.length > 1 && (
+            <div className="space-y-2 p-3 rounded-lg" style={{border:'1px solid var(--app-border)'}}>
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input type="checkbox" checked={multiEnabled} onChange={e=>setMultiEnabled(e.target.checked)} />
+                Require multiple independent approvals
+              </label>
+              {multiEnabled && <>
+                <p className="text-xs">Select at least two approvers. Every selected person must approve.</p>
+                {approvers.map(a=><label key={a.user_id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={selectedMulti.includes(a.user_id)} onChange={e=>setSelectedMulti(old=>e.target.checked?[...old,a.user_id]:old.filter(id=>id!==a.user_id))} />
+                  {a.label} ({roleLabel(a.role)})
+                </label>)}
+                <button className="btn-primary" disabled={busy || selectedMulti.length<2 || (isResubmission && !note.trim())} onClick={multiSubmit}>
+                  Submit to {selectedMulti.length} approvers
+                </button>
+              </>}
+            </div>
+          )}
+          {approvers.length > 0 && !multiEnabled && (
             <button
               onClick={() => runAction('submit', { approver: selectedApprover, note })}
               disabled={busy || !selectedApprover || (isResubmission && !note.trim())}
@@ -341,6 +396,13 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
         </p>
       )}
 
+      {myMultiPending && mode === 'idle' && (
+        <div className="flex gap-2 flex-wrap">
+          <button className="btn-primary" disabled={busy} onClick={()=>multiAction('approve')}>Approve my part</button>
+          <button className="btn-secondary" disabled={busy} onClick={()=>setMode('changes')}>Request changes</button>
+          <button className="btn-secondary" disabled={busy} onClick={()=>setMode('reject')}>Reject</button>
+        </div>
+      )}
       {isAssignedApprover && mode === 'idle' && (
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => runAction('approve', { note: null })} disabled={busy} className="btn-primary flex items-center gap-1.5">
@@ -352,14 +414,16 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
         </div>
       )}
 
-      {status === 'under_review' && canSubmit && !isAssignedApprover && mode === 'idle' && (
+      {activeMulti && canSubmit && mode === 'idle' && <button className="btn-secondary" disabled={busy} onClick={()=>multiAction('withdraw')}>Withdraw multi-approval request</button>}
+
+      {status === 'under_review' && !activeMulti && canSubmit && !isAssignedApprover && mode === 'idle' && (
         <button onClick={() => runAction('withdraw', {})} disabled={busy} className="btn-secondary flex items-center gap-1.5">
           <RotateCcw className="w-4 h-4" />
           Withdraw submission
         </button>
       )}
 
-      {((isAssignedApprover && mode !== 'idle' && mode !== 'amend') || mode === 'amend') && (
+      {(((isAssignedApprover || myMultiPending) && mode !== 'idle' && mode !== 'amend') || mode === 'amend') && (
         <div className="space-y-2">
           <label className="block text-xs font-semibold" style={{ color: 'var(--app-text-secondary)' }}>
             {noteConfig.label}
@@ -372,7 +436,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
           />
           <div className="flex items-center gap-2">
             <button
-              onClick={() => runAction(noteConfig.action, { note })}
+              onClick={() => myMultiPending && mode !== 'amend' ? multiAction(noteConfig.action as 'reject'|'request_changes') : runAction(noteConfig.action, { note })}
               disabled={busy || !note.trim()}
               className="btn-primary"
             >
