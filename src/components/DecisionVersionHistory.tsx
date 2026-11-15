@@ -30,6 +30,15 @@ interface ApprovalRequestRow {
   justification: string | null;
 }
 
+interface OwnerSignoffRow {
+  id: string;
+  version_id: string;
+  signed_by_name: string | null;
+  signed_by_role: string;
+  signed_at: string;
+  note: string;
+}
+
 interface DecisionVersionHistoryProps {
   workspaceId: string;
   refreshKey: string;
@@ -61,6 +70,7 @@ function isVersionContent(value: unknown): value is DecisionVersionContent {
 export default function DecisionVersionHistory({ workspaceId, refreshKey }: DecisionVersionHistoryProps) {
   const [versions, setVersions] = useState<VersionRow[]>([]);
   const [requests, setRequests] = useState<ApprovalRequestRow[]>([]);
+  const [signoffs, setSignoffs] = useState<OwnerSignoffRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [compareId, setCompareId] = useState('');
@@ -70,7 +80,7 @@ export default function DecisionVersionHistory({ workspaceId, refreshKey }: Deci
     (async () => {
       setLoading(true);
       setError('');
-      const [versionRes, requestRes] = await Promise.all([
+      const [versionRes, requestRes, signoffRes] = await Promise.all([
         supabase
           .from('decision_versions')
           .select('id, version_number, content_hash, content, created_at')
@@ -81,9 +91,12 @@ export default function DecisionVersionHistory({ workspaceId, refreshKey }: Deci
           .select('id, version_id, approval_cycle, approver_user_id, approver_name, approver_role, submitted_at, submission_note, outcome, decided_at, decided_by_name, decided_by_role, justification')
           .eq('workspace_id', workspaceId)
           .order('approval_cycle', { ascending: false }),
+        supabase.from('decision_owner_signoffs')
+          .select('id, version_id, signed_by_name, signed_by_role, signed_at, note')
+          .eq('workspace_id', workspaceId).order('signed_at', { ascending: false }),
       ]);
       if (cancelled) return;
-      if (versionRes.error || requestRes.error) {
+      if (versionRes.error || requestRes.error || signoffRes.error) {
         setError('Version history could not be loaded.');
         setLoading(false);
         return;
@@ -96,6 +109,7 @@ export default function DecisionVersionHistory({ workspaceId, refreshKey }: Deci
       }
       setVersions(loadedVersions);
       setRequests((requestRes.data ?? []) as ApprovalRequestRow[]);
+      setSignoffs((signoffRes.data ?? []) as OwnerSignoffRow[]);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -103,8 +117,8 @@ export default function DecisionVersionHistory({ workspaceId, refreshKey }: Deci
 
   const versionById = useMemo(() => new Map(versions.map(v => [v.id, v])), [versions]);
   const approvedVersionIds = useMemo(
-    () => new Set(requests.filter(r => r.outcome === 'approved').map(r => r.version_id)),
-    [requests],
+    () => new Set([...requests.filter(r => r.outcome === 'approved').map(r => r.version_id), ...signoffs.map(s => s.version_id)]),
+    [requests, signoffs],
   );
   const latest = versions[0] ?? null;
   const compareCandidates = versions.slice(1);
@@ -146,6 +160,22 @@ export default function DecisionVersionHistory({ workspaceId, refreshKey }: Deci
         <p className="text-xs" style={{ color: 'var(--app-text-muted)' }}>
           No version has been submitted for approval yet.
         </p>
+      )}
+
+      {signoffs.length > 0 && (
+        <ol className="space-y-2">
+          {signoffs.map(signoff => (
+            <li key={signoff.id} className="p-3 rounded-lg space-y-1" style={{ border: '1px solid var(--app-border)' }}>
+              <p className="text-xs font-semibold" style={{ color: 'var(--app-text)' }}>
+                Version {versionById.get(signoff.version_id)?.version_number ?? '?'} · Owner Sign-off — not independent approval
+              </p>
+              <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
+                Signed by {personLabel(signoff.signed_by_name, signoff.signed_by_role)} on {formatDate(signoff.signed_at)}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>Reason: {signoff.note}</p>
+            </li>
+          ))}
+        </ol>
       )}
 
       {requests.length > 0 && (
@@ -199,7 +229,7 @@ export default function DecisionVersionHistory({ workspaceId, refreshKey }: Deci
             >
               {compareCandidates.map(v => (
                 <option key={v.id} value={v.id}>
-                  Version {v.version_number}{approvedVersionIds.has(v.id) ? ' (approved)' : ''}
+                  Version {v.version_number}{signoffs.some(s => s.version_id === v.id) ? ' (owner sign-off)' : approvedVersionIds.has(v.id) ? ' (approved)' : ''}
                 </option>
               ))}
             </select>
