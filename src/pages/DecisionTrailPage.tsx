@@ -111,6 +111,7 @@ interface DomainOwnerRow {
 }
 
 const EVENT_META: Record<string, { icon: React.ElementType | null; color: string; label: string }> = {
+  owner_signoff: { icon: ShieldCheck, color: '#b45309', label: 'Owner Sign-off (not independent approval)' },
   decision_created:  { icon: FileText,      color: '#475569', label: 'Decision Created' },
   evidence_added:    { icon: MessageSquare, color: '#0891b2', label: 'Evidence Added' },
   evidence_unlinked: { icon: History, color: '#d97706', label: 'Evidence Unlinked' },
@@ -270,6 +271,7 @@ function stageForEvent(ev: DecisionEvent): StageKey | null {
     case 'evidence_revised': return 'revised';
     case 'evidence_verified': return 'revised';
     case 'snapshot_created': return null;
+    case 'owner_signoff': return 'committed';
     case 'approval_submitted': return 'committed';
     case 'approval_approved': return 'committed';
     case 'approval_rejected': return 'challenged';
@@ -361,7 +363,7 @@ function auditReference(prefix: 'EVT' | 'SNP', timestamp: string): string {
 }
 
 /** Render the stored event payload without guessing facts that were not recorded. */
-const isApprovalEvent = (eventType: string) => eventType.startsWith('approval_');
+const isApprovalEvent = (eventType: string) => eventType.startsWith('approval_') || eventType === 'owner_signoff';
 
 function approvalActorLabel(payload: Record<string, unknown>): string {
   const name = typeof payload.actor_name === 'string' ? payload.actor_name.trim() : '';
