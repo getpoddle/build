@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import DecisionVersionHistory from './DecisionVersionHistory';
 import DecisionFinancialCommitments from './DecisionFinancialCommitments';
 import { roleLabel, uniqueDisplayNames } from '../lib/approverDisplay';
-import { approverDisplayName, type ApproverProfile } from '../lib/approverIdentity';
 
 type LifecycleStatus = 'draft' | 'under_review' | 'approved' | 'rejected';
 
@@ -47,6 +46,8 @@ function formatDate(value: string | null): string {
 export default function DecisionApprovalPanel({ workspaceId, currentUserId, onChanged }: DecisionApprovalPanelProps) {
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [directory, setDirectory] = useState<Record<string, DirectoryEntry>>({});
+  const [soloOwnerEligible, setSoloOwnerEligible] = useState(false);
+  const [ownerSignoff, setOwnerSignoff] = useState<{ signed_by_name: string | null; signed_by_role: string; note: string } | null>(null);
   const [currentVersionNumber, setCurrentVersionNumber] = useState<number | null>(null);
   const [canSubmit, setCanSubmit] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     setError('');
     const [lcRes, memberRes, wsRes, ownersRes, versionRes] = await Promise.all([
       supabase.from('decision_lifecycles').select('status, approver_user_id, submitted_at, decision_note, approval_cycle, current_version_id').eq('workspace_id', workspaceId).maybeSingle(),
-      supabase.from('workspace_members').select('user_id, role, profiles(full_name, first_name, last_name, username)').eq('workspace_id', workspaceId),
+      supabase.from('workspace_members').select('user_id, role, profiles(full_name)').eq('workspace_id', workspaceId),
       supabase.from('workspaces').select('owner_id, decision_category, decision_owner_override_user_id').eq('id', workspaceId).maybeSingle(),
       supabase.from('domain_owners').select('category_key, owner_user_id, backup_owner_user_id').eq('workspace_id', workspaceId),
       supabase.from('decision_versions').select('id, version_number').eq('workspace_id', workspaceId),
@@ -73,7 +74,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
       return;
     }
 
-    const members = (memberRes.data ?? []) as Array<{ user_id: string; role: string; profiles: ApproverProfile[] | ApproverProfile | null }>;
+    const members = (memberRes.data ?? []) as Array<{ user_id: string; role: string; profiles: Array<{ full_name: string | null }> }>;
     const myRole = members.find(m => m.user_id === currentUserId)?.role ?? null;
     const ws = wsRes.data;
     const domainMatch = (ownersRes.data ?? []).find(d => d.category_key === ws?.decision_category);
@@ -88,18 +89,26 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
 
     const nextDirectory: Record<string, DirectoryEntry> = {};
     for (const m of members) {
-      const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+      const profile = m.profiles[0];
       nextDirectory[m.user_id] = {
-        name: approverDisplayName(profile),
+        name: profile?.full_name || 'Unnamed member',
         role: m.role,
       };
     }
     setDirectory(nextDirectory);
+    setSoloOwnerEligible(myRole === 'owner' && members.filter(m => m.role === 'owner' || m.role === 'admin').length === 1);
 
     const lc = (lcRes.data as Lifecycle | null) ?? { status: 'draft', approver_user_id: null, submitted_at: null, decision_note: null, approval_cycle: 0, current_version_id: null };
     setLifecycle(lc);
     const versions = (versionRes.data ?? []) as Array<{ id: string; version_number: number }>;
     setCurrentVersionNumber(versions.find(v => v.id === lc.current_version_id)?.version_number ?? null);
+    if (lc.current_version_id && lc.status === 'approved') {
+      const { data: signoff } = await supabase.from('decision_owner_signoffs')
+        .select('signed_by_name, signed_by_role, note').eq('version_id', lc.current_version_id).maybeSingle();
+      setOwnerSignoff(signoff ?? null);
+    } else {
+      setOwnerSignoff(null);
+    }
     setLoading(false);
   }, [workspaceId, currentUserId]);
 
@@ -133,6 +142,22 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     setNote('');
     setSelectedApprover('');
     setApproverQuery('');
+    onChanged?.();
+    void load();
+  }
+
+  async function signOffAsOwner() {
+    setBusy(true);
+    setError('');
+    const { error: signoffError } = await supabase.rpc('decision_owner_signoff', {
+      p_workspace_id: workspaceId, p_note: note.trim(),
+    });
+    setBusy(false);
+    if (signoffError) {
+      setError(signoffError.message);
+      return;
+    }
+    setNote('');
     onChanged?.();
     void load();
   }
@@ -226,7 +251,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
             <p className="text-xs font-semibold" style={{ color: 'var(--app-text-secondary)' }}>Who approves this decision</p>
             {approvers.length === 0 ? (
               <p className="text-xs" style={{ color: 'var(--negative)' }}>
-                This decision cannot be submitted yet. Approvals must be given by a workspace owner or admin, and this workspace has no other owner or admin to approve it. Add one, then submit again.
+                {soloOwnerEligible ? 'No independent approver is available. You may use Owner Sign-off below, or add another owner/admin for independent approval.' : 'Independent approval requires another workspace owner or admin. Ask an owner to add an eligible approver.'}
               </p>
             ) : (
               <>
@@ -273,6 +298,20 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
               </>
             )}
           </div>
+          {soloOwnerEligible && approvers.length === 0 && (
+            <div className="space-y-2 p-3 rounded-lg" style={{ border: '1px solid var(--app-border)' }}>
+              <p className="text-sm font-semibold" style={{ color: 'var(--app-text)' }}>Owner Sign-off (not independent approval)</p>
+              <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
+                As the sole workspace owner, you may record your own decision sign-off. This is explicitly marked as self-signoff in the audit trail and does not count as review by another person.
+              </p>
+              <label htmlFor="owner-signoff-reason" className="text-xs font-semibold" style={{ color: 'var(--app-text-secondary)' }}>Reason for sign-off (required)</label>
+              <textarea id="owner-signoff-reason" value={note} onChange={e => setNote(e.target.value)} rows={3}
+                className="input-modern text-sm w-full" placeholder="Why are you signing off on this decision?" />
+              <button type="button" className="btn-primary" onClick={signOffAsOwner} disabled={busy || !note.trim()}>
+                {busy ? 'Recording sign-off…' : 'Record Owner Sign-off'}
+              </button>
+            </div>
+          )}
           {approvers.length > 0 && (
             <button
               onClick={() => runAction('submit', { approver: selectedApprover, note })}
@@ -345,12 +384,17 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#166534' }}>
             <CheckCircle2 className="w-3.5 h-3.5" />
-            This decision has been approved.
+            {ownerSignoff ? 'Owner Sign-off recorded — not independently approved.' : 'This decision has been independently approved.'}
           </p>
           {canSubmit && mode === 'idle' && (
             <button onClick={() => setMode('amend')} disabled={busy} className="btn-secondary">Amend decision</button>
           )}
         </div>
+      )}
+      {status === 'approved' && ownerSignoff && (
+        <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
+          Signed by {ownerSignoff.signed_by_name || 'Name not recorded'} ({roleLabel(ownerSignoff.signed_by_role)}). Reason: {ownerSignoff.note}
+        </p>
       )}
       {status === 'rejected' && !canSubmit && (
         <p className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#991b1b' }}>
