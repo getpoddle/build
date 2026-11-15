@@ -18,9 +18,9 @@ describe('toggleApproverSelection', () => {
 });
 
 describe('approverCountLabel', () => {
-  it('pluralizes the count', () => {
-    expect(approverCountLabel(0)).toBe('0 approvers selected');
-    expect(approverCountLabel(1)).toBe('1 approver selected');
-    expect(approverCountLabel(2)).toBe('2 approvers selected');
+  it('shows selected count out of total eligible approvers', () => {
+    expect(approverCountLabel(0, 3)).toBe('0 of 3 approvers selected');
+    expect(approverCountLabel(2, 3)).toBe('2 of 3 approvers selected');
+    expect(approverCountLabel(1, 1)).toBe('1 of 1 approver selected');
   });
 });

@@ -58,7 +58,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   const [selectedApprover, setSelectedApprover] = useState('');
   const [selectedMulti, setSelectedMulti] = useState<string[]>([]);
   const [multiRows, setMultiRows] = useState<Array<{id:string;approval_cycle:number;approver_user_id:string;outcome:string;approver_name:string|null;decided_at:string|null}>>([]);
-  const [multiEnabled, setMultiEnabled] = useState(false);
+  const [multiEnabled, setMultiEnabled] = useState(true);
   const [approverQuery, setApproverQuery] = useState('');
   const [note, setNote] = useState('');
   const [mode, setMode] = useState<'idle' | 'reject' | 'changes' | 'amend'>('idle');
@@ -380,7 +380,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
                           aria-checked={checked}
                           onClick={() => setSelectedMulti(old => toggleApproverSelection(old, a.user_id))}
                           className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
-                          style={{ background: checked ? 'var(--app-surface-hover, rgba(148, 163, 184, 0.15))' : 'transparent', color: 'var(--app-text)' }}
+                          style={{ background: checked ? 'var(--app-surface-hover, rgba(148, 163, 184, 0.15))' : 'transparent', color: 'var(--app-text)', boxShadow: checked ? 'inset 3px 0 0 #166534' : 'none' }}
                         >
                           <span
                             aria-hidden="true"
@@ -399,7 +399,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
                   })}
                 </ul>
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <p aria-live="polite" className="text-xs font-semibold" style={{ color: 'var(--app-text)' }}>{approverCountLabel(selectedMulti.length)}</p>
+                  <p aria-live="polite" className="text-xs font-semibold" style={{ color: 'var(--app-text)' }}>{approverCountLabel(selectedMulti.length, approvers.length)}</p>
                   <button className="btn-primary" disabled={busy || selectedMulti.length < 2 || (isResubmission && !note.trim())} onClick={multiSubmit}>
                     Submit for approval
                   </button>

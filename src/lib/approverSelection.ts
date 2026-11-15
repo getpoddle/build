@@ -4,6 +4,6 @@ export function toggleApproverSelection(selected: string[], userId: string): str
     : [...selected, userId];
 }
 
-export function approverCountLabel(count: number): string {
-  return `${count} ${count === 1 ? 'approver' : 'approvers'} selected`;
+export function approverCountLabel(selectedCount: number, totalCount: number): string {
+  return `${selectedCount} of ${totalCount} ${totalCount === 1 ? 'approver' : 'approvers'} selected`;
 }

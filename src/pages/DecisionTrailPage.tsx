@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DecisionEvidenceAttachments from '../components/DecisionEvidenceAttachments';
 import DecisionApprovalPanel from '../components/DecisionApprovalPanel';
+import { approverNameOrNull } from '../lib/approverIdentity';
 import { roleLabel } from '../lib/approverDisplay';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
@@ -1363,13 +1364,14 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
     if (userActorIds.length === 0) return;
     supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, first_name, last_name, username')
       .in('id', userActorIds)
       .then(({ data, error }) => {
         if (error || !data) return;
         const map: Record<string, string> = {};
-        for (const row of data as { id: string; full_name: string | null }[]) {
-          if (row.full_name) map[row.id] = row.full_name;
+        for (const row of data as { id: string; full_name: string | null; first_name: string | null; last_name: string | null; username: string | null }[]) {
+          const name = approverNameOrNull(row);
+          if (name) map[row.id] = name;
         }
         if (user?.id && ids.has(user.id)) {
           map[user.id] = map[user.id] || user.user_metadata?.full_name || user.email || 'Unknown user';
