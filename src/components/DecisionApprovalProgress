@@ -1,0 +1,62 @@
+import { CheckCircle2, Clock3, FilePenLine, ShieldCheck, XCircle } from 'lucide-react';
+
+type Status = 'draft' | 'under_review' | 'approved' | 'rejected';
+
+interface Props {
+  status: Status;
+  approverName?: string | null;
+  versionNumber?: number | null;
+  approvalCycle?: number;
+  submittedAt?: string | null;
+  isOwnerSignoff?: boolean;
+}
+
+/** Read-only lifecycle visualization. Never infers multi-party approval from a single approver. */
+export default function DecisionApprovalProgress({ status, approverName, versionNumber, approvalCycle, submittedAt, isOwnerSignoff = false }: Props) {
+  const steps = [
+    { title: 'Decision prepared', detail: 'Draft and evidence', complete: status !== 'draft', active: status === 'draft', icon: FilePenLine },
+    { title: 'Approval review', detail: status === 'under_review' ? `Awaiting ${approverName || 'assigned approver'}` : 'Independent review', complete: status === 'approved' && !isOwnerSignoff, active: status === 'under_review', icon: Clock3 },
+    { title: isOwnerSignoff ? 'Owner sign-off' : 'Final authorization', detail: isOwnerSignoff ? 'Self-authorized; not independent approval' : 'Recorded approval', complete: status === 'approved', active: false, icon: ShieldCheck },
+  ];
+  const approved = status === 'approved';
+  const progress = approved ? 100 : status === 'under_review' ? 33 : status === 'rejected' ? 33 : 0;
+  return (
+    <div className="rounded-xl p-4 space-y-4" style={{ border: '1px solid var(--app-border)' }} aria-label="Decision approval progress">
+      <div className="flex justify-between items-start gap-3 flex-wrap">
+        <div>
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--app-text)' }}>Approval workflow</h3>
+          <p className="text-xs mt-1" style={{ color: 'var(--app-text-secondary)' }}>
+            {versionNumber != null ? `Decision version ${versionNumber} · ` : ''}Cycle {approvalCycle ?? 0}
+            {submittedAt ? ` · Submitted ${new Date(submittedAt).toLocaleDateString()}` : ''}
+          </p>
+        </div>
+        <span className="text-xs font-semibold" style={{ color: status === 'rejected' ? '#b91c1c' : approved ? '#15803d' : 'var(--app-text-secondary)' }}>
+          {status === 'under_review' ? 'Pending approval' : status === 'rejected' ? 'Rejected' : approved ? (isOwnerSignoff ? 'Owner signed off' : 'Approved') : 'Draft'}
+        </span>
+      </div>
+      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--app-border)' }} role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="Approval completion">
+        <div className="h-full rounded-full" style={{ width: `${progress}%`, background: status === 'rejected' ? '#b91c1c' : '#15803d' }} />
+      </div>
+      <ol className="space-y-3">
+        {steps.map((step, index) => {
+          const Icon = step.icon;
+          const isRejected = status === 'rejected' && index === 1;
+          const isSkipped = isOwnerSignoff && index === 1;
+          return <li key={step.title} className="flex items-start gap-3">
+            <span className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center" style={{ background: step.complete ? '#dcfce7' : isRejected ? '#fee2e2' : 'var(--app-surface-hover, rgba(148,163,184,.12))', color: step.complete ? '#166534' : isRejected ? '#991b1b' : 'var(--app-text-secondary)' }}>
+              {step.complete ? <CheckCircle2 className="w-4 h-4" /> : isRejected ? <XCircle className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium" style={{ color: 'var(--app-text)' }}>{step.title}</div>
+              <div className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>{isSkipped ? 'Not applicable — independent review was not performed' : step.detail}</div>
+            </div>
+            <span className="text-xs" style={{ color: 'var(--app-text-muted)' }}>{isSkipped ? 'Skipped' : isRejected ? 'Rejected' : step.complete ? 'Complete' : step.active ? 'Current' : 'Waiting'}</span>
+          </li>;
+        })}
+      </ol>
+      {isOwnerSignoff && <p className="text-xs rounded-lg p-2" style={{ background: 'var(--app-surface-hover, rgba(148,163,184,.12))', color: 'var(--app-text-secondary)' }}>Owner Sign-off is self-authorization and must not be represented as independent approval.</p>}
+      <p className="text-[11px]" style={{ color: 'var(--app-text-muted)' }}>This view reflects the current single-approver lifecycle. Multi-approver stages will appear here once the enterprise approval backend is implemented.</p>
+    </div>
+  );
+}
+De
