@@ -3,7 +3,7 @@ import {
   ArrowLeft, Clock, X, List, PlayCircle, PauseCircle,
   ChevronLeft, ChevronRight, UserCog, FileText, MessageSquare, MessageCircle,
   GitBranch, Edit3, CheckCircle2, TrendingUp, Send, Download, ShieldCheck,
-  History, Camera, AlertCircle,
+  History, Camera, AlertCircle, XCircle,
 } from 'lucide-react';
 import { exportDecisionTrailToPDF } from '../lib/pdfExport';
 import { useUserWorkspaces } from '../hooks/useWorkspaceAccess';
@@ -124,6 +124,14 @@ const EVENT_META: Record<string, { icon: React.ElementType | null; color: string
   evidence_revised:  { icon: History,       color: '#7c3aed', label: 'Evidence Revised' },
   evidence_verified: { icon: ShieldCheck,   color: '#16a34a', label: 'Evidence Verified' },
   snapshot_created:  { icon: Camera,        color: '#0891b2', label: 'Snapshot Created' },
+  approval_submitted:         { icon: FileText,     color: '#2563eb', label: 'Submitted for approval' },
+  approval_approved:          { icon: CheckCircle2, color: '#16a34a', label: 'Approved' },
+  approval_rejected:          { icon: XCircle,      color: '#dc2626', label: 'Rejected' },
+  approval_changes_requested: { icon: GitBranch,    color: '#d97706', label: 'Changes requested' },
+  approval_reopened:          { icon: History,      color: '#64748b', label: 'Reopened as draft' },
+  approval_withdrawn:         { icon: History,      color: '#64748b', label: 'Submission withdrawn' },
+  approval_amended:           { icon: Edit3,        color: '#7c3aed', label: 'Amendment started' },
+  approval_superseded:        { icon: History,      color: '#64748b', label: 'Superseded by a newer version' },
 };
 
 const CLAIM_TYPE_COLORS: Record<string, string> = {
@@ -379,7 +387,7 @@ function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorN
     'question', 'recommendation', 'status', 'kind', 'content', 'field',
     'before', 'after', 'role', 'action', 'action_item', 'conflict_topic',
     'statement', 'challenger_role', 'target_claim_code', 'outcome', 'text',
-    'actor_name', 'actor_role',
+    'actor_name', 'actor_role', 'organization_id',
   ]);
   const titleCase = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   const formatValue = (value: unknown): string => {
@@ -392,6 +400,8 @@ function AuditEventDetails({ event, actorNames }: { event: DecisionEvent; actorN
   const humanValue = (key: string, value: unknown): string => {
     if (['created_by', 'modified_by', 'verified_by', 'reviewer_id', 'changed_by', 'approved_by', 'actor_id', 'user_id', 'owner_user_id', 'backup_owner_user_id', 'approver_user_id'].includes(key) && typeof value === 'string')
       return actorNames[value] || 'Unknown user';
+    if (key === 'approver_ids' && Array.isArray(value))
+      return value.map(id => (typeof id === 'string' ? actorNames[id] || 'Unknown user' : 'Unknown user')).join(', ');
     if (key === 'snapshot_id' && typeof value === 'string')
       return auditReference('SNP', event.created_at);
     return formatValue(value);
@@ -514,7 +524,9 @@ function TimelineNode({
             )}
             {ev.payload.field === 'member_removed' && <Field label="Detail">Removed a {String(ev.payload.role || 'member')}</Field>}
             {ev.payload.field === 'organization' && (
-              <Field label="Detail">{ev.payload.action === 'linked' ? 'Linked to an organization' : 'Unlinked from organization'}</Field>
+              <Field label="Detail">{ev.payload.action === 'linked'
+                ? (actorNames[String(ev.payload.organization_id)] ? `Linked to ${actorNames[String(ev.payload.organization_id)]}` : 'Linked to an organization')
+                : 'Unlinked from organization'}</Field>
             )}
             {ev.payload.field === 'action_item_assignee' && <Field label="Detail">Assigned "{String(ev.payload.action_item ?? '')}"</Field>}
             {ev.payload.field === 'manual_action_item_added' && <Field label="Detail">Added: {String(ev.payload.action_item ?? '')}</Field>}
@@ -1339,6 +1351,10 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         if (typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(value)) ids.add(value);
       }
     }
+    for (const e of events) {
+      const approverIds = e.payload?.approver_ids;
+      if (Array.isArray(approverIds)) for (const id of approverIds) if (typeof id === 'string') ids.add(id);
+    }
     for (const d of domainOwners) {
       if (d.owner_user_id) ids.add(d.owner_user_id);
       if (d.backup_owner_user_id) ids.add(d.backup_owner_user_id);
@@ -1358,10 +1374,29 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         if (user?.id && ids.has(user.id)) {
           map[user.id] = map[user.id] || user.user_metadata?.full_name || user.email || 'Unknown user';
         }
-        setActorNames(map);
+        setActorNames(prev => ({ ...prev, ...map }));
         setOwnerNames(map);
       });
   }, [events, domainOwners, claims, evidenceVersions, snapshots, user]);
+
+  useEffect(() => {
+    const orgIds = [...new Set(events
+      .filter(e => e.event_type === 'human_override' && e.payload?.field === 'organization' && typeof e.payload?.organization_id === 'string')
+      .map(e => e.payload.organization_id as string))];
+    if (orgIds.length === 0) return;
+    supabase
+      .from('organizations')
+      .select('id, name')
+      .in('id', orgIds)
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        const map: Record<string, string> = {};
+        for (const row of data as { id: string; name: string | null }[]) {
+          if (row.name) map[row.id] = row.name;
+        }
+        setActorNames(prev => ({ ...prev, ...map }));
+      });
+  }, [events]);
 
   const displayedEvents = useMemo(() => {
     if (!replayActive || !replayTimestamp) return events;

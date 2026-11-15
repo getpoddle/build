@@ -5,12 +5,15 @@ export interface ApproverProfile {
   username?: string | null;
 }
 
-export function approverDisplayName(profile: ApproverProfile | null | undefined): string {
-  if (!profile) return 'Name not provided';
+export function approverNameOrNull(profile: ApproverProfile | null | undefined): string | null {
+  if (!profile) return null;
   const full = profile.full_name?.trim();
   if (full) return full;
   const parts = [profile.first_name?.trim(), profile.last_name?.trim()].filter(Boolean);
   if (parts.length) return parts.join(' ');
-  const username = profile.username?.trim();
-  return username || 'Name not provided';
+  return profile.username?.trim() || null;
+}
+
+export function approverDisplayName(profile: ApproverProfile | null | undefined): string {
+  return approverNameOrNull(profile) ?? 'Name not provided';
 }

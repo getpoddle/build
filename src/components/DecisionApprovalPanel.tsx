@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { CheckCircle2, XCircle, Send, RotateCcw, Loader2, AlertCircle, Clock, Search } from 'lucide-react';
+import { CheckCircle2, XCircle, Send, RotateCcw, Loader2, AlertCircle, Clock, Search, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import DecisionVersionHistory from './DecisionVersionHistory';
 import DecisionFinancialCommitments from './DecisionFinancialCommitments';
 import { roleLabel, uniqueDisplayNames } from '../lib/approverDisplay';
+import { approverNameOrNull, type ApproverProfile } from '../lib/approverIdentity';
+import { approverCountLabel, toggleApproverSelection } from '../lib/approverSelection';
 
 type LifecycleStatus = 'draft' | 'under_review' | 'approved' | 'rejected';
 
@@ -65,7 +67,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     setError('');
     const [lcRes, memberRes, wsRes, ownersRes, versionRes] = await Promise.all([
       supabase.from('decision_lifecycles').select('status, approver_user_id, submitted_at, decision_note, approval_cycle, current_version_id').eq('workspace_id', workspaceId).maybeSingle(),
-      supabase.from('workspace_members').select('user_id, role, profiles(full_name)').eq('workspace_id', workspaceId),
+      supabase.from('workspace_members').select('user_id, role, profiles(full_name, first_name, last_name, username)').eq('workspace_id', workspaceId),
       supabase.from('workspaces').select('owner_id, decision_category, decision_owner_override_user_id').eq('id', workspaceId).maybeSingle(),
       supabase.from('domain_owners').select('category_key, owner_user_id, backup_owner_user_id').eq('workspace_id', workspaceId),
       supabase.from('decision_versions').select('id, version_number').eq('workspace_id', workspaceId),
@@ -77,7 +79,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
       return;
     }
 
-    const members = (memberRes.data ?? []) as Array<{ user_id: string; role: string; profiles: Array<{ full_name: string | null }> }>;
+    const members = (memberRes.data ?? []) as Array<{ user_id: string; role: string; profiles: Array<ApproverProfile> }>;
     const myRole = members.find(m => m.user_id === currentUserId)?.role ?? null;
     const ws = wsRes.data;
     const domainMatch = (ownersRes.data ?? []).find(d => d.category_key === ws?.decision_category);
@@ -94,7 +96,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     for (const m of members) {
       const profile = m.profiles[0];
       nextDirectory[m.user_id] = {
-        name: profile?.full_name || 'Unnamed member',
+        name: approverNameOrNull(profile) ?? `Member ID ${m.user_id.slice(0, 8)}`,
         role: m.role,
       };
     }
@@ -366,14 +368,42 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
                 Require multiple independent approvals
               </label>
               {multiEnabled && <>
-                <p className="text-xs">Select at least two approvers. Every selected person must approve.</p>
-                {approvers.map(a=><label key={a.user_id} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={selectedMulti.includes(a.user_id)} onChange={e=>setSelectedMulti(old=>e.target.checked?[...old,a.user_id]:old.filter(id=>id!==a.user_id))} />
-                  {a.label} ({roleLabel(a.role)})
-                </label>)}
-                <button className="btn-primary" disabled={busy || selectedMulti.length<2 || (isResubmission && !note.trim())} onClick={multiSubmit}>
-                  Submit to {selectedMulti.length} approvers
-                </button>
+                <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>Select at least two approvers. Every selected person must approve.</p>
+                <ul aria-label="Approvers for independent approval" className="rounded-lg divide-y" style={{ border: '1px solid var(--app-border)' }}>
+                  {approvers.map(a => {
+                    const checked = selectedMulti.includes(a.user_id);
+                    return (
+                      <li key={a.user_id}>
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={checked}
+                          onClick={() => setSelectedMulti(old => toggleApproverSelection(old, a.user_id))}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+                          style={{ background: checked ? 'var(--app-surface-hover, rgba(148, 163, 184, 0.15))' : 'transparent', color: 'var(--app-text)' }}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded"
+                            style={{ border: checked ? '1px solid #166534' : '1px solid var(--app-border)', background: checked ? '#166534' : 'transparent', color: '#ffffff' }}
+                          >
+                            {checked && <Check className="w-3 h-3" strokeWidth={3} />}
+                          </span>
+                          <span className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-sm font-medium">{a.label}</span>
+                            <span className="text-[11px]" style={{ color: 'var(--app-text-secondary)' }}>{roleLabel(a.role)}</span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <p aria-live="polite" className="text-xs font-semibold" style={{ color: 'var(--app-text)' }}>{approverCountLabel(selectedMulti.length)}</p>
+                  <button className="btn-primary" disabled={busy || selectedMulti.length < 2 || (isResubmission && !note.trim())} onClick={multiSubmit}>
+                    Submit for approval
+                  </button>
+                </div>
               </>}
             </div>
           )}
