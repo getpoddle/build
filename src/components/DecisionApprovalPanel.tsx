@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { CheckCircle2, XCircle, Send, RotateCcw, Loader2, AlertCircle, Clock, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import DecisionVersionHistory from './DecisionVersionHistory';
+import DecisionApprovalProgress from './DecisionApprovalProgress';
 import DecisionFinancialCommitments from './DecisionFinancialCommitments';
 import { roleLabel, uniqueDisplayNames } from '../lib/approverDisplay';
 
@@ -217,6 +218,15 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
           </p>
         </div>
       )}
+
+      <DecisionApprovalProgress
+        status={status}
+        approverName={approverName}
+        versionNumber={currentVersionNumber}
+        approvalCycle={lifecycle?.approval_cycle}
+        submittedAt={lifecycle?.submitted_at}
+        isOwnerSignoff={status === 'approved' && !!ownerSignoff}
+      />
 
       {lifecycle?.decision_note && status !== 'under_review' && (
         <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
