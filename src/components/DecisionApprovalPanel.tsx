@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import DecisionVersionHistory from './DecisionVersionHistory';
 import DecisionFinancialCommitments from './DecisionFinancialCommitments';
 import { roleLabel, uniqueDisplayNames } from '../lib/approverDisplay';
+import { approverDisplayName, type ApproverProfile } from '../lib/approverIdentity';
 
 type LifecycleStatus = 'draft' | 'under_review' | 'approved' | 'rejected';
 
@@ -60,7 +61,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     setError('');
     const [lcRes, memberRes, wsRes, ownersRes, versionRes] = await Promise.all([
       supabase.from('decision_lifecycles').select('status, approver_user_id, submitted_at, decision_note, approval_cycle, current_version_id').eq('workspace_id', workspaceId).maybeSingle(),
-      supabase.from('workspace_members').select('user_id, role, profiles(full_name)').eq('workspace_id', workspaceId),
+      supabase.from('workspace_members').select('user_id, role, profiles(full_name, first_name, last_name, username)').eq('workspace_id', workspaceId),
       supabase.from('workspaces').select('owner_id, decision_category, decision_owner_override_user_id').eq('id', workspaceId).maybeSingle(),
       supabase.from('domain_owners').select('category_key, owner_user_id, backup_owner_user_id').eq('workspace_id', workspaceId),
       supabase.from('decision_versions').select('id, version_number').eq('workspace_id', workspaceId),
@@ -72,7 +73,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
       return;
     }
 
-    const members = (memberRes.data ?? []) as Array<{ user_id: string; role: string; profiles: Array<{ full_name: string | null }> }>;
+    const members = (memberRes.data ?? []) as Array<{ user_id: string; role: string; profiles: ApproverProfile[] | ApproverProfile | null }>;
     const myRole = members.find(m => m.user_id === currentUserId)?.role ?? null;
     const ws = wsRes.data;
     const domainMatch = (ownersRes.data ?? []).find(d => d.category_key === ws?.decision_category);
@@ -87,9 +88,9 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
 
     const nextDirectory: Record<string, DirectoryEntry> = {};
     for (const m of members) {
-      const profile = m.profiles[0];
+      const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
       nextDirectory[m.user_id] = {
-        name: profile?.full_name || 'Unnamed member',
+        name: approverDisplayName(profile),
         role: m.role,
       };
     }
