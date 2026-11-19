@@ -1,3 +1,4 @@
+import BusinessLogo from '../components/BusinessLogo';
 import { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight,
@@ -618,6 +619,28 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
   );
 }
 
+// ─── Trusted-by logo strip ───────────────────────────────────────────────────
+
+function TrustedBySection() {
+  return (
+    <section className="py-10 sm:py-12" style={{ background: BG_ALT, borderTop: `1px solid ${BORDER_SOFT}`, borderBottom: `1px solid ${BORDER_SOFT}` }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-center mb-3" style={{ color: SLATE_MID }}>
+          Powering Real-World Decisions
+        </p>
+        <p className="text-sm text-center mb-8" style={{ color: SLATE }}>
+          Businesses using Poddle AI for evidence-backed, accountable decision-making.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
+          <BusinessLogo id="kallotok" name="KalloTok Technologies Ltd" href="https://kallotok.com" image="/partners/kallotok.png" width={40} height={40} />
+          <BusinessLogo id="intelnet" name="IntelNet" href="https://intelnet.app" image="/partners/intelnet.png" width={40} height={40} />
+          <BusinessLogo id="atlantic-review" name="Atlantic Review" href="https://atlantic-review.com" image="/partners/atlantic-review.png" width={141} height={68} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ProblemSection() {
   return <section className="py-20 sm:py-24" style={{ background: BG_ALT, borderTop: `1px solid ${BORDER_SOFT}` }}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-10 items-center">
@@ -1156,6 +1179,7 @@ export default function GuestHome({ onNavigate }: GuestHomeProps) {
   return (
     <div className="min-h-screen" style={{ background: WHITE }}>
       <HeroSection onNavigate={onNavigate} />
+      <TrustedBySection />
       <ProblemSection />
       <WorkflowSection onNavigate={onNavigate} />
       <CapabilitiesSection />
