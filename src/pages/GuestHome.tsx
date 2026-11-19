@@ -1,4 +1,3 @@
-import BusinessLogo from '../components/BusinessLogo';
 import { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight,
@@ -621,7 +620,38 @@ function HeroSection({ onNavigate }: { onNavigate: (p: string) => void }) {
 
 // ─── Trusted-by logo strip ───────────────────────────────────────────────────
 
+type TrustedBusiness = {
+  id: string;
+  name: string;
+  href: string;
+  image: string;
+  width: number;
+  height: number;
+  description: string;
+};
+
+const TRUSTED_BUSINESSES: TrustedBusiness[] = [
+  {
+    id: 'kallotok', name: 'KalloTok Technologies Ltd',
+    href: 'https://kallotok.com', image: '/partners/kallotok.png', width: 40, height: 40,
+    description: 'Uses Poddle AI to evaluate product strategy, creator monetization models, and platform governance decisions.',
+  },
+  {
+    id: 'intelnet', name: 'IntelNet',
+    href: 'https://intelnet.app', image: '/partners/intelnet.png', width: 40, height: 40,
+    description: 'Uses Poddle AI to challenge assumptions, evaluate risk intelligence strategies, and prioritize product development decisions.',
+  },
+  {
+    id: 'atlantic-review', name: 'Atlantic Review',
+    href: 'https://atlantic-review.com', image: '/partners/atlantic-review.png', width: 141, height: 68,
+    description: 'Uses Poddle AI to assess editorial priorities, evaluate policy research directions, and support evidence-backed strategic decisions.',
+  },
+];
+
 function TrustedBySection() {
+  const [activeLogo, setActiveLogo] = useState<string | null>(null);
+  const [mobileInfo, setMobileInfo] = useState<string | null>(null);
+
   return (
     <section className="py-10 sm:py-12" style={{ background: BG_ALT, borderTop: `1px solid ${BORDER_SOFT}`, borderBottom: `1px solid ${BORDER_SOFT}` }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -631,10 +661,65 @@ function TrustedBySection() {
         <p className="text-sm text-center mb-8" style={{ color: SLATE }}>
           Businesses using Poddle AI for evidence-backed, accountable decision-making.
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
-          <BusinessLogo id="kallotok" name="KalloTok Technologies Ltd" href="https://kallotok.com" image="/partners/kallotok.png" width={40} height={40} />
-          <BusinessLogo id="intelnet" name="IntelNet" href="https://intelnet.app" image="/partners/intelnet.png" width={40} height={40} />
-          <BusinessLogo id="atlantic-review" name="Atlantic Review" href="https://atlantic-review.com" image="/partners/atlantic-review.png" width={141} height={68} />
+        <div className="flex flex-wrap items-start justify-center gap-x-12 gap-y-6">
+          {TRUSTED_BUSINESSES.map((business) => {
+            const visible = activeLogo === business.id;
+            const expanded = mobileInfo === business.id;
+            return (
+              <div key={business.id} className="relative flex flex-col items-center justify-center" style={{ minWidth: business.width === 141 ? 141 : 80 }}>
+                <a
+                  href={business.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Visit ${business.name}`}
+                  aria-describedby={`trusted-description-${business.id}`}
+                  onMouseEnter={() => setActiveLogo(business.id)}
+                  onMouseLeave={() => setActiveLogo(null)}
+                  onFocus={() => setActiveLogo(business.id)}
+                  onBlur={() => setActiveLogo(null)}
+                  className="flex items-center justify-center transition-transform duration-200 hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                  style={{ minHeight: 68 }}
+                >
+                  <img src={business.image} alt={business.name} width={business.width} height={business.height} style={{ objectFit: 'contain' }} />
+                </a>
+                <div
+                  id={`trusted-description-${business.id}`}
+                  role="tooltip"
+                  aria-hidden={!visible}
+                  className="hidden md:block"
+                  style={{
+                    position: 'absolute', top: '100%', left: '50%',
+                    transform: `translate(-50%, ${visible ? '4px' : '-3px'})`,
+                    width: 270, maxWidth: '80vw', padding: '13px 15px',
+                    borderRadius: 10, background: WHITE, color: SLATE,
+                    border: `1px solid ${BORDER}`, boxShadow: '0 12px 30px rgba(15,23,42,0.14)',
+                    fontSize: 12, lineHeight: 1.6, textAlign: 'left',
+                    opacity: visible ? 1 : 0, visibility: visible ? 'visible' : 'hidden',
+                    pointerEvents: 'none', zIndex: 100,
+                    transition: 'opacity 180ms ease, transform 180ms ease, visibility 180ms ease',
+                  }}
+                >
+                  <strong style={{ display: 'block', color: INK, marginBottom: 4 }}>{business.name}</strong>
+                  {business.description}
+                </div>
+                <button
+                  type="button"
+                  className="md:hidden mt-1 text-xs px-2 py-1 rounded"
+                  style={{ color: BLUE, background: C.blueBg }}
+                  aria-expanded={expanded}
+                  aria-controls={`trusted-mobile-${business.id}`}
+                  onClick={() => setMobileInfo(expanded ? null : business.id)}
+                >
+                  {expanded ? 'Close' : 'About'}
+                </button>
+                {expanded && (
+                  <div id={`trusted-mobile-${business.id}`} className="md:hidden mt-2 rounded-lg p-3 text-xs leading-relaxed" style={{ width: 200, background: WHITE, color: SLATE, border: `1px solid ${BORDER}` }}>
+                    {business.description}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
