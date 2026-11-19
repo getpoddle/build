@@ -1,3 +1,4 @@
+import BusinessLogo from '../components/BusinessLogo';
 import { Bot, Brain, Lock, ArrowRight, Shield, TrendingUp, Users, Zap, ChevronRight, MessageSquare, UsersRound, Building2, Map, Fingerprint, Hash, ShieldCheck } from 'lucide-react';
 
 interface HomeProps {
@@ -96,6 +97,22 @@ export default function Home({ onNavigate }: HomeProps) {
                     View Pricing
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Trusted-by logo strip */}
+            <div
+              className="p-5 lg:p-6 rounded-xl"
+              style={{ background: 'var(--app-surface)', border: '1px solid var(--app-border)' }}
+            >
+              <p className="section-label mb-1 text-center">Powering Real-World Decisions</p>
+              <p className="text-sm mb-4 text-center" style={{ color: 'var(--app-text-muted)' }}>
+                Businesses using Poddle AI for evidence-backed, accountable decision-making.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-5 sm:gap-x-14">
+                <BusinessLogo id="kallotok" name="KalloTok Technologies Ltd" href="https://kallotok.com" image="/partners/kallotok.png" width={40} height={40} />
+                <BusinessLogo id="intelnet" name="IntelNet" href="https://intelnet.app" image="/partners/intelnet.png" width={40} height={40} />
+                <BusinessLogo id="atlantic-review" name="Atlantic Review" href="https://atlantic-review.com" image="/partners/atlantic-review.png" width={141} height={68} />
               </div>
             </div>
 
