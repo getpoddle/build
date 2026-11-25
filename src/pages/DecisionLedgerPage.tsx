@@ -31,6 +31,15 @@ export default function DecisionLedgerPage({ onNavigate }: { onNavigate: (page: 
    return result;
   },
  });
+ const [organizationId,setOrganizationId] = useState('');
+ const organizations = useQuery({
+  queryKey: ['user', user?.id, 'decision-registration-organizations'], enabled: !!user,
+  queryFn: async () => {
+   const { data, error } = await supabase.from('organizations').select('id, name').order('name');
+   if (error) throw error;
+   return data || [];
+  },
+ });
  const [search,setSearch] = useState(''); const [filter,setFilter] = useState('all');
  const [show,setShow] = useState(false); const [title,setTitle] = useState('');
  const [origin,setOrigin] = useState('openai'); const [model,setModel] = useState('');
@@ -40,20 +49,25 @@ export default function DecisionLedgerPage({ onNavigate }: { onNavigate: (page: 
  const visible = rows.filter(w => (filter === 'all' || metadata.data![w.id].status === filter) && `${w.name} ${w.id} ${origins[metadata.data![w.id].origin || ''] || 'Not recorded'}`.toLowerCase().includes(search.toLowerCase()));
  async function register(e: FormEvent) {
   e.preventDefault(); if (busy || !user || !session?.access_token) return;
+  if (organizationId && (organizations.isError || !organizations.data?.some(o => o.id === organizationId))) { setMessage('Select an organization you belong to.'); return; }
   setBusy(true); setMessage('');
   try {
-   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-workspace`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ name: title.trim(), description: description.trim(), domain: 'general', plan: 'team', decision_origin: origin, decision_origin_model: origin === 'human' ? null : model.trim() || null, decision_source_system:sourceSystem.trim() || null, decision_external_reference:externalReference.trim() || null, decision_model_version:origin==='human'?null:modelVersion.trim() || null, decision_original_at:originalAt?new Date(originalAt).toISOString():null }) });
+   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-workspace`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ name: title.trim(), description: description.trim(), domain: 'general', plan: 'team', organization_id: organizationId || null, decision_origin: origin, decision_origin_model: origin === 'human' ? null : model.trim() || null, decision_source_system:sourceSystem.trim() || null, decision_external_reference:externalReference.trim() || null, decision_model_version:origin==='human'?null:modelVersion.trim() || null, decision_original_at:originalAt?new Date(originalAt).toISOString():null }) });
    const data = await res.json();
    if (!res.ok || !data.workspace?.id) throw new Error(data.error || 'Registration failed. Check your workspaces before retrying.');
    await Promise.all([client.invalidateQueries({queryKey:['user',user.id,'workspaces']}),client.invalidateQueries({queryKey:['user',user.id,'own-profile-sensitive']}),client.invalidateQueries({queryKey:['user',user.id,'decision-ledger']})]);
-   setShow(false); setTitle(''); setDescription(''); setModel(''); setSourceSystem('');setExternalReference('');setModelVersion('');setOriginalAt(''); onNavigate('decision-record', data.workspace.id);
+   setShow(false); setOrganizationId(''); setTitle(''); setDescription(''); setModel(''); setSourceSystem('');setExternalReference('');setModelVersion('');setOriginalAt(''); onNavigate('decision-record', data.workspace.id);
   } catch (err) { setMessage(err instanceof Error ? err.message : 'Registration failed. Check your workspaces before retrying.'); }
   finally { setBusy(false); }
  }
  return <main className="min-h-screen p-4 sm:p-8 pb-28" style={{background:'var(--app-bg)',color:'var(--app-text-primary)'}}>
-  <div className="flex flex-wrap items-center justify-between gap-4 mb-6"><div><h1 className="text-2xl font-bold">Decision Ledger</h1><p style={{color:'var(--app-text-secondary)'}}>Your accessible private decisions, regardless of where they originated.</p></div><button className="rounded-lg px-4 py-3 font-semibold" style={{background:'var(--signal)',color:'var(--app-bg)'}} onClick={()=>{setShow(!show);setMessage('');}} disabled={busy}>{show?'Close registration':'+ Register external decision'}</button></div>
+  <div className="flex flex-wrap items-center justify-between gap-4 mb-6"><div><h1 className="text-2xl font-bold">Decision Ledger</h1><p style={{color:'var(--app-text-secondary)'}}>Your accessible decisions, regardless of where they originated.</p></div><button className="rounded-lg px-4 py-3 font-semibold" style={{background:'var(--signal)',color:'var(--app-bg)'}} onClick={()=>{setShow(!show);setMessage('');}} disabled={busy}>{show?'Close registration':'+ Register external decision'}</button></div>
   {show && <form onSubmit={register} className="space-y-3 rounded-xl border p-4 mb-6" style={fieldStyle}>
-   <h2 className="font-semibold">Register external decision</h2><p className="text-sm">Creates a private workspace using your existing plan and trial limits. Source attribution is self-reported, not verified. The recommendation is recorded in the workspace description.</p>
+   <h2 className="font-semibold">Register external decision</h2><p className="text-sm">Creates a non-public workspace using your existing plan and trial limits. Source attribution is self-reported, not verified. The recommendation is recorded in the workspace description.</p>
+   <label className="block">Decision scope<select className={field} style={fieldStyle} value={organizationId} disabled={busy} onChange={e=>setOrganizationId(e.target.value)}><option value="">Private decision</option>{(organizations.data || []).map(o=><option key={o.id} value={o.id}>{o.name} — Organization</option>)}</select></label>
+   {organizations.isPending && <p className="text-sm">Loading organizations…</p>}
+   {organizations.isError && <p role="alert" className="text-sm">Unable to load organizations. <button type="button" className="underline" onClick={()=>void organizations.refetch()}>Retry</button></p>}
+   {organizationId && <p className="text-sm">Organization governance applies. Organization owners and admins may view workspace information under existing access policies. Affiliation cannot be changed through ordinary workspace updates.</p>}
    <label className="block">Decision title<input className={field} style={fieldStyle} required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} /></label>
    <label className="block">Origin<select className={field} style={fieldStyle} value={origin} onChange={e=>setOrigin(e.target.value)}>{Object.entries(origins).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
    {origin !== 'human' && <label className="block">Model or agent (optional)<input className={field} style={fieldStyle} maxLength={200} value={model} onChange={e=>setModel(e.target.value)}/></label>}
@@ -63,7 +77,7 @@ export default function DecisionLedgerPage({ onNavigate }: { onNavigate: (page: 
    <label className="block">Original decision date and time (local, optional)<input type="datetime-local" className={field} style={fieldStyle} value={originalAt} onChange={e=>setOriginalAt(e.target.value)}/></label>
    <label className="block">Recommendation and rationale<textarea className={field} style={fieldStyle} rows={5} required maxLength={20000} value={description} onChange={e=>setDescription(e.target.value)}/></label>
    {message && <p role="alert" style={{color:'var(--negative)'}}>{message}</p>}
-   <button type="submit" disabled={busy||!title.trim()||!description.trim()} className="rounded-lg border px-4 py-2 disabled:opacity-50">{busy?'Registering…':'Register as draft'}</button>
+   <button type="submit" disabled={busy||!title.trim()||!description.trim()|| (!!organizationId && (organizations.isError || !organizations.data?.some(o=>o.id===organizationId)))} className="rounded-lg border px-4 py-2 disabled:opacity-50">{busy?'Registering…':'Register as draft'}</button>
   </form>}
   <div className="flex flex-wrap gap-3 mb-4"><input aria-label="Search decisions" placeholder="Search title, origin or ID" className={field+' max-w-sm'} style={fieldStyle} value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Approval status" className={field+' max-w-xs'} style={fieldStyle} value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All approval statuses</option>{Object.entries(statuses).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select><button className="border rounded-lg px-3" onClick={()=>{void refetch();void metadata.refetch();}}>Refresh</button></div>
   {error || metadata.error ? <p role="alert">Unable to load the ledger. Check your connection and database migration, then refresh.</p> : loading || metadata.isPending ? <p>Loading decisions…</p> : <><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">{[['Total',rows.length],['Draft',rows.filter(w=>metadata.data![w.id].status==='draft').length],['Under review',rows.filter(w=>metadata.data![w.id].status==='under_review').length],['Approved',rows.filter(w=>metadata.data![w.id].status==='approved').length]].map(([label,count])=><div key={label} className="rounded-xl border p-4" style={fieldStyle}><p className="text-sm">{label}</p><p className="text-2xl font-bold">{count}</p></div>)}</div>
