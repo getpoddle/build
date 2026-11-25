@@ -29,6 +29,8 @@ interface DecisionApprovalPanelProps {
   workspaceId: string;
   currentUserId: string;
   onChanged?: () => void;
+  requestedStage?: string;
+  stageRequest?: number;
 }
 
 const STATUS_STYLE: Record<LifecycleStatus, { label: string; color: string; background: string }> = {
@@ -45,7 +47,7 @@ function formatDate(value: string | null): string {
   return new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' });
 }
 
-export default function DecisionApprovalPanel({ workspaceId, currentUserId, onChanged }: DecisionApprovalPanelProps) {
+export default function DecisionApprovalPanel({ workspaceId, currentUserId, onChanged, requestedStage, stageRequest }: DecisionApprovalPanelProps) {
   const [lifecycle, setLifecycle] = useState<Lifecycle | null>(null);
   const [directory, setDirectory] = useState<Record<string, DirectoryEntry>>({});
   const [soloOwnerEligible, setSoloOwnerEligible] = useState(false);
@@ -61,6 +63,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   const [multiEnabled, setMultiEnabled] = useState(true);
   const [approverQuery, setApproverQuery] = useState('');
   const [note, setNote] = useState('');
+  const [stageHint, setStageHint] = useState('');
   const [mode, setMode] = useState<'idle' | 'reject' | 'changes' | 'amend'>('idle');
 
   const load = useCallback(async () => {
@@ -136,6 +139,38 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
     return eligible.map(a => ({ ...a, label: labels.get(a.user_id) ?? a.name }));
   }, [directory, currentUserId]);
 
+  useEffect(() => {
+    if (loading || !requestedStage || !stageRequest) return;
+    const status = lifecycle?.status ?? 'draft';
+    const assigned = status === 'under_review' && lifecycle?.approver_user_id === currentUserId;
+    const multiPending = status === 'under_review' && lifecycle?.approver_user_id === null && multiRows.some(r => r.approval_cycle === lifecycle?.approval_cycle && r.approver_user_id === currentUserId && r.outcome === 'pending');
+    setMode('idle');
+    let hint = '';
+    switch (requestedStage) {
+      case 'draft':
+        if (status === 'approved' && canSubmit) { setMode('amend'); hint = 'Explain what is changing and confirm the amendment below.'; }
+        else if (status === 'rejected' && canSubmit) hint = 'Use Reopen as Draft below.';
+        else if (status === 'under_review' && (assigned || multiPending)) { setMode('changes'); hint = 'Describe the changes needed to return this decision to Draft.'; }
+        else if (status === 'under_review' && canSubmit) hint = 'Use Withdraw submission below.';
+        else hint = status === 'draft' ? 'This decision is already Draft.' : 'Only an authorized owner or assigned reviewer can return this decision to Draft.';
+        break;
+      case 'under_review':
+        hint = status === 'under_review' ? 'This decision is already under review.' : status !== 'draft' ? 'Return the decision to Draft before submitting for review.' : !canSubmit ? 'Only an authorized decision owner can submit for review.' : approvers.length === 0 ? 'Add another workspace owner or admin before submitting for independent review. Owner Sign-off is a separate action.' : 'Select an independent approver below and submit for approval.';
+        break;
+      case 'approved':
+        hint = status === 'approved' && !ownerSignoff ? 'This decision is already approved.' : assigned || multiPending ? 'Use the approval button below to record your independent approval.' : 'Independent approval requires a submitted decision and an assigned approver. Owner Sign-off does not count as independent approval.';
+        break;
+      case 'owner_signed_off':
+        hint = status === 'approved' && ownerSignoff ? 'Owner Sign-off has already been recorded for this version.' : status === 'draft' && soloOwnerEligible && canSubmit && approvers.length === 0 ? 'Enter a reason in the Owner Sign-off form below and confirm.' : 'Owner Sign-off requires a Draft decision and an eligible sole workspace owner without an independent approver.';
+        break;
+      case 'rejected':
+        if (assigned || multiPending) { setMode('reject'); hint = 'Enter the reason for rejection and confirm below.'; }
+        else hint = status === 'rejected' ? 'This decision is already rejected.' : 'Only an assigned independent approver can reject a decision under review.';
+        break;
+    }
+    setStageHint(hint);
+  }, [stageRequest, requestedStage, loading, lifecycle, currentUserId, canSubmit, multiRows, approvers, ownerSignoff, soloOwnerEligible]);
+
   async function runAction(action: LifecycleAction, payload: { note?: string | null; approver?: string | null }) {
     setBusy(true);
     setError('');
@@ -204,7 +239,7 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
   }
 
   const status = lifecycle?.status ?? 'draft';
-  const style = STATUS_STYLE[status];
+  const style = status === 'approved' && ownerSignoff ? {label: 'Owner Signed-off', color: '#1d4ed8', background: '#dbeafe'} : STATUS_STYLE[status];
   const activeMulti = status === 'under_review' && lifecycle?.approver_user_id === null && multiRows.some(r => r.approval_cycle === lifecycle?.approval_cycle);
   const myMultiPending = activeMulti && multiRows.some(r => r.approver_user_id === currentUserId && r.outcome === 'pending');
   const isAssignedApprover = status === 'under_review' && lifecycle?.approver_user_id === currentUserId;
@@ -235,6 +270,8 @@ export default function DecisionApprovalPanel({ workspaceId, currentUserId, onCh
           </span>
         </div>
       </div>
+
+      {stageHint && <p role="status" className="text-sm rounded-lg border p-3" style={{borderColor:'var(--app-border)'}}>{stageHint}</p>}
 
       {status === 'under_review' && !activeMulti && (
         <div className="p-3 rounded-lg space-y-1" style={{ border: '1px solid var(--app-border)' }}>
