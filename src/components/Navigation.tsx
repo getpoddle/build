@@ -1,4 +1,5 @@
-import { User, Users, LogOut, Lock, Home, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, Building2, Map, BookOpen, ClipboardCheck, List } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { User, Users, LogOut, Lock, Home, ChevronRight, ChevronLeft, Settings, LayoutDashboard, CreditCard, Sun, Moon, Building2, Map, BookOpen, ClipboardCheck, List, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import PoddleMark from './PoddleMark';
@@ -95,7 +96,18 @@ export default function Navigation({ currentPage, onNavigate, collapsed = false,
     }
   }, [onNavigate]);
 
-  const navItemsAuth = [...NAV_ITEMS_AUTH, { id: 'decision-ledger', label: 'Decision Ledger', icon: List }, { id: 'decision-map', label: 'Decision Map', icon: Map }, { id: 'decision-trail', label: 'Decision Trail', icon: BookOpen }, { id: 'my-approvals', label: 'My Approvals', icon: ClipboardCheck }, { id: 'organization', label: 'Organization', icon: Building2 }];
+  const governanceAccess = useQuery({
+    queryKey: ['user', user?.id, 'governance-navigation-access'],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('organization_members')
+        .select('organization_id').eq('user_id', user!.id)
+        .in('role', ['owner', 'admin']).limit(1);
+      if (error) throw error;
+      return (data?.length ?? 0) > 0;
+    },
+  });
+  const navItemsAuth = [...NAV_ITEMS_AUTH, { id: 'decision-ledger', label: 'Decision Ledger', icon: List }, ...(governanceAccess.data === true && !governanceAccess.isError ? [{ id: 'governance', label: 'Governance Dashboard', icon: BarChart3 }] : []), { id: 'decision-map', label: 'Decision Map', icon: Map }, { id: 'decision-trail', label: 'Decision Trail', icon: BookOpen }, { id: 'my-approvals', label: 'My Approvals', icon: ClipboardCheck }, { id: 'organization', label: 'Organization', icon: Building2 }];
   const navItems = user
     ? (hideDashboard ? navItemsAuth.filter(i => i.id !== 'home') : navItemsAuth)
     : NAV_ITEMS_GUEST;
