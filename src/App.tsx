@@ -31,6 +31,7 @@ const Organization = lazy(() => import('./pages/Organization'));
 const DecisionMapPage = lazy(() => import('./pages/DecisionMapPage'));
 const DecisionTrailPage = lazy(() => import('./pages/DecisionTrailPage'));
 const DecisionRecordPage = lazy(() => import('./pages/DecisionRecordPage'));
+const GovernanceDashboardPage = lazy(() => import('./pages/GovernanceDashboardPage'));
 const DecisionLedgerPage = lazy(() => import('./pages/DecisionLedgerPage'));
 const MyApprovalsPage = lazy(() => import('./pages/MyApprovalsPage'));
 const JoinOrganization = lazy(() => import('./pages/JoinOrganization'));
@@ -121,6 +122,7 @@ function AppContent() {
   'decision-trail',
   'my-approvals',
   'decision-ledger',
+  'governance',
   'organization',
   'system-health',
   'admin-panel',
@@ -363,6 +365,12 @@ if (persistentPages.has(hash)) {
         setWorkspaceId(hash.split('/')[1] || null);
         setCurrentPage('decision-record');
         sessionStorage.setItem('currentPage', 'decision-record');
+        return;
+      }
+
+      if (hash === 'governance') {
+        setCurrentPage('governance');
+        sessionStorage.setItem('currentPage', 'governance');
         return;
       }
 
@@ -926,6 +934,7 @@ if (persistentPages.has(hash)) {
               {activePage === 'organization' && <Organization key="organization" onNavigate={handleNavigate} />}
               {activePage === 'decision-map' && <DecisionMapPage key="decision-map" onNavigate={handleNavigate} />}
               {activePage === 'decision-trail' && <DecisionTrailPage key="decision-trail" onNavigate={handleNavigate} />}
+              {activePage === 'governance' && <GovernanceDashboardPage key="governance" onNavigate={handleNavigate} />}
               {activePage === 'decision-ledger' && <DecisionLedgerPage key="decision-ledger" onNavigate={handleNavigate} />}
               {activePage === 'decision-record' && <DecisionRecordPage key={workspaceId || 'missing'} workspaceId={workspaceId} onNavigate={handleNavigate} />}
               {activePage === 'my-approvals' && <MyApprovalsPage key="my-approvals" />}
