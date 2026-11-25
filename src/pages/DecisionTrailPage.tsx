@@ -1457,8 +1457,8 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
 
   async function handleReverifySubmit() {
     if (!reverifyDialogClaim) return;
-    if (!reverifyMethod.trim()) { setReverifyError('Verification method is required.'); return; }
-    if (!reverifySource.trim()) { setReverifyError('Source reference is required.'); return; }
+    if (Array.from(reverifyMethod.trim()).length < 12) { setReverifyError('Describe the verification method using at least 12 characters.'); return; }
+    if (Array.from(reverifySource.trim()).length < 12) { setReverifyError('Provide a source reference of at least 12 characters.'); return; }
     setReverifyingId(reverifyDialogClaim.id);
     setReverifyError(null);
     try {
@@ -1485,12 +1485,12 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
         closeReverifyDialog();
       } else {
         const msg = error.message || '';
-        if (msg.includes('not authorized')) {
+        if (error.code === '42501' || msg.toLowerCase().includes('not authorized')) {
           setReverifyError('You are not authorized to verify evidence in this workspace. Only workspace administrators, decision owners, and designated evidence reviewers can verify.');
         } else if (msg.includes('method is required') || msg.includes('source reference is required')) {
           setReverifyError('A verification method and supporting source are required.');
         } else {
-          setReverifyError('Verification failed. Please try again.');
+          setReverifyError(error.code === 'P0001' || error.code === '22023' ? (msg || 'Check the verification method and source reference.') : 'Verification could not be saved. Please try again.');
         }
       }
     } catch {
@@ -2124,22 +2124,26 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
                   <input
                     type="text"
                     value={reverifyMethod}
-                    onChange={e => setReverifyMethod(e.target.value)}
-                    placeholder="e.g. Manual review, Source cross-check"
+                    onChange={e => { setReverifyMethod(e.target.value); setReverifyError(null); }}
+                    aria-describedby="reverify-method-help"
+                    placeholder="e.g. Reviewed the original financial report"
                     className="input-modern w-full"
                     style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem' }}
                   />
+                  <p id="reverify-method-help" className="text-xs mt-1" style={{ color: 'var(--app-text-muted)' }}>Describe how you checked the claim. Minimum 12 characters.</p>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Source Reference *</label>
                   <input
                     type="text"
                     value={reverifySource}
-                    onChange={e => setReverifySource(e.target.value)}
-                    placeholder="URL or citation"
+                    onChange={e => { setReverifySource(e.target.value); setReverifyError(null); }}
+                    aria-describedby="reverify-source-help"
+                    placeholder="e.g. Report title, document ID or URL"
                     className="input-modern w-full"
                     style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem' }}
                   />
+                  <p id="reverify-source-help" className="text-xs mt-1" style={{ color: 'var(--app-text-muted)' }}>Identify the supporting source. Minimum 12 characters.</p>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: 'var(--app-text-muted)', letterSpacing: '0.08em' }}>Notes</label>
@@ -2152,12 +2156,12 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
                   />
                 </div>
                 {reverifyError && (
-                  <p className="text-xs font-medium" style={{ color: '#dc2626' }}>{reverifyError}</p>
+                  <p role="alert" className="text-xs font-medium" style={{ color: '#dc2626' }}>{reverifyError}</p>
                 )}
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     onClick={handleReverifySubmit}
-                    disabled={!reverifyMethod.trim() || !reverifySource.trim() || reverifyingId === reverifyDialogClaim.id}
+                    disabled={Array.from(reverifyMethod.trim()).length < 12 || Array.from(reverifySource.trim()).length < 12 || reverifyingId === reverifyDialogClaim.id}
                     className="btn-primary disabled:opacity-40"
                     style={{ padding: '0.5rem 1rem', fontSize: '0.8125rem' }}
                   >
