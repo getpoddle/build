@@ -52,7 +52,7 @@ export default function DecisionRecordPage({ workspaceId, onNavigate }: { worksp
     enabled: !!user && !!workspace && !loading && !error,
     queryFn: async () => {
       const { data, error } = await supabase.from('workspaces')
-        .select('id, name, description, decision_origin, decision_origin_model, created_at')
+        .select('id, name, description, decision_origin, decision_origin_model, decision_source_system, decision_external_reference, decision_model_version, decision_original_at, created_at')
         .eq('id', workspaceId!).single();
       if (error) throw error;
       return data;
@@ -85,6 +85,7 @@ export default function DecisionRecordPage({ workspaceId, onNavigate }: { worksp
           <div><dt>Origin (self-reported)</dt><dd className="font-semibold">{record.data.decision_origin ? origins[record.data.decision_origin] || record.data.decision_origin : 'Not recorded'}</dd>{record.data.decision_origin_model && <dd className="break-words">{record.data.decision_origin_model}</dd>}</div>
           <div><dt>Registered on</dt><dd>{new Date(record.data.created_at).toLocaleDateString()}</dd></div>
           <div><dt>Access role</dt><dd>{workspace.role}</dd></div>
+          {record.data.decision_origin && <><div><dt>Source system (reported)</dt><dd className="break-words">{record.data.decision_source_system || 'Not recorded'}</dd></div><div><dt>Model version (reported)</dt><dd className="break-words">{record.data.decision_model_version || 'Not recorded'}</dd></div><div><dt>External reference (reported)</dt><dd className="break-words">{record.data.decision_external_reference || 'Not recorded'}</dd></div><div><dt>Original decision time (reported)</dt><dd>{record.data.decision_original_at ? new Date(record.data.decision_original_at).toLocaleString() : 'Not recorded'}</dd></div></>}
         </dl>
         <div><h2 className="font-semibold mb-2">{record.data.decision_origin ? 'Registered recommendation and rationale' : 'Decision context'}</h2><p className="whitespace-pre-wrap break-words text-sm">{record.data.description || 'No context recorded.'}</p></div>
         <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>Registration does not independently verify the source or establish the original decision date.</p>

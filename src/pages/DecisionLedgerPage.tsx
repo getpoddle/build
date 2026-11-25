@@ -34,6 +34,7 @@ export default function DecisionLedgerPage({ onNavigate }: { onNavigate: (page: 
  const [search,setSearch] = useState(''); const [filter,setFilter] = useState('all');
  const [show,setShow] = useState(false); const [title,setTitle] = useState('');
  const [origin,setOrigin] = useState('openai'); const [model,setModel] = useState('');
+ const [sourceSystem,setSourceSystem]=useState(''); const [externalReference,setExternalReference]=useState(''); const [modelVersion,setModelVersion]=useState(''); const [originalAt,setOriginalAt]=useState('');
  const [description,setDescription] = useState(''); const [busy,setBusy] = useState(false); const [message,setMessage] = useState('');
  const rows = workspaces.filter(w => w.source !== 'slack' && metadata.data?.[w.id]).sort((a,b) => (b.created_at || '').localeCompare(a.created_at || ''));
  const visible = rows.filter(w => (filter === 'all' || metadata.data![w.id].status === filter) && `${w.name} ${w.id} ${origins[metadata.data![w.id].origin || ''] || 'Not recorded'}`.toLowerCase().includes(search.toLowerCase()));
@@ -41,11 +42,11 @@ export default function DecisionLedgerPage({ onNavigate }: { onNavigate: (page: 
   e.preventDefault(); if (busy || !user || !session?.access_token) return;
   setBusy(true); setMessage('');
   try {
-   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-workspace`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ name: title.trim(), description: description.trim(), domain: 'general', plan: 'team', decision_origin: origin, decision_origin_model: origin === 'human' ? null : model.trim() || null }) });
+   const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-workspace`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ name: title.trim(), description: description.trim(), domain: 'general', plan: 'team', decision_origin: origin, decision_origin_model: origin === 'human' ? null : model.trim() || null, decision_source_system:sourceSystem.trim() || null, decision_external_reference:externalReference.trim() || null, decision_model_version:origin==='human'?null:modelVersion.trim() || null, decision_original_at:originalAt?new Date(originalAt).toISOString():null }) });
    const data = await res.json();
    if (!res.ok || !data.workspace?.id) throw new Error(data.error || 'Registration failed. Check your workspaces before retrying.');
    await Promise.all([client.invalidateQueries({queryKey:['user',user.id,'workspaces']}),client.invalidateQueries({queryKey:['user',user.id,'own-profile-sensitive']}),client.invalidateQueries({queryKey:['user',user.id,'decision-ledger']})]);
-   setShow(false); setTitle(''); setDescription(''); setModel(''); onNavigate('decision-record', data.workspace.id);
+   setShow(false); setTitle(''); setDescription(''); setModel(''); setSourceSystem('');setExternalReference('');setModelVersion('');setOriginalAt(''); onNavigate('decision-record', data.workspace.id);
   } catch (err) { setMessage(err instanceof Error ? err.message : 'Registration failed. Check your workspaces before retrying.'); }
   finally { setBusy(false); }
  }
@@ -56,6 +57,10 @@ export default function DecisionLedgerPage({ onNavigate }: { onNavigate: (page: 
    <label className="block">Decision title<input className={field} style={fieldStyle} required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} /></label>
    <label className="block">Origin<select className={field} style={fieldStyle} value={origin} onChange={e=>setOrigin(e.target.value)}>{Object.entries(origins).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
    {origin !== 'human' && <label className="block">Model or agent (optional)<input className={field} style={fieldStyle} maxLength={200} value={model} onChange={e=>setModel(e.target.value)}/></label>}
+   <label className="block">Source system (optional)<input className={field} style={fieldStyle} maxLength={200} value={sourceSystem} onChange={e=>setSourceSystem(e.target.value)}/></label>
+   {origin!=='human' && <label className="block">Model version (optional)<input className={field} style={fieldStyle} maxLength={200} value={modelVersion} onChange={e=>setModelVersion(e.target.value)}/></label>}
+   <label className="block">External reference (optional)<input className={field} style={fieldStyle} maxLength={500} value={externalReference} onChange={e=>setExternalReference(e.target.value)}/></label>
+   <label className="block">Original decision date and time (local, optional)<input type="datetime-local" className={field} style={fieldStyle} value={originalAt} onChange={e=>setOriginalAt(e.target.value)}/></label>
    <label className="block">Recommendation and rationale<textarea className={field} style={fieldStyle} rows={5} required maxLength={20000} value={description} onChange={e=>setDescription(e.target.value)}/></label>
    {message && <p role="alert" style={{color:'var(--negative)'}}>{message}</p>}
    <button type="submit" disabled={busy||!title.trim()||!description.trim()} className="rounded-lg border px-4 py-2 disabled:opacity-50">{busy?'Registering…':'Register as draft'}</button>
