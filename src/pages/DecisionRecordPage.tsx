@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DecisionOutcomesPanel from '../components/DecisionOutcomesPanel';
 import DecisionApprovalPanel from '../components/DecisionApprovalPanel';
 import DecisionVersionHistory from '../components/DecisionVersionHistory';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -42,7 +43,7 @@ function ExternalEvidenceForm({ workspaceId }: { workspaceId: string }) {
 
 export default function DecisionRecordPage({ workspaceId, onNavigate }: { workspaceId: string | null; onNavigate: (page: string, id?: string) => void }) {
   const { user } = useAuth();
-  const tabs = ['Overview', 'Evidence', 'Ownership', 'Approvals', 'Audit Trail', 'Versions'] as const;
+  const tabs = ['Overview', 'Evidence', 'Ownership', 'Approvals', 'Audit Trail', 'Versions', 'Outcomes'] as const;
   const [selection, setSelection] = useState<{id: string | null; tab: typeof tabs[number]}>({id: workspaceId, tab: 'Overview'});
   const [stageChoice, setStageChoice] = useState<{id: string | null; stage: string; click: number}>({id: null, stage: '', click: 0});
   const tab = selection.id === workspaceId ? selection.tab : 'Overview';
@@ -108,6 +109,7 @@ export default function DecisionRecordPage({ workspaceId, onNavigate }: { worksp
       </section>}
       {tab === 'Ownership' && <section className="panel p-5 space-y-3"><h2 className="font-semibold">Decision ownership</h2><p className="text-sm">Your workspace access role: <strong>{workspace.role}</strong>. This is not necessarily the accountable decision owner.</p><p className="text-sm">Domain owners and backup owners are managed in workspace settings.</p>{(workspace.role === 'owner' || workspace.role === 'admin') && <button className="btn-secondary" onClick={() => onNavigate('workspace-settings',workspace.id)}>Manage ownership & settings</button>}</section>}
       {tab === 'Approvals' && user && <DecisionApprovalPanel key={workspace.id} workspaceId={workspace.id} currentUserId={user.id} requestedStage={stageChoice.id === workspaceId ? stageChoice.stage : undefined} stageRequest={stageChoice.click} onChanged={() => { void lifecycle.refetch(); }} />}
+      {tab === 'Outcomes' && user && <DecisionOutcomesPanel key={workspace.id} workspaceId={workspace.id} userId={user.id} canEdit={(workspace.role === 'owner' || workspace.role === 'admin') && !lifecycle.isError && !lifecycle.isPending && lifecycle.data?.status === 'draft'} onChanged={() => { void lifecycle.refetch(); }} />}
       {tab === 'Versions' && <DecisionVersionHistory key={workspace.id} workspaceId={workspace.id} refreshKey={`${lifecycle.data?.status ?? 'unknown'}-${lifecycle.data?.approval_cycle ?? 0}`} />}
       {tab === 'Evidence' && (workspace.role === 'owner' || workspace.role === 'admin') && (lifecycle.data?.status === 'draft' ? <ExternalEvidenceForm key={workspace.id} workspaceId={workspace.id}/> : <p className="text-sm mb-4">Evidence registration requires a draft decision.</p>)}
       {(tab === 'Evidence' || tab === 'Audit Trail') && <TimelineView key={`${workspace.id}-${tab}`} workspaceId={workspace.id} workspaceName={record.data.name} onBack={back} section={tab === 'Evidence' ? 'evidence' : 'audit'} />}
