@@ -44,6 +44,7 @@ export default function DecisionRecordPage({ workspaceId, onNavigate }: { worksp
   const { user } = useAuth();
   const tabs = ['Overview', 'Evidence', 'Ownership', 'Approvals', 'Audit Trail', 'Versions'] as const;
   const [selection, setSelection] = useState<{id: string | null; tab: typeof tabs[number]}>({id: workspaceId, tab: 'Overview'});
+  const [stageChoice, setStageChoice] = useState<{id: string | null; stage: string; click: number}>({id: null, stage: '', click: 0});
   const tab = selection.id === workspaceId ? selection.tab : 'Overview';
   const { workspaces, loading, error } = useUserWorkspaces();
   const workspace = workspaces.find(w => w.id === workspaceId && w.source !== 'slack');
@@ -88,7 +89,7 @@ export default function DecisionRecordPage({ workspaceId, onNavigate }: { worksp
       </div>
       <section className="panel p-4 mb-5 space-y-3" aria-label="Decision lifecycle">
         <h2 className="font-semibold">Decision Lifecycle</h2>
-        <div className="flex flex-wrap gap-2">{stages.map(([key,label]) => <span key={key} aria-current={!lifecycle.isError && governanceStatus === key ? 'step' : undefined} className="rounded-lg border px-3 py-2 text-sm" style={{borderColor:!lifecycle.isError && governanceStatus === key?'var(--signal)':'var(--app-border)',color:!lifecycle.isError && governanceStatus === key?'var(--signal)':'var(--app-text-secondary)'}}>{!lifecycle.isError && governanceStatus === key ? '● ' : ''}{label}</span>)}</div>
+        <div className="flex flex-wrap gap-2">{stages.map(([key,label]) => <button type="button" key={key} disabled={lifecycle.isPending || lifecycle.isError} onClick={() => { setStageChoice(old => ({id: workspaceId, stage: key, click: old.click + 1})); setSelection({id: workspaceId, tab: 'Approvals'}); }} aria-current={!lifecycle.isError && governanceStatus === key ? 'step' : undefined} className="rounded-lg border px-3 py-2 text-sm" style={{borderColor:!lifecycle.isError && governanceStatus === key?'var(--signal)':'var(--app-border)',color:!lifecycle.isError && governanceStatus === key?'var(--signal)':'var(--app-text-secondary)'}}>{!lifecycle.isError && governanceStatus === key ? '● ' : ''}{label}</button>)}</div>
         <p className="text-sm" style={{color:'var(--app-text-secondary)'}}>{lifecycle.isError ? 'Governance status unavailable.' : lifecycle.isPending ? 'Loading governance status…' : governanceStatus === 'draft' ? 'Submit for independent review or record owner sign-off if eligible.' : governanceStatus === 'under_review' ? 'Review actions depend on your assigned role.' : governanceStatus === 'rejected' ? 'Authorized owners may reopen this decision.' : 'Authorized owners may amend this decision and seek a new approval or sign-off.'}</p>
         <button className="btn-secondary" onClick={()=>setSelection({id:workspaceId,tab:'Approvals'})}>View available approval actions</button>
       </section>
@@ -106,7 +107,7 @@ export default function DecisionRecordPage({ workspaceId, onNavigate }: { worksp
         <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>Registration does not independently verify the source or establish the original decision date.</p>
       </section>}
       {tab === 'Ownership' && <section className="panel p-5 space-y-3"><h2 className="font-semibold">Decision ownership</h2><p className="text-sm">Your workspace access role: <strong>{workspace.role}</strong>. This is not necessarily the accountable decision owner.</p><p className="text-sm">Domain owners and backup owners are managed in workspace settings.</p>{(workspace.role === 'owner' || workspace.role === 'admin') && <button className="btn-secondary" onClick={() => onNavigate('workspace-settings',workspace.id)}>Manage ownership & settings</button>}</section>}
-      {tab === 'Approvals' && user && <DecisionApprovalPanel key={workspace.id} workspaceId={workspace.id} currentUserId={user.id} onChanged={() => { void lifecycle.refetch(); }} />}
+      {tab === 'Approvals' && user && <DecisionApprovalPanel key={workspace.id} workspaceId={workspace.id} currentUserId={user.id} requestedStage={stageChoice.id === workspaceId ? stageChoice.stage : undefined} stageRequest={stageChoice.click} onChanged={() => { void lifecycle.refetch(); }} />}
       {tab === 'Versions' && <DecisionVersionHistory key={workspace.id} workspaceId={workspace.id} refreshKey={`${lifecycle.data?.status ?? 'unknown'}-${lifecycle.data?.approval_cycle ?? 0}`} />}
       {tab === 'Evidence' && (workspace.role === 'owner' || workspace.role === 'admin') && (lifecycle.data?.status === 'draft' ? <ExternalEvidenceForm key={workspace.id} workspaceId={workspace.id}/> : <p className="text-sm mb-4">Evidence registration requires a draft decision.</p>)}
       {(tab === 'Evidence' || tab === 'Audit Trail') && <TimelineView key={`${workspace.id}-${tab}`} workspaceId={workspace.id} workspaceName={record.data.name} onBack={back} section={tab === 'Evidence' ? 'evidence' : 'audit'} />}
