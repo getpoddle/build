@@ -62,21 +62,36 @@ export default function DecisionRecordPage({ workspaceId, onNavigate }: { worksp
     queryKey: ['user', user?.id, 'decision-record-status', workspaceId],
     enabled: !!user && !!workspace && !loading && !error,
     queryFn: async () => {
-      const { data, error } = await supabase.from('decision_lifecycles').select('status, approval_cycle').eq('workspace_id', workspaceId!).maybeSingle();
+      const { data, error } = await supabase.from('decision_lifecycles').select('status, approval_cycle, current_version_id').eq('workspace_id', workspaceId!).maybeSingle();
       if (error) throw error;
-      return data ?? { status: 'draft', approval_cycle: 0 };
+      if (!data) return { status: 'draft', approval_cycle: 0, ownerSignedOff: false };
+      let ownerSignedOff = false;
+      if (data.status === 'approved' && data.current_version_id) {
+        const result = await supabase.from('decision_owner_signoffs').select('id').eq('workspace_id', workspaceId!).eq('version_id', data.current_version_id).maybeSingle();
+        if (result.error) throw result.error;
+        ownerSignedOff = !!result.data;
+      }
+      return { ...data, ownerSignedOff };
     },
   });
+  const governanceStatus = lifecycle.data?.ownerSignedOff ? 'owner_signed_off' : lifecycle.data?.status;
+  const stages = [['draft','Draft'],['under_review','Under Review'],['approved','Approved'],['owner_signed_off','Owner Signed-off'],['rejected','Rejected']];
   const back = () => onNavigate('decision-ledger');
   return <main className="min-h-screen px-4 sm:px-8 py-6 pb-28" style={{ background: 'var(--app-bg)', color: 'var(--app-text-primary)' }}>
     {loading || (!!workspace && record.isPending && !error) ? <p>Loading decision record…</p> : error || record.error || !workspace || !record.data ? <div role="alert"><p>This decision is unavailable or access could not be verified.</p><button className="btn-secondary mt-4" onClick={back}>Back to Decision Ledger</button></div> : <>
       <div className="flex flex-wrap justify-between items-start gap-3 mb-5">
-        <div className="min-w-0"><button className="btn-secondary mb-3" onClick={back}>← Back to Decision Ledger</button><p className="section-label">Decision Record</p><h1 className="text-2xl font-bold break-words">{record.data.name}</h1><p className="text-sm mt-2" style={{color:'var(--app-text-secondary)'}}>Approval status: <strong>{lifecycle.isError ? 'Unavailable' : lifecycle.isPending ? 'Loading…' : ({draft:'Draft',under_review:'Under review',approved:'Approved',rejected:'Rejected'} as Record<string,string>)[lifecycle.data.status] || lifecycle.data.status}</strong></p></div>
+        <div className="min-w-0"><button className="btn-secondary mb-3" onClick={back}>← Back to Decision Ledger</button><p className="section-label">Decision Record</p><h1 className="text-2xl font-bold break-words">{record.data.name}</h1><p className="text-sm mt-2" style={{color:'var(--app-text-secondary)'}}>Approval status: <strong>{lifecycle.isError ? 'Unavailable' : lifecycle.isPending ? 'Loading…' : stages.find(([key]) => key === governanceStatus)?.[1] || 'Unknown'}</strong></p></div>
         <div className="flex flex-wrap gap-2">
           <button className="btn-secondary" onClick={() => onNavigate('workspace-hub', workspace.id)}>Open in War Room</button>
           {(workspace.role === 'owner' || workspace.role === 'admin') && <button className="btn-secondary" onClick={() => onNavigate('workspace-settings', workspace.id)}>Ownership & settings</button>}
         </div>
       </div>
+      <section className="panel p-4 mb-5 space-y-3" aria-label="Decision lifecycle">
+        <h2 className="font-semibold">Decision Lifecycle</h2>
+        <div className="flex flex-wrap gap-2">{stages.map(([key,label]) => <span key={key} aria-current={!lifecycle.isError && governanceStatus === key ? 'step' : undefined} className="rounded-lg border px-3 py-2 text-sm" style={{borderColor:!lifecycle.isError && governanceStatus === key?'var(--signal)':'var(--app-border)',color:!lifecycle.isError && governanceStatus === key?'var(--signal)':'var(--app-text-secondary)'}}>{!lifecycle.isError && governanceStatus === key ? '● ' : ''}{label}</span>)}</div>
+        <p className="text-sm" style={{color:'var(--app-text-secondary)'}}>{lifecycle.isError ? 'Governance status unavailable.' : lifecycle.isPending ? 'Loading governance status…' : governanceStatus === 'draft' ? 'Submit for independent review or record owner sign-off if eligible.' : governanceStatus === 'under_review' ? 'Review actions depend on your assigned role.' : governanceStatus === 'rejected' ? 'Authorized owners may reopen this decision.' : 'Authorized owners may amend this decision and seek a new approval or sign-off.'}</p>
+        <button className="btn-secondary" onClick={()=>setSelection({id:workspaceId,tab:'Approvals'})}>View available approval actions</button>
+      </section>
       <nav aria-label="Decision record sections" className="flex gap-1 overflow-x-auto border-b mb-6" style={{borderColor:'var(--app-border)'}}>
         {tabs.map(item => <button key={item} aria-current={tab === item ? 'page' : undefined} onClick={() => setSelection({id:workspaceId,tab:item})} className="whitespace-nowrap px-4 py-3 text-sm font-semibold border-b-2" style={{borderColor:tab===item?'var(--signal)':'transparent',color:tab===item?'var(--signal)':'var(--app-text-secondary)'}}>{item}</button>)}
       </nav>
