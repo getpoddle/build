@@ -1151,7 +1151,7 @@ function ClaimsPanel({
 
 const HISTORY_PAGE_SIZE = 100;
 
-export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = 'Back to Decision Trail' }: { workspaceId: string; workspaceName: string; onBack: () => void; backLabel?: string }) {
+export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = 'Back to Decision Trail', section = 'all' }: { workspaceId: string; workspaceName: string; onBack: () => void; backLabel?: string; section?: 'all' | 'audit' | 'evidence' }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [events, setEvents] = useState<DecisionEvent[]>([]);
@@ -1839,18 +1839,18 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
 
   return (
     <div>
-      <button
+      {section === 'all' && <button
         onClick={onBack}
         className="flex items-center gap-1.5 text-sm font-medium mb-4"
         style={{ color: 'var(--app-text-secondary)' }}
       >
         <ArrowLeft className="w-4 h-4" />
         {backLabel}
-      </button>
+      </button>}
 
-      {user && <DecisionApprovalPanel workspaceId={workspaceId} currentUserId={user.id} onChanged={() => { void refreshDecisionEvents(); }} />}
+      {section === 'all' && user && <DecisionApprovalPanel workspaceId={workspaceId} currentUserId={user.id} onChanged={() => { void refreshDecisionEvents(); }} />}
 
-      <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+      {section !== 'evidence' && <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         <h2 className="display-heading text-xl">{workspaceName}</h2>
         {!loading && events.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
@@ -1911,9 +1911,9 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
             </button>
           </div>
         )}
-      </div>
+      </div>}
 
-      {viewMode === 'list' && replayActive && (
+      {section !== 'evidence' && viewMode === 'list' && replayActive && (
         <div
           className="flex items-center gap-3 p-3 mb-4 flex-wrap"
           style={{ background: 'var(--signal-bg)', border: '1px solid var(--signal)' }}
@@ -1950,7 +1950,7 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
         </div>
       )}
 
-      {!loading && !historyError && events.length === 0 && (
+      {!loading && !historyError && events.length === 0 && section !== 'evidence' && (
         <div className="panel p-8 text-center">
           <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>
             No recorded events for this decision yet.
@@ -1958,7 +1958,7 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
         </div>
       )}
 
-      {!loading && events.length > 0 && viewMode === 'story' && (
+      {!loading && section !== 'evidence' && events.length > 0 && viewMode === 'story' && (
         <DecisionStory
           events={events}
           claims={claims}
@@ -1969,9 +1969,9 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
         />
       )}
 
-      {!loading && events.length > 0 && viewMode === 'list' && (
+      {!loading && (section === 'evidence' || (events.length > 0 && viewMode === 'list')) && (
         <>
-          {replayActive && displayedEvents.length === 0 && (
+          {section !== 'evidence' && replayActive && displayedEvents.length === 0 && (
             <div className="panel p-8 text-center">
               <p className="text-sm" style={{ color: 'var(--app-text-secondary)' }}>
                 Nothing was recorded yet at this point in time.
@@ -1979,9 +1979,9 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
             </div>
           )}
 
-          {!replayActive && <NoteComposer onSubmit={handlePostNote} />}
+          {section !== 'evidence' && !replayActive && <NoteComposer onSubmit={handlePostNote} />}
 
-          {dayGroups.length > 0 && (
+          {section !== 'evidence' && dayGroups.length > 0 && (
             <>
               <h3 className="text-sm font-bold uppercase mb-3" style={{ color: 'var(--app-text-secondary)', letterSpacing: '0.06em' }}>
                 Audit Trail ({displayedEvents.length})
@@ -1999,6 +1999,7 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
             </>
           )}
 
+        {section === 'evidence' && claims.length === 0 && !historyError && <div className="panel p-6 text-sm">No evidence claims recorded yet. External evidence registration is not available in this release.</div>}
         {!replayActive && (
             <ClaimsPanel
               claims={claims}
@@ -2017,7 +2018,7 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
               onCloseVersionHistory={() => setVersionHistoryClaimId(null)}
             />
           )}
-        {!replayActive && (
+        {section !== 'evidence' && !replayActive && (
           <div className="mt-4 p-4" style={{ background: 'var(--app-surface-raised, #fff)', border: '1px solid var(--app-border)' }}>
             <div className="flex items-center gap-2 mb-3">
               <Camera className="w-4 h-4" style={{ color: '#0891b2' }} />
