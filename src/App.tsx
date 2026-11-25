@@ -30,6 +30,7 @@ const Workspaces = lazy(() => import('./pages/Workspaces'));
 const Organization = lazy(() => import('./pages/Organization'));
 const DecisionMapPage = lazy(() => import('./pages/DecisionMapPage'));
 const DecisionTrailPage = lazy(() => import('./pages/DecisionTrailPage'));
+const DecisionRecordPage = lazy(() => import('./pages/DecisionRecordPage'));
 const DecisionLedgerPage = lazy(() => import('./pages/DecisionLedgerPage'));
 const MyApprovalsPage = lazy(() => import('./pages/MyApprovalsPage'));
 const JoinOrganization = lazy(() => import('./pages/JoinOrganization'));
@@ -112,6 +113,7 @@ function AppContent() {
     if (pathname === '/advisory') return 'advisory';
     if (pathname === '/team') return 'team';
     const hash = window.location.hash.substring(1);
+    if (hash.startsWith('decision-record/')) return 'decision-record';
     if (hash.startsWith('decision-trail/')) return 'decision-trail';
     const persistentPages = new Set([
   'profile',
@@ -357,6 +359,13 @@ if (persistentPages.has(hash)) {
         return;
       }
 
+      if (hash.startsWith('decision-record/')) {
+        setWorkspaceId(hash.split('/')[1] || null);
+        setCurrentPage('decision-record');
+        sessionStorage.setItem('currentPage', 'decision-record');
+        return;
+      }
+
       if (hash === 'decision-ledger') {
         setCurrentPage('decision-ledger');
         sessionStorage.setItem('currentPage', 'decision-ledger');
@@ -540,6 +549,14 @@ if (persistentPages.has(hash)) {
       }
       return;
     }
+    if (page === 'decision-record' && routeId) {
+      setWorkspaceId(routeId);
+      setCurrentPage('decision-record');
+      sessionStorage.setItem('currentPage', 'decision-record');
+      history.pushState(null, '', `#decision-record/${routeId}`);
+      return;
+    }
+
     if (page === 'workspace-hub' && routeId) {
       setWorkspaceId(routeId);
       setWorkspaceInitialTab(initialTab);
@@ -910,6 +927,7 @@ if (persistentPages.has(hash)) {
               {activePage === 'decision-map' && <DecisionMapPage key="decision-map" onNavigate={handleNavigate} />}
               {activePage === 'decision-trail' && <DecisionTrailPage key="decision-trail" onNavigate={handleNavigate} />}
               {activePage === 'decision-ledger' && <DecisionLedgerPage key="decision-ledger" onNavigate={handleNavigate} />}
+              {activePage === 'decision-record' && <DecisionRecordPage key={workspaceId || 'missing'} workspaceId={workspaceId} onNavigate={handleNavigate} />}
               {activePage === 'my-approvals' && <MyApprovalsPage key="my-approvals" />}
               {activePage === 'workspace-hub' && workspaceId && (
                 <WorkspaceHub
