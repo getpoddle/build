@@ -1285,7 +1285,7 @@ export interface EvidenceExportItem {
   source_reference?: string | null;
   confidence: number;
   ai_confidence_score?: number | null;
-  freshness: 'current' | 'aging' | 'stale';
+  freshness: 'current' | 'aging' | 'stale' | 'unverified' | 'unknown';
   daysSinceVerified: number;
   last_reviewed_at?: string | null;
   verification_method?: string | null;
@@ -1378,8 +1378,8 @@ export interface DecisionTrailExport {
 
 export function exportDecisionTrailToPDF(data: DecisionTrailExport) {
   const freshnessBadge = (f: EvidenceExportItem['freshness']) => {
-    const label = f === 'current' ? 'Current' : f === 'aging' ? 'Aging' : 'Stale';
-    const cls = f === 'current' ? 'bb-sev-low' : f === 'aging' ? 'bb-sev-medium' : 'bb-sev-high';
+    const label = f === 'current' ? 'Current' : f === 'aging' ? 'Aging' : f === 'stale' ? 'Stale' : f === 'unknown' ? 'Freshness unknown' : 'Not verified';
+    const cls = f === 'current' ? 'bb-sev-low' : f === 'stale' ? 'bb-sev-high' : 'bb-sev-medium';
     return `<span class="bb-badge ${cls}">${label}</span>`;
   };
 
