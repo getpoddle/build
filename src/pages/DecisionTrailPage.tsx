@@ -916,7 +916,7 @@ function ClaimsPanel({
                         {verificationStatusLabel(claim.verification_status)}
                       </span>
                       <p className="text-xs" style={{ color: 'var(--app-text-secondary)' }}>
-                        {claim.agent_name} · {Math.round(claim.confidence * 100)}% confidence
+                        {claim.agent_name} · {claim.claim_code.startsWith('EXT-') ? 'Confidence not assessed' : `${Math.round(claim.confidence * 100)}% confidence`}
                         {claim.ai_confidence_score != null && claim.ai_confidence_score !== claim.confidence
                           ? ` (AI: ${Math.round(claim.ai_confidence_score * 100)}%)`
                           : ''}
@@ -1999,7 +1999,7 @@ export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = '
             </>
           )}
 
-        {section === 'evidence' && claims.length === 0 && !historyError && <div className="panel p-6 text-sm">No evidence claims recorded yet. External evidence registration is not available in this release.</div>}
+        {section === 'evidence' && claims.length === 0 && !historyError && <div className="panel p-6 text-sm">No evidence claims recorded yet.</div>}
         {!replayActive && (
             <ClaimsPanel
               claims={claims}
