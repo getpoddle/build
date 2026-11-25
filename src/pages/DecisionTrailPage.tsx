@@ -1151,7 +1151,7 @@ function ClaimsPanel({
 
 const HISTORY_PAGE_SIZE = 100;
 
-function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: string; workspaceName: string; onBack: () => void }) {
+export function TimelineView({ workspaceId, workspaceName, onBack, backLabel = 'Back to Decision Trail' }: { workspaceId: string; workspaceName: string; onBack: () => void; backLabel?: string }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [events, setEvents] = useState<DecisionEvent[]>([]);
@@ -1845,7 +1845,7 @@ function TimelineView({ workspaceId, workspaceName, onBack }: { workspaceId: str
         style={{ color: 'var(--app-text-secondary)' }}
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Decision Trail
+        {backLabel}
       </button>
 
       {user && <DecisionApprovalPanel workspaceId={workspaceId} currentUserId={user.id} onChanged={() => { void refreshDecisionEvents(); }} />}
