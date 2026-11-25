@@ -30,6 +30,7 @@ const Workspaces = lazy(() => import('./pages/Workspaces'));
 const Organization = lazy(() => import('./pages/Organization'));
 const DecisionMapPage = lazy(() => import('./pages/DecisionMapPage'));
 const DecisionTrailPage = lazy(() => import('./pages/DecisionTrailPage'));
+const DecisionLedgerPage = lazy(() => import('./pages/DecisionLedgerPage'));
 const MyApprovalsPage = lazy(() => import('./pages/MyApprovalsPage'));
 const JoinOrganization = lazy(() => import('./pages/JoinOrganization'));
 const Advisory = lazy(() => import('./pages/Advisory'));
@@ -117,6 +118,7 @@ function AppContent() {
   'decision-map',
   'decision-trail',
   'my-approvals',
+  'decision-ledger',
   'organization',
   'system-health',
   'admin-panel',
@@ -352,6 +354,12 @@ if (persistentPages.has(hash)) {
       if (hash === 'decision-trail') {
         setCurrentPage('decision-trail');
         sessionStorage.setItem('currentPage', 'decision-trail');
+        return;
+      }
+
+      if (hash === 'decision-ledger') {
+        setCurrentPage('decision-ledger');
+        sessionStorage.setItem('currentPage', 'decision-ledger');
         return;
       }
 
@@ -901,6 +909,7 @@ if (persistentPages.has(hash)) {
               {activePage === 'organization' && <Organization key="organization" onNavigate={handleNavigate} />}
               {activePage === 'decision-map' && <DecisionMapPage key="decision-map" onNavigate={handleNavigate} />}
               {activePage === 'decision-trail' && <DecisionTrailPage key="decision-trail" onNavigate={handleNavigate} />}
+              {activePage === 'decision-ledger' && <DecisionLedgerPage key="decision-ledger" onNavigate={handleNavigate} />}
               {activePage === 'my-approvals' && <MyApprovalsPage key="my-approvals" />}
               {activePage === 'workspace-hub' && workspaceId && (
                 <WorkspaceHub
