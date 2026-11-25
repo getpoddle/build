@@ -42,9 +42,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { name, description, domain, plan, decision_origin, decision_origin_model } = await req.json();
+    const { name, description, domain, plan, organization_id, decision_origin, decision_origin_model, decision_source_system, decision_external_reference, decision_model_version, decision_original_at } = await req.json();
     const origins = ['openai', 'anthropic', 'google', 'microsoft', 'internal_ai', 'human', 'other'];
     const external = decision_origin !== undefined && decision_origin !== null;
+    if (organization_id != null && (!external || typeof organization_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(organization_id))) {
+      return new Response(JSON.stringify({ error: 'Invalid organization selection.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     if ((external && (!origins.includes(decision_origin) || typeof description !== 'string' || !description.trim() || description.length > 20000)) ||
         (decision_origin_model != null && (!external || decision_origin === 'human' || typeof decision_origin_model !== 'string' || !decision_origin_model.trim() || decision_origin_model.length > 200))) {
       return new Response(JSON.stringify({ error: 'Invalid external decision details.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -133,6 +136,26 @@ Deno.serve(async (req: Request) => {
     // Seats are determined by plan — never trust client-provided value
     const resolvedPlan = plan === "business" ? "business" : "team";
     const resolvedSeats = resolvedPlan === "business" ? 100 : 10;
+
+    if (external) {
+      const optional = [[decision_source_system,200],[decision_external_reference,500],[decision_model_version,200]] as const;
+      if (optional.some(([value,max]) => value != null && (typeof value !== 'string' || value.length > max)) ||
+          (decision_origin === 'human' && decision_model_version) ||
+          (decision_original_at != null && (typeof decision_original_at !== 'string' || !Number.isFinite(Date.parse(decision_original_at)) || Date.parse(decision_original_at) > Date.now()))) {
+        return new Response(JSON.stringify({error:'Invalid provenance details.'}), {status:400,headers:{...corsHeaders,'Content-Type':'application/json'}});
+      }
+      if (profileRes.error || paidWsRes.error || betaRes.error) return new Response(JSON.stringify({error:'Unable to verify account access.'}),{status:503,headers:{...corsHeaders,'Content-Type':'application/json'}});
+      const {data: workspace,error} = await service.rpc('create_external_decision_atomic', {
+        p_actor:user.id,p_paid:isPaid,p_expiry:trialExpiresAt,p_plan:resolvedPlan,
+        p_details:{name,description,domain:'general',organization_id:organization_id ?? null,decision_origin,decision_origin_model,decision_source_system,decision_external_reference,decision_model_version,decision_original_at}
+      });
+      if (error || !workspace?.id) {
+        console.error('Atomic external registration failed',error?.message);
+        if (error?.code === '42501') return new Response(JSON.stringify({error:'You are not authorized to register this decision in the selected organization.'}),{status:403,headers:{...corsHeaders,'Content-Type':'application/json'}});
+        return new Response(JSON.stringify({error:'Decision registration failed. Refresh the ledger before retrying.'}),{status:500,headers:{...corsHeaders,'Content-Type':'application/json'}});
+      }
+      return new Response(JSON.stringify({workspace}),{headers:{...corsHeaders,'Content-Type':'application/json'}});
+    }
 
     const { data: ws, error: wsError } = await service
       .from("workspaces")
