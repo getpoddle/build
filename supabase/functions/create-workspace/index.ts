@@ -42,9 +42,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { name, description, domain, plan } = await req.json();
+    const { name, description, domain, plan, decision_origin, decision_origin_model } = await req.json();
+    const origins = ['openai', 'anthropic', 'google', 'microsoft', 'internal_ai', 'human', 'other'];
+    const external = decision_origin !== undefined && decision_origin !== null;
+    if ((external && (!origins.includes(decision_origin) || typeof description !== 'string' || !description.trim() || description.length > 20000)) ||
+        (decision_origin_model != null && (!external || decision_origin === 'human' || typeof decision_origin_model !== 'string' || !decision_origin_model.trim() || decision_origin_model.length > 200))) {
+      return new Response(JSON.stringify({ error: 'Invalid external decision details.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
-    if (!name || !name.trim()) {
+    if (typeof name !== "string" || !name.trim() || (external && name.length > 200)) {
       return new Response(JSON.stringify({ error: "Workspace name is required." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -132,6 +138,7 @@ Deno.serve(async (req: Request) => {
       .from("workspaces")
       .insert({
         name: name.trim(),
+        ...(external ? { decision_origin, decision_origin_model: decision_origin_model?.trim() || null } : {}),
         description: (description || "").trim(),
         domain: domain || "general",
         owner_id: user.id,
@@ -183,6 +190,7 @@ Deno.serve(async (req: Request) => {
         description: ws.description,
         domain: ws.domain,
         created_by: user.id,
+        ...(external ? { decision_origin, decision_origin_model: decision_origin_model?.trim() || null, attribution: 'self_reported' } : {}),
       },
     }).then(({ error }) => { if (error) console.error("Decision event insert error:", error); });
 
